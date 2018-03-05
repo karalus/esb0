@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ei="http://aoa.de/ei/foundation/v1" xmlns:tns="http://aoa.de/ei/lms/v1" targetNamespace="http://aoa.de/ei/lms/v1" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.0">
+	<xs:import namespace="http://aoa.de/ei/foundation/v1" schemaLocation="de.aoa.ei.foundation.v1.xsd" />
+	<!-- ****************************************************************** -->
+	<xs:element name="logEvent" type="tns:logEventType"/>
+	<!-- ****************************************************************** -->
+	<xs:complexType name="logEventType">
+		<xs:sequence>
+			<xs:element name="logPointNr" type="xs:int"/>
+			<xs:element name="logMessage" type="xs:string"/>
+			<xs:element name="logTimestamp" type="xs:dateTime"/>
+			<xs:element ref="ei:messageHeader"/>
+			<xs:element name="message" type="xs:string" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- ****************************************************************** -->
+</xs:schema>

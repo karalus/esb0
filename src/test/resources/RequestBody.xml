@@ -1,0 +1,14 @@
+<v1:demoElementRequest xmlns:v1="http://aoa.de/xsd/demo/v1/">
+	<v12:messageHeader xmlns:v12="http://aoa.de/ei/foundation/v1">
+		<v12:senderFQN>usingPort1</v12:senderFQN>
+		<v12:messageId>M-b6ce48e2-e85e-42f6-800f-52668405aafa</v12:messageId>
+		<v12:processInstanceId>P-0cdbb3bf-44b8-4c35-9ccb-48d1fed38417</v12:processInstanceId>
+	</v12:messageHeader>
+	<v1:payload>
+		<v1:para1>Param1</v1:para1>
+		<v1:para2>Test</v1:para2>
+		<v1:para2>Test</v1:para2>
+		<v1:para2>Test</v1:para2>
+		<v1:para2>Test</v1:para2>
+	</v1:payload>
+</v1:demoElementRequest>

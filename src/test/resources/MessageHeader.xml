@@ -1,0 +1,5 @@
+ <v12:messageHeader xmlns:v12="http://aoa.de/ei/foundation/v1">
+	<v12:senderFQN>usingPort1</v12:senderFQN>
+	<v12:messageId>M-bc5fd683-334f-4709-8c15-943c32baea89</v12:messageId>
+	<v12:processInstanceId>P-96181ac5-41f4-4ce5-bc95-111fe253c11d</v12:processInstanceId>
+ </v12:messageHeader>

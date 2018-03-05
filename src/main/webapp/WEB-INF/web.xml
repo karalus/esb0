@@ -1,0 +1,29 @@
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://java.sun.com/xml/ns/javaee"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_0.xsd"
+	id="WebApp_ID" version="3.0">
+	<display-name>ESB Zero</display-name>
+	<servlet>
+		<description>The admin JSP</description>
+		<servlet-name>admin</servlet-name>
+		<jsp-file>/index.jsp</jsp-file>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>admin</servlet-name>
+		<url-pattern>/admin/*</url-pattern>
+	</servlet-mapping>
+	<servlet>
+		<description>The entry into the ESB</description>
+		<display-name>GenericHttpListener</display-name>
+		<servlet-name>GenericHttpListener</servlet-name>
+		<servlet-class>com.artofarc.esb.servlet.GenericHttpListener</servlet-class>
+		<async-supported>true</async-supported>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>GenericHttpListener</servlet-name>
+		<url-pattern>/*</url-pattern>
+	</servlet-mapping>
+	<listener>
+		<listener-class>com.artofarc.esb.servlet.ESBServletContextListener</listener-class>
+	</listener>
+</web-app>

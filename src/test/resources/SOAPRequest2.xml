@@ -1,0 +1,8 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <checkAlive xmlns="http://action.esb.artofarc.com/">
+      	<arg0>Hello</arg0>
+      </checkAlive>
+   </soapenv:Body>
+</soapenv:Envelope>

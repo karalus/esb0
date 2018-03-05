@@ -1,0 +1,10 @@
+<service protocol="http" xmlns="http://www.artofarc.com/esb/service">
+  <httpBindURI>/demo1</httpBindURI>
+  <assign>
+  	<assignment variable="request">.</assignment>
+  </assign>
+  <http>
+    <url>http://localhost:1212/echo</url>
+  </http>
+  <dump/>
+</service>

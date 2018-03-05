@@ -1,0 +1,1 @@
+<workerPool minThreads="6" maxThreads="12" queueDepth="50" scheduledThreads="0" xmlns="http://www.artofarc.com/esb/service"/>

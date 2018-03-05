@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns:ei="http://aoa.de/ei/foundation/v1"
+	xmlns:demo="http://aoa.de/xsd/demo/v1/"
+	
+	targetNamespace="http://aoa.de/xsd/demo/v1/"
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://aoa.de/ei/foundation/v1"
+		schemaLocation="de.aoa.ei.foundation.v1.xsd" />
+	
+	<xs:element name="demoElementRequest" type="demo:demoType"/>
+	<xs:element name="demoElementResponse" type="demo:demoRespType"/>
+            
+	<xs:complexType name="demoType">
+		<xs:sequence>
+			<xs:element ref="ei:messageHeader" minOccurs="1"
+				maxOccurs="1" />
+			<xs:element name="payload" type="demo:payloadType" />
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="payloadType">
+		<xs:sequence>
+			<xs:element type="xs:string" name="para1" />
+			<xs:element type="xs:string" name="para2" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+
+	</xs:complexType>
+	<xs:complexType name="demoRespType">
+		<xs:sequence>
+			<xs:element ref="ei:messageHeader" minOccurs="1"
+				maxOccurs="1" />
+			<xs:element name="payload" type="demo:payloadRespType" />
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="payloadRespType">
+		<xs:sequence>
+			<xs:element type="xs:string" name="reply" />
+		</xs:sequence>
+	</xs:complexType>
+
+</xs:schema>

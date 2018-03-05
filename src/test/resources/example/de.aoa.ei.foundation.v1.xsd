@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://aoa.de/ei/foundation/v1" targetNamespace="http://aoa.de/ei/foundation/v1" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.0">
+
+	<xs:annotation>
+		<xs:documentation>
+			Enthaelt den Typ des MessageHeaders, welcher in
+			jedem Servicecall mitgereicht wird und Basis fuer Verfolgung, Logging
+			etc ist
+			Sowie die Definition von Faults.
+		</xs:documentation>
+	</xs:annotation>
+	<!-- ****************************************************************** -->
+	<xs:simpleType name="messageIdType">
+		<xs:annotation>
+			<xs:documentation>
+				Eine eindeutige message-id für den gesamten Request-Response-Nachrichtenaustausch
+				Eine UUID sollte hierfuer verwendet werden.
+				Beispiel:
+				M-196AC731-A952-6BA0-D923-AFC7B75ED39C1
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:minLength value="2"/>
+			<xs:maxLength value="66"/>
+			<!-- <xs:pattern value="M-[0-9A-Za-z][\-0-9A-Za-z]{35,64}"/>
+		 -->
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="processInstanceIdType">
+		<xs:annotation>
+			<xs:documentation>
+				Die ID des Business Processes (bzw. der Instanz
+				davon), um Prozessverfolgung und business activity monitoring (BAM)
+				zu ermoeglichen.
+				(Semantisch entspricht dies der SOABP
+				correlation-id.)
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:minLength value="2"/>
+			<xs:maxLength value="66"/>
+		<!--  	<xs:pattern value="P-[0-9A-Za-z][\-0-9A-Za-z]{35,64}"/>
+		-->
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- ****************************************************************** -->
+	<xs:simpleType name="timestampUTCType">
+		<xs:annotation>
+			<xs:documentation>
+				UTC -timestamp - Beispiel:
+				"2010-12-31T23:45:58.123Z" - Beachte das "Z"
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="\d{4}-[0-1]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d.\d{3}Z"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- ****************************************************************** -->
+	<xs:simpleType name="timestampOffsetType">
+		<xs:annotation>
+			<xs:documentation>
+				Der Offset fuer den Timestamp
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="0"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- ****************************************************************** -->
+	<xs:simpleType name="replyContextType">
+		<xs:annotation>
+			<xs:documentation>
+				Technisch erforderlicher Kontext, der ggf im Falle
+				des Message Exchange Patterns Request/Callback erforderlich ist.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="20000"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- ****************************************************************** -->
+	<xs:simpleType name="senderFQNType">
+		<xs:annotation>
+			<xs:documentation>
+				Der voll-qualifizierte Name des Senders.
+				Beachte:
+				Das RegEx-Pattern entspricht dem dem ersten Teil des Pattern von
+				TCRoutingInfo aus CEISeR
+				(Hinweis: Pattern getestet mit SoapUI 4.0.1
+				und http://myregexp.com/signedJar.html)
+			</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:whiteSpace value="collapse"/>
+			<xs:minLength value="5"/>
+			<xs:maxLength value="255"/>
+		<!--  <xs:pattern value="[a-z][\.a-z]{0,63}([A-Za-z][\-a-zA-Z_0-9]{0,15}):([A-Za-z][\-a-zA-Z_0-9]{0,31}):([A-Za-z][\-a-zA-Z_0-9]{0,31})"/>
+			-->
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- ****************************************************************** -->
+	<xs:element name="messageHeader" type="tns:messageHeaderType"/>
+	<!-- ****************************************************************** -->
+	<xs:complexType name="messageHeaderType">
+		<xs:annotation>
+			<xs:documentation>
+				Der technische cross-funktionale Kontext, der in
+				jedem MessageCall zu transportieren ist.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="senderFQN" type="tns:senderFQNType" nillable="false" minOccurs="1" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Entspricht dem UsingPort fully qualified aus
+						CEISeR
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="messageId" type="tns:messageIdType" minOccurs="1" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Die Id, die den Nachrichtenaustausch (Request und Response) eindeutig identifiziert
+						- sollte eine durch den Sender erzeugte UUID sein.
+						Beispiel:
+						"M-196AC731-A952-6BA0-D923-AFC7B75ED39C1"
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="relatesToMessageId" type="tns:messageIdType" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Im asynchronen Fall muss das "messageId" - Attribut des auslösenden Nachrichtenaustausch
+						in das Attribut "relatesToMessageId" der Callback- bzw. asynchronen Antwort-Nachricht
+						kopiert werden (durch den Provider!)
+						Beispiel:
+						A.) Request-Message :
+						"M-196AC731-A952-6BA0-D923-AFC7B75ED39C1"
+						relatesToMessageId : EMPTY
+						B.) Callback-Message :
+						"M-767AC896-F867-8DE0-D899-FFF3B75FF99FF"
+						relatesToMessageId : "M-196AC731-A952-6BA0-D923-AFC7B75ED39C1"
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="senderCurrentTimestampUTC" type="tns:timestampUTCType" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Der Zeitstempel der Nachricht beim Sender (der
+						Sender-Maschine) in UTC inkl. Millisekunden.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="expectedResponseTimeInMillis" type="tns:timestampOffsetType" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Der Offset in Millisekunden, der auf den
+						"senderCurrentTimestampUTC" addiert wird: Das Ergebnis defiiert
+						den spaetesten Zeitpunkt
+						zu dem die Nachricht fuer den Sender noch
+						interessant ist (in seinem Zeitsystem).
+						Middleware-Komponenten
+						duerfen die Nachricht nach dieser Zeit verwerfen.
+						Der Wert "0"
+						definiert eine unbeschraenkte Zeitspanne. Dieser Wert darf fuer
+						synchrone Calls nicht verwendet werden. Middleware Komponenten
+						duerfen
+						Nachrichten mit dem Wert "0" bei synchronen Aufrufen
+						verwerfen!
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<!-- Review -->
+			<xs:element name="processInstanceId" type="tns:processInstanceIdType" nillable="false" minOccurs="1" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Die ID der Instanz des Prozesses von der
+						Kundenseite der Applikation.
+						Example:
+						"P-196AC731-A952-5BA0-D923-AFC7B75ED49C43"
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="parentProcessInstanceId" type="tns:processInstanceIdType" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Falls aus einem Prozess ein Kind-Prozess
+						gestartet wird, so ist hier die urspruengliche ID festzuhalten.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="replyContext" type="tns:replyContextType" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Technisch erforderlicher Kontext, der ggf im
+						Falle des Message Exchange Patterns Request/Callback erforderlich
+						ist.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="property" type="tns:propertyListType" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>
+						Eine Liste von Eigenschaften, die ggf. temporaer
+						als Workaround benoetigt werden. Nur in ABSPRACHE mit dem Stab EA
+						zu verwenden.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- ****************************************************************** -->
+	<xs:complexType name="propertyListType">
+		<xs:sequence>
+			<xs:element name="propertyListItem" type="tns:propertyListItemType" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="propertyListItemType">
+		<xs:sequence>
+			<xs:element name="key" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Der Schluessel/Name der temporaeren Workaround-Eigenschaft.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="value" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>
+						Der zugehorige Wert der temporaeren Workaround-Eigenschaft.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<!-- ****************************************************************** -->
+	<!-- ****************************************************************** -->
+	<xs:complexType name="faultDetailType">
+		<xs:annotation>
+			<xs:documentation>Zentraler Basistyp für Fehler, der die
+				grundsätzlichen Eigenschaften von Fehlern festlegt.
+			</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="messageHeader" type="tns:messageHeaderType"/>
+			<xs:element name="payload">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="faultCategory">
+							<xs:simpleType>
+								<xs:annotation>
+									<xs:documentation>Aufzählungstyp für den Fehlertyp.
+									</xs:documentation>
+								</xs:annotation>
+								<xs:restriction base="xs:string">
+									<xs:enumeration value="BusinessFault">
+										<xs:annotation>
+											<xs:documentation>Es ist ein fachlicher Fehler aufgetreten.
+											</xs:documentation>
+										</xs:annotation>
+									</xs:enumeration>
+									<xs:enumeration value="FatalFault">
+										<xs:annotation>
+											<xs:documentation>Es ist ein technischer Fehler aufgetreten.</xs:documentation>
+										</xs:annotation>
+									</xs:enumeration>
+								</xs:restriction>
+							</xs:simpleType>
+						</xs:element>
+						<xs:element name="errorDetail" type="tns:errorDetailType"/>
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="errorDetailType">
+		<xs:sequence>
+			<xs:element name="errorCode" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Ein eindeutiger Identifikator, deres ermöglicht,
+						mit dieser Fehlermeldung programmgesteuert umzugehen. Die Eindeutigkeit ist nur im Zusammenspiel mit dem SenderFQN gegeben.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="errorName" type="xs:string">
+				<xs:annotation>
+					<xs:documentation>Bezeichner/Typ für den error</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="errorMessage" type="xs:string" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>Eine detailierte Fehlermeldung</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="reportingTime" type="xs:string" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>Zeitpunkt, zu dem der Fehleraufgetreten ist.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="correlationId" type="xs:string" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>Identifikator für den auslösenden
+						Geschäftsprozess oder dn auslösenden Service.</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="serverStackTraceId" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Identifikator, der es ermöglicht, die detailierte
+						Fehlermeldung im Logfile der Serviceimplementierung aufzufinden.
+					</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="originCause" type="xs:string" minOccurs="0" maxOccurs="1">
+				<xs:annotation>
+					<xs:documentation>Ursprüngliche Fehlermeldung, die zum Auslösen
+						dieses Faults geführt hat.</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+			<xs:element name="serverStackTrace" type="xs:string" minOccurs="0">
+				<xs:annotation>
+					<xs:documentation>Detailierte Technische Fehlermeldung aus der
+						Serviceimplementierung.</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:element name="emptyResponse" type="tns:emptyResponseType">
+		<xs:annotation>
+			<xs:documentation>Standard Responsetype für leere Antworten</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="emptyRequest" type="tns:emptyRequestType">
+		<xs:annotation>
+			<xs:documentation>Standard Requesttype für leere Parameter</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:complexType name="emptyResponseType">
+		<xs:sequence/>
+	</xs:complexType>
+	<xs:complexType name="emptyRequestType">
+		<xs:sequence/>
+	</xs:complexType>
+</xs:schema>
