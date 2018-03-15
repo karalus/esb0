@@ -34,6 +34,7 @@ import org.eclipse.persistence.oxm.MediaType;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
@@ -53,11 +54,11 @@ public class Json2XMLAction extends TerminalAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = (String) message.getHeaders().get(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE);
+		String contentType = (String) message.getHeaders().get(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && !contentType.startsWith(MediaType.APPLICATION_JSON.getMediaType())) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
 		return super.prepare(context, message, inPipeline);
 	}
 

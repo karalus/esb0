@@ -16,22 +16,28 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.OutputStream;
 import java.util.Map.Entry;
+import java.util.StringTokenizer;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
 import com.artofarc.esb.servlet.GenericHttpListener;
 
 public class HttpServletResponseAction extends Action {
+	
+	private final boolean _supportCompression;
 
-	public HttpServletResponseAction() {
+	public HttpServletResponseAction(boolean supportCompression) {
 		_pipelineStop = true;
+		_supportCompression = supportCompression;
 	}
 
 	@Override
@@ -58,6 +64,18 @@ public class HttpServletResponseAction extends Action {
 			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
 				response.addHeader(entry.getKey(), entry.getValue().toString());
 			}
+			final String acceptEncoding = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING);
+			if (_supportCompression && acceptEncoding != null) {
+				final StringTokenizer tokenizer = new StringTokenizer(acceptEncoding, ", ");
+				while (tokenizer.hasMoreTokens()) {
+					final String contentEncoding = tokenizer.nextToken();
+					if (contentEncoding.equals("gzip") || contentEncoding.equals("deflate")) {
+						response.addHeader(HttpConstants.HTTP_HEADER_CONTENT_ENCODING, contentEncoding);
+						message.getVariables().put(HttpConstants.HTTP_HEADER_CONTENT_ENCODING, contentEncoding);
+						break;
+					}
+				}
+			}
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, response.getOutputStream());
 			} else {
@@ -71,6 +89,10 @@ public class HttpServletResponseAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		AsyncContext asyncContext = execContext.getResource();
+		if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
+			// necessary for DeflaterOutputStream
+			message.<OutputStream>getBody().close();
+		}
 		if (asyncContext != null) {
 			asyncContext.complete();
 		}

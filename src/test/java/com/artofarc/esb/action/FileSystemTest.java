@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
 
 import javax.xml.soap.SOAPConstants;
 
@@ -15,6 +16,7 @@ import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
@@ -56,12 +58,12 @@ public class FileSystemTest {
          // Call
          ESBMessage message = new ESBMessage(BodyType.BYTES, ConfigServiceTest.readFile("src/test/resources/SOAPRequest.xml"));
          message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
-         message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+         message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
          message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
          message.getVariables().put(ESBVariableConstants.hasFault, false);
          try {
             service.processInternal(new Context(poolContext), message);
-         } catch (java.net.SocketTimeoutException e) {
+         } catch (IOException e) {
 		      // ignore
          }
       }

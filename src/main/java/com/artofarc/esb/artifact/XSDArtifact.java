@@ -26,8 +26,6 @@ import com.artofarc.esb.context.GlobalContext;
 
 public class XSDArtifact extends SchemaArtifact {
 
-	protected JAXBContext _jaxbContext;
-
 	public XSDArtifact(Directory parent, String name) {
 		super(parent, name);
 	}
@@ -40,7 +38,9 @@ public class XSDArtifact extends SchemaArtifact {
 
 	public JAXBContext getJAXBContext() throws JAXBException {
 		if (_jaxbContext == null) {
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getContentAsByteArrayInputStream(), this, null, null);
+			StreamSource streamSource = new StreamSource(getContentAsByteArrayInputStream());
+			streamSource.setSystemId(getURI());
+			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(streamSource, this, null, null);
 		}
 		return _jaxbContext;
 	}

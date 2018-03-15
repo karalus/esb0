@@ -20,6 +20,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.context.WorkerPool;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
@@ -84,7 +85,7 @@ public class ConfigServiceTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.processInternal(context, message);
       endpoint.stop();
@@ -103,7 +104,7 @@ public class ConfigServiceTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.processInternal(context, message);
       endpoint.stop();

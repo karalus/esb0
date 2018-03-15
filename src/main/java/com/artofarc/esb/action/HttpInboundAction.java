@@ -27,19 +27,19 @@ import javax.xml.transform.Result;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
 
 public class HttpInboundAction extends Action {
 
-	public HttpInboundAction() {
-	}
-
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws IOException {
 		HttpURLConnection conn = message.removeVariable(ESBVariableConstants.HttpURLConnection);
 		message.getVariables().put(ESBVariableConstants.HttpResponseCode, conn.getResponseCode());
+		message.getVariables().put(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING, message.getHeader(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING));
+		message.getHeaders().clear();
 		for (Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
 			Object value = entry.getValue();
 			if (entry.getValue().size() == 1) {
@@ -47,6 +47,8 @@ public class HttpInboundAction extends Action {
 			}
 			message.getHeaders().put(entry.getKey(), value);
 		}
+		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+		message.setCharsetName(HttpConstants.getCharsetFromContentType(contentType));
 		message.reset(BodyType.INPUT_STREAM, getInputStream(conn));
 		return new ExecutionContext(conn);
 	}

@@ -26,6 +26,7 @@ import org.w3c.dom.Element;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
 import com.artofarc.util.DOMUtil;
@@ -51,7 +52,7 @@ public class PostSOAP11HttpAction extends UnwrapSOAP11Action {
 	}
 
 	public void _execute(Context context, ESBMessage message) throws Exception {
-		String contentType = (String) message.getHeaders().get(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE);
+		String contentType = (String) message.getHeaders().get(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 		if (!contentType.startsWith(SOAPConstants.SOAP_1_1_CONTENT_TYPE)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}

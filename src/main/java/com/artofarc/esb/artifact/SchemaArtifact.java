@@ -16,12 +16,15 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
@@ -37,6 +40,8 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	protected Schema schema;
 
+	protected JAXBContext _jaxbContext;
+
 	protected SchemaArtifact(Directory parent, String name) {
 		super(parent, name);
 	}
@@ -45,20 +50,33 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 		return schema;
 	}
 
+	public abstract JAXBContext getJAXBContext() throws JAXBException;
+
 	protected SchemaFactory getSchemaFactory() {
 		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 		factory.setResourceResolver(this);
 		return factory;
 	}
+	
+	private URI lastUri;
 
 	@Override
 	public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {
-		String filename = new File(systemId).getName();
-		String resourceURI = getParent().getURI() + '/' + filename;
-		XSDArtifact artifact = getArtifact(resourceURI);
-		InputSource is = new InputSource(artifact.getContentAsByteArrayInputStream());
-		is.setSystemId(resourceURI);
-		return is;
+		try {
+			URI uri = new URI(systemId);
+			XSDArtifact artifact = getArtifact(uri.getPath());
+			if (artifact == null) {
+				uri = lastUri.resolve(systemId);
+				artifact = getArtifact(uri.getPath());
+			}
+			lastUri = uri;
+			System.out.println(uri);
+			InputSource is = new InputSource(artifact.getContentAsByteArrayInputStream());
+			is.setSystemId(systemId);
+			return is;
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

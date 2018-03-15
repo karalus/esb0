@@ -36,20 +36,31 @@
 		</complexType>
 	</element>
 	<element name="action" type="tns:ActionBase" />
+	<simpleType name="httpUrl">
+		<restriction base="anyURI">
+			<pattern value="http://.+" />
+		</restriction>
+	</simpleType>
 	<element name="http" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<sequence>
 						<element name="url" maxOccurs="unbounded">
-							<simpleType>
-								<restriction base="anyURI">
-									<pattern value="http://.+" />
-								</restriction>
-							</simpleType>
+							<complexType>
+								<simpleContent>
+									<extension base="tns:httpUrl">
+										<attribute name="active" type="boolean" default="true" />
+										<attribute name="weight" type="int" default="1" />
+									</extension>
+								</simpleContent>
+							</complexType>
 						</element>
 					</sequence>
 					<attribute name="connectionTimeout" type="int" default="1000" />
+					<attribute name="retries" type="int" default="0" />
+					<attribute name="checkAliveInterval" type="int" />
+					<attribute name="keepAliveInterval" type="int" />
 					<attribute name="readTimeout" type="int" default="60000" />
 					<attribute name="chunkLength" type="int" />
 					<attribute name="workerPool" type="anyURI" />
@@ -373,7 +384,15 @@
 		<complexType>
 			<sequence>
 				<choice minOccurs="0">
-					<element name="httpBindURI" type="anyURI" />
+					<element name="httpBindURI">
+						<complexType>
+							<simpleContent>
+								<extension base="anyURI">
+									<attribute name="supportCompressiom" type="boolean" default="false" />
+								</extension>
+							</simpleContent>
+						</complexType>
+					</element>
 					<element name="jmsBinding">
 						<complexType>
 							<attribute name="jndiConnectionFactory" type="anyURI"
@@ -385,8 +404,10 @@
 					</element>
 					<element name="timerBinding">
 						<complexType>
+							<attribute name="workerPool" type="anyURI" />
 							<attribute name="initialDelay" type="int" default="60" />
 							<attribute name="period" type="int" default="300" />
+							<attribute name="fixedDelay" type="boolean" default="false" />
 						</complexType>
 					</element>
 				</choice>

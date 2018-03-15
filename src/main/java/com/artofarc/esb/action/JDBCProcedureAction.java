@@ -57,9 +57,9 @@ public class JDBCProcedureAction extends Action {
 		final Reader reader;
 		if (message.getBodyType() == BodyType.INPUT_STREAM) {
 			if (message.getCharsetName() != null) {
-				reader = new InputStreamReader(message.<InputStream> getBody(), message.getCharsetName());
+				reader = new InputStreamReader(message.getUncompressedInputStream(), message.getCharsetName());
 			} else {
-				reader = new InputStreamReader(message.<InputStream> getBody());
+				reader = new InputStreamReader(message.getUncompressedInputStream());
 			}
 		} else if (message.getBodyType() == BodyType.READER) {
 			reader = message.getBody();

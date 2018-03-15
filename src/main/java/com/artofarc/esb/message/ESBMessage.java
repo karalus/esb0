@@ -26,10 +26,13 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.InflaterInputStream;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
@@ -53,6 +56,7 @@ import org.xml.sax.SAXException;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.util.CaseInsensitiveMap;
 
 public final class ESBMessage implements Cloneable, XPathVariableResolver {
@@ -92,6 +96,11 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 
 	public Map<String, Object> getVariables() {
 		return _variables;
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T extends Object> T getHeader(String headerName) {
+		return (T) _headers.get(headerName);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -154,13 +163,44 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 	public void setTerminal(Action terminal) {
 		_terminal = terminal;
 	}
-
-	private InputStreamReader getInputStreamReader() {
-		try {
-			return new InputStreamReader((InputStream) _body, _charsetName);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
+	
+	private OutputStream getCompressedOutputStream() throws IOException {
+		OutputStream outputStream = (OutputStream) _body;
+		final String contentEncoding = getVariable(HttpConstants.HTTP_HEADER_CONTENT_ENCODING);
+		if (contentEncoding != null) {
+			switch (contentEncoding) {
+			case "gzip":
+				outputStream = new GZIPOutputStream(outputStream, MTU);
+				break;
+			case "deflate":
+				outputStream = new DeflaterOutputStream(outputStream);
+				break;
+			}
 		}
+		_body = outputStream;
+		return outputStream;
+	}
+	
+	public InputStream getUncompressedInputStream() throws IOException {
+		InputStream inputStream = (InputStream) _body;
+		final String contentEncoding = (String) getHeaders().remove(HttpConstants.HTTP_HEADER_CONTENT_ENCODING);
+		if (contentEncoding != null) {
+			switch (contentEncoding) {
+			case "gzip":
+				inputStream = new GZIPInputStream(inputStream, MTU);
+				break;
+			case "deflate":
+				inputStream = new InflaterInputStream(inputStream);
+				break;
+			default:
+				throw new IOException("Unsupported content encoding " + contentEncoding);
+			}
+		}
+		return inputStream;
+	}
+
+	private InputStreamReader getInputStreamReader() throws IOException {
+		return new InputStreamReader(getUncompressedInputStream(), _charsetName);
 	}
 
 	public final static void copyStream(InputStream is, OutputStream os) throws IOException {
@@ -189,7 +229,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			return (byte[]) _body;
 		case INPUT_STREAM:
 			bos = new ByteArrayOutputStream();
-			copyStream((InputStream) _body, bos);
+			copyStream(getUncompressedInputStream(), bos);
 			bos.close();
 			ba = bos.toByteArray();
 			break;
@@ -249,7 +289,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			_body = new ByteArrayInputStream((byte[]) _body);
 			// nobreak
 		case INPUT_STREAM:
-			inputSource = _charsetName != null ? new InputSource(getInputStreamReader()) : new InputSource((InputStream) _body);
+			inputSource = _charsetName != null ? new InputSource(getInputStreamReader()) : new InputSource(getUncompressedInputStream());
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message already consumed");
@@ -261,7 +301,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		return (Document) _body;
 	}
 
-	public Source getBodyAsSource() {
+	public Source getBodyAsSource() throws IOException {
 		switch (_bodyType) {
 		case DOM:
 			return new DOMSource((Document) _body);
@@ -274,7 +314,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			// nobreak
 		case INPUT_STREAM:
 			_bodyType = BodyType.INVALID;
-			return _charsetName != null ? new StreamSource(getInputStreamReader()) : new StreamSource((InputStream) _body);
+			return _charsetName != null ? new StreamSource(getInputStreamReader()) : new StreamSource(getUncompressedInputStream());
 		case READER:
 			_bodyType = BodyType.INVALID;
 			return new StreamSource((Reader) _body);
@@ -292,7 +332,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		return xml;
 	}
 
-	public XMLStreamReader getBodyAsXMLStreamReader(Context context) throws XQException, XMLStreamException {
+	public XMLStreamReader getBodyAsXMLStreamReader(Context context) throws XQException, XMLStreamException, IOException {
 		switch (_bodyType) {
 		case XQ_SEQUENCE:
 			XQSequence xqSequence = (XQSequence) _body;
@@ -308,7 +348,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		}
 	}
 
-	public InputSource getBodyAsSaxSource() {
+	public InputSource getBodyAsSaxSource() throws IOException {
 		switch (_bodyType) {
 		case SOURCE:
 			return (InputSource) _body;
@@ -318,7 +358,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			return new InputSource(new ByteArrayInputStream((byte[]) _body));
 		case INPUT_STREAM:
 			_bodyType = BodyType.INVALID;
-			return _charsetName != null ? new InputSource(getInputStreamReader()) : new InputSource((InputStream) _body);
+			return _charsetName != null ? new InputSource(getInputStreamReader()) : new InputSource(getUncompressedInputStream());
 		default:
 			throw new IllegalStateException("Message already consumed");
 		}
@@ -328,10 +368,10 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		return _bodyType == BodyType.OUTPUT_STREAM || _bodyType == BodyType.WRITER;
 	}
 
-	public Result getBodyAsSinkResult() {
+	public Result getBodyAsSinkResult() throws IOException {
 		switch (_bodyType) {
 		case OUTPUT_STREAM:
-			return new StreamResult((OutputStream) _body);
+			return new StreamResult(getCompressedOutputStream());
 		case WRITER:
 			return new StreamResult((Writer) _body);
 		default:
@@ -339,7 +379,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		}
 	}
 
-	private void transform(Transformer transformer, Result result) throws TransformerException, XQException {
+	private void transform(Transformer transformer, Result result) throws TransformerException, XQException, IOException {
 		Source source = null;
 		switch (_bodyType) {
 		case DOM:
@@ -352,7 +392,8 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			source = new StreamSource(new ByteArrayInputStream((byte[]) _body));
 			break;
 		case INPUT_STREAM:
-			source = _charsetName != null ? new StreamSource(getInputStreamReader()) : new StreamSource((InputStream) _body);
+			_bodyType = BodyType.INVALID;
+			source = _charsetName != null ? new StreamSource(getInputStreamReader()) : new StreamSource(getUncompressedInputStream());
 			break;
 		case READER:
 			source = new StreamSource((Reader) _body);
@@ -369,7 +410,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		transformer.transform(source, result);
 	}
 
-	public void writeTo(Result result, Context context) throws TransformerException, XQException {
+	public void writeTo(Result result, Context context) throws TransformerException, XQException, IOException {
 		if (_bodyType == BodyType.XQ_ITEM) {
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItemToResult(result);
@@ -390,6 +431,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			os.write((byte[]) _body);
 			break;
 		case INPUT_STREAM:
+			// writes compressed data through!
 			try {
 				copyStream((InputStream) _body, os);
 			} finally {

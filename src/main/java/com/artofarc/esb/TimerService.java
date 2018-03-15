@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb;
 
-import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -27,21 +26,22 @@ import com.artofarc.esb.context.WorkerPoolThreadFactory;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
-public class TimerService extends ConsumerPort {
+public class TimerService extends ConsumerPort implements Runnable {
 
 	private final String _workerPool;
 	private final int _initialDelay, _period;
+	private final boolean _fixedDelay;
 
 	private ScheduledExecutorService _scheduledExecutorService;
 
-	private volatile TimerTask _timerTask;
 	private volatile ScheduledFuture<?> _future;
 
-	public TimerService(String uri, String workerPool, int initialDelay, int period) {
+	public TimerService(String uri, String workerPool, int initialDelay, int period, boolean fixedDelay) {
 		super(uri);
 		_workerPool = workerPool;
 		_initialDelay = initialDelay;
 		_period = period;
+		_fixedDelay = fixedDelay;
 	}
 
 	public void init(GlobalContext globalContext) {
@@ -53,26 +53,18 @@ public class TimerService extends ConsumerPort {
 
 	@Override
 	public boolean isEnabled() {
-		return _timerTask != null;
+		return _future != null;
 	}
 
 	@Override
 	public void enable(boolean enable) {
 		if (enable) {
-			if (_timerTask == null) {
-				_timerTask = new TimerTask() {
-
-					@Override
-					public void run() {
-						ESBMessage message = new ESBMessage(BodyType.INVALID, null);
-						try {
-							process(WorkerPoolThreadFactory.getContext(), message);
-						} catch (Exception e) {
-							logger.log(Level.SEVERE, "Exception in forked action pipeline", e);
-						}
-					}
-				};
-				_future = _scheduledExecutorService.scheduleAtFixedRate(_timerTask, _initialDelay, _period, TimeUnit.SECONDS);
+			if (_future == null) {
+				if (_fixedDelay) {
+					_future = _scheduledExecutorService.scheduleWithFixedDelay(this, _initialDelay, _period, TimeUnit.SECONDS);
+				} else {
+					_future = _scheduledExecutorService.scheduleAtFixedRate(this, _initialDelay, _period, TimeUnit.SECONDS);
+				}
 			}
 		} else {
 			stop();
@@ -84,9 +76,15 @@ public class TimerService extends ConsumerPort {
 			_future.cancel(false);
 			_future = null;
 		}
-		if (_timerTask != null) {
-			_timerTask.cancel();
-			_timerTask = null;
+	}
+
+	@Override
+	public void run() {
+		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+		try {
+			process(WorkerPoolThreadFactory.getContext(), message);
+		} catch (Exception e) {
+			logger.log(Level.SEVERE, "Exception in forked action pipeline", e);
 		}
 	}
 

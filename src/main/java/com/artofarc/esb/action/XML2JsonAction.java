@@ -33,6 +33,7 @@ import org.eclipse.persistence.oxm.MediaType;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
@@ -52,11 +53,12 @@ public class XML2JsonAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = (String) message.getHeaders().get(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE);
+		String contentType = (String) message.getHeaders().get(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && !contentType.startsWith(SOAPConstants.SOAP_1_1_CONTENT_TYPE)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, MediaType.APPLICATION_JSON.getMediaType());
+		message.getHeaders().clear();
+		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MediaType.APPLICATION_JSON.getMediaType());
 		context.getTimeGauge().startTimeMeasurement();
 		Unmarshaller unmarshaller = _jaxbContext.createUnmarshaller();
 		unmarshaller.setSchema(_schema);

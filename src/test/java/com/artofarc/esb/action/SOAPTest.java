@@ -22,6 +22,7 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -52,7 +53,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testUnwrapSOAP11() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       Action action = new UnwrapSOAP11Action();
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -86,7 +87,7 @@ public class SOAPTest extends AbstractESBTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
       endpoint.stop();
@@ -109,7 +110,7 @@ public class SOAPTest extends AbstractESBTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
       endpoint.stop();
@@ -133,7 +134,7 @@ public class SOAPTest extends AbstractESBTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
       endpoint.stop();
@@ -158,7 +159,7 @@ public class SOAPTest extends AbstractESBTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
       endpoint.stop();
@@ -179,7 +180,7 @@ public class SOAPTest extends AbstractESBTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       try {
          consumerPort.process(context, message);
@@ -207,7 +208,7 @@ public class SOAPTest extends AbstractESBTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
       assertTrue(errorHandler.executed);
@@ -217,7 +218,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testValidate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       Action action = new UnwrapSOAP11Action();
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -237,7 +238,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testValidateDirect() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       Action action = new UnwrapSOAP11Action();
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -255,7 +256,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testTransform() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       Action action = new UnwrapSOAP11Action();
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -277,7 +278,7 @@ public class SOAPTest extends AbstractESBTest {
       jmsConsumer.init(context.getPoolContext());
       
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest1.xml"));
-      message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       
       JMSAction jmsAction = new JMSAction(context.getPoolContext().getGlobalContext(), "ConnectionFactory", "dynamicQueues/test1", false, 100);
       ConsumerPort consumerPort = new ConsumerPort(null);
@@ -294,7 +295,7 @@ public class SOAPTest extends AbstractESBTest {
    
    @Test
    public void testTimerService() throws Exception {
-      TimerService timerService = new TimerService(null, null, 0, 100);
+      TimerService timerService = new TimerService(null, null, 0, 100, false);
       MarkAction markAction = new MarkAction();
       timerService.setStartAction(markAction);
       timerService.init(context.getPoolContext().getGlobalContext());

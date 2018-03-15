@@ -18,17 +18,25 @@ package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.wsdl.Definition;
+import javax.wsdl.Import;
+import javax.wsdl.Types;
 import javax.wsdl.extensions.schema.Schema;
 import javax.wsdl.xml.WSDLLocator;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
@@ -65,21 +73,45 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		_definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
-		List<Schema> schemas = WSDL4JUtil.getExtensibilityElements(_definition.getTypes(), Schema.class);
-		DOMSource[] sources = new DOMSource[schemas.size()];
 		Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
-		for (int i = 0; i < sources.length; ++i) {
-			Element element = schemas.get(i).getElement();
-			String targetNamespace = element.getAttribute("targetNamespace");
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			sources[i] = new DOMSource(element);
-			transformer.transform(sources[i], new StreamResult(bos));
-			_schemas.put(targetNamespace, bos.toByteArray());
+		List<DOMSource> sources = new ArrayList<>();
+		processSchemas(_definition, sources, transformer);
+		@SuppressWarnings("unchecked")
+		Map<String, List<Import>> importMap = _definition.getImports();
+		for (List<Import> imports : importMap.values()) {
+			for (Import import1 : imports) {
+				processSchemas(import1.getDefinition(), sources, transformer);
+			}
 		}
-		schema = getSchemaFactory().newSchema(sources);
+		schema = getSchemaFactory().newSchema(sources.toArray(new DOMSource[sources.size()]));
 		_schemas.clear();
 		// refs are now set
 		validateReferenced(globalContext);
+	}
+	
+	private void processSchemas(Definition definition, List<DOMSource> sources, Transformer transformer) throws TransformerException {
+		Types types = definition.getTypes();
+		if (types != null) {
+			for (Schema schema : WSDL4JUtil.getExtensibilityElements(types, Schema.class)) {
+				Element element = schema.getElement();
+				String targetNamespace = element.getAttribute("targetNamespace");
+				lastSchemaElement = new DOMSource(element);
+				lastSchemaElement.setSystemId(getURI());
+				sources.add(lastSchemaElement);
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				transformer.transform(lastSchemaElement, new StreamResult(bos));
+				_schemas.put(targetNamespace, bos.toByteArray());
+			}
+		}
+	}
+	
+	private DOMSource lastSchemaElement;
+
+	public JAXBContext getJAXBContext() throws JAXBException {
+		if (_jaxbContext == null && lastSchemaElement != null) {
+			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(lastSchemaElement, this, null, null);
+		}
+		return _jaxbContext;
 	}
 
 	@Override

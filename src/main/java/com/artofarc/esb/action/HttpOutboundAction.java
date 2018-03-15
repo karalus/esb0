@@ -19,64 +19,46 @@ package com.artofarc.esb.action;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map.Entry;
 
 import javax.xml.transform.TransformerException;
 import javax.xml.xquery.XQException;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpEndpoint;
+import com.artofarc.esb.http.HttpUrlSelector;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
 
 public class HttpOutboundAction extends Action {
 
-	public static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
 	public static final String HTTP_HEADER_ACCEPT = "Accept";
 	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
 
-	private final int _connectionTimeout;
+	private final HttpEndpoint _httpEndpoint;
 	private final int _readTimeout;
 	private final Integer _chunkLength;
-	private final String[] _urls;
 
-	public HttpOutboundAction(int connectionTimeout, int readTimeout, Integer chunkLength, List<String> urls) throws MalformedURLException {
-		for (String url : urls) {
-			new URL(url);
-		}
-		_urls = new String[urls.size()];
-		urls.toArray(_urls);
-		_connectionTimeout = connectionTimeout;
+	public HttpOutboundAction(HttpEndpoint httpEndpoint, int readTimeout, Integer chunkLength) {
+		_httpEndpoint = httpEndpoint;
 		_readTimeout = readTimeout;
 		_chunkLength = chunkLength;
 		_pipelineStop = true;
 	}
 
 	public HttpOutboundAction(String url) throws MalformedURLException {
-		this(1000, 60000, null, Arrays.asList(url));
+		this(new HttpEndpoint(1000, 0, null, null, System.currentTimeMillis()).addUrl(url, 1, true), 60000, null);
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws IOException, TransformerException, XQException {
-		// random loadbalancer
-		int i = (int) Math.random() * _urls.length;
-		String url = _urls[i] + message.getVariable(ESBVariableConstants.appendHttpUrlPath, "");
-		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-		conn.setConnectTimeout(_connectionTimeout);
+		HttpUrlSelector httpUrlSelector = context.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
+		String method = message.getVariable(ESBVariableConstants.HttpMethod);
+		// for REST append to URL
+		String appendHttpUrlPath = message.getVariable(ESBVariableConstants.appendHttpUrlPath);
+		HttpURLConnection conn = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrlPath, message.getHeaders().entrySet(), true, _chunkLength);
 		conn.setReadTimeout(_readTimeout);
-		conn.setRequestMethod(message.<String> getVariable(ESBVariableConstants.HttpMethod));
-		conn.setDoOutput(true);
-		if (_chunkLength != null) {
-			conn.setChunkedStreamingMode(_chunkLength);
-		}
-		for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
-			conn.addRequestProperty(entry.getKey(), entry.getValue().toString());
-		}
-		conn.connect();
 		if (inPipeline) {
 			message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
 		} else {

@@ -27,6 +27,7 @@ import javax.xml.soap.SOAPConstants;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
 import com.artofarc.util.Collections;
@@ -72,11 +73,11 @@ public class UnwrapSOAP11Action extends TransformAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = (String) message.getHeaders().get(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE);
+		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 		if (contentType == null || !contentType.startsWith(SOAPConstants.SOAP_1_1_CONTENT_TYPE)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		String soapAction = (String) message.getHeaders().get(HttpOutboundAction.HTTP_HEADER_SOAP_ACTION);
+		String soapAction = message.getHeader(HttpOutboundAction.HTTP_HEADER_SOAP_ACTION);
 		ExecutionContext execContext = super.prepare(context, message, inPipeline);
 		if (soapAction != null) {
 			// soapAction is always embedded in quotes

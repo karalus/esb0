@@ -51,6 +51,7 @@ import com.artofarc.esb.action.ValidateAction;
 import com.artofarc.esb.action.WrapSOAP11Action;
 import com.artofarc.esb.action.XML2JsonAction;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.service.ActionBase;
 import com.artofarc.esb.service.ActionPipeline;
@@ -73,6 +74,7 @@ import com.artofarc.esb.service.ProduceKafka;
 import com.artofarc.esb.service.Property;
 import com.artofarc.esb.service.Service;
 import com.artofarc.esb.service.Service.JmsBinding;
+import com.artofarc.esb.service.Service.TimerBinding;
 import com.artofarc.esb.service.Spawn;
 import com.artofarc.esb.service.Transform;
 import com.artofarc.esb.service.UnwrapSOAP11;
@@ -121,15 +123,16 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		switch (_service.getProtocol()) {
 		case HTTP:
 			_consumerPort = new ConsumerPort(getURI());
-			_consumerPort.setTerminalAction(new HttpServletResponseAction());
+			_consumerPort.setTerminalAction(new HttpServletResponseAction(_service.getHttpBindURI().isSupportCompressiom()));
 			break;
 		case JMS:
-			JmsBinding jmsBinding = _service.getJmsBinding();
+			final JmsBinding jmsBinding = _service.getJmsBinding();
 			_consumerPort = new JMSConsumer(getURI(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getMessageSelector(),
 					jmsBinding.getWorkerCount());
 			break;
 		case TIMER:
-			_consumerPort = new TimerService(getURI(), null, _service.getTimerBinding().getInitialDelay(), _service.getTimerBinding().getPeriod());
+			final TimerBinding timerBinding = _service.getTimerBinding();
+			_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getInitialDelay(), timerBinding.getPeriod(), timerBinding.isFixedDelay());
 			break;
 		default:
 			_consumerPort = new ConsumerPort(getURI());
@@ -146,7 +149,12 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			switch (jaxbElement.getName().getLocalPart()) {
 			case "http": {
 				Http http = (Http) jaxbElement.getValue();
-				list.add(new HttpOutboundAction(http.getConnectionTimeout(), http.getReadTimeout(), http.getChunkLength(), http.getUrl()));
+				HttpEndpoint httpEndpoint = new HttpEndpoint(http.getConnectionTimeout(), http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
+				for (Http.Url url : http.getUrl()) {
+					httpEndpoint.addUrl(url.getValue(), url.getWeight(), url.isActive());
+				}
+				//globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
+				list.add(new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength()));
 				if (http.getWorkerPool() != null) {
 					list.add(new SpawnAction(http.getWorkerPool(), false));
 				}
@@ -205,7 +213,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "xml2json": {
 				Xml2Json xml2Json = (Xml2Json) jaxbElement.getValue();
-				XSDArtifact schemaArtifact = getArtifact(xml2Json.getSchemaURI());
+				SchemaArtifact schemaArtifact = getArtifact(xml2Json.getSchemaURI());
 				if (schemaArtifact == null) {
 					throw new FileNotFoundException(xml2Json.getSchemaURI());
 				}
@@ -217,7 +225,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "json2xml": {
 				Json2Xml json2Xml = (Json2Xml) jaxbElement.getValue();
-				XSDArtifact schemaArtifact = getArtifact(json2Xml.getSchemaURI());
+				SchemaArtifact schemaArtifact = getArtifact(json2Xml.getSchemaURI());
 				if (schemaArtifact == null) {
 					throw new FileNotFoundException(json2Xml.getSchemaURI());
 				}
