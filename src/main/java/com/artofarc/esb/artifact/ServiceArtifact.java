@@ -30,6 +30,8 @@ import com.artofarc.esb.TimerService;
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.action.AssignAction;
 import com.artofarc.esb.action.AssignHeadersAction;
+import com.artofarc.esb.action.BranchOnPathAction;
+import com.artofarc.esb.action.BranchOnPathAction.PathTemplate;
 import com.artofarc.esb.action.BranchOnVariableAction;
 import com.artofarc.esb.action.ConditionalAction;
 import com.artofarc.esb.action.DumpAction;
@@ -58,6 +60,7 @@ import com.artofarc.esb.service.ActionPipeline;
 import com.artofarc.esb.service.ActionPipelineRef;
 import com.artofarc.esb.service.Assign;
 import com.artofarc.esb.service.AssignHeaders;
+import com.artofarc.esb.service.BranchOnPath;
 import com.artofarc.esb.service.BranchOnVariable;
 import com.artofarc.esb.service.BranchOnVariable.Branch;
 import com.artofarc.esb.service.Conditional;
@@ -338,6 +341,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					branchOnVariableAction.getBranchMap().put(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
 				}
 				list.add(branchOnVariableAction);
+				break;
+			}
+			case "branchOnPath": {
+				BranchOnPath branchOnPath = (BranchOnPath) jaxbElement.getValue();
+				BranchOnPathAction branchOnPathAction = new BranchOnPathAction(branchOnPath.getBasePath(), null);
+				for (com.artofarc.esb.service.BranchOnPath.Branch branch : branchOnPath.getBranch()) {
+					branchOnPathAction.getBranchMap().put(new PathTemplate(branch.getPathTemplate()), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
+				}
+				list.add(branchOnPathAction);
 				break;
 			}
 			case "dump":

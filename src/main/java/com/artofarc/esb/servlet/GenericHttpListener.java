@@ -57,13 +57,12 @@ public class GenericHttpListener extends HttpServlet {
 			if (consumerPort.isEnabled()) {
 				ESBMessage message = new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream());
 				message.getVariables().put(ESBVariableConstants.HttpMethod, request.getMethod());
+				message.getVariables().put(ESBVariableConstants.PathInfo, pathInfo);
 				message.setCharsetName(request.getCharacterEncoding());
 				for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 					String headerName = headerNames.nextElement();
 					message.getHeaders().put(headerName, request.getHeader(headerName));
 				}
-				// message.getVariables().put(ESBVariableConstants.HttpServletResponse,
-				// response);
 				message.getVariables().put(ESBVariableConstants.AsyncContext, request.startAsync());
 				// process message
 				try {

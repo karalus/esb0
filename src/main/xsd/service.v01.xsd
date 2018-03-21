@@ -325,6 +325,25 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<element name="branchOnPath" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase">
+					<sequence>
+						<element name="branch" maxOccurs="unbounded">
+							<complexType>
+								<sequence>
+									<element ref="tns:action" maxOccurs="unbounded" />
+								</sequence>
+								<attribute name="pathTemplate" type="string" use="required" />
+							</complexType>
+						</element>
+					</sequence>
+					<attribute name="basePath" type="anyURI" use="required" />
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
 	<element name="validate" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>

@@ -20,6 +20,8 @@ public interface ESBVariableConstants {
 
 	public static final String HttpMethod = "HttpMethod";
 
+	public static final String PathInfo = "PathInfo";
+
 	public static final String HttpResponseCode = "HttpResponseCode";
 
 	public static final String HttpServletResponse = "HttpServletResponse";
