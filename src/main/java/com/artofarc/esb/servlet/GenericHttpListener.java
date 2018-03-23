@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.PoolContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
@@ -55,7 +56,10 @@ public class GenericHttpListener extends HttpServlet {
 		ConsumerPort consumerPort = poolContext.getGlobalContext().getHttpService(pathInfo);
 		if (consumerPort != null) {
 			if (consumerPort.isEnabled()) {
-				ESBMessage message = new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream());
+				// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
+				final boolean bodyPresent = request.getHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH) != null
+						|| request.getHeader(HttpConstants.HTTP_HEADER_TRANSFER_ENCODING) != null;
+				ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
 				message.getVariables().put(ESBVariableConstants.HttpMethod, request.getMethod());
 				message.getVariables().put(ESBVariableConstants.PathInfo, pathInfo);
 				message.setCharsetName(request.getCharacterEncoding());
