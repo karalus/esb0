@@ -44,7 +44,10 @@ public class BranchOnVariableAction extends Action {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		Object value = message.getVariable(_varName);
 		if (value == null) {
-			throw new ExecutionException(this, "Variable is null: " + _varName);
+			value = message.getHeader(_varName);
+			if (value == null) {
+				throw new ExecutionException(this, "Neither variable nor header found: " + _varName);
+			}
 		}
 		if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {
 			throw new ExecutionException(this, "Value for variable " + _varName + " is not an atomic type: " + value.getClass());

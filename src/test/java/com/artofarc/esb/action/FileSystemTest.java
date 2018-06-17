@@ -38,8 +38,8 @@ public class FileSystemTest {
    
   @Test
    public void testStartup() {
-      try (PoolContext poolContext = ESBServletContextListener.createGlobalAndDefaultPoolContext(new File("src/test/resources"))) {
-         GlobalContext globalContext = poolContext.getGlobalContext();
+		try (PoolContext poolContext = new ESBServletContextListener().createGlobalAndDefaultPoolContext(new File("src/test/resources"));
+				GlobalContext globalContext = poolContext.getGlobalContext()) {
          ConsumerPort service = globalContext.getInternalService("/HttpService4.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/demo1");
@@ -49,8 +49,8 @@ public class FileSystemTest {
    
    @Test
    public void testRealService() throws Exception {
-      try (PoolContext poolContext = ESBServletContextListener.createGlobalAndDefaultPoolContext(new File("src/test/resources"))) {
-         GlobalContext globalContext = poolContext.getGlobalContext();
+		try (PoolContext poolContext = new ESBServletContextListener().createGlobalAndDefaultPoolContext(new File("src/test/resources"));
+				GlobalContext globalContext = poolContext.getGlobalContext()) {
          ConsumerPort service = globalContext.getInternalService("/example/ExampleService.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/exampleUsingport");

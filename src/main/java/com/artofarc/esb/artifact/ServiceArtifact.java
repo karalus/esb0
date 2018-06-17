@@ -83,6 +83,7 @@ import com.artofarc.esb.service.Transform;
 import com.artofarc.esb.service.UnwrapSOAP11;
 import com.artofarc.esb.service.Validate;
 import com.artofarc.esb.service.Xml2Json;
+import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Collections;
 
 public class ServiceArtifact extends AbstractServiceArtifact {
@@ -125,7 +126,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		List<Action> list = transform(globalContext, _service.getAction(), _service.getErrorHandler());
 		switch (_service.getProtocol()) {
 		case HTTP:
-			_consumerPort = new ConsumerPort(getURI());
+			_consumerPort = new HttpConsumer(getURI());
 			_consumerPort.setTerminalAction(new HttpServletResponseAction(_service.getHttpBindURI().isSupportCompressiom()));
 			break;
 		case JMS:

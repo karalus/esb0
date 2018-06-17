@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.artofarc.esb.context.AbstractContext;
 import com.artofarc.esb.jms.JMSConsumer;
+import com.artofarc.esb.servlet.HttpConsumer;
 
 public class Registry extends AbstractContext {
 
@@ -29,7 +30,7 @@ public class Registry extends AbstractContext {
 	private static final int CONCURRENT_UPDATES = 4;
 
 	private final ConcurrentHashMap<String, ConsumerPort> _services = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, ConsumerPort> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
+	private final ConcurrentHashMap<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
 	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
 	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
 
@@ -56,8 +57,8 @@ public class Registry extends AbstractContext {
 		return _timerServices.values();
 	}
 
-	public ConsumerPort getHttpService(String path) {
-		ConsumerPort httpService = _httpServices.get(path);
+	public HttpConsumer getHttpService(String path) {
+		HttpConsumer httpService = _httpServices.get(path);
 		if (httpService == null) {
 			// TOREVIEW: Find service for a shorter path
 			for (String url : _httpServices.keySet()) {
@@ -75,13 +76,14 @@ public class Registry extends AbstractContext {
 		_services.put(consumerPort.getUri(), consumerPort);
 	}
 
-	public void bindHttpService(String path, ConsumerPort consumerPort) {
-		ConsumerPort httpService = _httpServices.get(path);
+	public HttpConsumer bindHttpService(String path, HttpConsumer consumerPort) {
+		HttpConsumer httpService = _httpServices.get(path);
 		if (httpService != null && !httpService.getUri().equals(consumerPort.getUri())) {
 			throw new IllegalArgumentException("A different service is already bound to this path: " + httpService.getUri());
 		}
 		bindService(consumerPort);
 		_httpServices.put(path, consumerPort);
+		return httpService;
 	}
 
 	public JMSConsumer bindJmsConsumer(JMSConsumer jmsConsumer) {
@@ -107,6 +109,14 @@ public class Registry extends AbstractContext {
 		// inbound
 		for (TimerService timerService : _timerServices.values()) {
 			timerService.stop();
+		}
+		for (HttpConsumer httpConsumer : _httpServices.values()) {
+			try {
+				httpConsumer.enable(false);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		for (JMSConsumer jmsConsumer : _jmsConsumer.values()) {
 			try {

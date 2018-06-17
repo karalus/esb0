@@ -1,13 +1,15 @@
+<%@page import="com.artofarc.esb.servlet.HttpConsumer"%>
 <html>
 <body>
 <%@ page import = "com.artofarc.esb.context.PoolContext" %>
 <%@ page import = "com.artofarc.esb.ConsumerPort" %>
+<%@ page import = "com.artofarc.esb.servlet.HttpConsumer" %>
 <%@ page import = "com.artofarc.esb.jms.JMSConsumer" %>
 <%@ page import = "com.artofarc.esb.context.WorkerPool" %>
 <%@ page import = "com.artofarc.esb.artifact.*" %>
 <%@ page import = "com.artofarc.esb.service.*" %>
 <%@ page import = "javax.xml.bind.JAXBElement" %>
-<h2>ESB Zero - no sugar</h2>
+<h2>ESB Zero - A lightweight service gateway</h2>
 <%!
 	public String toDOTNode(JAXBElement<?> e, int i) {
 		return e.getName().getLocalPart() + "_" + i;// + "[label=\"" + e.getName().getLocalPart() + "\"]";
@@ -18,12 +20,12 @@
 	if (request.getPathInfo() == null) {
 %>
 <br>HttpServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Path</b></td><td align="center"><b>Uri</b></td><td align="center"><b>Enabled</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Path</b></td><td align="center"><b>Uri</b></td><td align="center"><b>PoolSize</b></td><td align="center"><b>Enabled</b></td></tr> 
 <%
 		for (String path : poolContext.getGlobalContext().getHttpServicePaths()) {
-			ConsumerPort consumerPort = poolContext.getGlobalContext().getHttpService(path);
+		   HttpConsumer consumerPort = poolContext.getGlobalContext().getHttpService(path);
 		   %>
-		   <tr><td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td><td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></tr>
+		   <tr><td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td><td><%=consumerPort.getPoolSize()%></td><td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></tr>
 		   <%
 		}
 %>

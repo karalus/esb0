@@ -37,6 +37,7 @@ public class DumpAction extends TerminalAction {
 			System.out.println("Body:");
 			message.writeTo(System.out, context);
 			System.out.println();
+			System.out.flush();
 		}
 	}
 

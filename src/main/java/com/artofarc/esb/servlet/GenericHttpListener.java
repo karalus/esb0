@@ -27,7 +27,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.http.HttpConstants;
@@ -42,8 +41,6 @@ public class GenericHttpListener extends HttpServlet {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final ThreadLocal<Context> _context = new ThreadLocal<>();
-
 	@Override
 	protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// process input
@@ -53,7 +50,7 @@ public class GenericHttpListener extends HttpServlet {
 		}
 		log("Incoming HTTP request with uri " + request.getRequestURI());
 		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
-		ConsumerPort consumerPort = poolContext.getGlobalContext().getHttpService(pathInfo);
+		HttpConsumer consumerPort = poolContext.getGlobalContext().getHttpService(pathInfo);
 		if (consumerPort != null) {
 			if (consumerPort.isEnabled()) {
 				// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
@@ -69,11 +66,22 @@ public class GenericHttpListener extends HttpServlet {
 				}
 				message.getVariables().put(ESBVariableConstants.AsyncContext, request.startAsync());
 				// process message
+				Context context = null;
 				try {
-					Context context = getContext(poolContext);
-					consumerPort.process(context, message);
+					context = consumerPort.getContext(poolContext);
 				} catch (Exception e) {
 					sendErrorResponse(response, e);
+				}
+				if (context != null) {
+					try {
+						consumerPort.process(context, message);
+					} catch (Exception e) {
+						sendErrorResponse(response, e);
+					} finally {
+						consumerPort.releaseContext(context);
+					}
+				} else {
+					response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
 				}
 			} else {
 				response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
@@ -81,15 +89,6 @@ public class GenericHttpListener extends HttpServlet {
 		} else {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
 		}
-	}
-
-	private Context getContext(PoolContext poolContext) throws Exception {
-		Context context = _context.get();
-		if (context == null) {
-			context = new Context(poolContext);
-			_context.set(context);
-		}
-		return context;
 	}
 
 	public static void sendErrorResponse(HttpServletResponse response, Exception e) throws IOException {

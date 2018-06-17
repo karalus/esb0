@@ -116,7 +116,16 @@ public class DeployServlet extends HttpServlet {
 		for (ServiceArtifact service : updateSet) {
 			ConsumerPort consumerPort = service.getConsumerPort();
 			if (service.getService().getProtocol() == Protocol.HTTP) {
-				globalContext.bindHttpService(service.getService().getHttpBindURI().getValue(), consumerPort);
+				HttpConsumer httpConsumer = service.getConsumerPort();
+				HttpConsumer oldHttpConsumer = globalContext.bindHttpService(service.getService().getHttpBindURI().getValue(), httpConsumer);
+				if (oldHttpConsumer != null) {
+					try {
+						oldHttpConsumer.close();
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
 			} else if (service.getService().getProtocol() == Protocol.JMS) {
 				JMSConsumer jmsConsumer = service.getConsumerPort();
 				JMSConsumer oldConsumer = globalContext.bindJmsConsumer(jmsConsumer);

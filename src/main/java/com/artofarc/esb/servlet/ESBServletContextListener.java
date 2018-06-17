@@ -18,6 +18,7 @@ package com.artofarc.esb.servlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -29,20 +30,23 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.context.WorkerPool;
 
-public class ESBServletContextListener implements ServletContextListener {
+public class ESBServletContextListener implements ServletContextListener, Runnable {
 
 	public static final String POOL_CONTEXT = "WebContainerPoolContext";
 
-	public static final PoolContext createGlobalAndDefaultPoolContext(File rootDir) {
+	private GlobalContext globalContext;
+
+	public final PoolContext createGlobalAndDefaultPoolContext(File rootDir) {
 		if (!rootDir.exists() || !rootDir.isDirectory()) {
 			throw new RuntimeException("No directory " + rootDir);
 		}
-		GlobalContext globalContext = new GlobalContext();
+		globalContext = new GlobalContext();
 		FileSystem fileSystem = new FileSystem();
 		globalContext.setFileSystem(fileSystem);
 		PoolContext poolContext = new PoolContext(globalContext);
 		// default WorkerPool
-		globalContext.putWorkerPool(null, new WorkerPool(globalContext));
+		WorkerPool workerPool = new WorkerPool(globalContext);
+		globalContext.putWorkerPool(null, workerPool);
 		try {
 			ChangeSet changeSet = fileSystem.parseDirectory(globalContext, rootDir);
 			DeployServlet.deployChangeSet(globalContext, poolContext, changeSet);
@@ -51,6 +55,7 @@ public class ESBServletContextListener implements ServletContextListener {
 		} catch (ValidationException e) {
 			throw new RuntimeException("Could not validate artifact " + e.getArtifact(), e.getCause());
 		}
+		workerPool.getScheduledExecutorService().scheduleAtFixedRate(this, 30L, 30L, TimeUnit.SECONDS);
 		return poolContext;
 	}
 
@@ -68,6 +73,18 @@ public class ESBServletContextListener implements ServletContextListener {
 			poolContext.close();
 			poolContext.getGlobalContext().close();
 		}
+	}
+
+	@Override
+	public void run() {
+		for (String path : globalContext.getHttpServicePaths()) {
+			HttpConsumer consumerPort = globalContext.getHttpService(path);
+			// check because it could be undeployed meanwhile
+			if (consumerPort != null) {
+				consumerPort.shrinkPool();
+			}
+		}
+
 	}
 
 }
