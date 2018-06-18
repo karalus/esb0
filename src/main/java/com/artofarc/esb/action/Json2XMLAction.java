@@ -54,7 +54,7 @@ public class Json2XMLAction extends TerminalAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = (String) message.getHeaders().get(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+		String contentType = message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && !contentType.startsWith(MediaType.APPLICATION_JSON.getMediaType())) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}

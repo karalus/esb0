@@ -18,8 +18,8 @@ package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.logging.Logger;
 
 import com.artofarc.esb.context.GlobalContext;
@@ -33,8 +33,8 @@ public abstract class Artifact {
 
 	private byte[] _content;
 	private long _modificationTime;
-	private final HashSet<String> _referenced = new HashSet<>();
-	private final HashSet<String> _referencedBy = new HashSet<>();
+	private final LinkedHashSet<String> _referenced = new LinkedHashSet<>();
+	private final LinkedHashSet<String> _referencedBy = new LinkedHashSet<>();
 
 	private boolean _validated;
 

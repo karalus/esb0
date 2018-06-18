@@ -17,8 +17,8 @@
 package com.artofarc.esb.action;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.artofarc.esb.context.Context;
@@ -31,8 +31,8 @@ public class ConditionalAction extends AssignAction {
 
 	private Action conditionalAction;
 
-	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces) {
-		super(RESULT, expression, namespaces, Collections.<String> emptyList());
+	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames) {
+		super(RESULT, expression, namespaces, bindNames);
 		// because of branch prediction
 		_pipelineStop = false;
 	}

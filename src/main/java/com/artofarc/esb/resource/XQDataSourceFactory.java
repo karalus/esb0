@@ -24,6 +24,8 @@ import net.sf.saxon.lib.ExtensionFunctionDefinition;
 import net.sf.saxon.om.Sequence;
 import net.sf.saxon.om.StructuredQName;
 import net.sf.saxon.trans.XPathException;
+import net.sf.saxon.type.BuiltInAtomicType;
+import net.sf.saxon.value.Int64Value;
 import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
@@ -34,6 +36,7 @@ public class XQDataSourceFactory {
 	public static XQDataSource createXQDataSource() {
 		SaxonXQDataSource dataSource = new SaxonXQDataSource();
 		dataSource.getConfiguration().registerExtensionFunction(new UUID());
+		dataSource.getConfiguration().registerExtensionFunction(new CurrentTimeMillis());
 		return dataSource;
 	}
 
@@ -61,6 +64,36 @@ public class XQDataSourceFactory {
 				@Override
 				public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException {
 					return StringValue.makeStringValue(java.util.UUID.randomUUID().toString());
+				}
+
+			};
+		}
+	}
+
+	private static class CurrentTimeMillis extends ExtensionFunctionDefinition {
+
+		@Override
+		public StructuredQName getFunctionQName() {
+			return new StructuredQName("fn-artofarc", "http://artofarc.com/xpath-extension", "currentTimeMillis");
+		}
+
+		@Override
+		public SequenceType[] getArgumentTypes() {
+			return new SequenceType[] {};
+		}
+
+		@Override
+		public SequenceType getResultType(SequenceType[] suppliedArgumentTypes) {
+			return BuiltInAtomicType.LONG.one();
+		}
+
+		@Override
+		public ExtensionFunctionCall makeCallExpression() {
+			return new ExtensionFunctionCall() {
+
+				@Override
+				public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException {
+					return Int64Value.makeDerived(System.currentTimeMillis(), BuiltInAtomicType.LONG);
 				}
 
 			};

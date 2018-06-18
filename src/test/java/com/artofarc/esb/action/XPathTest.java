@@ -80,7 +80,7 @@ public class XPathTest {
    @Test
    public void testCondition() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      ConditionalAction action = new ConditionalAction("test/text() = \'Hello\'", null);
+      ConditionalAction action = new ConditionalAction("test/text() = \'Hello\'", null, Collections.<String> emptyList());
       MarkAction action2 = new MarkAction();
       MarkAction action3 = new MarkAction();
       action.setNextAction(action2);

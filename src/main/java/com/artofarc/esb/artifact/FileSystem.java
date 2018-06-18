@@ -180,6 +180,7 @@ public final class FileSystem {
 		case "wsdl":
 			return new WSDLArtifact(parent, name);
 		case "xq":
+		case "xqy":
 			return new XQueryArtifact(parent, name);
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(parent, name);

@@ -32,6 +32,7 @@ public final class Collections {
 		for (final Entry<K, V> entry : map.entrySet()) {
 			if (result.put(entry.getValue(), entry.getKey()) != null) {
 				// throw new IllegalArgumentException("Values are not unique");
+				return java.util.Collections.emptyMap();
 			}
 		}
 		return result;

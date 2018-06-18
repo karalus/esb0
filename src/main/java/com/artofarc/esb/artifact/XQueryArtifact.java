@@ -53,7 +53,7 @@ public class XQueryArtifact extends Artifact {
 	public void validateInternal(GlobalContext globalContext) throws XQException {
 		XQConnection connection = globalContext.getXQDataSource().getConnection();
 		try {
-			logger.info("Parsing XQuery: " + getXQuery());
+			logger.info("Parsing XQuery: " + getURI());
 			XQPreparedExpression preparedExpression = connection.prepareExpression(getContentAsByteArrayInputStream());
 			for (QName qName : preparedExpression.getAllExternalVariables()) {
 				_externalVariables.add(qName.getLocalPart());

@@ -28,7 +28,9 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -57,13 +59,12 @@ import org.xml.sax.SAXException;
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.http.HttpConstants;
-import com.artofarc.util.CaseInsensitiveMap;
 
 public final class ESBMessage implements Cloneable, XPathVariableResolver {
 
 	public final static int MTU = 4096;
 
-	private final HashMap<String, Object> _headers = new CaseInsensitiveMap<>();
+	private final HashMap<String, Object> _headers = new HashMap<>();
 	private final HashMap<String, Object> _variables = new HashMap<>();
 
 	private BodyType _bodyType;
@@ -100,7 +101,24 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 
 	@SuppressWarnings("unchecked")
 	public <T extends Object> T getHeader(String headerName) {
-		return (T) _headers.get(headerName);
+		for (Entry<String, Object> entry : _headers.entrySet()) {
+			if (headerName.equalsIgnoreCase(entry.getKey())) {
+				return (T) entry.getValue();
+			}
+		}
+		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T extends Object> T removeHeader(String headerName) {
+		for (Iterator<Entry<String, Object>> iter = _headers.entrySet().iterator(); iter.hasNext();) {
+			Entry<String, Object> entry = iter.next();
+			if (headerName.equalsIgnoreCase(entry.getKey())) {
+				iter.remove();
+				return (T) entry.getValue();
+			}
+		}
+		return null;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -183,7 +201,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 	
 	public InputStream getUncompressedInputStream() throws IOException {
 		InputStream inputStream = (InputStream) _body;
-		final String contentEncoding = (String) getHeaders().remove(HttpConstants.HTTP_HEADER_CONTENT_ENCODING);
+		final String contentEncoding = removeHeader(HttpConstants.HTTP_HEADER_CONTENT_ENCODING);
 		if (contentEncoding != null) {
 			switch (contentEncoding) {
 			case "gzip":

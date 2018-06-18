@@ -40,6 +40,7 @@ import com.artofarc.esb.action.HttpInboundAction;
 import com.artofarc.esb.action.HttpOutboundAction;
 import com.artofarc.esb.action.HttpServletResponseAction;
 import com.artofarc.esb.action.JDBCProcedureAction;
+import com.artofarc.esb.action.JDBCUpdateAction;
 import com.artofarc.esb.action.JMSAction;
 import com.artofarc.esb.action.Json2XMLAction;
 import com.artofarc.esb.action.KafkaConsumeAction;
@@ -54,6 +55,7 @@ import com.artofarc.esb.action.WrapSOAP11Action;
 import com.artofarc.esb.action.XML2JsonAction;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpEndpoint;
+import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.service.ActionBase;
 import com.artofarc.esb.service.ActionPipeline;
@@ -68,7 +70,9 @@ import com.artofarc.esb.service.ConsumeKafka;
 import com.artofarc.esb.service.Fork;
 import com.artofarc.esb.service.Http;
 import com.artofarc.esb.service.InternalService;
+import com.artofarc.esb.service.JdbcParameter;
 import com.artofarc.esb.service.JdbcProcedure;
+import com.artofarc.esb.service.JdbcUpdate;
 import com.artofarc.esb.service.Jms;
 import com.artofarc.esb.service.Json2Xml;
 import com.artofarc.esb.service.NsDecl;
@@ -197,6 +201,16 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				list.add(new JDBCProcedureAction(jdbcProcedure.getDataSource()));
 				break;
 			}
+			case "jdbcUpdate": {
+				JdbcUpdate jdbcUpdate = (JdbcUpdate) jaxbElement.getValue();
+				List<JDBCParameter> params = new ArrayList<>();
+				for (JdbcParameter jdbcParameter : jdbcUpdate.getJdbcParameter()) {
+					params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.getVariable(), jdbcParameter.getTruncate()));
+				}
+				list.add(new SpawnAction(jdbcUpdate.getWorkerPool(), true));
+				list.add(new JDBCUpdateAction(jdbcUpdate.getDataSource(), jdbcUpdate.getSql(), params));
+				break;
+			}
 			case "assign": {
 				Assign assign = (Assign) jaxbElement.getValue();
 				List<Entry<String, String>> assignments = new ArrayList<>();
@@ -212,7 +226,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (com.artofarc.esb.service.AssignHeaders.Assignment assignment : assignHeaders.getAssignment()) {
 					assignments.add(Collections.createEntry(assignment.getHeader(), assignment.getValue()));
 				}
-				list.add(new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()).entrySet(), assignHeaders.getBindName()));
+				list.add(new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()).entrySet(), assignHeaders.getBindName(), assignHeaders.isClearAll()));
 				break;
 			}
 			case "xml2json": {
@@ -318,7 +332,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "conditional": {
 				Conditional conditional = (Conditional) jaxbElement.getValue();
-				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet());
+				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(), conditional.getBindName());
 				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), errorHandler)));
 				list.add(conditionalAction);
 				break;

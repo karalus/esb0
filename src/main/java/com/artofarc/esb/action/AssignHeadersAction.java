@@ -18,6 +18,7 @@ package com.artofarc.esb.action;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import com.artofarc.esb.context.Context;
@@ -25,14 +26,21 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
 
 public class AssignHeadersAction extends AssignAction {
+	
+	private final boolean _clearAll;
 
-	public AssignHeadersAction(Collection<Entry<String, String>> assignments, Collection<Entry<String, String>> namespaces, List<String> bindNames) {
+	public AssignHeadersAction(Collection<Entry<String, String>> assignments, Collection<Entry<String, String>> namespaces, List<String> bindNames, boolean clearAll) {
 		super(assignments, namespaces, bindNames);
+		_clearAll = clearAll;
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		return prepare(context, message, message.getHeaders());
+		final Map<String, Object> headers = message.getHeaders();
+		if (_clearAll) {
+			headers.clear();
+		}
+		return prepare(context, message, headers);
 	}
 
 }

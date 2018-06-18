@@ -86,13 +86,12 @@ public class TransformAction extends Action {
 		} else if (message.getBodyType() == BodyType.XQ_ITEM) {
 			xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
 		} else if (message.getBodyType() == BodyType.INVALID) {
-			// xqExpression.bindString(XQConstants.CONTEXT_ITEM, null,
-			// context.getXQDataFactory().createAtomicType(XQItemType.XQBASETYPE_STRING));
+			// Nothing to bind
 		} else {
 			xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(), null);
 		}
 		for (String bindName : _bindNames) {
-			Object header = message.getHeaders().get(bindName);
+			Object header = message.getHeader(bindName);
 			Object variable = message.getVariable(bindName);
 			if (header != null && variable == null) {
 				xqExpression.bindObject(new QName(bindName), header, null);
@@ -102,6 +101,8 @@ public class TransformAction extends Action {
 				} else {
 					xqExpression.bindObject(new QName(bindName), variable, null);
 				}
+			} else if (header == null && variable == null) {
+				xqExpression.bindString(new QName(bindName), "", context.getXQDataFactory().createAtomicType(XQItemType.XQBASETYPE_STRING));
 			} else {
 				throw new ExecutionException(this, "name could not unambiguously be resolved: " + bindName);
 			}
@@ -164,12 +165,10 @@ public class TransformAction extends Action {
 	protected void close(ExecutionContext execContext) throws Exception {
 		XQResultSequence resultSequence = execContext.getResource();
 		if (resultSequence.next()) {
-			logger.warning("XQResultSequence not fully consumed");
+			logger.info("XQResultSequence not fully consumed");
 			if (logger.isLoggable(Level.FINE)) {
 				resultSequence.writeItemToResult(new StreamResult(System.err));
 			}
-			// throw new ExecutionException(this,
-			// "XQResultSequence not fully consumed");
 		}
 		resultSequence.close();
 	}

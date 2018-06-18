@@ -119,7 +119,7 @@
 	       }
 	   %>
 	   </table>
-	   <object data="<%=request.getContextPath() + request.getServletPath() + "/deploy" + a.getURI()%>" type="text/plain" width="1000" style="height: 500px"></object>
+	   <object data="<%=request.getContextPath() + request.getServletPath() + "/deploy" + a.getURI()%>" type="text/plain" width="1600" style="height: 800px"></object>
 	   <%
 	   	if (a instanceof ServiceArtifact) {
 	   		ServiceArtifact sa = (ServiceArtifact) a;
