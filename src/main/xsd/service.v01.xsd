@@ -169,7 +169,7 @@
 						<element name="assignment" maxOccurs="unbounded">
 							<complexType>
 								<simpleContent>
-									<extension base="string">
+									<extension base="tns:string1">
 										<attribute name="variable" type="Name" use="required" />
 									</extension>
 								</simpleContent>
@@ -190,7 +190,7 @@
 						<element name="assignment" maxOccurs="unbounded">
 							<complexType>
 								<simpleContent>
-									<extension base="string">
+									<extension base="tns:string1">
 										<attribute name="header" type="Name" use="required" />
 									</extension>
 								</simpleContent>
@@ -463,4 +463,9 @@
 			<attribute name="scheduledThreads" type="int" use="required" />
 		</complexType>
 	</element>
+	<simpleType name="string1">
+		<restriction base="string">
+			<minLength value="1" />
+		</restriction>
+	</simpleType>
 </schema>

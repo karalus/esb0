@@ -70,10 +70,20 @@ public final class JDBCParameter {
 			}
 			break;
 		case Types.VARCHAR:
+		case Types.CLOB:
 			if (truncate != null && value != null) {
 				String s = (String) value;
 				return (T) (s.length() > truncate ? s.substring(0, truncate) : s);
 			}
+			break;
+		case Types.BLOB:
+			final byte[] msgBody = (byte[]) value;
+			if (truncate != null && msgBody.length > truncate) {
+				final byte[] newMsgBody = new byte[truncate]; 
+				System.arraycopy(msgBody, 0, newMsgBody, 0, truncate);
+				return (T) newMsgBody;
+			}
+			break;
 		default:
 			break;
 		}

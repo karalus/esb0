@@ -62,10 +62,11 @@ public class JDBCUpdateAction extends Action {
 				if (param.isBody()) {
 					switch (param.getType()) {
 					case Types.CLOB:
-						ps.setCharacterStream(param.getPos(), new StringReader(message.getBodyAsString(context)));
+						final String bodyAsString = param.alignValue(message.getBodyAsString(context));
+						ps.setCharacterStream(param.getPos(), new StringReader(bodyAsString));
 						break;
 					case Types.BLOB:
-						byte[] msgBody = message.getBodyAsByteArray(context);
+						final byte[] msgBody = param.alignValue(message.getBodyAsByteArray(context));
 						ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(msgBody), msgBody.length);
 						break;
 					default:

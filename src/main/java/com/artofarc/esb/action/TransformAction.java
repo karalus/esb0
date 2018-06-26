@@ -165,7 +165,7 @@ public class TransformAction extends Action {
 	protected void close(ExecutionContext execContext) throws Exception {
 		XQResultSequence resultSequence = execContext.getResource();
 		if (resultSequence.next()) {
-			logger.info("XQResultSequence not fully consumed");
+			logger.fine("XQResultSequence not fully consumed");
 			if (logger.isLoggable(Level.FINE)) {
 				resultSequence.writeItemToResult(new StreamResult(System.err));
 			}

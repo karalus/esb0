@@ -146,7 +146,7 @@ public final class FileSystem {
 		}
 	}
 
-	public static final void writeDir(Directory base, File dir) throws IOException {
+	protected static final void writeDir(Directory base, File dir) throws IOException {
 		boolean prepared;
 		if (!dir.exists()) {
 			prepared = dir.mkdirs();
@@ -166,6 +166,11 @@ public final class FileSystem {
 				fos.close();
 			}
 		}
+	}
+	
+	public void writeDir(File dir) throws IOException {
+		writeDir(_root, dir);
+		_anchorDir = dir;
 	}
 
 	protected static final Artifact createArtifact(Directory parent, String name, String extension) {

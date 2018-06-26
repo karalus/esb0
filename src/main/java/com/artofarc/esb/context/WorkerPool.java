@@ -34,7 +34,7 @@ public class WorkerPool {
 
 	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int queueDepth, int scheduledThreads) {
 		_poolContext = new PoolContext(globalContext);
-		_threadFactory = new WorkerPoolThreadFactory(name, _poolContext);
+		_threadFactory = new WorkerPoolThreadFactory(name, _poolContext, Thread.NORM_PRIORITY);
 		if (maxThreads > 0 && queueDepth > 0) {
 			workQueue = new ArrayBlockingQueue<Runnable>(queueDepth);
 			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, workQueue, _threadFactory);
@@ -50,8 +50,8 @@ public class WorkerPool {
 
 	public WorkerPool(GlobalContext globalContext) {
 		_poolContext = new PoolContext(globalContext);
-		_threadFactory = new WorkerPoolThreadFactory("Default", _poolContext);
-		_executorService = Executors.newFixedThreadPool(10, _threadFactory);
+		_threadFactory = new WorkerPoolThreadFactory("Default", _poolContext, Thread.NORM_PRIORITY);
+		_executorService = Executors.newFixedThreadPool(20, _threadFactory);
 		_scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(_threadFactory);
 	}
 

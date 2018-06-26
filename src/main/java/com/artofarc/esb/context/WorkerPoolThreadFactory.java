@@ -31,16 +31,18 @@ public class WorkerPoolThreadFactory extends ThreadGroup implements ThreadFactor
 	private final PoolContext _poolContext;
 	private final AtomicInteger threadNumber = new AtomicInteger(1);
 	private final String namePrefix;
+	private final int _priority;
 
-	protected WorkerPoolThreadFactory(String name, PoolContext poolContext) {
+	protected WorkerPoolThreadFactory(String name, PoolContext poolContext, int priority) {
 		super(name);
 		_poolContext = poolContext;
 		namePrefix = "WorkerPool-" + name + "-thread-";
+		_priority = priority;
 	}
 
 	@Override
 	public Thread newThread(final Runnable r) {
-		return new Thread(this, new Runnable() {
+		final Thread thread = new Thread(this, new Runnable() {
 
 			@Override
 			public void run() {
@@ -54,6 +56,8 @@ public class WorkerPoolThreadFactory extends ThreadGroup implements ThreadFactor
 				}
 			}
 		}, namePrefix + threadNumber.getAndIncrement());
+		thread.setPriority(_priority);
+		return thread;
 	}
 
 	public static Context getContext() {

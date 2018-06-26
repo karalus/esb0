@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.servlet;
 
+import java.io.File;
 import java.io.IOException;
 
 import javax.servlet.ServletException;
@@ -30,6 +31,7 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.action.HttpOutboundAction;
 import com.artofarc.esb.artifact.Artifact;
+import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystem.ChangeSet;
 import com.artofarc.esb.artifact.ServiceArtifact;
 import com.artofarc.esb.artifact.ValidationException;
@@ -83,12 +85,15 @@ public class DeployServlet extends HttpServlet {
 				try {
 					updateSet = globalContext.getFileSystem().createUpdate(globalContext, filePart.getInputStream());
 				} catch (ValidationException e) {
-					e.printStackTrace();
+					log("Not valid", e);
 					resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
 					return;
 				}
-				globalContext.setFileSystem(updateSet.getFileSystem());
+				FileSystem newFileSystem = updateSet.getFileSystem();
+				File anchorDir = globalContext.getFileSystem().getAnchorDir();
+				globalContext.setFileSystem(newFileSystem);
 				deployChangeSet(globalContext, poolContext, updateSet);
+				newFileSystem.writeDir(anchorDir);
 			}
 		} else {
 			ConsumerPort consumerPort = globalContext.getInternalService(req.getPathInfo());
