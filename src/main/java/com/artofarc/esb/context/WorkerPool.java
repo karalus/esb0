@@ -32,9 +32,9 @@ public class WorkerPool {
 
 	private ArrayBlockingQueue<Runnable> workQueue;
 
-	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int queueDepth, int scheduledThreads) {
+	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads) {
 		_poolContext = new PoolContext(globalContext);
-		_threadFactory = new WorkerPoolThreadFactory(name, _poolContext, Thread.NORM_PRIORITY);
+		_threadFactory = new WorkerPoolThreadFactory(name, _poolContext, priority);
 		if (maxThreads > 0 && queueDepth > 0) {
 			workQueue = new ArrayBlockingQueue<Runnable>(queueDepth);
 			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, workQueue, _threadFactory);

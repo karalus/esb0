@@ -114,7 +114,7 @@ public class DeployServlet extends HttpServlet {
 		for (WorkerPoolArtifact workerPoolArtifact : updateSet.getWorkerPoolArtifacts()) {
 			String name = WorkerPoolArtifact.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
-			WorkerPool workerPool = new WorkerPool(globalContext, name, wpDef.getMinThreads(), wpDef.getMaxThreads(), wpDef.getQueueDepth(), wpDef.getScheduledThreads());
+			WorkerPool workerPool = new WorkerPool(globalContext, name, wpDef.getMinThreads(), wpDef.getMaxThreads(), wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads());
 			// TODO: close later
 			globalContext.putWorkerPool(name, workerPool);
 		}

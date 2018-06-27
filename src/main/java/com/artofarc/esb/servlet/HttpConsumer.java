@@ -44,10 +44,6 @@ public class HttpConsumer extends ConsumerPort implements AutoCloseable {
       pool = new LinkedBlockingQueue<>(maxPool);
 	}
 	
-	public HttpConsumer(String uri) {
-		this(uri, 1, 100, 300000L);
-	}
-	
 	public int getPoolSize() {
 		return poolSize.get();
 	}

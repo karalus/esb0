@@ -135,6 +135,7 @@
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<sequence>
+						<element name="sql" type="string" />
 						<element name="in">
 							<complexType>
 								<sequence>
@@ -424,7 +425,10 @@
 						<complexType>
 							<simpleContent>
 								<extension base="anyURI">
-									<attribute name="supportCompressiom" type="boolean" default="false" />
+									<attribute name="supportCompression" type="boolean" default="false" />
+									<attribute name="minPool" type="int" default="1" />
+									<attribute name="maxPool" type="int" default="20" />
+									<attribute name="keepAlive" type="long" default="300000" />
 								</extension>
 							</simpleContent>
 						</complexType>
@@ -459,6 +463,7 @@
 		<complexType>
 			<attribute name="minThreads" type="int" use="required" />
 			<attribute name="maxThreads" type="int" use="required" />
+			<attribute name="priority" type="int" default="5" />
 			<attribute name="queueDepth" type="int" use="required" />
 			<attribute name="scheduledThreads" type="int" use="required" />
 		</complexType>

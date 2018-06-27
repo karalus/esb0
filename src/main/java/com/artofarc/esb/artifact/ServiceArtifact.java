@@ -80,6 +80,7 @@ import com.artofarc.esb.service.PreSOAP11Http;
 import com.artofarc.esb.service.ProduceKafka;
 import com.artofarc.esb.service.Property;
 import com.artofarc.esb.service.Service;
+import com.artofarc.esb.service.Service.HttpBindURI;
 import com.artofarc.esb.service.Service.JmsBinding;
 import com.artofarc.esb.service.Service.TimerBinding;
 import com.artofarc.esb.service.Spawn;
@@ -130,8 +131,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		List<Action> list = transform(globalContext, _service.getAction(), _service.getErrorHandler());
 		switch (_service.getProtocol()) {
 		case HTTP:
-			_consumerPort = new HttpConsumer(getURI());
-			_consumerPort.setTerminalAction(new HttpServletResponseAction(_service.getHttpBindURI().isSupportCompressiom()));
+			final HttpBindURI httpBinding = _service.getHttpBindURI();
+			_consumerPort = new HttpConsumer(getURI(), httpBinding.getMinPool(), httpBinding.getMaxPool(), httpBinding.getKeepAlive());
+			_consumerPort.setTerminalAction(new HttpServletResponseAction(httpBinding.isSupportCompression()));
 			break;
 		case JMS:
 			final JmsBinding jmsBinding = _service.getJmsBinding();
@@ -197,18 +199,19 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "jdbcProcedure": {
 				JdbcProcedure jdbcProcedure = (JdbcProcedure) jaxbElement.getValue();
-				list.add(new SpawnAction(jdbcProcedure.getWorkerPool(), true));
-				list.add(new JDBCProcedureAction(jdbcProcedure.getDataSource()));
+				if (jdbcProcedure.getWorkerPool() != null) {
+					list.add(new SpawnAction(jdbcProcedure.getWorkerPool(), true));
+				}
+				list.add(new JDBCProcedureAction(jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
+						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter())));
 				break;
 			}
 			case "jdbcUpdate": {
 				JdbcUpdate jdbcUpdate = (JdbcUpdate) jaxbElement.getValue();
-				List<JDBCParameter> params = new ArrayList<>();
-				for (JdbcParameter jdbcParameter : jdbcUpdate.getJdbcParameter()) {
-					params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.getVariable(), jdbcParameter.getTruncate()));
+				if (jdbcUpdate.getWorkerPool() != null) {
+					list.add(new SpawnAction(jdbcUpdate.getWorkerPool(), true));
 				}
-				list.add(new SpawnAction(jdbcUpdate.getWorkerPool(), true));
-				list.add(new JDBCUpdateAction(jdbcUpdate.getDataSource(), jdbcUpdate.getSql(), params));
+				list.add(new JDBCUpdateAction(jdbcUpdate.getDataSource(), jdbcUpdate.getSql(), createJDBCParameters(jdbcUpdate.getJdbcParameter())));
 				break;
 			}
 			case "assign": {
@@ -407,6 +410,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			result.put(prefix != null ? prefix : "", nsDecl.getNamespace());
 		}
 		return result;
+	}
+
+	private List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) throws NoSuchFieldException {
+		List<JDBCParameter> params = new ArrayList<>();
+		for (JdbcParameter jdbcParameter : jdbcParameters) {
+			params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.getVariable(), jdbcParameter.getTruncate()));
+		}
+		return params;
 	}
 
 }

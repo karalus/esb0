@@ -283,6 +283,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			str = _charsetName != null ? new String((byte[]) _body, _charsetName) : new String((byte[]) _body);
 			break;
 		case INPUT_STREAM:
+		case XQ_ITEM:
 			getBodyAsByteArray(context);
 			return getBodyAsString(context);
 		case INVALID:
@@ -319,6 +320,26 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		return (Document) _body;
 	}
 
+	public InputStream getBodyAsInputStream(Context context) throws TransformerException, IOException, XQException {
+		switch (_bodyType) {
+		case INPUT_STREAM:
+			return getUncompressedInputStream();
+		default:
+			return new ByteArrayInputStream(getBodyAsByteArray(context));
+		}
+	}
+	
+	public Reader getBodyAsReader(Context context) throws TransformerException, IOException, XQException {
+		switch (_bodyType) {
+		case READER:
+			return (Reader) _body;
+		case INPUT_STREAM:
+			return _charsetName != null ? getInputStreamReader() : new InputStreamReader(getUncompressedInputStream());
+		default:
+			return new StringReader(getBodyAsString(context));
+		}
+	}
+	
 	public Source getBodyAsSource() throws IOException {
 		switch (_bodyType) {
 		case DOM:

@@ -194,4 +194,29 @@ public abstract class Action implements Cloneable {
 		return startAction;
 	}
 
+	protected final static String bindVariable(String exp, ESBMessage message) {
+      StringBuilder builder = new StringBuilder();
+      for (int pos = 0;;) {
+         int i = exp.indexOf("${", pos);
+         if (i < 0) {
+            builder.append(exp.substring(pos));
+            break;
+         }
+         builder.append(exp.substring(pos, i));
+         int j = exp.indexOf("}", i);
+         if (j < 0) throw new IllegalArgumentException("Matching } is missing");
+         String name = exp.substring(i + 2, j);
+			Object value = message.getVariable(name);
+			if (value == null) {
+				value = message.getHeader(name);
+			}
+			if (value == null) {
+				throw new NullPointerException(name + " is not set");
+			}
+         builder.append(value);
+         pos = j + 1;
+      }
+      return builder.toString();
+	}
+
 }
