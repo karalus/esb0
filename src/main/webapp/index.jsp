@@ -121,15 +121,6 @@
 	   </table>
 	   <object data="<%=request.getContextPath() + request.getServletPath() + "/deploy" + a.getURI()%>" type="text/plain" width="1600" style="height: 800px"></object>
 	   <%
-	   	if (a instanceof ServiceArtifact) {
-	   		ServiceArtifact sa = (ServiceArtifact) a;
-	   %>
-		<script src="<%=request.getContextPath()%>/webjars/viz.js/1.8.0/viz-lite.js"></script>
-    	<script>
-    		document.body.innerHTML += Viz("digraph { Service<%int i = 0; for (JAXBElement<?> e : sa.getService().getAction()) { out.append(" -> ").append(toDOTNode(e, ++i)); }%>; }");
-    	</script>	   
-	   <%
-	   	}
    }
 %>
 </body>

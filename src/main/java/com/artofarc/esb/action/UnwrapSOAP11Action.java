@@ -74,7 +74,7 @@ public class UnwrapSOAP11Action extends TransformAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		if (contentType == null || !contentType.startsWith(SOAPConstants.SOAP_1_1_CONTENT_TYPE)) {
+		if (contentType == null || !contentType.contains(SOAPConstants.SOAP_1_1_CONTENT_TYPE)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		String soapAction = message.getHeader(HttpOutboundAction.HTTP_HEADER_SOAP_ACTION);

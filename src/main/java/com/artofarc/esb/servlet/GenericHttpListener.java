@@ -22,7 +22,14 @@ import java.util.Enumeration;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import javax.mail.BodyPart;
+import javax.mail.Header;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.util.ByteArrayDataSource;
 import javax.servlet.ServletException;
+import javax.servlet.annotation.MultipartConfig;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -37,6 +44,8 @@ import com.artofarc.esb.message.ESBVariableConstants;
 /**
  * Servlet implementation class GenericHttpListener
  */
+@WebServlet(asyncSupported=true, urlPatterns="/*")
+@MultipartConfig
 public class GenericHttpListener extends HttpServlet {
 
 	private static final long serialVersionUID = 1L;
@@ -63,6 +72,29 @@ public class GenericHttpListener extends HttpServlet {
 				for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 					String headerName = headerNames.nextElement();
 					message.getHeaders().put(headerName, request.getHeader(headerName));
+				}
+				if (bodyPresent) {
+					final String contentType = request.getContentType();
+					if (contentType.startsWith("multipart/")) {
+						try {
+							MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getUncompressedInputStream(), contentType));
+							for (int i = 0; i < mmp.getCount(); i++) {
+								BodyPart bodyPart = mmp.getBodyPart(i);
+								if (i == 0) {
+									for (@SuppressWarnings("unchecked")
+									Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
+										final Header header = allHeaders.nextElement();
+										message.putHeader(header.getName(), header.getValue());
+									}
+									message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream());
+								} else {
+									message.addAttachment(bodyPart);
+								}
+							}
+						} catch (MessagingException e) {
+							sendErrorResponse(response, e);
+						}
+					}
 				}
 				message.getVariables().put(ESBVariableConstants.AsyncContext, request.startAsync());
 				// process message

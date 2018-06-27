@@ -27,12 +27,19 @@ public class HttpConstants {
 	public static final String HTTP_HEADER_CONTENT_ENCODING = "Content-Encoding";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
+	
+	public static final String HTTP_HEADER_CONTENT_ID = "Content-ID";
 
 	private static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET = "charset=";
 
 	public static final String getCharsetFromContentType(String s) {
 		int i = s.indexOf(HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);
-		return i < 0 ? null : s.substring(i + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET.length());
+		if (i >= 0) {
+			i += HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET.length();
+			int j = s.indexOf(';', i);
+			return j < 0 ? s.substring(i) : s.substring(i, j);
+		}
+		return null;
 	}
 
 }

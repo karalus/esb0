@@ -36,6 +36,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import javax.mail.BodyPart;
+import javax.mail.MessagingException;
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -66,6 +68,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 
 	private final HashMap<String, Object> _headers = new HashMap<>();
 	private final HashMap<String, Object> _variables = new HashMap<>();
+	private final HashMap<String, BodyPart> _attachments = new HashMap<>();
 
 	private BodyType _bodyType;
 	private Object _body;
@@ -87,8 +90,6 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 	public void reset(BodyType bodyType, Object body) {
 		_bodyType = bodyType;
 		_body = body;
-		// _headers.clear();
-		// _charsetName = null;
 	}
 
 	public Map<String, Object> getHeaders() {
@@ -106,6 +107,19 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 				return (T) entry.getValue();
 			}
 		}
+		return null;
+	}
+
+	public <T extends Object> T putHeader(String headerName, Object value) {
+		for (Entry<String, Object> entry : _headers.entrySet()) {
+			if (headerName.equalsIgnoreCase(entry.getKey())) {
+				@SuppressWarnings("unchecked")
+				T oldValue = (T) entry.getValue();
+				entry.setValue(value);
+				return oldValue;
+			}
+		}
+		_headers.put(headerName, value);
 		return null;
 	}
 
@@ -139,6 +153,13 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			throw new IllegalStateException("Variable not set: " + varName);
 		}
 		return result;
+	}
+	
+	public void addAttachment(BodyPart bodyPart) throws MessagingException {
+		String[] header = bodyPart.getHeader(HttpConstants.HTTP_HEADER_CONTENT_ID);
+		if (header.length > 0) {
+			_attachments.put(header[0], bodyPart);
+		}
 	}
 
 	public String getCharsetName() {
