@@ -31,11 +31,12 @@ public class AssignAction extends TransformAction {
 	}
 
 	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames) {
-		this(Arrays.asList(Collections.createEntry(varName, expression)), namespaces, bindNames);
+		this(Arrays.asList(Collections.createEntry(varName, expression)), namespaces, bindNames, null);
 	}
 
-	public AssignAction(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames) {
+	public AssignAction(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
 		this(new ArrayList<String>(), assignments, namespaces, bindNames);
+		_contextItem = contextItem;
 	}
 
 	private AssignAction(ArrayList<String> varNames, Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces,

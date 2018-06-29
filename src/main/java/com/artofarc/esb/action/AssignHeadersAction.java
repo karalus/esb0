@@ -29,8 +29,8 @@ public class AssignHeadersAction extends AssignAction {
 	
 	private final boolean _clearAll;
 
-	public AssignHeadersAction(Collection<Entry<String, String>> assignments, Collection<Entry<String, String>> namespaces, List<String> bindNames, boolean clearAll) {
-		super(assignments, namespaces, bindNames);
+	public AssignHeadersAction(Collection<Entry<String, String>> assignments, Collection<Entry<String, String>> namespaces, List<String> bindNames, String contextItem, boolean clearAll) {
+		super(assignments, namespaces, bindNames, contextItem);
 		_clearAll = clearAll;
 	}
 

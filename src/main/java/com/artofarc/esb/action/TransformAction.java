@@ -43,6 +43,7 @@ public class TransformAction extends Action {
 	private final String _xquery;
 	private final List<String> _varNames;
 	protected List<String> _bindNames;
+	protected String _contextItem;
 
 	@SuppressWarnings("unused")
 	// not reliable
@@ -77,35 +78,25 @@ public class TransformAction extends Action {
 			_resultItemOccurrence = xqExpression.getStaticResultType().getItemOccurrence();
 		}
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
-		if (message.getBodyType() == BodyType.XQ_SEQUENCE) {
-			XQSequence sequence = message.getBody();
-			if (!sequence.next()) {
-				throw new ExecutionException(this, "body not passed through");
-			}
-			xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
-		} else if (message.getBodyType() == BodyType.XQ_ITEM) {
-			xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
-		} else if (message.getBodyType() == BodyType.INVALID) {
-			// Nothing to bind
+		if (_contextItem != null) {
+			bind(_contextItem, XQConstants.CONTEXT_ITEM, xqExpression, context, message);
 		} else {
-			xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(), null);
+			if (message.getBodyType() == BodyType.XQ_SEQUENCE) {
+				XQSequence sequence = message.getBody();
+				if (!sequence.next()) {
+					throw new ExecutionException(this, "body not passed through");
+				}
+				xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
+			} else if (message.getBodyType() == BodyType.XQ_ITEM) {
+				xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
+			} else if (message.getBodyType() == BodyType.INVALID) {
+				// Nothing to bind
+			} else {
+				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(), null);
+			}
 		}
 		for (String bindName : _bindNames) {
-			Object header = message.getHeader(bindName);
-			Object variable = message.getVariable(bindName);
-			if (header != null && variable == null) {
-				xqExpression.bindObject(new QName(bindName), header, null);
-			} else if (header == null && variable != null) {
-				if (variable instanceof Node) {
-					xqExpression.bindNode(new QName(bindName), (Node) variable, null);
-				} else {
-					xqExpression.bindObject(new QName(bindName), variable, null);
-				}
-			} else if (header == null && variable == null) {
-				xqExpression.bindString(new QName(bindName), "", context.getXQDataFactory().createAtomicType(XQItemType.XQBASETYPE_STRING));
-			} else {
-				throw new ExecutionException(this, "name could not unambiguously be resolved: " + bindName);
-			}
+			bind(bindName, new QName(bindName), xqExpression, context, message);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
 		XQResultSequence resultSequence = xqExpression.executeQuery();
@@ -115,17 +106,37 @@ public class TransformAction extends Action {
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("processSequence", false);
 		}
-		if (isPipelineStop()) {
-			if (!resultSequence.next()) {
-				throw new ExecutionException(this, "body not passed through");
+		if (_contextItem == null) {
+			if (isPipelineStop()) {
+				if (!resultSequence.next()) {
+					throw new ExecutionException(this, "body not passed through");
+				}
+				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
+			} else {
+				message.reset(BodyType.XQ_SEQUENCE, resultSequence);
 			}
-			message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
-		} else {
-			message.reset(BodyType.XQ_SEQUENCE, resultSequence);
 		}
 		return new ExecutionContext(resultSequence);
 	}
 
+	private void bind(String bindName, QName qName, XQPreparedExpression xqExpression, Context context, ESBMessage message) throws Exception {
+		Object header = message.getHeader(bindName);
+		Object variable = message.getVariable(bindName);
+		if (header != null && variable == null) {
+			xqExpression.bindObject(qName, header, null);
+		} else if (header == null && variable != null) {
+			if (variable instanceof Node) {
+				xqExpression.bindNode(qName, (Node) variable, null);
+			} else {
+				xqExpression.bindObject(qName, variable, null);
+			}
+		} else if (header == null && variable == null) {
+			xqExpression.bindString(qName, "", context.getXQDataFactory().createAtomicType(XQItemType.XQBASETYPE_STRING));
+		} else {
+			throw new ExecutionException(this, "name could not unambiguously be resolved: " + bindName);
+		}
+	}
+	
 	protected void processSequence(Context context, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
 		if (destMap == null && !_varNames.isEmpty()) {
 			throw new ExecutionException(this, "Cannot handle assignment");
@@ -147,13 +158,15 @@ public class TransformAction extends Action {
 		if (nextActionIsPipelineStop) {
 			XQResultSequence resultSequence = execContext.getResource();
 			if (resultSequence.next()) {
-				context.getTimeGauge().startTimeMeasurement();
-				if (message.isSink()) {
-					resultSequence.writeItemToResult(message.getBodyAsSinkResult());
-					context.getTimeGauge().stopTimeMeasurement("resultSequence.writeItemToResult", false);
-				} else {
-					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
-					context.getTimeGauge().stopTimeMeasurement("getXQDataFactory().createItem", false);
+				if (_contextItem == null) {
+					context.getTimeGauge().startTimeMeasurement();
+					if (message.isSink()) {
+						resultSequence.writeItemToResult(message.getBodyAsSinkResult());
+						context.getTimeGauge().stopTimeMeasurement("resultSequence.writeItemToResult", false);
+					} else {
+						message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
+						context.getTimeGauge().stopTimeMeasurement("getXQDataFactory().createItem", false);
+					}
 				}
 			} else {
 				throw new ExecutionException(this, "body not passed through");

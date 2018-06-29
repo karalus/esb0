@@ -220,7 +220,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (com.artofarc.esb.service.Assign.Assignment assignment : assign.getAssignment()) {
 					assignments.add(Collections.createEntry(assignment.getVariable(), assignment.getValue()));
 				}
-				list.add(new AssignAction(assignments, createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName()));
+				list.add(new AssignAction(assignments, createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem()));
 				break;
 			}
 			case "assignHeaders": {
@@ -229,7 +229,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (com.artofarc.esb.service.AssignHeaders.Assignment assignment : assignHeaders.getAssignment()) {
 					assignments.add(Collections.createEntry(assignment.getHeader(), assignment.getValue()));
 				}
-				list.add(new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()).entrySet(), assignHeaders.getBindName(), assignHeaders.isClearAll()));
+				list.add(new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()).entrySet(), assignHeaders.getBindName(), assignHeaders
+						.getContextItem(), assignHeaders.isClearAll()));
 				break;
 			}
 			case "xml2json": {

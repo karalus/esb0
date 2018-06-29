@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -337,7 +338,7 @@ public final class FileSystem {
 		return services;
 	}
 
-	public Map<String, Artifact> mergeZIP(InputStream InputStream) throws IOException {
+	private Map<String, Artifact> mergeZIP(InputStream InputStream) throws IOException {
 		HashMap<String, Artifact> changes = new HashMap<>();
 		try (JarInputStream zis = new JarInputStream(InputStream)) {
 			Manifest manifest = zis.getManifest();
@@ -368,8 +369,14 @@ public final class FileSystem {
 						ESBMessage.copyStream(zis, bos);
 						artifact.setContent(bos.toByteArray());
 						artifact.setModificationTime(entry.getTime());
-						// value == null means update
-						changes.put(entry.getName(), old != null ? null : artifact);
+						if (old != null) {
+							if (!Arrays.equals(old.getContent(), artifact.getContent())) {
+								// value == null means update
+								changes.put(entry.getName(), null);
+							}
+						} else {
+							changes.put(entry.getName(), artifact);
+						}
 					}
 				}
 			}
