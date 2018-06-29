@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.ByteArrayInputStream;
+import java.io.StringReader;
 import java.sql.PreparedStatement;
 import java.sql.Types;
 import java.util.List;
@@ -27,6 +29,7 @@ import javax.sql.DataSource;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.jdbc.JDBCParameter;
+import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
 public abstract class JDBCAction extends TerminalAction {
@@ -70,10 +73,18 @@ public abstract class JDBCAction extends TerminalAction {
 			if (param.isBody()) {
 				switch (param.getType()) {
 				case Types.CLOB:
-					ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
+					if (param.getTruncate() == null && message.isStream()) {
+						ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
+					} else {
+						ps.setCharacterStream(param.getPos(), new StringReader(param.<String> alignValue(message.getBodyAsString(context))));
+					}
 					break;
 				case Types.BLOB:
-					ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
+					if (param.getTruncate() == null && message.getBodyType() == BodyType.INPUT_STREAM) {
+						ps.setBinaryStream(param.getPos(), message.getUncompressedInputStream());
+					} else {
+						ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(param.<byte[]> alignValue(message.getBodyAsByteArray(context))));
+					}
 					break;
 				default:
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());

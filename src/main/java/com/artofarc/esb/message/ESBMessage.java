@@ -100,6 +100,10 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		return _variables;
 	}
 
+	public Map<String, BodyPart> getAttachments() {
+		return _attachments;
+	}
+
 	@SuppressWarnings("unchecked")
 	public <T extends Object> T getHeader(String headerName) {
 		for (Entry<String, Object> entry : _headers.entrySet()) {
@@ -426,6 +430,10 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 
 	public boolean isSink() {
 		return _bodyType == BodyType.OUTPUT_STREAM || _bodyType == BodyType.WRITER;
+	}
+
+	public boolean isStream() {
+		return _bodyType == BodyType.INPUT_STREAM || _bodyType == BodyType.READER;
 	}
 
 	public Result getBodyAsSinkResult() throws IOException {
