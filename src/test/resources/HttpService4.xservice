@@ -1,4 +1,6 @@
-<service protocol="http" xmlns="http://www.artofarc.com/esb/service">
+<service protocol="http" xmlns="http://www.artofarc.com/esb/service"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.artofarc.com/esb/service  https://github.com/karalus/esb0/blob/master/src/main/xsd/service.v01.xsd">
   <httpBindURI>/demo1</httpBindURI>
   <assign>
   	<assignment variable="request">.</assignment>

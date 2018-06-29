@@ -137,8 +137,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case JMS:
 			final JmsBinding jmsBinding = _service.getJmsBinding();
-			_consumerPort = new JMSConsumer(getURI(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getMessageSelector(),
-					jmsBinding.getWorkerCount());
+			_consumerPort = new JMSConsumer(getURI(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
+					jmsBinding.getTopicName(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount());
 			break;
 		case TIMER:
 			final TimerBinding timerBinding = _service.getTimerBinding();
@@ -173,7 +173,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "jms": {
 				Jms jms = (Jms) jaxbElement.getValue();
-				list.add(new JMSAction(globalContext, jms.getJndiConnectionFactory(), jms.getJndiDestination(), jms.isIsBytesMessage(), jms.getTimeToLive()));
+				list.add(new JMSAction(globalContext, jms.getJndiConnectionFactory(), jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms.isIsBytesMessage(), jms.getPriority(), jms.getTimeToLive()));
 				break;
 			}
 			case "produceKafka": {

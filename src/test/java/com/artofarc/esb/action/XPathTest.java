@@ -68,7 +68,7 @@ public class XPathTest {
       map.put("request", ".");
       LinkedHashMap<String, String> ns = new LinkedHashMap<>();
       ns.put("v1", "http://com.artofarc/v1");
-      Action action = new AssignAction(map.entrySet(), ns.entrySet(), Collections.<String>emptyList());
+      Action action = new AssignAction(map.entrySet(), ns.entrySet(), Collections.<String>emptyList(), null);
       action.setNextAction(new DumpAction());
       action.process(context, message);
       Node node = message.getVariable("result");
@@ -99,7 +99,7 @@ public class XPathTest {
       map.put("result", "<result>{fn-artofarc:uuid()}</result>");
       LinkedHashMap<String, String> ns = new LinkedHashMap<>();
       ns.put("fn-artofarc", "http://artofarc.com/xpath-extension");
-      Action action = new AssignAction(map.entrySet(), ns.entrySet(), Collections.<String>emptyList());
+      Action action = new AssignAction(map.entrySet(), ns.entrySet(), Collections.<String>emptyList(), null);
       action.setNextAction(new DumpAction());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);

@@ -72,9 +72,14 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
+					<choice>
+						<element name="jndiDestination" type="anyURI" />
+						<element name="queueName" type="Name" />
+						<element name="topicName" type="Name" />
+					</choice>
 					<attribute name="jndiConnectionFactory" type="anyURI" use="required" />
-					<attribute name="jndiDestination" type="anyURI" use="required" />
 					<attribute name="isBytesMessage" type="boolean" default="false" />
+					<attribute name="priority" type="int" default="4" />
 					<attribute name="timeToLive" type="long" default="0" />
 				</extension>
 			</complexContent>
@@ -437,9 +442,13 @@
 					</element>
 					<element name="jmsBinding">
 						<complexType>
+							<choice>
+								<element name="jndiDestination" type="anyURI" />
+								<element name="queueName" type="Name" />
+								<element name="topicName" type="Name" />
+							</choice>
 							<attribute name="jndiConnectionFactory" type="anyURI"
 								use="required" />
-							<attribute name="jndiDestination" type="anyURI" use="required" />
 							<attribute name="messageSelector" type="string" />
 							<attribute name="workerCount" type="int" default="1" />
 						</complexType>

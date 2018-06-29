@@ -59,9 +59,6 @@ public class DeployServlet extends HttpServlet {
 				resp.setContentType("text/plain");
 				resp.setHeader("Content-Disposition", "filename=\"" + artifact.getName() + "\"");
 				resp.getOutputStream().write(artifact.getContent());
-			} else {
-//				Graph g = graph("example5").directed().with(node("abc").link(node("xyz")));
-//				Graphviz viz = Graphviz.fromGraph(g);
 			}
 		} else {
 			resp.sendError(HttpServletResponse.SC_NOT_FOUND);

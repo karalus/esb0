@@ -35,15 +35,23 @@ import com.artofarc.esb.resource.JMSSessionFactory;
 public class JMSAction extends TerminalAction {
 
 	private final String _jndiConnectionFactory;
-	private final Destination _destination;
+	private Destination _destination;
+	private final String _queueName;
+	private final String _topicName;
 	private final boolean _isBytesMessage;
+	private final int _priority;
 	private final long _timeToLive;
 
-	public JMSAction(GlobalContext globalContext, String jndiConnectionFactory, String queueName, boolean isBytesMessage, long timeToLive)
-			throws NamingException {
-		_destination = globalContext.lookup(queueName);
+	public JMSAction(GlobalContext globalContext, String jndiConnectionFactory, String jndiDestination, String queueName, String topicName,
+			boolean isBytesMessage, int priority, long timeToLive) throws NamingException {
+		_queueName = queueName;
+		_topicName = topicName;
+		if (jndiDestination != null) {
+			_destination = globalContext.lookup(jndiDestination);
+		}
 		_jndiConnectionFactory = jndiConnectionFactory;
 		_isBytesMessage = isBytesMessage;
+		_priority = priority;
 		_timeToLive = timeToLive;
 	}
 
@@ -52,6 +60,9 @@ public class JMSAction extends TerminalAction {
 		super.execute(context, execContext, interaction, nextActionIsPipelineStop);
 		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
 		Session session = jmsSessionFactory.getResource(_jndiConnectionFactory, false);
+		if (_destination == null) {
+			_destination = _queueName != null ? session.createQueue(_queueName) : session.createTopic(_topicName);
+		}
 		Message message;
 		if (_isBytesMessage) {
 			BytesMessage bytesMessage = session.createBytesMessage();
@@ -68,7 +79,7 @@ public class JMSAction extends TerminalAction {
 		context.getTimeGauge().startTimeMeasurement();
 		MessageProducer producer = session.createProducer(_destination);
 		try {
-			producer.send(message, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, _timeToLive);
+			producer.send(message, Message.DEFAULT_DELIVERY_MODE, _priority, _timeToLive);
 			interaction.getHeaders().put("JMSMessageID", message.getJMSMessageID());
 		} finally {
 			producer.close();

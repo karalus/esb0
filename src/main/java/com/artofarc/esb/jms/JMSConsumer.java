@@ -41,19 +41,25 @@ public class JMSConsumer extends ConsumerPort {
 	private final String _jndiConnectionFactory;
 	private final String _jndiDestination;
 	private final String _messageSelector;
-	private final Destination _destination;
+	private Destination _destination;
+	private final String _queueName;
+	private final String _topicName;
 	private final JMSWorker[] _jmsWorker;
 
-	public JMSConsumer(String uri, String jndiConnectionFactory, String jndiDestination, String messageSelector, int workerCount) throws NamingException {
+	public JMSConsumer(String uri, String jndiConnectionFactory, String jndiDestination, String queueName, String topicName, String messageSelector, int workerCount) throws NamingException {
 		super(uri);
 		_jndiConnectionFactory = jndiConnectionFactory;
 		_jndiDestination = jndiDestination;
 		_messageSelector = messageSelector;
-		InitialContext initialContext = new InitialContext();
-		try {
-			_destination = (Destination) initialContext.lookup(jndiDestination);
-		} finally {
-			initialContext.close();
+		_queueName = queueName;
+		_topicName = topicName;
+		if (jndiDestination != null) {
+			InitialContext initialContext = new InitialContext();
+			try {
+				_destination = (Destination) initialContext.lookup(jndiDestination);
+			} finally {
+				initialContext.close();
+			}
 		}
 		_jmsWorker = new JMSWorker[workerCount];
 	}
@@ -127,6 +133,9 @@ public class JMSConsumer extends ConsumerPort {
 		void open() throws Exception {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
 			_session = jmsSessionFactory.getResource(_jndiConnectionFactory, true);
+			if (_destination == null) {
+				_destination = _queueName != null ? _session.createQueue(_queueName) : _session.createTopic(_topicName);
+			}
 		}
 
 		void startListening() throws JMSException {
