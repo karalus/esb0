@@ -70,7 +70,6 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 				artifact = getArtifact(uri.getPath());
 			}
 			lastUri = uri;
-			System.out.println(uri);
 			InputSource is = new InputSource(artifact.getContentAsByteArrayInputStream());
 			is.setSystemId(systemId);
 			return is;

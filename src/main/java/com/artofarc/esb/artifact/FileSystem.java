@@ -33,6 +33,7 @@ import java.util.Map.Entry;
 import java.util.StringTokenizer;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -41,6 +42,8 @@ import com.artofarc.esb.message.ESBMessage;
 
 public final class FileSystem {
 
+   protected final static Logger logger = Logger.getLogger("ESB");
+   
 	private final Directory _root;
 
 	private File _anchorDir;
@@ -191,7 +194,7 @@ public final class FileSystem {
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(parent, name);
 		default:
-			// System.err.println("Cannot be imported: " + name);
+			logger.fine("Cannot be imported: " + name);
 			return null;
 		}
 	}
@@ -250,11 +253,11 @@ public final class FileSystem {
 			Artifact artifact = iterator.next();
 			if (artifact instanceof Directory) {
 				if (tidyOut((Directory) artifact, visited)) {
-					System.out.println("Remove: " + artifact.getURI());
+					logger.info("Remove: " + artifact.getURI());
 					iterator.remove();
 				}
 			} else if (!visited.contains(artifact.getURI())) {
-				System.out.println("Remove: " + artifact);
+				logger.info("Remove: " + artifact);
 				iterator.remove();
 			}
 		}

@@ -22,6 +22,7 @@ import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -33,6 +34,8 @@ import com.artofarc.esb.context.PoolContext;
 
 public class JMSConnectionProvider {
 
+   protected final static Logger logger = Logger.getLogger("ESB");
+   
 	private final HashMap<String, JMSConnectionGuard> _pool = new HashMap<>();
 
 	private final PoolContext _poolContext;
@@ -97,19 +100,18 @@ public class JMSConnectionProvider {
 
 		@Override
 		public void onException(JMSException jmsException) {
-			System.err.println("Connection problem: " + jmsException);
+			logger.warning("Connection will be closed caused by: " + jmsException);
 			for (JMSConsumer jmsConsumer : jmsConsumers) {
 				try {
 					jmsConsumer.close();
 				} catch (Exception e) {
 					// ignore
-					e.printStackTrace();
 				}
 			}
 			try {
 				connection.close();
 			} catch (JMSException e) {
-				System.err.println(e);
+				// ignore
 			}
 			// start reconnect thread
 			scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
@@ -128,7 +130,7 @@ public class JMSConnectionProvider {
 				scheduledExecutorService.shutdown();
 				scheduledExecutorService = null;
 			} catch (Exception e) {
-				System.err.println("Reconnecting failed: " + e);
+				logger.severe("Reconnecting failed: " + e);
 			}
 		}
 
