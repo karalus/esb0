@@ -16,8 +16,9 @@
  */
 package com.artofarc.esb.jms;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,6 +32,7 @@ import javax.jms.JMSException;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.context.PoolContext;
+import com.artofarc.esb.resource.JMSSessionFactory;
 
 public class JMSConnectionProvider {
 
@@ -39,6 +41,8 @@ public class JMSConnectionProvider {
 	private final HashMap<String, JMSConnectionGuard> _pool = new HashMap<>();
 
 	private final PoolContext _poolContext;
+	
+	private final HashSet<JMSSessionFactory> _jmsSessionFactories = new HashSet<>();
 
 	public JMSConnectionProvider(PoolContext poolContext) {
 		_poolContext = poolContext;
@@ -59,11 +63,15 @@ public class JMSConnectionProvider {
 		connectionGuard.addJMSConsumer(jmsConsumer);
 	}
 
+	public synchronized void registerJMSSessionFactory(JMSSessionFactory jmsSessionFactory) {
+		_jmsSessionFactories.add(jmsSessionFactory);
+	}
+	
 	public synchronized void close() {
 		for (JMSConnectionGuard connectionGuard : _pool.values()) {
 			try {
 				connectionGuard.getConnection().close();
-			} catch (JMSException e) {
+			} catch (Exception e) {
 				// ignore
 			}
 		}
@@ -72,7 +80,7 @@ public class JMSConnectionProvider {
 
 	public class JMSConnectionGuard extends TimerTask implements ExceptionListener {
 
-		private final ArrayList<JMSConsumer> jmsConsumers = new ArrayList<>();
+		private final HashMap<JMSConsumer, Boolean> jmsConsumers = new HashMap<>();
 
 		private final String jndiConnectionFactory;
 
@@ -86,6 +94,9 @@ public class JMSConnectionProvider {
 		}
 
 		public Connection getConnection() {
+			if (connection == null) {
+				throw new IllegalStateException(jndiConnectionFactory + " is currently invalid");
+			}
 			return connection;
 		}
 
@@ -94,43 +105,63 @@ public class JMSConnectionProvider {
 			connection.setExceptionListener(this);
 		}
 
-		public void addJMSConsumer(JMSConsumer jmsConsumer) {
-			jmsConsumers.add(jmsConsumer);
+		public synchronized void addJMSConsumer(JMSConsumer jmsConsumer) {
+			jmsConsumers.put(jmsConsumer, null);
 		}
 
 		@Override
-		public void onException(JMSException jmsException) {
-			logger.warning("Connection will be closed caused by: " + jmsException);
-			for (JMSConsumer jmsConsumer : jmsConsumers) {
+		public synchronized void onException(JMSException jmsException) {
+			logger.warning(jndiConnectionFactory + ": Connection will be closed caused by: " + jmsException);
+			// For Oracle AQ the connection must be closed first
+			try {
+				logger.info("Closing Connection");
+				connection.close();
+			} catch (JMSException e) {
+				// ignore
+			}
+			connection = null;
+			for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
 				try {
+					logger.info("Closing JMSSessionFactory");
+					jmsSessionFactory.close(jndiConnectionFactory);
+				} catch (Exception e) {
+					// ignore
+				}
+			}
+			for (Entry<JMSConsumer, Boolean> entry : jmsConsumers.entrySet()) {
+				JMSConsumer jmsConsumer = entry.getKey();
+				// save current state
+				entry.setValue(jmsConsumer.isEnabled());
+				try {
+					logger.info("Closing JMSConsumer");
 					jmsConsumer.close();
 				} catch (Exception e) {
 					// ignore
 				}
 			}
-			try {
-				connection.close();
-			} catch (JMSException e) {
-				// ignore
-			}
 			// start reconnect thread
+			logger.info(jndiConnectionFactory + ": start reconnect thread");
 			scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 			scheduledExecutorService.scheduleAtFixedRate(this, 10, 20, TimeUnit.SECONDS);
 		}
 
 		@Override
-		public void run() {
+		public synchronized void run() {
 			try {
+				logger.info("Trying to reconnect " + jndiConnectionFactory);
 				ConnectionFactory qcf = _poolContext.getGlobalContext().lookup(jndiConnectionFactory);
-				Connection connection = qcf.createConnection();
-				setConnection(connection);
-				for (JMSConsumer jmsConsumer : jmsConsumers) {
+				setConnection(qcf.createConnection());
+				for (Entry<JMSConsumer, Boolean> entry : jmsConsumers.entrySet()) {
+					JMSConsumer jmsConsumer = entry.getKey();
 					jmsConsumer.open();
+					// restore last state
+					jmsConsumer.enable(entry.getValue());
 				}
+				logger.info("Reconnected  " + jndiConnectionFactory);
 				scheduledExecutorService.shutdown();
 				scheduledExecutorService = null;
 			} catch (Exception e) {
-				logger.severe("Reconnecting failed: " + e);
+				logger.severe(jndiConnectionFactory + " reconnect failed: " + e);
 			}
 		}
 
