@@ -20,7 +20,11 @@ public interface ESBVariableConstants {
 
 	public static final String HttpMethod = "HttpMethod";
 
+	public static final String ContextPath = "ContextPath";
+
 	public static final String PathInfo = "PathInfo";
+
+	public static final String QueryString = "QueryString";
 
 	public static final String HttpResponseCode = "HttpResponseCode";
 
@@ -34,10 +38,12 @@ public interface ESBVariableConstants {
 
 	public static final String WorkerPool = "WorkerPool";
 
-	public static final String operation = "operation";
+	public static final String SOAP_OPERATION = "operation";
 
 	public static final String SOAP_HEADER = "header";
 
 	public static final String hasFault = "hasFault";
+
+	public static final String redirect = "redirect";
 
 }

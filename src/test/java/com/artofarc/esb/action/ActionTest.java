@@ -33,7 +33,7 @@ public class ActionTest {
    @Test
    public void testBindVariable() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      message.getVariables().put(ESBVariableConstants.operation, "op1");
+      message.getVariables().put(ESBVariableConstants.SOAP_OPERATION, "op1");
       assertEquals("void", Action.bindVariable("void", message));
       assertEquals("{call op1}", Action.bindVariable("{call ${operation}}", message));
       assertEquals("Myop1", Action.bindVariable("My${operation}", message));

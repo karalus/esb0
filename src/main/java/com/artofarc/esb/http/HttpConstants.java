@@ -37,6 +37,8 @@ public class HttpConstants {
 	public static final String HTTP_HEADER_ACCEPT = "Accept";
 
 	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
+	
+	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
 
 	public static final String getValueFromHttpHeader(String httpHeader, String key) {
 		int i = httpHeader.indexOf(key);

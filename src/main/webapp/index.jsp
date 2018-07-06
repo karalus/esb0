@@ -25,7 +25,7 @@
 		for (String path : poolContext.getGlobalContext().getHttpServicePaths()) {
 		   HttpConsumer consumerPort = poolContext.getGlobalContext().getHttpService(path);
 		   %>
-		   <tr><td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td><td><%=consumerPort.getPoolSize()%></td><td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></tr>
+		   <tr><td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td><td><%=consumerPort.getPoolSize()%></td><td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></tr>
 		   <%
 		}
 %>
@@ -35,7 +35,7 @@
 <%
 		for (JMSConsumer jmsConsumer : poolContext.getGlobalContext().getJMSConsumers()) {
 		   %>
-		   <tr><td><%=jmsConsumer.getKey()%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + jmsConsumer.getUri()%>"><%=jmsConsumer.getUri()%></a></td><td><form method="post" action="admin/deploy<%=jmsConsumer.getUri()%>"><input type="submit" value="<%=jmsConsumer.isEnabled()%>"/></form></tr>
+		   <tr><td><%=jmsConsumer.getKey()%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + jmsConsumer.getUri()%>"><%=jmsConsumer.getUri()%></a></td><td><form method="post" action="admin/deploy<%=jmsConsumer.getUri()%>"><input type="submit" value="<%=jmsConsumer.isEnabled()%>"/></form></tr>
 		   <%
 		}
 %>
@@ -71,10 +71,6 @@
 <%
 	}
 %>
-<%--
-<br>PathInfo: <%=request.getPathInfo()%>
-<br>getServletPath: <%=request.getServletPath()%>
---%>
 <br>
 <%
    String pathInfo = request.getPathInfo() != null ? request.getPathInfo() : "";
@@ -104,7 +100,7 @@
 	   <%
 	   	   for (String r : a.getReferenced()) {
 	   %>
-	  	<tr><td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + r%>"><%=r%></a></td></tr>
+	  	<tr><td><a href="<%=request.getContextPath() + request.getServletPath() +  r%>"><%=r%></a></td></tr>
 	   <%
 	       }
 	   %>
@@ -114,7 +110,7 @@
 	   <%
 	   	   for (String r : a.getReferencedBy()) {
 	   %>
-	  	<tr><td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + r%>"><%=r%></a></td></tr>
+	  	<tr><td><a href="<%=request.getContextPath() + request.getServletPath() + r%>"><%=r%></a></td></tr>
 	   <%
 	       }
 	   %>

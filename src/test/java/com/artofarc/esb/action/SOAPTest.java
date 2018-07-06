@@ -60,7 +60,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new WrapSOAPAction(false, true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable("operation"));
+      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
       @SuppressWarnings("unused")
 		Node node = message.getVariable("header");
       System.out.println();
@@ -232,7 +232,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), ".", null));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable("operation"));
+      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
    }
    
    @Test
@@ -250,7 +250,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), "v1:messageHeader", result));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable("operation"));
+      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
    }
    
    @Test
@@ -268,7 +268,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable("operation"));
+      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
    }
    
    public void testJMSConsumer() throws Exception {

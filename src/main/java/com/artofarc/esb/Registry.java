@@ -62,7 +62,7 @@ public class Registry extends AbstractContext {
 		if (httpService == null) {
 			// TOREVIEW: Find service for a shorter path
 			for (String url : _httpServices.keySet()) {
-				if (url.endsWith("/*")) {
+				if (url.endsWith("*")) {
 					if (path.startsWith(url.substring(0, url.length() - 1))) {
 						return _httpServices.get(url);
 					}

@@ -67,7 +67,12 @@ public class GenericHttpListener extends HttpServlet {
 						|| request.getHeader(HttpConstants.HTTP_HEADER_TRANSFER_ENCODING) != null;
 				ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
 				message.getVariables().put(ESBVariableConstants.HttpMethod, request.getMethod());
+				message.getVariables().put(ESBVariableConstants.ContextPath, request.getContextPath());
 				message.getVariables().put(ESBVariableConstants.PathInfo, pathInfo);
+				if (consumerPort.getBindPath().endsWith("*")) {
+					message.getVariables().put(ESBVariableConstants.appendHttpUrlPath, pathInfo.substring(consumerPort.getBindPath().length() - 1));
+				}
+				message.getVariables().put(ESBVariableConstants.QueryString, request.getQueryString());
 				message.setCharsetName(request.getCharacterEncoding());
 				for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 					String headerName = headerNames.nextElement();

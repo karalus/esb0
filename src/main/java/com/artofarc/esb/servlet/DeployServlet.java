@@ -47,6 +47,8 @@ import com.artofarc.esb.service.Protocol;
 public class DeployServlet extends HttpServlet {
 
 	private static final long serialVersionUID = 1L;
+	
+	public static final String SERVLET_PATH = "/admin/deploy";
 
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -55,10 +57,13 @@ public class DeployServlet extends HttpServlet {
 		Artifact artifact = globalContext.getFileSystem().getArtifact(req.getPathInfo());
 		if (artifact != null) {
 			String headerAccept = req.getHeader(HttpConstants.HTTP_HEADER_ACCEPT);
-			if (headerAccept.contains("text/")) {
+			// SoapUI does not send an "Accept" header
+			if (headerAccept == null || headerAccept.contains("text/")) {
 				resp.setContentType("text/plain");
 				resp.setHeader("Content-Disposition", "filename=\"" + artifact.getName() + "\"");
 				resp.getOutputStream().write(artifact.getContent());
+			} else {
+				resp.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
 			}
 		} else {
 			resp.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -119,7 +124,7 @@ public class DeployServlet extends HttpServlet {
 			ConsumerPort consumerPort = service.getConsumerPort();
 			if (service.getService().getProtocol() == Protocol.HTTP) {
 				HttpConsumer httpConsumer = service.getConsumerPort();
-				HttpConsumer oldHttpConsumer = globalContext.bindHttpService(service.getService().getHttpBindURI().getValue(), httpConsumer);
+				HttpConsumer oldHttpConsumer = globalContext.bindHttpService(httpConsumer.getBindPath(), httpConsumer);
 				if (oldHttpConsumer != null) {
 					try {
 						oldHttpConsumer.close();

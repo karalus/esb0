@@ -28,6 +28,7 @@ import com.artofarc.esb.context.PoolContext;
 
 public class HttpConsumer extends ConsumerPort implements AutoCloseable {
 
+	private final String _bindPath;
    private final BlockingQueue<Context> pool;
    private final AtomicInteger poolSize = new AtomicInteger();
    private final int minPoolSize;
@@ -36,14 +37,19 @@ public class HttpConsumer extends ConsumerPort implements AutoCloseable {
    
    private volatile long lastAccess;
    
-	public HttpConsumer(String uri, int minPool, int maxPool, long keepAlive) {
+	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive) {
 		super(uri);
+		_bindPath = bindPath;
 		minPoolSize = minPool;
 		maxPoolSize = maxPool;
 		keepAliveMillis = keepAlive;
       pool = new LinkedBlockingQueue<>(maxPool);
 	}
 	
+	public String getBindPath() {
+		return _bindPath;
+	}
+
 	public int getPoolSize() {
 		return poolSize.get();
 	}

@@ -28,18 +28,21 @@ import javax.xml.soap.SOAPConstants;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
+
+import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.servlet.DeployServlet;
+
+import static com.artofarc.esb.message.ESBVariableConstants.*;
 import com.artofarc.util.Collections;
 import com.artofarc.util.WSDL4JUtil;
 
 public class UnwrapSOAPAction extends TransformAction {
 
 	private final boolean _soap12;
-	
 	private final Map<String, String> _mapAction2Operation;
-
 	private final HashSet<String> _operations;
+	private final String _wsdlUrl;
 
 	/**
 	 * @param soap12
@@ -49,11 +52,11 @@ public class UnwrapSOAPAction extends TransformAction {
 	 * 
 	 * @see https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/
 	 */
-	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations) {
+	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, String wsdlUrl) {
 		super("declare namespace soapenv=\"" + (soap12 ? SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE : SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
 				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
 				+ (singlePart ? "local-name($b), " : "") + "if ($h) then $h else <soapenv:Header/>, $b)",
-				singlePart ? Arrays.asList(ESBVariableConstants.operation, ESBVariableConstants.SOAP_HEADER) : Arrays.asList(ESBVariableConstants.SOAP_HEADER));
+				singlePart ? Arrays.asList(SOAP_OPERATION, SOAP_HEADER) : Arrays.asList(SOAP_HEADER));
 		
 		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;
@@ -65,21 +68,34 @@ public class UnwrapSOAPAction extends TransformAction {
 		} else {
 			_operations = null;
 		}
+		_wsdlUrl = wsdlUrl;
 	}
 
-	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Definition definition, String transport) {
-		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(definition, transport)), WSDL4JUtil.getBindingOperations(definition, transport));
+	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Definition definition, String transport, String wsdlUrl) {
+		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(definition, transport)), WSDL4JUtil.getBindingOperations(definition, transport), wsdlUrl);
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart) {
-		this(soap12, singlePart, java.util.Collections.<String, String> emptyMap(), null);
+		this(soap12, singlePart, java.util.Collections.<String, String> emptyMap(), null, null);
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		if ("GET".equals(message.getVariable(HttpMethod))) {
+			if (_wsdlUrl != null && "wsdl".equals(message.getVariable(QueryString))) {
+				message.getVariables().put(redirect, message.<String> getVariable(ContextPath) + DeployServlet.SERVLET_PATH + _wsdlUrl);
+				return null;
+			} else if (!_soap12) {
+				throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));
+			}
+		}
 		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType == null || !contentType.contains(_soap12 ? SOAPConstants.SOAP_1_2_CONTENT_TYPE : SOAPConstants.SOAP_1_1_CONTENT_TYPE)) {
-			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType + "\n" + message.getBodyAsString(context));
+			String error = "Unexpected Content-Type: " + contentType;
+			if (message.getBodyType() != BodyType.INVALID) {
+				error += "\n" + message.getBodyAsString(context);
+			}
+			throw new ExecutionException(this, error);
 		}
 		String soapAction = _soap12 ? getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION) : message.<String> getHeader(HTTP_HEADER_SOAP_ACTION);
 		ExecutionContext execContext = super.prepare(context, message, inPipeline);
@@ -88,14 +104,19 @@ public class UnwrapSOAPAction extends TransformAction {
 			soapAction = soapAction.substring(1, soapAction.length() - 1);
 			String operation = _mapAction2Operation.get(soapAction);
 			if (operation != null) {
-				message.getVariables().put(ESBVariableConstants.operation, operation);
+				message.getVariables().put(SOAP_OPERATION, operation);
 			}
 		}
-		String operation = message.getVariable(ESBVariableConstants.operation);
+		String operation = message.getVariable(SOAP_OPERATION);
 		if (_operations != null && !_operations.contains(operation)) {
 			throw new ExecutionException(this, "Operation not found in WSDL: " + operation);
 		}
 		return execContext;
+	}
+
+	@Override
+	protected Action nextAction(ExecutionContext execContext) {
+		return execContext != null ? super.nextAction(execContext) : null;
 	}
 
 }

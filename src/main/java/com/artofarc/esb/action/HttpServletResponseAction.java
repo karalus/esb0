@@ -54,6 +54,10 @@ public class HttpServletResponseAction extends Action {
 		}
 		if (message.getBodyType() == BodyType.EXCEPTION) {
 			GenericHttpListener.sendErrorResponse(response, message.<Exception> getBody());
+		} else if (message.getVariable(ESBVariableConstants.redirect) != null) {
+			response.sendRedirect(message.<String> getVariable(ESBVariableConstants.redirect));
+//			response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+//			response.setHeader("Location", message.<String> getVariable(ESBVariableConstants.redirect));
 		} else {
 			Number httpResponseCode = message.getVariable(ESBVariableConstants.HttpResponseCode);
 			if (httpResponseCode == null) {

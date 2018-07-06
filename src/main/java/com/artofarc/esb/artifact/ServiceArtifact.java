@@ -134,7 +134,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		switch (_service.getProtocol()) {
 		case HTTP:
 			final HttpBindURI httpBinding = _service.getHttpBindURI();
-			_consumerPort = new HttpConsumer(getURI(), httpBinding.getMinPool(), httpBinding.getMaxPool(), httpBinding.getKeepAlive());
+			_consumerPort = new HttpConsumer(getURI(), httpBinding.getValue(), httpBinding.getMinPool(), httpBinding.getMaxPool(), httpBinding.getKeepAlive());
 			_consumerPort.setTerminalAction(new HttpServletResponseAction(httpBinding.isSupportCompression()));
 			break;
 		case JMS:
@@ -283,7 +283,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getDefinition(), unwrapSOAP11.getTransport());
+				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getDefinition(), unwrapSOAP11.getTransport(), unwrapSOAP11.getWsdlURI());
 				list.add(unwrapSOAP11Action);
 				break;
 			}

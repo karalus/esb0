@@ -155,7 +155,7 @@ public class TransformAction extends Action {
 
 	@Override
 	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (nextActionIsPipelineStop) {
+		if (nextActionIsPipelineStop && execContext != null) {
 			XQResultSequence resultSequence = execContext.getResource();
 			if (resultSequence.next()) {
 				if (_contextItem == null) {
@@ -175,15 +175,17 @@ public class TransformAction extends Action {
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext) throws Exception {
-		XQResultSequence resultSequence = execContext.getResource();
-		if (resultSequence.next() && _contextItem == null) {
-			logger.fine("XQResultSequence not fully consumed");
-			if (logger.isLoggable(Level.FINE)) {
-				resultSequence.writeItemToResult(new StreamResult(System.err));
+	protected final void close(ExecutionContext execContext) throws Exception {
+		if (execContext != null) {
+			XQResultSequence resultSequence = execContext.getResource();
+			if (resultSequence.next() && _contextItem == null) {
+				logger.fine("XQResultSequence not fully consumed");
+				if (logger.isLoggable(Level.FINE)) {
+					resultSequence.writeItemToResult(new StreamResult(System.err));
+				}
 			}
+			resultSequence.close();
 		}
-		resultSequence.close();
 	}
 
 //	@Override
