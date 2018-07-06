@@ -43,7 +43,7 @@ public class JDBCProcedureAction extends JDBCAction {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 
-		final String sql = bindVariable(_sql, message); 
+		final String sql = bindVariable(_sql != null ? _sql : message.getBodyAsString(context), message); 
 		logger.fine("JDBCProcedureAction sql=" + sql);
 		Connection connection = _dataSource.getConnection();
 		try (AutoCloseable timer = context.getTimeGauge().createTimer("prepareCall & execute"); CallableStatement cs = connection.prepareCall(sql)) {
@@ -70,6 +70,7 @@ public class JDBCProcedureAction extends JDBCAction {
 					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));
 				}
 			}
+			extractResult(cs, message);
 		} finally {
 			connection.close();
 		}

@@ -40,7 +40,7 @@ import com.artofarc.esb.action.HttpInboundAction;
 import com.artofarc.esb.action.HttpOutboundAction;
 import com.artofarc.esb.action.HttpServletResponseAction;
 import com.artofarc.esb.action.JDBCProcedureAction;
-import com.artofarc.esb.action.JDBCUpdateAction;
+import com.artofarc.esb.action.JDBCSQLAction;
 import com.artofarc.esb.action.JMSAction;
 import com.artofarc.esb.action.Json2XMLAction;
 import com.artofarc.esb.action.KafkaConsumeAction;
@@ -72,7 +72,7 @@ import com.artofarc.esb.service.Http;
 import com.artofarc.esb.service.InternalService;
 import com.artofarc.esb.service.JdbcParameter;
 import com.artofarc.esb.service.JdbcProcedure;
-import com.artofarc.esb.service.JdbcUpdate;
+import com.artofarc.esb.service.Jdbc;
 import com.artofarc.esb.service.Jms;
 import com.artofarc.esb.service.Json2Xml;
 import com.artofarc.esb.service.NsDecl;
@@ -208,12 +208,12 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter())));
 				break;
 			}
-			case "jdbcUpdate": {
-				JdbcUpdate jdbcUpdate = (JdbcUpdate) jaxbElement.getValue();
-				if (jdbcUpdate.getWorkerPool() != null) {
-					list.add(new SpawnAction(jdbcUpdate.getWorkerPool(), true));
+			case "jdbc": {
+				Jdbc jdbc = (Jdbc) jaxbElement.getValue();
+				if (jdbc.getWorkerPool() != null) {
+					list.add(new SpawnAction(jdbc.getWorkerPool(), true));
 				}
-				list.add(new JDBCUpdateAction(jdbcUpdate.getDataSource(), jdbcUpdate.getSql(), createJDBCParameters(jdbcUpdate.getJdbcParameter())));
+				list.add(new JDBCSQLAction(jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter())));
 				break;
 			}
 			case "assign": {

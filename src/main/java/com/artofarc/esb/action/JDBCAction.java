@@ -18,16 +18,29 @@ package com.artofarc.esb.action;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.List;
 
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonWriter;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 
+import org.eclipse.persistence.oxm.MediaType;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -61,7 +74,6 @@ public abstract class JDBCAction extends TerminalAction {
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
-					
 				}
 			}
 		}
@@ -98,6 +110,67 @@ public abstract class JDBCAction extends TerminalAction {
 			}
 		}
 		ps.setQueryTimeout((int) message.getTimeleft() / 1000);
+	}
+	
+	protected final static void extractResult(Statement statement, ESBMessage message) throws SQLException {
+		JsonArrayBuilder builder = Json.createArrayBuilder();
+		JsonArray result = null;
+		int updateCount;
+		for (;; statement.getMoreResults()) {
+			updateCount = statement.getUpdateCount();
+			ResultSet resultSet = statement.getResultSet();
+			if (updateCount >= 0) {
+				builder.add(updateCount);
+			} else if (resultSet != null) {
+				result = createJsonArray(resultSet);
+				builder.add(result);
+			} else {
+				break;
+			}
+		}
+		JsonArray jsonArray = builder.build();
+		if (jsonArray.size() > 1) {
+			result = jsonArray;
+		}
+		if (result != null) {
+			StringWriter sw = new StringWriter(ESBMessage.MTU);
+			JsonWriter jsonWriter = Json.createWriter(sw);
+			jsonWriter.writeArray(result);
+			jsonWriter.close();
+			message.getHeaders().clear();
+			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MediaType.APPLICATION_JSON.getMediaType());
+			message.reset(BodyType.STRING, sw.toString());
+		} else if (updateCount >= 0) {
+			message.getVariables().put("sqlUpdateCount", updateCount);
+		}
+	}
+	
+	protected final static JsonArray createJsonArray(ResultSet resultSet) throws SQLException {
+		ResultSetMetaData metaData = resultSet.getMetaData();
+		JsonArrayBuilder result = Json.createArrayBuilder();
+		while (resultSet.next()) {
+			JsonObjectBuilder builder = Json.createObjectBuilder();
+			for (int i = 1; i <= metaData.getColumnCount(); ++i) {
+				Object value = resultSet.getObject(i);
+				if (!resultSet.wasNull()) {
+					String name = metaData.getColumnLabel(i);
+					switch (metaData.getColumnType(i)) {
+					case Types.SMALLINT:
+					case Types.INTEGER:
+						builder.add(name, ((Number) value).intValue());
+						break;
+					case Types.BIT:
+						builder.add(name, ((Boolean) value));
+						break;
+					default:
+						builder.add(name, value.toString());
+						break;
+					}
+				}
+			}
+			result.add(builder);
+		}
+		return result.build();
 	}
 	
 }

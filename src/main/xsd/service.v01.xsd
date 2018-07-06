@@ -121,12 +121,12 @@
 			<attribute name="truncate" type="int" />
 		</complexType>
 	</element>
-	<element name="jdbcUpdate" substitutionGroup="tns:action">
+	<element name="jdbc" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<sequence>
-						<element name="sql" type="string" />
+						<element name="sql" type="string" minOccurs="0" />
 						<element ref="tns:jdbcParameter" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="dataSource" type="string" use="required" />
@@ -140,7 +140,7 @@
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<sequence>
-						<element name="sql" type="string" />
+						<element name="sql" type="string" minOccurs="0" />
 						<element name="in">
 							<complexType>
 								<sequence>

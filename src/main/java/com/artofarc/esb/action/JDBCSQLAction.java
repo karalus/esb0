@@ -27,17 +27,19 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.message.ESBMessage;
 
-public class JDBCUpdateAction extends JDBCAction {
+public class JDBCSQLAction extends JDBCAction {
 
-	public JDBCUpdateAction(String dsName, String sql, List<JDBCParameter> params) throws NamingException {
+	public JDBCSQLAction(String dsName, String sql, List<JDBCParameter> params) throws NamingException {
 		super(dsName, sql, params);
-      int count = 0;
-      for (int i = sql.length(); i > 0;) {
-         // Not handling escape \?
-         if (sql.charAt(--i) == '?') ++count;
-      }
-		if (params.size() != count) {
-			throw new IllegalArgumentException("Number of ? is not matching parameter count");
+		if (sql != null) {
+	      int count = 0;
+	      for (int i = sql.length(); i > 0;) {
+	         // Not handling escape \?
+	         if (sql.charAt(--i) == '?') ++count;
+	      }
+			if (params.size() != count) {
+				throw new IllegalArgumentException("Number of ? is not matching parameter count");
+			}
 		}
 	}
 
@@ -45,13 +47,13 @@ public class JDBCUpdateAction extends JDBCAction {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 
-		final String sql = bindVariable(_sql, message); 
-		logger.fine("JDBCUpdateAction sql=" + sql);
+		final String sql = bindVariable(_sql != null ? _sql : message.getBodyAsString(context), message); 
+		logger.fine("JDBCSQLAction sql=" + sql);
 		Connection connection = _dataSource.getConnection();
 		try (AutoCloseable timer = context.getTimeGauge().createTimer("prepareStatement & execute"); PreparedStatement ps = connection.prepareStatement(sql)) {
 			bindParameters(ps, context, message);
-			int updateCount = ps.executeUpdate();
-			message.getVariables().put("sqlUpdateCount", updateCount);
+			ps.execute();
+			extractResult(ps, message);
 		} finally {
 			connection.close();
 		}
