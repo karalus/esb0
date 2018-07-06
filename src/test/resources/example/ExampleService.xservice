@@ -8,12 +8,12 @@
 	 <assign>	 
 		<assignment variable="HttpResponseCode">500</assignment>
 	 </assign>
-	 <wrapSOAP11/>
+	 <wrapSOAP/>
   </actionPipeline>
   <actionPipeline name="validate" errorHandler="soapErrorhandler">
 	<validate schemaURI="example.wsdl" expression="*[1]"/>
   </actionPipeline>
-  <unwrapSOAP11 wsdlURI="example.wsdl"/>
+  <unwrapSOAP wsdlURI="example.wsdl"/>
   <assign>
 	<assignment variable="messageHeader">*[1]/*[1]</assignment>
   </assign>
@@ -40,7 +40,7 @@
 	 <assign>	 
 		<assignment variable="HttpResponseCode">500</assignment>
 	 </assign>
-	 <wrapSOAP11/>
+	 <wrapSOAP/>
   </conditional>
   <fork copyMessage="false" workerPool="LMS">
 	<transform>
@@ -49,11 +49,11 @@
 	<xml2json schemaURI="de.aoa.ei.lms.v1.xsd"/>
 	<dump/>
   </fork>
-  <preSOAP11Http wsdlURI="example.wsdl"/>
+  <preSOAPHttp wsdlURI="example.wsdl"/>
   <http chunkLength="65536">
     <url>http://localhost:8091/mockDemoPortType1Binding</url>
   </http>
-  <postSOAP11Http/>
+  <postSOAPHttp/>
   <fork copyMessage="true" workerPool="LMS">
 	<transform>
 		<xquery><![CDATA[declare variable $messageHeader external; <logEvent xmlns="http://aoa.de/ei/lms/v1"><logPointNr>11</logPointNr><logMessage>Antwort vom Provider</logMessage><logTimestamp>{current-dateTime()}</logTimestamp>{$messageHeader}<message>{serialize(*[1])}</message></logEvent>]]></xquery>
@@ -76,5 +76,5 @@
 	<xml2json schemaURI="de.aoa.ei.lms.v1.xsd"/>
 	<dump/>
   </fork>
-  <wrapSOAP11/>
+  <wrapSOAP/>
 </service>

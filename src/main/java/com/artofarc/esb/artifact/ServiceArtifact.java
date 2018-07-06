@@ -45,13 +45,13 @@ import com.artofarc.esb.action.JMSAction;
 import com.artofarc.esb.action.Json2XMLAction;
 import com.artofarc.esb.action.KafkaConsumeAction;
 import com.artofarc.esb.action.KafkaProduceAction;
-import com.artofarc.esb.action.PostSOAP11HttpAction;
-import com.artofarc.esb.action.PreSOAP11HttpAction;
+import com.artofarc.esb.action.PostSOAPHttpAction;
+import com.artofarc.esb.action.PreSOAPHttpAction;
 import com.artofarc.esb.action.SpawnAction;
 import com.artofarc.esb.action.TransformAction;
-import com.artofarc.esb.action.UnwrapSOAP11Action;
+import com.artofarc.esb.action.UnwrapSOAPAction;
 import com.artofarc.esb.action.ValidateAction;
-import com.artofarc.esb.action.WrapSOAP11Action;
+import com.artofarc.esb.action.WrapSOAPAction;
 import com.artofarc.esb.action.XML2JsonAction;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpEndpoint;
@@ -76,7 +76,8 @@ import com.artofarc.esb.service.JdbcUpdate;
 import com.artofarc.esb.service.Jms;
 import com.artofarc.esb.service.Json2Xml;
 import com.artofarc.esb.service.NsDecl;
-import com.artofarc.esb.service.PreSOAP11Http;
+import com.artofarc.esb.service.PostSOAPHttp;
+import com.artofarc.esb.service.PreSOAPHttp;
 import com.artofarc.esb.service.ProduceKafka;
 import com.artofarc.esb.service.Property;
 import com.artofarc.esb.service.Service;
@@ -85,8 +86,9 @@ import com.artofarc.esb.service.Service.JmsBinding;
 import com.artofarc.esb.service.Service.TimerBinding;
 import com.artofarc.esb.service.Spawn;
 import com.artofarc.esb.service.Transform;
-import com.artofarc.esb.service.UnwrapSOAP11;
+import com.artofarc.esb.service.UnwrapSOAP;
 import com.artofarc.esb.service.Validate;
+import com.artofarc.esb.service.WrapSOAP;
 import com.artofarc.esb.service.Xml2Json;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Collections;
@@ -173,7 +175,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "jms": {
 				Jms jms = (Jms) jaxbElement.getValue();
-				list.add(new JMSAction(globalContext, jms.getJndiConnectionFactory(), jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms.isIsBytesMessage(), jms.getPriority(), jms.getTimeToLive()));
+				list.add(new JMSAction(globalContext, jms.getJndiConnectionFactory(), jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms.isBytesMessage(), jms.getPriority(), jms.getTimeToLive()));
 				break;
 			}
 			case "produceKafka": {
@@ -273,35 +275,37 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				list.add(transformAction);
 				break;
 			}
-			case "unwrapSOAP11": {
-				UnwrapSOAP11 unwrapSOAP11 = (UnwrapSOAP11) jaxbElement.getValue();
+			case "unwrapSOAP": {
+				UnwrapSOAP unwrapSOAP11 = (UnwrapSOAP) jaxbElement.getValue();
 				WSDLArtifact wsdlArtifact = getArtifact(unwrapSOAP11.getWsdlURI());
 				if (wsdlArtifact == null) {
 					throw new FileNotFoundException(unwrapSOAP11.getWsdlURI());
 				}
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				UnwrapSOAP11Action unwrapSOAP11Action = new UnwrapSOAP11Action(wsdlArtifact.getDefinition(), unwrapSOAP11.getTransport());
+				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getDefinition(), unwrapSOAP11.getTransport());
 				list.add(unwrapSOAP11Action);
 				break;
 			}
-			case "wrapSOAP11":
-				list.add(new WrapSOAP11Action());
+			case "wrapSOAP":
+				WrapSOAP wrapSOAP11 = (WrapSOAP) jaxbElement.getValue();
+				list.add(new WrapSOAPAction(wrapSOAP11.isSoap12(), wrapSOAP11.isSinglePart()));
 				break;
-			case "preSOAP11Http": {
-				PreSOAP11Http preSOAP11Http = (PreSOAP11Http) jaxbElement.getValue();
+			case "preSOAPHttp": {
+				PreSOAPHttp preSOAP11Http = (PreSOAPHttp) jaxbElement.getValue();
 				WSDLArtifact wsdlArtifact = getArtifact(preSOAP11Http.getWsdlURI());
 				if (wsdlArtifact == null) {
 					throw new FileNotFoundException(preSOAP11Http.getWsdlURI());
 				}
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				PreSOAP11HttpAction preSOAP11HttpAction = new PreSOAP11HttpAction(wsdlArtifact.getDefinition(), preSOAP11Http.getTransport());
+				PreSOAPHttpAction preSOAP11HttpAction = new PreSOAPHttpAction(preSOAP11Http.isSoap12(), preSOAP11Http.isSinglePart(), wsdlArtifact.getDefinition(), preSOAP11Http.getTransport());
 				list.add(preSOAP11HttpAction);
 				break;
 			}
-			case "postSOAP11Http":
-				list.add(new PostSOAP11HttpAction());
+			case "postSOAPHttp":
+				PostSOAPHttp postSOAP11Http = (PostSOAPHttp) jaxbElement.getValue();
+				list.add(new PostSOAPHttpAction(postSOAP11Http.isSoap12(), postSOAP11Http.isSinglePart()));
 				break;
 			case "validate": {
 				Validate validate = (Validate) jaxbElement.getValue();
@@ -336,7 +340,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "conditional": {
 				Conditional conditional = (Conditional) jaxbElement.getValue();
-				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(), conditional.getBindName());
+				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(), conditional.getBindName(), conditional.getContextItem());
 				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), errorHandler)));
 				list.add(conditionalAction);
 				break;

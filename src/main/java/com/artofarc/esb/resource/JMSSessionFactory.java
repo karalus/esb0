@@ -24,8 +24,9 @@ import javax.naming.NamingException;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.jms.JMSConnectionProvider;
+import com.artofarc.esb.jms.JMSSession;
 
-public class JMSSessionFactory extends ResourceFactory<Session, String, Boolean> {
+public class JMSSessionFactory extends ResourceFactory<JMSSession, String, Boolean> {
 
 	private final PoolContext _poolContext;
 	
@@ -34,7 +35,7 @@ public class JMSSessionFactory extends ResourceFactory<Session, String, Boolean>
 	}
 
 	@Override
-	protected Session createResource(String jndiConnectionFactory, Boolean transacted) throws NamingException, JMSException {
+	protected JMSSession createResource(String jndiConnectionFactory, Boolean transacted) throws NamingException, JMSException {
 		JMSConnectionProvider jmsConnectionProvider = _poolContext.getJMSConnectionProvider();
 		Connection connection = jmsConnectionProvider.getConnection(jndiConnectionFactory);
 		jmsConnectionProvider.registerJMSSessionFactory(this);
@@ -42,12 +43,7 @@ public class JMSSessionFactory extends ResourceFactory<Session, String, Boolean>
 		if (transacted) {
 			connection.start();
 		}
-		return session;
-	}
-
-	@Override
-	protected void closeResource(Session session) throws JMSException {
-		session.close();
+		return new JMSSession(session);
 	}
 
 }

@@ -177,7 +177,7 @@ public class TransformAction extends Action {
 	@Override
 	protected void close(ExecutionContext execContext) throws Exception {
 		XQResultSequence resultSequence = execContext.getResource();
-		if (resultSequence.next()) {
+		if (resultSequence.next() && _contextItem == null) {
 			logger.fine("XQResultSequence not fully consumed");
 			if (logger.isLoggable(Level.FINE)) {
 				resultSequence.writeItemToResult(new StreamResult(System.err));
@@ -185,5 +185,10 @@ public class TransformAction extends Action {
 		}
 		resultSequence.close();
 	}
+
+//	@Override
+//	public String toString() {
+//		return getClass().getSimpleName() + " [_xquery=" + _xquery + ", _varNames=" + _varNames + ", _bindNames=" + _bindNames + ", _contextItem=" + _contextItem + "]";
+//	}
 
 }

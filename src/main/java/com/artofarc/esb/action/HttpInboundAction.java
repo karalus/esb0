@@ -48,7 +48,7 @@ public class HttpInboundAction extends Action {
 			message.getHeaders().put(entry.getKey(), value);
 		}
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		message.setCharsetName(HttpConstants.getCharsetFromContentType(contentType));
+		message.setCharsetName(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 		message.reset(BodyType.INPUT_STREAM, getInputStream(conn));
 		return new ExecutionContext(conn);
 	}

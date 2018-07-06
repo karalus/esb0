@@ -260,7 +260,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		ByteArrayOutputStream bos;
 		switch (_bodyType) {
 		case DOM:
-			bos = new ByteArrayOutputStream();
+			bos = new ByteArrayOutputStream(MTU);
 			writeTo(bos, context);
 			bos.close();
 			ba = bos.toByteArray();
@@ -271,13 +271,13 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		case BYTES:
 			return (byte[]) _body;
 		case INPUT_STREAM:
-			bos = new ByteArrayOutputStream();
+			bos = new ByteArrayOutputStream(MTU);
 			copyStream(getUncompressedInputStream(), bos);
 			bos.close();
 			ba = bos.toByteArray();
 			break;
 		case XQ_ITEM:
-			bos = new ByteArrayOutputStream();
+			bos = new ByteArrayOutputStream(MTU);
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(bos, null);
 			bos.close();

@@ -26,6 +26,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.TimeGauge;
 
 public abstract class Action implements Cloneable {
 
@@ -51,14 +52,16 @@ public abstract class Action implements Cloneable {
 	public void process(Context context, ESBMessage message) throws Exception {
 		List<Action> pipeline = new ArrayList<>();
 		List<ExecutionContext> resources = new ArrayList<>();
+		TimeGauge timeGauge = new TimeGauge(Level.INFO, 250L);
+		timeGauge.startTimeMeasurement();
 		for (Action nextAction = this; nextAction != null;) {
 			boolean isPipeline = false;
 			Action action = nextAction;
 			boolean closeSilently = false;
 			try {
 				while (action != null) {
-					logger.fine("Prepare: " + action.getClass());
 					ExecutionContext execContext = action.prepare(context, message, isPipeline);
+					timeGauge.stopTimeMeasurement("Prepare: " + action, true);
 					pipeline.add(action);
 					resources.add(execContext);
 					nextAction = action.nextAction(execContext);
@@ -77,11 +80,11 @@ public abstract class Action implements Cloneable {
 				for (int i = 0; i < pipeline.size(); ++i) {
 					action = pipeline.get(i);
 					ExecutionContext exContext = resources.get(i);
-					logger.fine("Execute: " + action.getClass());
 					action.execute(context, exContext, message, i == secondLast);
+					timeGauge.stopTimeMeasurement("Execute: " + action, true);
 				}
 			} catch (Exception e) {
-				logger.log(Level.INFO, "Exception while processing " + action.getClass().getSimpleName(), e);
+				logger.log(Level.INFO, "Exception while processing " + action, e);
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
 				nextAction = action.getErrorHandler();
@@ -99,18 +102,19 @@ public abstract class Action implements Cloneable {
 				for (int i = 0; i < pipeline.size(); ++i) {
 					action = pipeline.get(i);
 					ExecutionContext exContext = resources.get(i);
-					logger.fine("Close: " + action.getClass());
 					try {
 						action.close(exContext);
 					} catch (Exception e) {
 						if (!closeSilently)
 							throw e;
 					}
+					timeGauge.stopTimeMeasurement("Close: " + action, true);
 				}
 			}
 			pipeline.clear();
 			resources.clear();
 		}
+		timeGauge.stopTimeMeasurement("Finished process: " + getClass(), false);
 	}
 
 	public final void execute(Context context, ESBMessage message) throws Exception {

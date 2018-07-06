@@ -59,7 +59,7 @@ public class FileSystemTest {
          ESBMessage message = new ESBMessage(BodyType.BYTES, ConfigServiceTest.readFile("src/test/resources/SOAPRequest.xml"));
          message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
          message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
-         message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
+         message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
          message.getVariables().put(ESBVariableConstants.hasFault, false);
          try {
             service.processInternal(new Context(poolContext), message);

@@ -23,17 +23,21 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
 
-public class WrapSOAP11Action extends TransformAction {
+public class WrapSOAPAction extends TransformAction {
 
-	public WrapSOAP11Action() {
-		super("declare variable $header as element() external; <soapenv:Envelope xmlns:soapenv=\"" + SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
-				+ "\">{$header}{.}</soapenv:Envelope>");
+	protected final boolean _soap12;
+	
+	public WrapSOAPAction(boolean soap12, boolean singlePart) {
+		super("declare variable $header as element() external; <soapenv:Envelope xmlns:soapenv=\""
+				+ (soap12 ? SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE : SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE) + "\">{$header}"
+				+ (singlePart ? "<soapenv:Body>" : "") + "{.}" + (singlePart ? "</soapenv:Body>" : "") + "</soapenv:Envelope>");
+		_soap12 = soap12;
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		message.getHeaders().clear();
-		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, _soap12 ? SOAPConstants.SOAP_1_2_CONTENT_TYPE : SOAPConstants.SOAP_1_1_CONTENT_TYPE);
 		return super.prepare(context, message, inPipeline);
 	}
 

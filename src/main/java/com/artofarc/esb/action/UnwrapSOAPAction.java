@@ -27,31 +27,35 @@ import javax.xml.soap.SOAPConstants;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.http.HttpConstants;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
 import com.artofarc.util.Collections;
 import com.artofarc.util.WSDL4JUtil;
 
-public class UnwrapSOAP11Action extends TransformAction {
+public class UnwrapSOAPAction extends TransformAction {
 
+	private final boolean _soap12;
+	
 	private final Map<String, String> _mapAction2Operation;
 
 	private final HashSet<String> _operations;
 
 	/**
-	 * Cannot decompose further since body can contain more than one element.
+	 * @param soap12
+	 * @param singlePart body can contain more than one element.
+	 * @param mapAction2Operation
+	 * @param bindingOperations
 	 * 
 	 * @see https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/
 	 */
-	private UnwrapSOAP11Action(Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations) {
-		super(
-				"declare namespace soapenv=\""
-						+ SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE
-						+ "\";\n"
-						+ "let $h := soapenv:Envelope/soapenv:Header let $b := soapenv:Envelope/soapenv:Body return (local-name($b/*[1]), if ($h) then $h else <soapenv:Header/>, if ($b) then $b else .)",
-				Arrays.asList(ESBVariableConstants.operation, ESBVariableConstants.SOAP_HEADER));
-
+	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations) {
+		super("declare namespace soapenv=\"" + (soap12 ? SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE : SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
+				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
+				+ (singlePart ? "local-name($b), " : "") + "if ($h) then $h else <soapenv:Header/>, $b)",
+				singlePart ? Arrays.asList(ESBVariableConstants.operation, ESBVariableConstants.SOAP_HEADER) : Arrays.asList(ESBVariableConstants.SOAP_HEADER));
+		
+		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;
 		if (bindingOperations != null) {
 			_operations = new HashSet<>();
@@ -63,21 +67,21 @@ public class UnwrapSOAP11Action extends TransformAction {
 		}
 	}
 
-	public UnwrapSOAP11Action(Definition definition, String transport) {
-		this(Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(definition, transport)), WSDL4JUtil.getBindingOperations(definition, transport));
+	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Definition definition, String transport) {
+		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(definition, transport)), WSDL4JUtil.getBindingOperations(definition, transport));
 	}
 
-	public UnwrapSOAP11Action() {
-		this(java.util.Collections.<String, String> emptyMap(), null);
+	public UnwrapSOAPAction(boolean soap12, boolean singlePart) {
+		this(soap12, singlePart, java.util.Collections.<String, String> emptyMap(), null);
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		if (contentType == null || !contentType.contains(SOAPConstants.SOAP_1_1_CONTENT_TYPE)) {
-			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
+		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType == null || !contentType.contains(_soap12 ? SOAPConstants.SOAP_1_2_CONTENT_TYPE : SOAPConstants.SOAP_1_1_CONTENT_TYPE)) {
+			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType + "\n" + message.getBodyAsString(context));
 		}
-		String soapAction = message.getHeader(HttpOutboundAction.HTTP_HEADER_SOAP_ACTION);
+		String soapAction = _soap12 ? getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION) : message.<String> getHeader(HTTP_HEADER_SOAP_ACTION);
 		ExecutionContext execContext = super.prepare(context, message, inPipeline);
 		if (soapAction != null) {
 			// soapAction is always embedded in quotes

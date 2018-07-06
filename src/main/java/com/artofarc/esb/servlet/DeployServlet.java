@@ -29,7 +29,6 @@ import javax.servlet.http.Part;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
-import com.artofarc.esb.action.HttpOutboundAction;
 import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystem.ChangeSet;
@@ -39,6 +38,7 @@ import com.artofarc.esb.artifact.WorkerPoolArtifact;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.context.WorkerPool;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.service.Protocol;
 
@@ -54,7 +54,7 @@ public class DeployServlet extends HttpServlet {
 		GlobalContext globalContext = poolContext.getGlobalContext();
 		Artifact artifact = globalContext.getFileSystem().getArtifact(req.getPathInfo());
 		if (artifact != null) {
-			String headerAccept = req.getHeader(HttpOutboundAction.HTTP_HEADER_ACCEPT);
+			String headerAccept = req.getHeader(HttpConstants.HTTP_HEADER_ACCEPT);
 			if (headerAccept.contains("text/")) {
 				resp.setContentType("text/plain");
 				resp.setHeader("Content-Disposition", "filename=\"" + artifact.getName() + "\"");

@@ -30,14 +30,20 @@ public class HttpConstants {
 	
 	public static final String HTTP_HEADER_CONTENT_ID = "Content-ID";
 
-	private static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET = "charset=";
+	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET = "charset=";
 
-	public static final String getCharsetFromContentType(String s) {
-		int i = s.indexOf(HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);
+	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION = "action=";
+
+	public static final String HTTP_HEADER_ACCEPT = "Accept";
+
+	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
+
+	public static final String getValueFromHttpHeader(String httpHeader, String key) {
+		int i = httpHeader.indexOf(key);
 		if (i >= 0) {
-			i += HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET.length();
-			int j = s.indexOf(';', i);
-			return j < 0 ? s.substring(i) : s.substring(i, j);
+			i += key.length();
+			int j = httpHeader.indexOf(';', i);
+			return j < 0 ? httpHeader.substring(i) : httpHeader.substring(i, j);
 		}
 		return null;
 	}

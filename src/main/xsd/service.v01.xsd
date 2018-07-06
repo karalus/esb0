@@ -78,7 +78,7 @@
 						<element name="topicName" type="Name" />
 					</choice>
 					<attribute name="jndiConnectionFactory" type="anyURI" use="required" />
-					<attribute name="isBytesMessage" type="boolean" default="false" />
+					<attribute name="bytesMessage" type="boolean" default="false" />
 					<attribute name="priority" type="int" default="4" />
 					<attribute name="timeToLive" type="long" default="0" />
 				</extension>
@@ -164,14 +164,22 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<complexType name="AssignAction" abstract="true">
+		<complexContent>
+			<extension base="tns:ActionBase">
+				<sequence>
+					<element name="bindName" type="string" minOccurs="0" maxOccurs="unbounded" />
+					<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
+				</sequence>
+				<attribute name="contextItem" type="Name" />
+			</extension>
+		</complexContent>
+	</complexType>
 	<element name="assign" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase">
+				<extension base="tns:AssignAction">
 					<sequence>
-						<element name="bindName" type="string" minOccurs="0"
-							maxOccurs="unbounded" />
-						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 						<element name="assignment" maxOccurs="unbounded">
 							<complexType>
 								<simpleContent>
@@ -182,7 +190,6 @@
 							</complexType>
 						</element>
 					</sequence>
-					<attribute name="contextItem" type="Name" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -190,10 +197,8 @@
 	<element name="assignHeaders" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase">
+				<extension base="tns:AssignAction">
 					<sequence>
-						<element name="bindName" type="string" minOccurs="0" maxOccurs="unbounded" />
-						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 						<element name="assignment" maxOccurs="unbounded">
 							<complexType>
 								<simpleContent>
@@ -204,7 +209,6 @@
 							</complexType>
 						</element>
 					</sequence>
-					<attribute name="contextItem" type="Name" />
 					<attribute name="clearAll" type="boolean" default="false" />
 				</extension>
 			</complexContent>
@@ -259,37 +263,45 @@
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="unwrapSOAP11" substitutionGroup="tns:action">
+	<complexType name="SOAPAction" abstract="true">
+		<complexContent>
+			<extension base="tns:ActionBase">
+				<attribute name="soap12" type="boolean" default="false" />
+				<attribute name="singlePart" type="boolean" default="true" />
+			</extension>
+		</complexContent>
+	</complexType>
+	<element name="unwrapSOAP" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase">
+				<extension base="tns:SOAPAction">
 					<attribute name="wsdlURI" type="anyURI" use="required" />
 					<attribute name="transport" type="anyURI" />
 				</extension>
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="wrapSOAP11" substitutionGroup="tns:action">
+	<element name="wrapSOAP" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase" />
+				<extension base="tns:SOAPAction" />
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="preSOAP11Http" substitutionGroup="tns:action">
+	<element name="preSOAPHttp" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase">
+				<extension base="tns:SOAPAction">
 					<attribute name="wsdlURI" type="anyURI" use="required" />
 					<attribute name="transport" type="anyURI" />
 				</extension>
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="postSOAP11Http" substitutionGroup="tns:action">
+	<element name="postSOAPHttp" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase" />
+				<extension base="tns:SOAPAction" />
 			</complexContent>
 		</complexType>
 	</element>
@@ -320,10 +332,8 @@
 	<element name="conditional" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase">
+				<extension base="tns:AssignAction">
 					<sequence>
-						<element name="bindName" type="string" minOccurs="0" maxOccurs="unbounded" />
-						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 						<element ref="tns:action" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="expression" type="string" use="required" />
@@ -377,7 +387,7 @@
 						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" use="required" />
-					<attribute name="expression" type="string" use="required" />
+					<attribute name="expression" type="string" default="." />
 				</extension>
 			</complexContent>
 		</complexType>

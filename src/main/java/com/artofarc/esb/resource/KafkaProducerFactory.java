@@ -29,9 +29,4 @@ public class KafkaProducerFactory extends ResourceFactory<Producer<?, ?>, Map<?,
 		return new KafkaProducer(configs);
 	}
 
-	@Override
-	protected void closeResource(Producer<?, ?> producer) {
-		producer.close();		
-	}
-
 }

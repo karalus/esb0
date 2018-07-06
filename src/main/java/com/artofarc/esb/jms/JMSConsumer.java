@@ -132,7 +132,7 @@ public class JMSConsumer extends ConsumerPort {
 
 		void open() throws Exception {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
-			_session = jmsSessionFactory.getResource(_jndiConnectionFactory, true);
+			_session = jmsSessionFactory.getResource(_jndiConnectionFactory, true).getSession();
 			if (_destination == null) {
 				_destination = _queueName != null ? _session.createQueue(_queueName) : _session.createTopic(_topicName);
 			}

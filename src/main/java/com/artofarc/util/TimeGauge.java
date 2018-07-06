@@ -27,9 +27,16 @@ public final class TimeGauge implements AutoCloseable {
 	private final Stack<Long> timeMeasurement = new Stack<Long>();
 
 	private final Level _level;
+	
+	private final long _threshold;
+
+	public TimeGauge(Level level, long threshold) {
+		_level = level;
+		_threshold = threshold;
+	}
 
 	public TimeGauge(Level level) {
-		_level = level;
+		this(level, 0L);
 	}
 
 	public void startTimeMeasurement() {
@@ -41,11 +48,15 @@ public final class TimeGauge implements AutoCloseable {
 	}
 
 	public void stopTimeMeasurement(String text, boolean restart) {
-		long startTS = timeMeasurement.pop();
-		long endTS = System.currentTimeMillis();
-		logger.log(_level, text + " took " + (endTS - startTS) / 1000. + "s");
-		if (restart)
+		final long endTS = System.currentTimeMillis();
+		final long startTS = timeMeasurement.pop();
+		final long diff = endTS - startTS;
+		if (diff >= _threshold) {
+			logger.log(_level, text + " took " + diff / 1000. + "s");
+		}
+		if (restart) {
 			timeMeasurement.push(endTS);
+		}
 	}
 
 	@Override

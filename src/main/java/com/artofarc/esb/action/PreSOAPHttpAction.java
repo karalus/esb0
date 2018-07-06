@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.util.Collections;
 import java.util.Map;
 
 import javax.wsdl.Definition;
@@ -24,28 +23,33 @@ import javax.xml.soap.SOAPConstants;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
 import com.artofarc.util.WSDL4JUtil;
 
-public class PreSOAP11HttpAction extends WrapSOAP11Action {
+public class PreSOAPHttpAction extends WrapSOAPAction {
 
 	private final Map<String, String> _mapOperation2SoapActionURI;
 
-	public PreSOAP11HttpAction(Definition definition, String transport) {
+	public PreSOAPHttpAction(boolean soap12, boolean singlePart, Definition definition, String transport) {
+		super(soap12, singlePart);
 		_mapOperation2SoapActionURI = WSDL4JUtil.getMapOperation2SoapActionURI(definition, transport);
-	}
-
-	public PreSOAP11HttpAction() {
-		_mapOperation2SoapActionURI = Collections.<String, String> emptyMap();
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		ExecutionContext executionContext = super.prepare(context, message, inPipeline);
 		String soapAction = _mapOperation2SoapActionURI.get(message.getVariable(ESBVariableConstants.operation));
-		message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_SOAP_ACTION, soapAction != null ? "\"" + soapAction + "\"" : "\"\"");
-		message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_ACCEPT, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+		if (_soap12) {
+			if (soapAction != null) {
+				message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_2_CONTENT_TYPE + ";" + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + soapAction);
+			}
+			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAPConstants.SOAP_1_2_CONTENT_TYPE);
+		} else {
+			message.getHeaders().put(HTTP_HEADER_SOAP_ACTION, soapAction != null ? "\"" + soapAction + "\"" : "\"\"");
+			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+		}
 		message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
 		return executionContext;
 	}

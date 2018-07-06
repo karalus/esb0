@@ -31,10 +31,8 @@ public class ConditionalAction extends AssignAction {
 
 	private Action conditionalAction;
 
-	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames) {
-		super(RESULT, expression, namespaces, bindNames);
-		// because of branch prediction
-		_pipelineStop = false;
+	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
+		super(RESULT, expression, namespaces, bindNames, contextItem);
 	}
 
 	public Action getConditionalAction() {

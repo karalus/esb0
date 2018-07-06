@@ -16,35 +16,34 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.ByteArrayOutputStream;
+import java.net.HttpURLConnection;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.ESBVariableConstants;
 
-public abstract class TerminalAction extends Action {
+public class PostSOAPHttpAction extends UnwrapSOAPAction {
 
-	protected TerminalAction() {
-		_pipelineStop = true;
+	public PostSOAPHttpAction(boolean soap12, boolean singlePart) {
+		super(soap12, singlePart);
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		if (inPipeline) {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
-			message.reset(BodyType.OUTPUT_STREAM, bos);
-			return new ExecutionContext(bos);
-		} else {
-			return null;
-		}
-	}
-
-	@Override
-	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (execContext != null) {
-			ByteArrayOutputStream bos = execContext.getResource();
-			message.reset(BodyType.BYTES, bos.toByteArray());
+		Integer httpResponseCode = message.getVariable(ESBVariableConstants.HttpResponseCode);
+		switch (httpResponseCode) {
+		case HttpURLConnection.HTTP_OK:
+		case HttpURLConnection.HTTP_ACCEPTED:
+			return super.prepare(context, message, inPipeline);
+		case HttpURLConnection.HTTP_INTERNAL_ERROR:
+		case HttpURLConnection.HTTP_NOT_FOUND:
+			// TODO!
+			// setNextAction(getErrorHandler());
+			// operation="SOAP-ENV:Fault"
+			return super.prepare(context, message, inPipeline);
+		default:
+			throw new ExecutionException(this, "HTTP Response Code not covered by SOAP protocol, was " + httpResponseCode);
 		}
 	}
 

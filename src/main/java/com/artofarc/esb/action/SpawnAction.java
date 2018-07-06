@@ -71,7 +71,7 @@ public class SpawnAction extends Action {
 			ExecutionContext execContext = new ExecutionContext(message.getTerminal());
 			message.setTerminal(null);
 			if (inPipeline) {
-				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
 				message.reset(BodyType.OUTPUT_STREAM, bos);
 				execContext.setResource2(bos);
 			}

@@ -33,9 +33,6 @@ import com.artofarc.esb.message.ESBVariableConstants;
 
 public class HttpOutboundAction extends Action {
 
-	public static final String HTTP_HEADER_ACCEPT = "Accept";
-	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
-
 	private final HttpEndpoint _httpEndpoint;
 	private final int _readTimeout;
 	private final Integer _chunkLength;

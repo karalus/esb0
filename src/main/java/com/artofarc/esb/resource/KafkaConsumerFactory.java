@@ -32,9 +32,4 @@ public class KafkaConsumerFactory extends ResourceFactory<Consumer<?, ?>, Map<?,
 		return consumer;
 	}
 
-	@Override
-	protected void closeResource(Consumer<?, ?> consumer) {
-		consumer.close();		
-	}
-
 }
