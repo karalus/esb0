@@ -44,7 +44,7 @@ import com.artofarc.esb.message.ESBVariableConstants;
 /**
  * Servlet implementation class GenericHttpListener
  */
-@WebServlet(asyncSupported=true, urlPatterns="/*")
+@WebServlet(asyncSupported=true, urlPatterns={"/*", "/admin/ext/*"})
 @MultipartConfig
 public class GenericHttpListener extends HttpServlet {
 
@@ -53,10 +53,7 @@ public class GenericHttpListener extends HttpServlet {
 	@Override
 	protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// process input
-		final String pathInfo = request.getPathInfo();
-		if (pathInfo == null) {
-			throw new ServletException("Path info missing");
-		}
+		final String pathInfo = request.getRequestURI().substring(request.getContextPath().length());
 		log("Incoming HTTP request with uri " + request.getRequestURI());
 		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
 		HttpConsumer consumerPort = poolContext.getGlobalContext().getHttpService(pathInfo);

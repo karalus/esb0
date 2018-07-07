@@ -47,6 +47,7 @@ import com.artofarc.esb.action.KafkaConsumeAction;
 import com.artofarc.esb.action.KafkaProduceAction;
 import com.artofarc.esb.action.PostSOAPHttpAction;
 import com.artofarc.esb.action.PreSOAPHttpAction;
+import com.artofarc.esb.action.RESTAction;
 import com.artofarc.esb.action.SpawnAction;
 import com.artofarc.esb.action.TransformAction;
 import com.artofarc.esb.action.UnwrapSOAPAction;
@@ -80,6 +81,7 @@ import com.artofarc.esb.service.PostSOAPHttp;
 import com.artofarc.esb.service.PreSOAPHttp;
 import com.artofarc.esb.service.ProduceKafka;
 import com.artofarc.esb.service.Property;
+import com.artofarc.esb.service.Rest;
 import com.artofarc.esb.service.Service;
 import com.artofarc.esb.service.Service.HttpBindURI;
 import com.artofarc.esb.service.Service.JmsBinding;
@@ -259,6 +261,10 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 						json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()));
 				break;
 			}
+			case "rest":
+				Rest rest = (Rest) jaxbElement.getValue();
+				list.add(new RESTAction(rest.getUriTemplate()));
+				break;
 			case "transform": {
 				Transform transform = (Transform) jaxbElement.getValue();
 				String xquery = transform.getXquery();

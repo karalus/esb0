@@ -251,6 +251,15 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<element name="rest" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase">
+					<attribute name="uriTemplate" type="anyURI" />
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
 	<element name="transform" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>

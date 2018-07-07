@@ -19,6 +19,7 @@ package com.artofarc.esb.action;
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -30,11 +31,14 @@ import java.util.List;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
+import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonStructure;
 import javax.json.JsonWriter;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
+import javax.xml.bind.DatatypeConverter;
 
 import org.eclipse.persistence.oxm.MediaType;
 
@@ -114,7 +118,7 @@ public abstract class JDBCAction extends TerminalAction {
 	
 	protected final static void extractResult(Statement statement, ESBMessage message) throws SQLException {
 		JsonArrayBuilder builder = Json.createArrayBuilder();
-		JsonArray result = null;
+		JsonStructure result = null;
 		int updateCount;
 		for (;; statement.getMoreResults()) {
 			updateCount = statement.getUpdateCount();
@@ -122,7 +126,7 @@ public abstract class JDBCAction extends TerminalAction {
 			if (updateCount >= 0) {
 				builder.add(updateCount);
 			} else if (resultSet != null) {
-				result = createJsonArray(resultSet);
+				result = createJson(resultSet);
 				builder.add(result);
 			} else {
 				break;
@@ -135,7 +139,7 @@ public abstract class JDBCAction extends TerminalAction {
 		if (result != null) {
 			StringWriter sw = new StringWriter(ESBMessage.MTU);
 			JsonWriter jsonWriter = Json.createWriter(sw);
-			jsonWriter.writeArray(result);
+			jsonWriter.write(result);
 			jsonWriter.close();
 			message.getHeaders().clear();
 			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MediaType.APPLICATION_JSON.getMediaType());
@@ -145,31 +149,48 @@ public abstract class JDBCAction extends TerminalAction {
 		}
 	}
 	
-	protected final static JsonArray createJsonArray(ResultSet resultSet) throws SQLException {
+	protected final static JsonObject createJson(ResultSet resultSet) throws SQLException {
 		ResultSetMetaData metaData = resultSet.getMetaData();
-		JsonArrayBuilder result = Json.createArrayBuilder();
+		final int colSize = metaData.getColumnCount();
+		JsonObjectBuilder result = Json.createObjectBuilder();
+		JsonArrayBuilder header = Json.createArrayBuilder();
+		for (int i = 1; i <= colSize; ++i) {
+			header.add(metaData.getColumnLabel(i));
+		}
+		result.add("header", header);
+		JsonArrayBuilder rows = Json.createArrayBuilder();
 		while (resultSet.next()) {
-			JsonObjectBuilder builder = Json.createObjectBuilder();
-			for (int i = 1; i <= metaData.getColumnCount(); ++i) {
+			JsonArrayBuilder row = Json.createArrayBuilder();
+			for (int i = 1; i <= colSize; ++i) {
 				Object value = resultSet.getObject(i);
-				if (!resultSet.wasNull()) {
-					String name = metaData.getColumnLabel(i);
+				if (resultSet.wasNull()) {
+					row.addNull();
+				} else {
 					switch (metaData.getColumnType(i)) {
 					case Types.SMALLINT:
 					case Types.INTEGER:
-						builder.add(name, ((Number) value).intValue());
+						row.add(((Number) value).intValue());
 						break;
 					case Types.BIT:
-						builder.add(name, ((Boolean) value));
+						row.add(((Boolean) value));
+						break;
+					case Types.BLOB:
+						Blob blob = (Blob) value;
+						row.add(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
+						break;
+					case Types.VARBINARY:
+					case Types.LONGVARBINARY:
+						row.add(DatatypeConverter.printBase64Binary((byte[]) value));
 						break;
 					default:
-						builder.add(name, value.toString());
+						row.add(value.toString());
 						break;
 					}
 				}
 			}
-			result.add(builder);
+			rows.add(row);
 		}
+		result.add("rows", rows);
 		return result.build();
 	}
 	
