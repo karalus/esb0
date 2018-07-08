@@ -48,6 +48,7 @@ import com.artofarc.esb.action.KafkaProduceAction;
 import com.artofarc.esb.action.PostSOAPHttpAction;
 import com.artofarc.esb.action.PreSOAPHttpAction;
 import com.artofarc.esb.action.RESTAction;
+import com.artofarc.esb.action.SetMessageAction;
 import com.artofarc.esb.action.SpawnAction;
 import com.artofarc.esb.action.TransformAction;
 import com.artofarc.esb.action.UnwrapSOAPAction;
@@ -86,6 +87,8 @@ import com.artofarc.esb.service.Service;
 import com.artofarc.esb.service.Service.HttpBindURI;
 import com.artofarc.esb.service.Service.JmsBinding;
 import com.artofarc.esb.service.Service.TimerBinding;
+import com.artofarc.esb.service.SetMessage;
+import com.artofarc.esb.service.SetMessage.Header;
 import com.artofarc.esb.service.Spawn;
 import com.artofarc.esb.service.Transform;
 import com.artofarc.esb.service.UnwrapSOAP;
@@ -207,7 +210,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					list.add(new SpawnAction(jdbcProcedure.getWorkerPool(), true));
 				}
 				list.add(new JDBCProcedureAction(jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
-						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter())));
+						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getFetchSize()));
 				break;
 			}
 			case "jdbc": {
@@ -215,7 +218,16 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				if (jdbc.getWorkerPool() != null) {
 					list.add(new SpawnAction(jdbc.getWorkerPool(), true));
 				}
-				list.add(new JDBCSQLAction(jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter())));
+				list.add(new JDBCSQLAction(jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getFetchSize()));
+				break;
+			}
+			case "setMessage": {
+				SetMessage setMessage = (SetMessage) jaxbElement.getValue();
+				List<Entry<String, String>> headers = new ArrayList<>();
+				for (Header header : setMessage.getHeader()) {
+					headers.add(Collections.createEntry(header.getName(), header.getValue()));
+				}
+				list.add(new SetMessageAction(headers, setMessage.getBody()));
 				break;
 			}
 			case "assign": {

@@ -82,10 +82,9 @@ public class HttpServletResponseAction extends Action {
 			}
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, response.getOutputStream());
-			} else {
+			} else if (message.getBodyType() != BodyType.INVALID) {
 				message.writeTo(response.getOutputStream(), context);
 			}
-
 		}
 		return new ExecutionContext(asyncContext);
 	}

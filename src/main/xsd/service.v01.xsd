@@ -121,16 +121,25 @@
 			<attribute name="truncate" type="int" />
 		</complexType>
 	</element>
+	<complexType name="JDBCAction" abstract="true">
+		<complexContent>
+			<extension base="tns:ActionBase">
+				<sequence>
+					<element name="sql" type="string" minOccurs="0" />
+				</sequence>
+				<attribute name="dataSource" type="string" use="required" />
+				<attribute name="workerPool" type="anyURI" />
+				<attribute name="fetchSize" type="int" default="0" />
+			</extension>
+		</complexContent>
+	</complexType>
 	<element name="jdbc" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase">
+				<extension base="tns:JDBCAction">
 					<sequence>
-						<element name="sql" type="string" minOccurs="0" />
 						<element ref="tns:jdbcParameter" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
-					<attribute name="dataSource" type="string" use="required" />
-					<attribute name="workerPool" type="anyURI" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -138,9 +147,8 @@
 	<element name="jdbcProcedure" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase">
+				<extension base="tns:JDBCAction">
 					<sequence>
-						<element name="sql" type="string" minOccurs="0" />
 						<element name="in">
 							<complexType>
 								<sequence>
@@ -158,8 +166,6 @@
 							</complexType>
 						</element>
 					</sequence>
-					<attribute name="dataSource" type="string" use="required" />
-					<attribute name="workerPool" type="anyURI" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -415,6 +421,26 @@
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<attribute name="ref" type="string" use="required" />
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
+	<element name="setMessage" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase">
+					<sequence>
+						<element name="header" minOccurs="0" maxOccurs="unbounded">
+							<complexType>
+								<simpleContent>
+									<extension base="string">
+										<attribute name="name" type="Name" use="required" />
+									</extension>
+								</simpleContent>
+							</complexType>
+						</element>
+						<element name="body" type="string" minOccurs="0" />
+					</sequence>
 				</extension>
 			</complexContent>
 		</complexType>

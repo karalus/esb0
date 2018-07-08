@@ -19,13 +19,17 @@ package com.artofarc.esb.action;
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import javax.json.Json;
@@ -54,8 +58,9 @@ public abstract class JDBCAction extends TerminalAction {
 	protected final DataSource _dataSource;
 	protected final String _sql;
 	private final List<JDBCParameter> _params;
+	private final int _fetchSize;
 
-	public JDBCAction(String dsName, String sql, List<JDBCParameter> params) throws NamingException {
+	public JDBCAction(String dsName, String sql, List<JDBCParameter> params, int fetchSize) throws NamingException {
 		InitialContext initialContext = new InitialContext();
 		try {
 			_dataSource = (DataSource) initialContext.lookup(dsName);
@@ -64,6 +69,7 @@ public abstract class JDBCAction extends TerminalAction {
 		}
 		_sql = sql;
 		_params = params;
+		_fetchSize = fetchSize;
 	}
 
 	@Override
@@ -114,18 +120,18 @@ public abstract class JDBCAction extends TerminalAction {
 			}
 		}
 		ps.setQueryTimeout((int) message.getTimeleft() / 1000);
+		ps.setFetchSize(_fetchSize);
 	}
 	
 	protected final static void extractResult(Statement statement, ESBMessage message) throws SQLException {
-		JsonArrayBuilder builder = Json.createArrayBuilder();
 		JsonStructure result = null;
-		int updateCount;
-		for (;; statement.getMoreResults()) {
-			updateCount = statement.getUpdateCount();
+		JsonArrayBuilder builder = Json.createArrayBuilder();
+		for (boolean moreResults = true;; moreResults = statement.getMoreResults()) {
+			int updateCount = statement.getUpdateCount();
 			ResultSet resultSet = statement.getResultSet();
 			if (updateCount >= 0) {
 				builder.add(updateCount);
-			} else if (resultSet != null) {
+			} else if (moreResults && resultSet != null) {
 				result = createJson(resultSet);
 				builder.add(result);
 			} else {
@@ -144,8 +150,8 @@ public abstract class JDBCAction extends TerminalAction {
 			message.getHeaders().clear();
 			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MediaType.APPLICATION_JSON.getMediaType());
 			message.reset(BodyType.STRING, sw.toString());
-		} else if (updateCount >= 0) {
-			message.getVariables().put("sqlUpdateCount", updateCount);
+		} else if (jsonArray.size() > 0) {
+			message.getVariables().put("sqlUpdateCount", jsonArray.getInt(0));
 		}
 	}
 	
@@ -155,43 +161,86 @@ public abstract class JDBCAction extends TerminalAction {
 		JsonObjectBuilder result = Json.createObjectBuilder();
 		JsonArrayBuilder header = Json.createArrayBuilder();
 		for (int i = 1; i <= colSize; ++i) {
-			header.add(metaData.getColumnLabel(i));
+			header.add(Json.createObjectBuilder().add(metaData.getColumnLabel(i), JDBCParameter.CODES.get(metaData.getColumnType(i))));
 		}
 		result.add("header", header);
 		JsonArrayBuilder rows = Json.createArrayBuilder();
 		while (resultSet.next()) {
 			JsonArrayBuilder row = Json.createArrayBuilder();
 			for (int i = 1; i <= colSize; ++i) {
-				Object value = resultSet.getObject(i);
-				if (resultSet.wasNull()) {
-					row.addNull();
-				} else {
-					switch (metaData.getColumnType(i)) {
-					case Types.SMALLINT:
-					case Types.INTEGER:
-						row.add(((Number) value).intValue());
-						break;
-					case Types.BIT:
-						row.add(((Boolean) value));
-						break;
-					case Types.BLOB:
-						Blob blob = (Blob) value;
-						row.add(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
-						break;
-					case Types.VARBINARY:
-					case Types.LONGVARBINARY:
-						row.add(DatatypeConverter.printBase64Binary((byte[]) value));
-						break;
-					default:
-						row.add(value.toString());
-						break;
+				switch (metaData.getColumnType(i)) {
+				case Types.SMALLINT:
+				case Types.INTEGER:
+					int integer = resultSet.getInt(i);
+					if (checkNotNull(resultSet, row)) {
+						row.add(integer);
 					}
+					break;
+				case Types.BIT:
+					boolean bool = resultSet.getBoolean(i);
+					if (checkNotNull(resultSet, row)) {
+						row.add(bool);
+					}
+					break;
+				case Types.NUMERIC:
+				case Types.DECIMAL:
+					BigDecimal bigDecimal = resultSet.getBigDecimal(i);
+					if (checkNotNull(resultSet, row)) {
+						row.add(bigDecimal);
+					}
+					break;
+				case Types.TIMESTAMP:
+					Timestamp timestamp = resultSet.getTimestamp(i);
+					if (checkNotNull(resultSet, row)) {
+						row.add(DatatypeConverter.printDateTime(convert(timestamp)));
+					}
+					break;
+				case Types.DATE:
+					java.sql.Date date = resultSet.getDate(i);
+					if (checkNotNull(resultSet, row)) {
+						row.add(DatatypeConverter.printDate(convert(date)));
+					}
+					break;
+				case Types.BLOB:
+					Blob blob = resultSet.getBlob(i);
+					if (checkNotNull(resultSet, row)) {
+						row.add(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
+					}
+					break;
+				case Types.VARBINARY:
+				case Types.LONGVARBINARY:
+					byte[] bytes = resultSet.getBytes(i);
+					if (checkNotNull(resultSet, row)) {
+						row.add(DatatypeConverter.printBase64Binary(bytes));
+					}
+					break;
+				default:
+					Object value = resultSet.getObject(i);
+					if (checkNotNull(resultSet, row)) {
+						row.add(value.toString());
+					}
+					break;
 				}
 			}
 			rows.add(row);
 		}
 		result.add("rows", rows);
 		return result.build();
+	}
+	
+	private final static boolean checkNotNull(ResultSet resultSet, JsonArrayBuilder row) throws SQLException {
+		if (resultSet.wasNull()) {
+			row.addNull();
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
+	private final static GregorianCalendar convert(Date date) {
+		GregorianCalendar gc = new GregorianCalendar();
+		gc.setTime(date);
+		return gc;
 	}
 	
 }

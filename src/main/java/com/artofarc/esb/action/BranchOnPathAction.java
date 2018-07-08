@@ -16,9 +16,11 @@
  */
 package com.artofarc.esb.action;
 
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
@@ -46,11 +48,11 @@ public class BranchOnPathAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String pathInfo = message.getVariable(ESBVariableConstants.PathInfo);
-		if (!pathInfo.startsWith(_basePath)) {
-			throw new ExecutionException(this, "Base path does not match: " + pathInfo);
+		String appendHttpUrlPath = message.getVariable(ESBVariableConstants.appendHttpUrlPath);
+		if (!appendHttpUrlPath.startsWith(_basePath)) {
+			throw new ExecutionException(this, "Base path does not match: " + appendHttpUrlPath);
 		}
-		String path = pathInfo.substring(_basePath.length());
+		String path = appendHttpUrlPath.substring(_basePath.length());
 		Action action = _defaultAction;
 		for (Entry<PathTemplate, Action> entry : _branchMap.entrySet()) {
 			final Map<String, String> match = entry.getKey().match(path);
@@ -58,6 +60,18 @@ public class BranchOnPathAction extends Action {
 				action = entry.getValue();
 				message.getVariables().putAll(match);
 				break;
+			}
+		}
+		// REST: also parse query string
+		String queryString = message.getVariable(ESBVariableConstants.QueryString);
+		if (queryString != null) {
+			StringTokenizer st = new StringTokenizer(queryString, "&");
+			while (st.hasMoreTokens()) {
+				String pair = st.nextToken();
+				final int i = pair.indexOf("=");
+				String key = i > 0 ? URLDecoder.decode(pair.substring(0, i), "UTF-8") : pair;
+				String value = i > 0 && pair.length() > i + 1 ? URLDecoder.decode(pair.substring(i + 1), "UTF-8") : null;
+				message.getVariables().put(key, value);
 			}
 		}
 		if (action == null) {
@@ -135,17 +149,20 @@ public class BranchOnPathAction extends Action {
 			return pos < path.length() ? null : result;
 		}
 		
-		private int getRawLength() {
-			int l = 0;
+		private String getRawTemplate() {
+			StringBuilder builder = new StringBuilder();
 			for (int i = 0; i < _list.size(); i += 2) {
-				l += _list.get(i).length();
+				builder.append(_list.get(i));
 			}
-			return l;
+			return builder.toString();
 		}
 
 		@Override
-		public int compareTo(PathTemplate o) {
-			return o.getRawLength() - getRawLength();
+		public int compareTo(PathTemplate other) {
+			String rawTemplate = getRawTemplate();
+			String rawTemplateOther = other.getRawTemplate();
+			int lenDiff = rawTemplateOther.length() - rawTemplate.length();
+			return lenDiff != 0 ? lenDiff : rawTemplate.compareTo(rawTemplateOther);
 		}
 
 		@Override
