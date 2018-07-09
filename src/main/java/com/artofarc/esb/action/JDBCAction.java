@@ -119,7 +119,7 @@ public abstract class JDBCAction extends TerminalAction {
 				ps.setObject(param.getPos(), param.alignValue(value), param.getType());
 			}
 		}
-		ps.setQueryTimeout((int) message.getTimeleft() / 1000);
+		ps.setQueryTimeout((int) (message.getTimeleft() / 1000L));
 		ps.setFetchSize(_fetchSize);
 	}
 	
@@ -161,7 +161,9 @@ public abstract class JDBCAction extends TerminalAction {
 		JsonObjectBuilder result = Json.createObjectBuilder();
 		JsonArrayBuilder header = Json.createArrayBuilder();
 		for (int i = 1; i <= colSize; ++i) {
-			header.add(Json.createObjectBuilder().add(metaData.getColumnLabel(i), JDBCParameter.CODES.get(metaData.getColumnType(i))));
+			int scale = metaData.getScale(i);
+			String type = JDBCParameter.CODES.get(metaData.getColumnType(i)) + '(' + metaData.getPrecision(i) + (scale > 0 ? ", " + scale : "" + ')');
+			header.add(Json.createObjectBuilder().add(metaData.getColumnLabel(i), type));
 		}
 		result.add("header", header);
 		JsonArrayBuilder rows = Json.createArrayBuilder();

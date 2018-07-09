@@ -38,7 +38,6 @@ public class HttpInboundAction extends Action {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws IOException {
 		HttpURLConnection conn = message.removeVariable(ESBVariableConstants.HttpURLConnection);
 		message.getVariables().put(ESBVariableConstants.HttpResponseCode, conn.getResponseCode());
-		message.getVariables().put(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING, message.getHeader(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING));
 		message.getHeaders().clear();
 		for (Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
 			Object value = entry.getValue();

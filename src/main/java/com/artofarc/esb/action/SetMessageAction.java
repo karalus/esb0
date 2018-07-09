@@ -16,8 +16,8 @@
  */
 package com.artofarc.esb.action;
 
-import java.util.Collection;
-import java.util.Map.Entry;
+import java.lang.reflect.Constructor;
+import java.util.List;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -26,10 +26,10 @@ import com.artofarc.esb.message.ESBMessage;
 
 public class SetMessageAction extends Action {
 
-	private final Collection<Entry<String, String>> _headers;
+	private final List<Header> _headers;
 	private final String _body; 
 
-	public SetMessageAction(Collection<Entry<String, String>> headers, String body) {
+	public SetMessageAction(List<Header> headers, String body) {
 		_pipelineStop = true;
 		_headers = headers;
 		_body = body;
@@ -37,9 +37,9 @@ public class SetMessageAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Collection<Entry<String,String>> _headers2 = _headers;
-		for (Entry<String, String> header : _headers2) {
-			message.putHeader(header.getKey(), bindVariable(header.getValue(), message));
+		for (Header header : _headers) {
+			String value = bindVariable(header._expr, message);
+			message.putHeader(header._name, header._con != null ? header._con.newInstance(value) : value);
 		}
 		ExecutionContext execContext = null;
 		if (_body != null) {
@@ -53,6 +53,24 @@ public class SetMessageAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (execContext != null) {
 			message.reset(BodyType.STRING, execContext.getResource());
+		}
+	}
+	
+	public static final class Header {
+		
+		private final String _name;
+		private final String _expr;
+		private final Constructor<?> _con;
+
+		public Header(String name, String expr, String javaType) throws ClassNotFoundException, NoSuchMethodException {
+			_name = name;
+			_expr = expr;
+			if (javaType != null) {
+				Class<?> class1 = Class.forName(javaType);
+				_con = class1.getConstructor(String.class);
+			} else {
+				_con = null;
+			}
 		}
 	}
 

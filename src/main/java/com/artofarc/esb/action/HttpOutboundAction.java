@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 
@@ -53,23 +54,27 @@ public class HttpOutboundAction extends Action {
 		HttpUrlSelector httpUrlSelector = context.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
 		String method = message.getVariable(ESBVariableConstants.HttpMethod);
 		// for REST append to URL
-		String appendHttpUrlPath = message.getVariable(ESBVariableConstants.appendHttpUrlPath);
-		HttpURLConnection conn = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrlPath, message.getHeaders().entrySet(), true, _chunkLength);
+		String appendHttpUrl = message.getVariable(ESBVariableConstants.appendHttpUrlPath);
+		if (message.getVariable(ESBVariableConstants.QueryString) != null) {
+			appendHttpUrl += message.getVariable(ESBVariableConstants.QueryString);
+		}
+		HttpURLConnection conn = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), true, _chunkLength);
 		conn.setReadTimeout(_readTimeout);
 		if (inPipeline) {
 			message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
 		} else {
-			message.writeTo(conn.getOutputStream(), context);
+			message.writeToCompressedOutputStream(conn.getOutputStream(), context);
 		}
 		return new ExecutionContext(conn);
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws IOException {
-		HttpURLConnection conn = resource.getResource();
-		conn.getOutputStream().close();
+		if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
+			message.<OutputStream> getBody().close();
+		}
 		message.reset(BodyType.INVALID, null);
-		message.getVariables().put(ESBVariableConstants.HttpURLConnection, conn);
+		message.getVariables().put(ESBVariableConstants.HttpURLConnection, resource.getResource());
 	}
 
 }

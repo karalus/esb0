@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.action;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -61,7 +63,7 @@ public abstract class Action implements Cloneable {
 			try {
 				while (action != null) {
 					ExecutionContext execContext = action.prepare(context, message, isPipeline);
-					timeGauge.stopTimeMeasurement("Prepare: " + action, true);
+					timeGauge.stopTimeMeasurement("Parent: %s, prepare (isPipeline=%b): %s", true, this, isPipeline, action);
 					pipeline.add(action);
 					resources.add(execContext);
 					nextAction = action.nextAction(execContext);
@@ -198,7 +200,7 @@ public abstract class Action implements Cloneable {
 		return startAction;
 	}
 
-	protected final static String bindVariable(String exp, ESBMessage message) {
+	protected final static String bindVariable(String exp, ESBMessage message) throws Exception {
       StringBuilder builder = new StringBuilder();
       for (int pos = 0;;) {
          int i = exp.indexOf("${", pos);
@@ -209,13 +211,26 @@ public abstract class Action implements Cloneable {
          builder.append(exp.substring(pos, i));
          int j = exp.indexOf('}', i);
          if (j < 0) throw new IllegalArgumentException("Matching } is missing");
-         String name = exp.substring(i + 2, j);
+         String path = exp.substring(i + 2, j);
+         int k = path.indexOf('.');
+         String name = k < 0 ? path : path.substring(0, k);
 			Object value = message.getVariable(name);
 			if (value == null) {
 				value = message.getHeader(name);
 			}
 			if (value == null) {
 				throw new NullPointerException(name + " is not set");
+			}
+			while (k >= 0) {
+				int l = path.indexOf('.', ++k);
+				String fragment = l < 0 ? path.substring(k) : path.substring(k, l);
+				Method method = value.getClass().getMethod(fragment);
+				try {
+					value = method.invoke(value);
+				} catch (InvocationTargetException e) {
+					throw (Exception) e.getCause();
+				}
+				k = l;
 			}
          builder.append(value);
          pos = j + 1;

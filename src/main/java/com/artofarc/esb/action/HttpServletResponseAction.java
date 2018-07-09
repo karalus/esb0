@@ -65,25 +65,24 @@ public class HttpServletResponseAction extends Action {
 				httpResponseCode = hasFault != null && hasFault ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : HttpServletResponse.SC_OK;
 			}
 			response.setStatus(httpResponseCode.intValue());
-			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
-				response.addHeader(entry.getKey(), entry.getValue().toString());
-			}
 			final String acceptEncoding = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING);
 			if (_supportCompression && acceptEncoding != null) {
 				final StringTokenizer tokenizer = new StringTokenizer(acceptEncoding, ", ");
 				while (tokenizer.hasMoreTokens()) {
 					final String contentEncoding = tokenizer.nextToken();
 					if (contentEncoding.equals("gzip") || contentEncoding.equals("deflate")) {
-						response.addHeader(HttpConstants.HTTP_HEADER_CONTENT_ENCODING, contentEncoding);
-						message.getVariables().put(HttpConstants.HTTP_HEADER_CONTENT_ENCODING, contentEncoding);
+						message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_ENCODING, contentEncoding);
 						break;
 					}
 				}
 			}
+			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
+				response.addHeader(entry.getKey(), entry.getValue().toString());
+			}
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, response.getOutputStream());
 			} else if (message.getBodyType() != BodyType.INVALID) {
-				message.writeTo(response.getOutputStream(), context);
+				message.writeToCompressedOutputStream(response.getOutputStream(), context);
 			}
 		}
 		return new ExecutionContext(asyncContext);

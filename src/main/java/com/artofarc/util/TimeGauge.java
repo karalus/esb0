@@ -47,11 +47,12 @@ public final class TimeGauge implements AutoCloseable {
 		timeMeasurement.pop();
 	}
 
-	public void stopTimeMeasurement(String text, boolean restart) {
+	public void stopTimeMeasurement(String text, boolean restart, Object... args) {
 		final long endTS = System.currentTimeMillis();
 		final long startTS = timeMeasurement.pop();
 		final long diff = endTS - startTS;
 		if (diff >= _threshold) {
+			text = String.format(text, args);
 			logger.log(_level, text + " took " + diff / 1000. + "s");
 		}
 		if (restart) {

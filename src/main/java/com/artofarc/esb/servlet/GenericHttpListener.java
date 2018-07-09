@@ -69,7 +69,7 @@ public class GenericHttpListener extends HttpServlet {
 				if (consumerPort.getBindPath().endsWith("*")) {
 					message.getVariables().put(ESBVariableConstants.appendHttpUrlPath, pathInfo.substring(consumerPort.getBindPath().length() - 1));
 				}
-				message.getVariables().put(ESBVariableConstants.QueryString, request.getQueryString());
+				message.putVariable(ESBVariableConstants.QueryString, request.getQueryString());
 				message.setCharsetName(request.getCharacterEncoding());
 				for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 					String headerName = headerNames.nextElement();
@@ -98,6 +98,8 @@ public class GenericHttpListener extends HttpServlet {
 						}
 					}
 				}
+				// copy into variable for HttpServletResponseAction
+				message.putVariable(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING));
 				message.getVariables().put(ESBVariableConstants.AsyncContext, request.startAsync());
 				// process message
 				Context context = null;

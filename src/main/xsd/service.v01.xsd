@@ -38,7 +38,7 @@
 	<element name="action" type="tns:ActionBase" />
 	<simpleType name="httpUrl">
 		<restriction base="anyURI">
-			<pattern value="http://.+" />
+			<pattern value="https?://.+" />
 		</restriction>
 	</simpleType>
 	<element name="http" substitutionGroup="tns:action">
@@ -435,6 +435,7 @@
 								<simpleContent>
 									<extension base="string">
 										<attribute name="name" type="Name" use="required" />
+										<attribute name="javaType" type="Name" />
 									</extension>
 								</simpleContent>
 							</complexType>

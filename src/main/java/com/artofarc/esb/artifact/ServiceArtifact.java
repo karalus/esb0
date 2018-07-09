@@ -49,6 +49,7 @@ import com.artofarc.esb.action.PostSOAPHttpAction;
 import com.artofarc.esb.action.PreSOAPHttpAction;
 import com.artofarc.esb.action.RESTAction;
 import com.artofarc.esb.action.SetMessageAction;
+import com.artofarc.esb.action.SetMessageAction.Header;
 import com.artofarc.esb.action.SpawnAction;
 import com.artofarc.esb.action.TransformAction;
 import com.artofarc.esb.action.UnwrapSOAPAction;
@@ -66,7 +67,6 @@ import com.artofarc.esb.service.Assign;
 import com.artofarc.esb.service.AssignHeaders;
 import com.artofarc.esb.service.BranchOnPath;
 import com.artofarc.esb.service.BranchOnVariable;
-import com.artofarc.esb.service.BranchOnVariable.Branch;
 import com.artofarc.esb.service.Conditional;
 import com.artofarc.esb.service.ConsumeKafka;
 import com.artofarc.esb.service.Fork;
@@ -88,7 +88,6 @@ import com.artofarc.esb.service.Service.HttpBindURI;
 import com.artofarc.esb.service.Service.JmsBinding;
 import com.artofarc.esb.service.Service.TimerBinding;
 import com.artofarc.esb.service.SetMessage;
-import com.artofarc.esb.service.SetMessage.Header;
 import com.artofarc.esb.service.Spawn;
 import com.artofarc.esb.service.Transform;
 import com.artofarc.esb.service.UnwrapSOAP;
@@ -223,9 +222,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "setMessage": {
 				SetMessage setMessage = (SetMessage) jaxbElement.getValue();
-				List<Entry<String, String>> headers = new ArrayList<>();
-				for (Header header : setMessage.getHeader()) {
-					headers.add(Collections.createEntry(header.getName(), header.getValue()));
+				List<Header> headers = new ArrayList<>();
+				for (com.artofarc.esb.service.SetMessage.Header header : setMessage.getHeader()) {
+					headers.add(new Header(header.getName(), header.getValue(), header.getJavaType()));
 				}
 				list.add(new SetMessageAction(headers, setMessage.getBody()));
 				break;
@@ -378,7 +377,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "branchOnVariable": {
 				BranchOnVariable branchOnVariable = (BranchOnVariable) jaxbElement.getValue();
 				BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), null);
-				for (Branch branch : branchOnVariable.getBranch()) {
+				for (com.artofarc.esb.service.BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
 					branchOnVariableAction.getBranchMap().put(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
 				}
 				list.add(branchOnVariableAction);

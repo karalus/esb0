@@ -150,6 +150,11 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		return result != null ? result : def;
 	}
 
+	@SuppressWarnings("unchecked")
+	public <T extends Object> T putVariable(String varName, Object value) {
+		return (T) (value != null ? _variables.put(varName, value) : _variables.remove(varName));
+	}
+	
 	public <T extends Object> T removeVariable(String varName) {
 		@SuppressWarnings("unchecked")
 		T result = (T) _variables.remove(varName);
@@ -207,9 +212,8 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		_terminal = terminal;
 	}
 	
-	private OutputStream getCompressedOutputStream() throws IOException {
-		OutputStream outputStream = (OutputStream) _body;
-		final String contentEncoding = getVariable(HttpConstants.HTTP_HEADER_CONTENT_ENCODING);
+	private OutputStream getCompressedOutputStream(OutputStream outputStream) throws IOException {
+		final String contentEncoding = getHeader(HttpConstants.HTTP_HEADER_CONTENT_ENCODING);
 		if (contentEncoding != null) {
 			switch (contentEncoding) {
 			case "gzip":
@@ -220,7 +224,6 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 				break;
 			}
 		}
-		_body = outputStream;
 		return outputStream;
 	}
 	
@@ -284,7 +287,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			ba = bos.toByteArray();
 			break;
 		case INVALID:
-			throw new IllegalStateException("Message already consumed");
+			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 		}
@@ -312,7 +315,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			getBodyAsByteArray(context);
 			return getBodyAsString(context);
 		case INVALID:
-			throw new IllegalStateException("Message already consumed");
+			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 		}
@@ -336,7 +339,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			inputSource = _charsetName != null ? new InputSource(getInputStreamReader()) : new InputSource(getUncompressedInputStream());
 			break;
 		case INVALID:
-			throw new IllegalStateException("Message already consumed");
+			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 		}
@@ -383,7 +386,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			_bodyType = BodyType.INVALID;
 			return new StreamSource((Reader) _body);
 		default:
-			throw new IllegalStateException("Message already consumed");
+			throw new IllegalStateException("Message is invalid");
 		}
 	}
 
@@ -424,7 +427,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			_bodyType = BodyType.INVALID;
 			return _charsetName != null ? new InputSource(getInputStreamReader()) : new InputSource(getUncompressedInputStream());
 		default:
-			throw new IllegalStateException("Message already consumed");
+			throw new IllegalStateException("Message is invalid");
 		}
 	}
 
@@ -439,7 +442,8 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 	public Result getBodyAsSinkResult() throws IOException {
 		switch (_bodyType) {
 		case OUTPUT_STREAM:
-			return new StreamResult(getCompressedOutputStream());
+			_body = getCompressedOutputStream((OutputStream) _body);
+			return new StreamResult((OutputStream) _body);
 		case WRITER:
 			return new StreamResult((Writer) _body);
 		default:
@@ -471,7 +475,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			source = new StAXSource(xqItem.getItemAsStream());
 			break;
 		case INVALID:
-			throw new IllegalStateException("Message already consumed");
+			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 		}
@@ -487,6 +491,12 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		}
 	}
 
+	public void writeToCompressedOutputStream(OutputStream os, Context context) throws TransformerException, IOException, XQException {
+		OutputStream outputStream = getCompressedOutputStream(os);
+		writeTo(outputStream, context);
+		outputStream.close();
+	}
+	
 	public void writeTo(OutputStream os, Context context) throws TransformerException, IOException, XQException {
 		switch (_bodyType) {
 		case DOM:
@@ -521,7 +531,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			}
 			break;
 		case INVALID:
-			throw new IllegalStateException("Message already consumed");
+			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 		}
