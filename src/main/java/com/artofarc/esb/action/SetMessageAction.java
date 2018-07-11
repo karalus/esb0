@@ -17,6 +17,9 @@
 package com.artofarc.esb.action;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.artofarc.esb.context.Context;
@@ -26,25 +29,38 @@ import com.artofarc.esb.message.ESBMessage;
 
 public class SetMessageAction extends Action {
 
-	private final List<Header> _headers;
-	private final String _body; 
+	private final ClassLoader _classLoader;
+	private final List<Assignment> _headers = new ArrayList<>();
+	private final List<Assignment> _variables = new ArrayList<>();
+	private final Assignment _body; 
 
-	public SetMessageAction(List<Header> headers, String body) {
+	public SetMessageAction(ClassLoader cl, String bodyExpr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 		_pipelineStop = true;
-		_headers = headers;
-		_body = body;
+		_classLoader = cl;
+		_body = bodyExpr != null ? new Assignment(null, bodyExpr, javaType, method) : null;
+	}
+
+	public void addHeader(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+		_headers.add(new Assignment(name, expr, javaType, method));
+	}
+
+	public void addVariable(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+		_variables.add(new Assignment(name, expr, javaType, method));
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		for (Header header : _headers) {
-			String value = bindVariable(header._expr, message);
-			message.putHeader(header._name, header._con != null ? header._con.newInstance(value) : value);
+		for (Assignment variable : _variables) {
+			message.getVariables().put(variable._name, variable.convert(bindVariable(variable._expr, context, message)));
+		}
+		for (Assignment header : _headers) {
+			message.putHeader(header._name, header.convert(bindVariable(header._expr, context, message)));
 		}
 		ExecutionContext execContext = null;
 		if (_body != null) {
-			execContext = new ExecutionContext(bindVariable(_body, message));
-			message.reset(BodyType.STRING, execContext.getResource());
+			String body = _body.convert(bindVariable(_body._expr, context, message)).toString();
+			message.reset(BodyType.STRING, body);
+			execContext = new ExecutionContext(body);
 		}
 		return execContext;
 	}
@@ -56,21 +72,37 @@ public class SetMessageAction extends Action {
 		}
 	}
 	
-	public static final class Header {
+	private final class Assignment {
 		
 		private final String _name;
 		private final String _expr;
-		private final Constructor<?> _con;
+		private Constructor<?> _con;
+		private Method _method;
 
-		public Header(String name, String expr, String javaType) throws ClassNotFoundException, NoSuchMethodException {
+		private Assignment(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 			_name = name;
 			_expr = expr;
 			if (javaType != null) {
-				Class<?> class1 = Class.forName(javaType);
-				_con = class1.getConstructor(String.class);
-			} else {
-				_con = null;
+				Class<?> cls = Class.forName(javaType, true, _classLoader);
+				if (method != null) {
+					_method = _expr.isEmpty() ? cls.getMethod(method) : cls.getMethod(method, String.class);
+					if ((_method.getModifiers() & Modifier.STATIC) == 0) {
+						throw new IllegalArgumentException("Method must be static: " + method);
+					}
+				} else {
+					_con = _expr.isEmpty() ? cls.getConstructor() : cls.getConstructor(String.class);
+				}
 			}
+		}
+		
+		public Object convert(String value) throws Exception {
+			if (_con != null) {
+				return _expr.isEmpty() ? _con.newInstance() : _con.newInstance(value);
+			}
+			if (_method != null) {
+				return _expr.isEmpty() ? _method.invoke(null) : _method.invoke(null, value);
+			}
+			return value;
 		}
 	}
 

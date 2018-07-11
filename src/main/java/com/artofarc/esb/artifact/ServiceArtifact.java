@@ -47,9 +47,7 @@ import com.artofarc.esb.action.KafkaConsumeAction;
 import com.artofarc.esb.action.KafkaProduceAction;
 import com.artofarc.esb.action.PostSOAPHttpAction;
 import com.artofarc.esb.action.PreSOAPHttpAction;
-import com.artofarc.esb.action.RESTAction;
 import com.artofarc.esb.action.SetMessageAction;
-import com.artofarc.esb.action.SetMessageAction.Header;
 import com.artofarc.esb.action.SpawnAction;
 import com.artofarc.esb.action.TransformAction;
 import com.artofarc.esb.action.UnwrapSOAPAction;
@@ -72,9 +70,9 @@ import com.artofarc.esb.service.ConsumeKafka;
 import com.artofarc.esb.service.Fork;
 import com.artofarc.esb.service.Http;
 import com.artofarc.esb.service.InternalService;
+import com.artofarc.esb.service.Jdbc;
 import com.artofarc.esb.service.JdbcParameter;
 import com.artofarc.esb.service.JdbcProcedure;
-import com.artofarc.esb.service.Jdbc;
 import com.artofarc.esb.service.Jms;
 import com.artofarc.esb.service.Json2Xml;
 import com.artofarc.esb.service.NsDecl;
@@ -82,7 +80,6 @@ import com.artofarc.esb.service.PostSOAPHttp;
 import com.artofarc.esb.service.PreSOAPHttp;
 import com.artofarc.esb.service.ProduceKafka;
 import com.artofarc.esb.service.Property;
-import com.artofarc.esb.service.Rest;
 import com.artofarc.esb.service.Service;
 import com.artofarc.esb.service.Service.HttpBindURI;
 import com.artofarc.esb.service.Service.JmsBinding;
@@ -222,11 +219,29 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "setMessage": {
 				SetMessage setMessage = (SetMessage) jaxbElement.getValue();
-				List<Header> headers = new ArrayList<>();
-				for (com.artofarc.esb.service.SetMessage.Header header : setMessage.getHeader()) {
-					headers.add(new Header(header.getName(), header.getValue(), header.getJavaType()));
+				ClassLoader classLoader = null;
+				if (setMessage.getClassLoader() != null) {
+					ClassLoaderArtifact classLoaderArtifact = getArtifact(setMessage.getClassLoader() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
+					if (classLoaderArtifact == null) {
+						throw new FileNotFoundException(setMessage.getClassLoader());
+					}
+					addReference(classLoaderArtifact);
+					classLoaderArtifact.validate(globalContext);
+					classLoader = classLoaderArtifact.getFileSystemClassLoader();
 				}
-				list.add(new SetMessageAction(headers, setMessage.getBody()));
+				SetMessageAction setMessageAction;
+				if (setMessage.getBody() != null) {
+					setMessageAction = new SetMessageAction(classLoader, setMessage.getBody().getValue(), setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
+				} else {
+					setMessageAction = new SetMessageAction(classLoader, null, null, null);
+				}
+				for (com.artofarc.esb.service.SetMessage.Header header : setMessage.getHeader()) {
+					setMessageAction.addHeader(header.getName(), header.getValue(), header.getJavaType(), header.getMethod());
+				}
+				for (com.artofarc.esb.service.SetMessage.Variable variable : setMessage.getVariable()) {
+					setMessageAction.addVariable(variable.getName(), variable.getValue(), variable.getJavaType(), variable.getMethod());
+				}
+				list.add(setMessageAction);
 				break;
 			}
 			case "assign": {
@@ -272,10 +287,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 						json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()));
 				break;
 			}
-			case "rest":
-				Rest rest = (Rest) jaxbElement.getValue();
-				list.add(new RESTAction(rest.getUriTemplate()));
-				break;
 			case "transform": {
 				Transform transform = (Transform) jaxbElement.getValue();
 				String xquery = transform.getXquery();
@@ -376,7 +387,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "branchOnVariable": {
 				BranchOnVariable branchOnVariable = (BranchOnVariable) jaxbElement.getValue();
-				BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), null);
+				Action defaultAction = null;
+				if (branchOnVariable.getDefault() != null) {
+					defaultAction = Action.linkList(transform(globalContext, branchOnVariable.getDefault().getAction(), errorHandler));
+				}
+				BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), defaultAction);
 				for (com.artofarc.esb.service.BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
 					branchOnVariableAction.getBranchMap().put(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
 				}
@@ -385,7 +400,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "branchOnPath": {
 				BranchOnPath branchOnPath = (BranchOnPath) jaxbElement.getValue();
-				BranchOnPathAction branchOnPathAction = new BranchOnPathAction(branchOnPath.getBasePath(), null);
+				Action defaultAction = null;
+				if (branchOnPath.getDefault() != null) {
+					defaultAction = Action.linkList(transform(globalContext, branchOnPath.getDefault().getAction(), errorHandler));
+				}
+				BranchOnPathAction branchOnPathAction = new BranchOnPathAction(branchOnPath.getBasePath(), defaultAction);
 				for (com.artofarc.esb.service.BranchOnPath.Branch branch : branchOnPath.getBranch()) {
 					branchOnPathAction.getBranchMap().put(new PathTemplate(branch.getPathTemplate()), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
 				}

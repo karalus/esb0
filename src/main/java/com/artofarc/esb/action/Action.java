@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -200,7 +199,7 @@ public abstract class Action implements Cloneable {
 		return startAction;
 	}
 
-	protected final static String bindVariable(String exp, ESBMessage message) throws Exception {
+	protected final static String bindVariable(String exp, Context context, ESBMessage message) throws Exception {
       StringBuilder builder = new StringBuilder();
       for (int pos = 0;;) {
          int i = exp.indexOf("${", pos);
@@ -214,7 +213,7 @@ public abstract class Action implements Cloneable {
          String path = exp.substring(i + 2, j);
          int k = path.indexOf('.');
          String name = k < 0 ? path : path.substring(0, k);
-			Object value = message.getVariable(name);
+			Object value = "body".equals(name) ? message.getBodyAsString(context) : message.getVariable(name);
 			if (value == null) {
 				value = message.getHeader(name);
 			}
@@ -225,11 +224,7 @@ public abstract class Action implements Cloneable {
 				int l = path.indexOf('.', ++k);
 				String fragment = l < 0 ? path.substring(k) : path.substring(k, l);
 				Method method = value.getClass().getMethod(fragment);
-				try {
-					value = method.invoke(value);
-				} catch (InvocationTargetException e) {
-					throw (Exception) e.getCause();
-				}
+				value = method.invoke(value);
 				k = l;
 			}
          builder.append(value);

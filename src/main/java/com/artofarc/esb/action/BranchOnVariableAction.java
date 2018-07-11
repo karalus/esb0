@@ -26,9 +26,7 @@ import com.artofarc.esb.message.ESBMessage;
 public class BranchOnVariableAction extends Action {
 
 	private final String _varName;
-
 	private final Map<String, Action> _branchMap = new HashMap<>();
-
 	private final Action _defaultAction;
 
 	public BranchOnVariableAction(String varName, Action defaultAction) {
@@ -45,18 +43,15 @@ public class BranchOnVariableAction extends Action {
 		Object value = message.getVariable(_varName);
 		if (value == null) {
 			value = message.getHeader(_varName);
-			if (value == null) {
-				throw new ExecutionException(this, "Neither variable nor header found: " + _varName);
+		}
+		Action action = null;
+		if (value != null) {
+			if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {
+				throw new ExecutionException(this, "Value for variable " + _varName + " is not an atomic type: " + value.getClass());
 			}
-		}
-		if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {
-			throw new ExecutionException(this, "Value for variable " + _varName + " is not an atomic type: " + value.getClass());
-		}
-		Action action = _branchMap.get(value.toString());
-		if (action == null) {
-			action = _defaultAction;
+			action = _branchMap.get(value.toString());
 			if (action == null) {
-				action = _errorHandler;
+				action = _defaultAction;
 			}
 		}
 		return new ExecutionContext(action);

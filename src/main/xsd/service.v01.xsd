@@ -257,15 +257,6 @@
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="rest" substitutionGroup="tns:action">
-		<complexType>
-			<complexContent>
-				<extension base="tns:ActionBase">
-					<attribute name="uriTemplate" type="anyURI" />
-				</extension>
-			</complexContent>
-		</complexType>
-	</element>
 	<element name="transform" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
@@ -361,10 +352,18 @@
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<sequence>
-						<element name="branch" maxOccurs="unbounded">
+						<element name="branch" minOccurs="0" maxOccurs="unbounded">
 							<complexType>
 								<sequence>
-									<element ref="tns:action" maxOccurs="unbounded" />
+									<element ref="tns:action"  maxOccurs="unbounded" />
+								</sequence>
+								<attribute name="value" type="string" use="required" />
+							</complexType>
+						</element>
+						<element name="default" minOccurs="0">
+							<complexType>
+								<sequence>
+									<element ref="tns:action"  maxOccurs="unbounded" />
 								</sequence>
 								<attribute name="value" type="string" use="required" />
 							</complexType>
@@ -380,12 +379,20 @@
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<sequence>
-						<element name="branch" maxOccurs="unbounded">
+						<element name="branch" minOccurs="0" maxOccurs="unbounded">
 							<complexType>
 								<sequence>
 									<element ref="tns:action" maxOccurs="unbounded" />
 								</sequence>
 								<attribute name="pathTemplate" type="string" use="required" />
+							</complexType>
+						</element>
+						<element name="default" minOccurs="0">
+							<complexType>
+								<sequence>
+									<element ref="tns:action"  maxOccurs="unbounded" />
+								</sequence>
+								<attribute name="value" type="string" use="required" />
 							</complexType>
 						</element>
 					</sequence>
@@ -436,12 +443,34 @@
 									<extension base="string">
 										<attribute name="name" type="Name" use="required" />
 										<attribute name="javaType" type="Name" />
+										<attribute name="method" type="Name" />
 									</extension>
 								</simpleContent>
 							</complexType>
 						</element>
-						<element name="body" type="string" minOccurs="0" />
+						<element name="variable" minOccurs="0" maxOccurs="unbounded">
+							<complexType>
+								<simpleContent>
+									<extension base="string">
+										<attribute name="name" type="Name" use="required" />
+										<attribute name="javaType" type="Name" />
+										<attribute name="method" type="Name" />
+									</extension>
+								</simpleContent>
+							</complexType>
+						</element>
+						<element name="body" minOccurs="0">
+							<complexType>
+								<simpleContent>
+									<extension base="string">
+										<attribute name="javaType" type="Name" />
+										<attribute name="method" type="Name" />
+									</extension>
+								</simpleContent>
+							</complexType>
+						</element>
 					</sequence>
+					<attribute name="classLoader" type="anyURI" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -523,6 +552,14 @@
 			<attribute name="priority" type="int" default="5" />
 			<attribute name="queueDepth" type="int" use="required" />
 			<attribute name="scheduledThreads" type="int" use="required" />
+		</complexType>
+	</element>
+	<element name="classLoader">
+		<complexType>
+			<sequence>
+				<element name="jar" type="anyURI" maxOccurs="unbounded" />
+			</sequence>
+			<attribute name="parent" type="anyURI" />
 		</complexType>
 	</element>
 	<simpleType name="string1">

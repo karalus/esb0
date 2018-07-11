@@ -47,7 +47,7 @@ public class JDBCSQLAction extends JDBCAction {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 
-		final String sql = bindVariable(_sql != null ? _sql : message.getBodyAsString(context), message); 
+		final String sql = bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.fine("JDBCSQLAction sql=" + sql);
 		Connection connection = _dataSource.getConnection();
 		try (AutoCloseable timer = context.getTimeGauge().createTimer("prepareStatement & execute"); PreparedStatement ps = connection.prepareStatement(sql)) {

@@ -32,9 +32,7 @@ import com.artofarc.esb.message.ESBVariableConstants;
 public class BranchOnPathAction extends Action {
 
 	private final String _basePath;
-	
 	private final Map<PathTemplate, Action> _branchMap = new TreeMap<>();
-
 	private final Action _defaultAction;
 
 	public BranchOnPathAction(String basePath, Action defaultAction) {
@@ -48,18 +46,18 @@ public class BranchOnPathAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		Action action = null;
 		String appendHttpUrlPath = message.getVariable(ESBVariableConstants.appendHttpUrlPath);
-		if (!appendHttpUrlPath.startsWith(_basePath)) {
-			throw new ExecutionException(this, "Base path does not match: " + appendHttpUrlPath);
-		}
-		String path = appendHttpUrlPath.substring(_basePath.length());
-		Action action = _defaultAction;
-		for (Entry<PathTemplate, Action> entry : _branchMap.entrySet()) {
-			final Map<String, String> match = entry.getKey().match(path);
-			if (match != null) {
-				action = entry.getValue();
-				message.getVariables().putAll(match);
-				break;
+		if (appendHttpUrlPath != null && appendHttpUrlPath.startsWith(_basePath)) {
+			String path = appendHttpUrlPath.substring(_basePath.length());
+			action = _defaultAction;
+			for (Entry<PathTemplate, Action> entry : _branchMap.entrySet()) {
+				final Map<String, String> match = entry.getKey().match(path);
+				if (match != null) {
+					action = entry.getValue();
+					message.getVariables().putAll(match);
+					break;
+				}
 			}
 		}
 		// REST: also parse query string
@@ -73,9 +71,6 @@ public class BranchOnPathAction extends Action {
 				String value = i > 0 && pair.length() > i + 1 ? URLDecoder.decode(pair.substring(i + 1), "UTF-8") : null;
 				message.getVariables().put(key, value);
 			}
-		}
-		if (action == null) {
-			action = _errorHandler;
 		}
 		return new ExecutionContext(action);
 	}

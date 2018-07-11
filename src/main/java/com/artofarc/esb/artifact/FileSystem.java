@@ -193,6 +193,10 @@ public final class FileSystem {
 			return new XQueryArtifact(parent, name);
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(parent, name);
+		case ClassLoaderArtifact.FILE_EXTENSION:
+			return new ClassLoaderArtifact(parent, name);
+		case "jar":
+			return new JarArtifact(parent, name);
 		default:
 			logger.fine("Cannot be imported: " + name);
 			return null;
