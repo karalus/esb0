@@ -64,6 +64,7 @@ import com.artofarc.esb.http.HttpConstants;
 
 public final class ESBMessage implements Cloneable, XPathVariableResolver {
 
+	public final static String CHARSET_DEFAULT = "UTF-8";
 	public final static int MTU = 4096;
 
 	private final HashMap<String, Object> _headers = new HashMap<>();
@@ -78,8 +79,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 	private Action _terminal;
 
 	public ESBMessage(BodyType bodyType, Object body) {
-		_bodyType = bodyType;
-		_body = body;
+		reset(bodyType, body);
 	}
 
 	@Override
@@ -88,7 +88,18 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 	}
 
 	public void reset(BodyType bodyType, Object body) {
-		_bodyType = bodyType;
+		if (bodyType == null) {
+			// auto detect
+			if (body instanceof String) {
+				_bodyType = BodyType.STRING;
+			} else if (body instanceof byte[]) {
+				_bodyType = BodyType.BYTES;
+			} else {
+				throw new NullPointerException("bodyType is null and not auto detected");
+			}
+		} else {
+			_bodyType = bodyType;
+		}
 		_body = body;
 	}
 
@@ -246,7 +257,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 	}
 
 	private InputStreamReader getInputStreamReader() throws IOException {
-		return new InputStreamReader(getUncompressedInputStream(), _charsetName);
+		return new InputStreamReader(getUncompressedInputStream(), _charsetName != null ? _charsetName : CHARSET_DEFAULT);
 	}
 
 	public final static void copyStream(InputStream is, OutputStream os) throws IOException {
@@ -269,7 +280,10 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			ba = bos.toByteArray();
 			break;
 		case STRING:
-			ba = _charsetName != null ? ((String) _body).getBytes(_charsetName) : ((String) _body).getBytes();
+			if (_charsetName == null) {
+				_charsetName = CHARSET_DEFAULT;
+			}
+			ba = ((String) _body).getBytes(_charsetName);
 			break;
 		case BYTES:
 			return (byte[]) _body;
@@ -308,7 +322,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		case STRING:
 			return (String) _body;
 		case BYTES:
-			str = _charsetName != null ? new String((byte[]) _body, _charsetName) : new String((byte[]) _body);
+			str = new String((byte[]) _body, _charsetName != null ? _charsetName : CHARSET_DEFAULT);
 			break;
 		case INPUT_STREAM:
 		case XQ_ITEM:
@@ -336,7 +350,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			_body = new ByteArrayInputStream((byte[]) _body);
 			// nobreak
 		case INPUT_STREAM:
-			inputSource = _charsetName != null ? new InputSource(getInputStreamReader()) : new InputSource(getUncompressedInputStream());
+			inputSource = new InputSource(getInputStreamReader());
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");
@@ -362,7 +376,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		case READER:
 			return (Reader) _body;
 		case INPUT_STREAM:
-			return _charsetName != null ? getInputStreamReader() : new InputStreamReader(getUncompressedInputStream());
+			return getInputStreamReader();
 		default:
 			return new StringReader(getBodyAsString(context));
 		}
@@ -381,7 +395,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			// nobreak
 		case INPUT_STREAM:
 			_bodyType = BodyType.INVALID;
-			return _charsetName != null ? new StreamSource(getInputStreamReader()) : new StreamSource(getUncompressedInputStream());
+			return new StreamSource(getInputStreamReader());
 		case READER:
 			_bodyType = BodyType.INVALID;
 			return new StreamSource((Reader) _body);
@@ -425,7 +439,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			return new InputSource(new ByteArrayInputStream((byte[]) _body));
 		case INPUT_STREAM:
 			_bodyType = BodyType.INVALID;
-			return _charsetName != null ? new InputSource(getInputStreamReader()) : new InputSource(getUncompressedInputStream());
+			return new InputSource(getInputStreamReader());
 		default:
 			throw new IllegalStateException("Message is invalid");
 		}
@@ -465,7 +479,7 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 			break;
 		case INPUT_STREAM:
 			_bodyType = BodyType.INVALID;
-			source = _charsetName != null ? new StreamSource(getInputStreamReader()) : new StreamSource(getUncompressedInputStream());
+			source = new StreamSource(getInputStreamReader());
 			break;
 		case READER:
 			source = new StreamSource((Reader) _body);

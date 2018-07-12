@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Level;
 
 import org.apache.kafka.clients.consumer.Consumer;
@@ -29,7 +30,6 @@ import org.apache.kafka.common.header.Header;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.KafkaConsumerFactory;
 
@@ -39,17 +39,13 @@ public class KafkaConsumeAction extends TerminalAction {
 	private final List<String> _topics;
 	private final long _timeout;
 	private final String _workerPool;
+	private final Action _spawn;
 
-	private Action _spawn;
-
-	public KafkaConsumeAction(Properties properties, List<String> topics, long timeout, String workerPool) {
+	public KafkaConsumeAction(Properties properties, List<String> topics, long timeout, String workerPool, Action spawn) {
 		_properties = properties;
 		_topics = topics;
 		_timeout = timeout;
 		_workerPool = workerPool;
-	}
-
-	public void setSpawn(Action spawn) {
 		_spawn = spawn;
 	}
 
@@ -61,12 +57,21 @@ public class KafkaConsumeAction extends TerminalAction {
 
 		HashMap<Future<Void>, ConsumerRecord<?, ?>> futures = new HashMap<>();
 		for (ConsumerRecord<?, ?> record : consumerRecords) {
-			final ESBMessage m = new ESBMessage(BodyType.STRING, record.value());
+			final ESBMessage msg = new ESBMessage(null, record.value());
+			msg.putVariable("record.key", record.key());
 			for (Header header : record.headers()) {
-				m.getHeaders().put(header.key(), header.value());
+				msg.getHeaders().put(header.key(), header.value());
 			}
 			logger.fine("Consumer Record:(partition=" + record.partition() + ", offset=" + record.offset() + ")");
-			futures.put(SpawnAction.submit(context, m, _workerPool, _spawn), record);
+			for(;;) {
+				try {
+					futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn), record);
+					break;
+				} catch (RejectedExecutionException e) {
+					logger.warning("Could not spawn to worker pool " + _workerPool);
+					Thread.sleep(100L);
+				}
+			}
 		}
 		for (Future<Void> future : futures.keySet()) {
 			try {

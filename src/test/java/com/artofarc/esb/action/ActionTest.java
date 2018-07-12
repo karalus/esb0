@@ -4,7 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 
 import org.junit.After;
 import org.junit.Before;
@@ -131,5 +133,34 @@ public class ActionTest {
    	assertTrue(message.getHeader("id") instanceof String);
    }
 
+   @Test
+   public void testJsonPointer() throws Exception {
+      String msgStr = "{\"name\":\"esb0\",\"alive\":true,\"surname\":null,\"no\":1,\"amount\":5.0,\"foo\":[\"bar\",\"baz\"]}";
+		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
+//		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
+//		action.addVariable("_sr", "${body}", "java.io.StringReader", null);
+//		action.addVariable("_jr", "${_sr}", "javax.json.Json", "createReader");
+//		action.addVariable("_jp", "/name", "javax.json.Json", "createPointer");
+//		action.addHeader("name", "${_jp.toString", null, null);
+
+      ProcessJsonAction action = new ProcessJsonAction("{\"productName\":\"${result}\"}");
+      action.addHeader("h1", "/foo/1");
+      action.addVariable("result", "/name");
+      action.addVariable("noresult", "/surname");
+      action.addVariable("boolresult", "/alive");
+      action.addVariable("numresult", "/no");
+      action.addVariable("decresult", "/amount");
+      action.addVariable("whole", "");
+   	action.setNextAction(new DumpAction());
+   	action.process(context, message);
+   	assertEquals("esb0", message.getVariable("result"));
+   	assertEquals(true, message.getVariable("boolresult"));
+   	assertEquals(1L, message.getVariable("numresult"));
+   	assertTrue(message.getVariable("decresult") instanceof BigDecimal);
+   	assertEquals("baz", message.getHeader("h1"));
+   	assertEquals(msgStr, message.getVariable("whole"));
+   	assertFalse(message.getVariables().containsKey("noresult"));
+   	assertEquals("{\"productName\":\"esb0\"}", message.getBodyAsString(context));
+   }
 
 }

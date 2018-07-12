@@ -26,8 +26,7 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "cldef";
 
-	private ClassLoader _classLoader;
-	private FileSystemClassLoader fileSystemClassLoader;
+	private FileSystemClassLoader _fileSystemClassLoader;
 
 	public ClassLoaderArtifact(Directory parent, String name) {
 		super(parent, name);
@@ -36,15 +35,15 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 	@Override
 	public ClassLoaderArtifact clone(Directory parent) {
 		ClassLoaderArtifact clone = initClone(new ClassLoaderArtifact(parent, getName()));
-		clone._classLoader = _classLoader;
+		clone._fileSystemClassLoader = _fileSystemClassLoader;
 		return clone;
 	}
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
-		_classLoader = unmarshal();
+		ClassLoader classLoader = unmarshal();
 		ArrayList<JarArtifact> jars = new ArrayList<>();
-		for (String jar : _classLoader.getJar()) {
+		for (String jar : classLoader.getJar()) {
 			JarArtifact jarArtifact = getArtifact(jar);
 			if (jarArtifact == null) {
 				throw new FileNotFoundException(jar);
@@ -54,21 +53,21 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 			jars.add(jarArtifact);
 		}
 		// parent
-		if (_classLoader.getParent() != null) {
-			ClassLoaderArtifact classLoaderArtifact = getArtifact(_classLoader.getParent() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
+		if (classLoader.getParent() != null) {
+			ClassLoaderArtifact classLoaderArtifact = getArtifact(classLoader.getParent() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
 			if (classLoaderArtifact == null) {
-				throw new FileNotFoundException(_classLoader.getParent());
+				throw new FileNotFoundException(classLoader.getParent());
 			}
 			addReference(classLoaderArtifact);
 			classLoaderArtifact.validate(globalContext);
-			fileSystemClassLoader = new FileSystemClassLoader(jars, classLoaderArtifact.getFileSystemClassLoader());
+			_fileSystemClassLoader = new FileSystemClassLoader(jars, classLoaderArtifact.getFileSystemClassLoader());
 		} else {
-			fileSystemClassLoader = new FileSystemClassLoader(jars, getClass().getClassLoader());
+			_fileSystemClassLoader = new FileSystemClassLoader(jars, getClass().getClassLoader());
 		}
 	}
 
 	public FileSystemClassLoader getFileSystemClassLoader() {
-		return fileSystemClassLoader;
+		return _fileSystemClassLoader;
 	}
 
 }

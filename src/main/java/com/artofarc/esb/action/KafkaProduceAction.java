@@ -44,7 +44,7 @@ public class KafkaProduceAction extends TerminalAction {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 		@SuppressWarnings("rawtypes")
-		final ProducerRecord record = new ProducerRecord<>(_topic, null, message.getBodyAsString(context));
+		final ProducerRecord record = new ProducerRecord<>(_topic, message.getVariable("record.key"), message.getBodyAsString(context));
 		context.getTimeGauge().startTimeMeasurement();
 		@SuppressWarnings("unchecked")
 		Future<RecordMetadata> future = _producer.send(record);

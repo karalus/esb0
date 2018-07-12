@@ -43,6 +43,7 @@ import com.artofarc.esb.action.JDBCProcedureAction;
 import com.artofarc.esb.action.JDBCSQLAction;
 import com.artofarc.esb.action.JMSAction;
 import com.artofarc.esb.action.Json2XMLAction;
+import com.artofarc.esb.action.ProcessJsonAction;
 import com.artofarc.esb.action.KafkaConsumeAction;
 import com.artofarc.esb.action.KafkaProduceAction;
 import com.artofarc.esb.action.PostSOAPHttpAction;
@@ -78,6 +79,7 @@ import com.artofarc.esb.service.Json2Xml;
 import com.artofarc.esb.service.NsDecl;
 import com.artofarc.esb.service.PostSOAPHttp;
 import com.artofarc.esb.service.PreSOAPHttp;
+import com.artofarc.esb.service.ProcessJson;
 import com.artofarc.esb.service.ProduceKafka;
 import com.artofarc.esb.service.Property;
 import com.artofarc.esb.service.Service;
@@ -195,8 +197,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					properties.put(property.getKey(), property.getValue());
 				}
 				KafkaConsumeAction kafkaConsumeAction = new KafkaConsumeAction(properties, consumeKafka.getTopic(), consumeKafka.getTimeout(),
-						resolveWorkerPool(consumeKafka.getWorkerPool()));
-				kafkaConsumeAction.setSpawn(Action.linkList(transform(globalContext, consumeKafka.getAction(), errorHandler)));
+						resolveWorkerPool(consumeKafka.getWorkerPool()), Action.linkList(transform(globalContext, consumeKafka.getAction(), errorHandler)));
 				list.add(kafkaConsumeAction);
 				break;
 			}
@@ -242,6 +243,18 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					setMessageAction.addVariable(variable.getName(), variable.getValue(), variable.getJavaType(), variable.getMethod());
 				}
 				list.add(setMessageAction);
+				break;
+			}
+			case "processJson": {
+				ProcessJson processJson = (ProcessJson) jaxbElement.getValue();
+				ProcessJsonAction processJsonAction = new ProcessJsonAction(processJson.getBody());
+				for (com.artofarc.esb.service.ProcessJson.Header header : processJson.getHeader()) {
+					processJsonAction.addHeader(header.getName(), header.getValue());
+				}
+				for (com.artofarc.esb.service.ProcessJson.Variable variable : processJson.getVariable()) {
+					processJsonAction.addVariable(variable.getName(), variable.getValue());
+				}
+				list.add(processJsonAction);
 				break;
 			}
 			case "assign": {

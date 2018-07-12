@@ -16,9 +16,22 @@
  */
 package com.artofarc.esb.artifact;
 
-import com.artofarc.esb.context.GlobalContext;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
+import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.message.ESBMessage;
+
+/**
+ * Caches entry names to speed up search, but do not cache full entry because of memory consumption.
+ */
 public class JarArtifact extends Artifact {
+	
+	private HashSet<String> _entries = new HashSet<>();
 
 	public JarArtifact(Directory parent, String name) {
 		super(parent, name);
@@ -27,11 +40,38 @@ public class JarArtifact extends Artifact {
 	@Override
 	public JarArtifact clone(Directory parent) {
 		JarArtifact clone = initClone(new JarArtifact(parent, getName()));
+		clone._entries = _entries;
 		return clone;
 	}
 
 	@Override
-	public void validateInternal(GlobalContext globalContext) throws Exception {
+	public void validateInternal(GlobalContext globalContext) throws IOException {
+      try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(getContent()))) {
+			ZipEntry entry;
+			while ((entry = zis.getNextEntry()) != null) {
+				if (!entry.isDirectory()) {
+					_entries.add(entry.getName());
+				}
+			}
+      }
+	}
+	
+	public boolean contains(String filename) {
+		return _entries.contains(filename);
+	}
+	
+	public byte[] getEntry(String filename) throws IOException {
+      try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(getContent()))) {
+			ZipEntry entry;
+			while ((entry = zis.getNextEntry()) != null) {
+				if (entry.getName().equals(filename)) {
+					ByteArrayOutputStream bos = new ByteArrayOutputStream(4096);
+					ESBMessage.copyStream(zis, bos);
+					return bos.toByteArray();		
+				}
+			}
+      }
+      return null;
 	}
 
 }

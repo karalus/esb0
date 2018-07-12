@@ -17,15 +17,10 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureClassLoader;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
-import com.artofarc.esb.message.ESBMessage;
 
 public class FileSystemClassLoader extends SecureClassLoader {
 
@@ -81,20 +76,10 @@ public class FileSystemClassLoader extends SecureClassLoader {
    }
 
    private byte[] findInJarArtifacts(final String filename) throws IOException {
-   	// This is rather ineffective
    	for (JarArtifact jarArtifact : _jars) {
-         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(jarArtifact.getContent()))) {
-   			ZipEntry entry;
-   			while ((entry = zis.getNextEntry()) != null) {
-   				if (!entry.isDirectory()) {
-   					if (entry.getName().equals(filename)) {
-   						ByteArrayOutputStream bos = new ByteArrayOutputStream(4096);
-   						ESBMessage.copyStream(zis, bos);
-   						return bos.toByteArray();		
-   					}
-   				}
-   			}
-         }
+   		if (jarArtifact.contains(filename)) {
+   			return jarArtifact.getEntry(filename);
+   		}
    	}
       return null;
    }

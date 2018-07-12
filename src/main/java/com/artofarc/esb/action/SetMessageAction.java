@@ -24,7 +24,7 @@ import java.util.List;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
 
 public class SetMessageAction extends Action {
@@ -58,8 +58,9 @@ public class SetMessageAction extends Action {
 		}
 		ExecutionContext execContext = null;
 		if (_body != null) {
-			String body = _body.convert(bindVariable(_body._expr, context, message)).toString();
-			message.reset(BodyType.STRING, body);
+			Object body = _body.convert(bindVariable(_body._expr, context, message));
+			message.reset(null, body);
+			message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 			execContext = new ExecutionContext(body);
 		}
 		return execContext;
@@ -68,7 +69,7 @@ public class SetMessageAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (execContext != null) {
-			message.reset(BodyType.STRING, execContext.getResource());
+			message.reset(null, execContext.getResource());
 		}
 	}
 	

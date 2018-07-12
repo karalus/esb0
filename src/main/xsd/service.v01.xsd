@@ -475,6 +475,35 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<element name="processJson" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase">
+					<sequence>
+						<element name="header" minOccurs="0" maxOccurs="unbounded">
+							<complexType>
+								<simpleContent>
+									<extension base="string">
+										<attribute name="name" type="Name" use="required" />
+									</extension>
+								</simpleContent>
+							</complexType>
+						</element>
+						<element name="variable" minOccurs="0" maxOccurs="unbounded">
+							<complexType>
+								<simpleContent>
+									<extension base="string">
+										<attribute name="name" type="Name" use="required" />
+									</extension>
+								</simpleContent>
+							</complexType>
+						</element>
+						<element name="body" minOccurs="0" type="string" />
+					</sequence>
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
 	<element name="dump" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
