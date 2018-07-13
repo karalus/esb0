@@ -60,9 +60,9 @@ public class KafkaConsumeAction extends TerminalAction {
 			final ESBMessage msg = new ESBMessage(null, record.value());
 			msg.putVariable("record.key", record.key());
 			for (Header header : record.headers()) {
-				msg.getHeaders().put(header.key(), header.value());
+				msg.getHeaders().put(header.key(), new String(header.value(), ESBMessage.CHARSET_DEFAULT));
 			}
-			logger.fine("Consumer Record:(partition=" + record.partition() + ", offset=" + record.offset() + ")");
+			logger.fine("Kafka Consumer Record(topic=" + record.topic() + ", partition=" + record.partition() + ", offset=" + record.offset() + ")");
 			for(;;) {
 				try {
 					futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn), record);
@@ -78,7 +78,7 @@ public class KafkaConsumeAction extends TerminalAction {
 				SpawnAction.join(context, message, future);
 			} catch (Exception e) {
 				ConsumerRecord<?, ?> record = futures.get(future);
-				logger.log(Level.SEVERE, "Exception processing record in partion " + record.partition() + " with offset " + record.offset(), e);
+				logger.log(Level.SEVERE, "Exception processing record from topic " + record.topic() + " in partition " + record.partition() + " with offset " + record.offset(), e);
 			}
 		}
 		consumer.commitSync();

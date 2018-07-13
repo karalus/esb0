@@ -51,7 +51,7 @@ public final class TimeGauge implements AutoCloseable {
 		final long endTS = System.currentTimeMillis();
 		final long startTS = timeMeasurement.pop();
 		final long diff = endTS - startTS;
-		if (diff >= _threshold) {
+		if (diff >= _threshold && logger.isLoggable(_level)) {
 			text = String.format(text, args);
 			logger.log(_level, text + " took " + diff / 1000. + "s");
 		}

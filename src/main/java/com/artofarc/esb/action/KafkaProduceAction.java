@@ -48,10 +48,10 @@ public class KafkaProduceAction extends TerminalAction {
 		context.getTimeGauge().startTimeMeasurement();
 		@SuppressWarnings("unchecked")
 		Future<RecordMetadata> future = _producer.send(record);
-		context.getTimeGauge().stopTimeMeasurement("send", true);
+		context.getTimeGauge().stopTimeMeasurement("Kafka send", true);
 		RecordMetadata metadata = future.get();
-		logger.fine("meta(partition=" + metadata.partition() + ", offset=" + metadata.offset() + ")");
-		context.getTimeGauge().stopTimeMeasurement("get", false);
+		message.getVariables().put("recordMetadata", metadata);
+		context.getTimeGauge().stopTimeMeasurement("Kafka Record Metadata(topic=%s, partition=%d, offset=%d)", false, metadata.topic(), metadata.partition(), metadata.offset());
 	}
 
 }

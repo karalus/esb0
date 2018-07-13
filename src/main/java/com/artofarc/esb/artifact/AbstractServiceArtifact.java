@@ -38,7 +38,7 @@ public abstract class AbstractServiceArtifact extends Artifact {
 
 	static {
 		try {
-			jaxbContext = JAXBContext.newInstance(ObjectFactory.class.getPackage().getName());
+			jaxbContext = JAXBContext.newInstance(ObjectFactory.class);
 		} catch (JAXBException e) {
 			throw new RuntimeException("Cannot initialize JAXBContext", e);
 		}
