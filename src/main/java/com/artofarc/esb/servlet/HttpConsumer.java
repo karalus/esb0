@@ -18,8 +18,6 @@ package com.artofarc.esb.servlet;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.artofarc.esb.ConsumerPort;
@@ -99,14 +97,14 @@ public class HttpConsumer extends ConsumerPort implements AutoCloseable {
    	}
    }
 
-	@Override
-	public void close() throws Exception {
+   @Override
+	public void close() throws InterruptedException {
 		while (poolSize.getAndDecrement() > 0) {
-			Context context = pool.poll(30L, TimeUnit.SECONDS);
-			if (context == null) throw new TimeoutException("Timeout while closing context");
+			// this possibly blocks for a long time
+			Context context = pool.take();
 			context.close();
 		}
 		poolSize.set(0);
 	}
- 
+
 }

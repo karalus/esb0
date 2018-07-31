@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.artofarc.esb.context.AbstractContext;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
+import com.artofarc.util.Closer;
 
 public class Registry extends AbstractContext {
 
@@ -96,38 +97,26 @@ public class Registry extends AbstractContext {
 		return oldJmsConsumer;
 	}
 
-	public void bindTimerService(TimerService timerService) {
+	public TimerService bindTimerService(TimerService timerService) {
 		TimerService oldTimerService = _timerServices.put(timerService.getUri(), timerService);
-		if (oldTimerService != null) {
-			oldTimerService.stop();
-		}
 		bindService(timerService);
+		return oldTimerService;
 	}
 
-	@Override
-	public void close() {
-		// inbound
+	public void stopIngress() {
 		for (TimerService timerService : _timerServices.values()) {
-			timerService.stop();
+			timerService.close();
 		}
 		for (HttpConsumer httpConsumer : _httpServices.values()) {
 			try {
 				httpConsumer.enable(false);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				// ignore
 			}
 		}
 		for (JMSConsumer jmsConsumer : _jmsConsumer.values()) {
-			try {
-				jmsConsumer.close();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			Closer.closeQuietly(jmsConsumer);
 		}
-		// outbound
-		super.close();
 	}
 
 }

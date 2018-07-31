@@ -19,7 +19,6 @@ import com.artofarc.esb.artifact.ServiceArtifact;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
-import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -33,8 +32,6 @@ public class ConfigServiceTest {
    @Before
    public void createContext() throws Exception {
       GlobalContext globalContext = new GlobalContext();
-      // default WorkerPool
-      globalContext.putWorkerPool(null, new WorkerPool(globalContext));      
       context = new Context(new PoolContext(globalContext));
    }
 

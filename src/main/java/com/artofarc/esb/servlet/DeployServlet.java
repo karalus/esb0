@@ -40,7 +40,7 @@ import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConsumer;
-import com.artofarc.esb.service.Protocol;
+import com.artofarc.util.Closer;
 
 @WebServlet("/admin/deploy/*")
 @MultipartConfig
@@ -83,19 +83,25 @@ public class DeployServlet extends HttpServlet {
 					resp.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
 					return;
 				}
-				ChangeSet updateSet;
-				try {
-					updateSet = globalContext.getFileSystem().createUpdate(globalContext, filePart.getInputStream());
-				} catch (ValidationException e) {
-					log("Not valid", e);
-					resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+				if (globalContext.lockFileSystem()) {
+					try {
+						ChangeSet changeSet = globalContext.getFileSystem().createUpdate(globalContext, filePart.getInputStream());
+						FileSystem newFileSystem = changeSet.getFileSystem();
+						File anchorDir = globalContext.getFileSystem().getAnchorDir();
+						deployChangeSet(globalContext, poolContext, changeSet);
+						globalContext.setFileSystem(newFileSystem);
+						newFileSystem.writeBack(anchorDir);
+					} catch (ValidationException e) {
+						log("Not valid", e);
+						resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+						return;
+					} finally {
+						globalContext.unlockFileSystem();
+					}
+				} else {
+					resp.sendError(HttpServletResponse.SC_GATEWAY_TIMEOUT, "Another update is in progress");
 					return;
 				}
-				FileSystem newFileSystem = updateSet.getFileSystem();
-				File anchorDir = globalContext.getFileSystem().getAnchorDir();
-				globalContext.setFileSystem(newFileSystem);
-				deployChangeSet(globalContext, poolContext, updateSet);
-				newFileSystem.writeDir(anchorDir);
 			}
 		} else {
 			ConsumerPort consumerPort = globalContext.getInternalService(req.getPathInfo());
@@ -107,51 +113,61 @@ public class DeployServlet extends HttpServlet {
 				}
 			} else {
 				resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+				return;
 			}
 		}
 		resp.sendRedirect(req.getContextPath() + "/admin");
 	}
 
 	public static void deployChangeSet(GlobalContext globalContext, PoolContext poolContext, ChangeSet updateSet) {
+		Closer closer = new Closer(globalContext.getWorkerPool(null).getExecutorService());
 		for (WorkerPoolArtifact workerPoolArtifact : updateSet.getWorkerPoolArtifacts()) {
 			String name = WorkerPoolArtifact.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
 			WorkerPool workerPool = new WorkerPool(globalContext, name, wpDef.getMinThreads(), wpDef.getMaxThreads(), wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads());
-			// TODO: close later
-			globalContext.putWorkerPool(name, workerPool);
+			WorkerPool oldWorkerPool = globalContext.putWorkerPool(name, workerPool);
+			if (oldWorkerPool != null) {
+				// close later
+				closer.add(oldWorkerPool);
+			}
 		}
 		for (ServiceArtifact service : updateSet) {
-			ConsumerPort consumerPort = service.getConsumerPort();
-			if (service.getService().getProtocol() == Protocol.HTTP) {
+			switch (service.getService().getProtocol()) {
+			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();
 				HttpConsumer oldHttpConsumer = globalContext.bindHttpService(httpConsumer.getBindPath(), httpConsumer);
 				if (oldHttpConsumer != null) {
-					try {
-						oldHttpConsumer.close();
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					closer.closeAsync(oldHttpConsumer);
 				}
-			} else if (service.getService().getProtocol() == Protocol.JMS) {
+				break;
+			case JMS:
 				JMSConsumer jmsConsumer = service.getConsumerPort();
 				JMSConsumer oldConsumer = globalContext.bindJmsConsumer(jmsConsumer);
+				if (oldConsumer != null) {
+					closer.closeAsync(oldConsumer);
+				}
 				try {
-					if (oldConsumer != null) {
-						oldConsumer.close();
-					}
 					jmsConsumer.init(poolContext);
 				} catch (Exception e) {
 					throw new RuntimeException("Could not create JMSConsumer: " + jmsConsumer.getKey(), e);
 				}
-			} else if (service.getService().getProtocol() == Protocol.TIMER) {
+				break;
+			case TIMER:
 				TimerService timerService = service.getConsumerPort();
-				globalContext.bindTimerService(timerService);
+				TimerService oldTimerService = globalContext.bindTimerService(timerService);
+				if (oldTimerService != null) {
+					closer.closeAsync(oldTimerService);
+				}
 				timerService.init(globalContext);
-			} else {
-				globalContext.bindService(consumerPort);
+				break;
+			default:
+				globalContext.bindService(service.getConsumerPort());
+				break;
 			}
 		}
+		closer.submit();
+		// to obtain log when finished
+		closer.closeAsyncUnattended(closer);
 	}
 
 }

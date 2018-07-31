@@ -26,7 +26,7 @@ import com.artofarc.esb.context.WorkerPoolThreadFactory;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
-public class TimerService extends ConsumerPort implements Runnable {
+public class TimerService extends ConsumerPort implements AutoCloseable, Runnable {
 
 	private final String _workerPool;
 	private final int _initialDelay, _period;
@@ -67,11 +67,12 @@ public class TimerService extends ConsumerPort implements Runnable {
 				}
 			}
 		} else {
-			stop();
+			close();
 		}
 	}
 
-	public void stop() {
+	@Override
+	public void close() {
 		if (_future != null) {
 			_future.cancel(false);
 			_future = null;

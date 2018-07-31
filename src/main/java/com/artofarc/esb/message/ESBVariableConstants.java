@@ -26,6 +26,8 @@ public interface ESBVariableConstants {
 
 	public static final String QueryString = "QueryString";
 
+	public static final String ClientCertificate = "ClientCertificate";
+
 	public static final String HttpResponseCode = "HttpResponseCode";
 
 	public static final String HttpServletResponse = "HttpServletResponse";

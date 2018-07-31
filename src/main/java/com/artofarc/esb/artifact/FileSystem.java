@@ -25,9 +25,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
@@ -45,9 +45,9 @@ public final class FileSystem {
    protected final static Logger logger = Logger.getLogger("ESB");
    
 	private final Directory _root;
+	private final Map<String, ChangeType> _changes = new LinkedHashMap<>();
 
 	private File _anchorDir;
-	private boolean _dirty;
 
 	private FileSystem(Directory root) {
 		_root = root;
@@ -60,13 +60,13 @@ public final class FileSystem {
 	public Directory getRoot() {
 		return _root;
 	}
+	
+	protected Map<String, ChangeType> getChanges() {
+		return _changes;
+	}
 
 	public File getAnchorDir() {
 		return _anchorDir;
-	}
-
-	public boolean isDirty() {
-		return _dirty;
 	}
 
 	public <A extends Artifact> A getArtifact(String uri) {
@@ -211,6 +211,7 @@ public final class FileSystem {
 			Artifact artifact = result.getArtifacts().get(name);
 			if (artifact == null) {
 				result = new Directory(result, name);
+				_changes.put(result.getURI(), ChangeType.CREATE);
 			} else if (artifact instanceof Directory) {
 				result = (Directory) artifact;
 			} else {
@@ -225,7 +226,7 @@ public final class FileSystem {
 		return new FileSystem(_root.clone(null));
 	}
 
-	public final boolean deleteArtifact(Artifact artifact) {
+	private final boolean deleteArtifact(Artifact artifact) {
 		boolean deleted = false;
 		if (artifact != null && artifact.getReferencedBy().isEmpty()) {
 			for (String referenced : artifact.getReferenced()) {
@@ -235,15 +236,8 @@ public final class FileSystem {
 				}
 			}
 			deleted = artifact == artifact.getParent().getArtifacts().remove(artifact.getName());
-			if (deleted && _anchorDir != null) {
-				new File(_anchorDir, artifact.getURI()).delete();
-			}
 		}
 		return deleted;
-	}
-
-	public boolean deleteArtifact(String uri) {
-		return deleteArtifact(getArtifact(uri));
 	}
 
 	public boolean tidyOut() {
@@ -252,17 +246,19 @@ public final class FileSystem {
 		return tidyOut(_root, visited);
 	}
 
-	private static final boolean tidyOut(Directory directory, HashSet<String> visited) {
+	private boolean tidyOut(Directory directory, HashSet<String> visited) {
 		for (Iterator<Artifact> iterator = directory.getArtifacts().values().iterator(); iterator.hasNext();) {
 			Artifact artifact = iterator.next();
 			if (artifact instanceof Directory) {
 				if (tidyOut((Directory) artifact, visited)) {
 					logger.info("Remove: " + artifact.getURI());
 					iterator.remove();
+					_changes.put(artifact.getURI(), ChangeType.DELETE);
 				}
 			} else if (!visited.contains(artifact.getURI())) {
 				logger.info("Remove: " + artifact);
 				iterator.remove();
+				_changes.put(artifact.getURI(), ChangeType.DELETE);
 			}
 		}
 		return directory.getArtifacts().isEmpty();
@@ -296,6 +292,8 @@ public final class FileSystem {
 		}
 	}
 
+	protected enum ChangeType { CREATE, UPDATE, DELETE };
+
 	public class ChangeSet extends ArrayList<ServiceArtifact> {
 		private static final long serialVersionUID = 1L;
 
@@ -312,52 +310,55 @@ public final class FileSystem {
 
 	public ChangeSet createUpdate(GlobalContext globalContext, InputStream InputStream) throws IOException, ValidationException {
 		FileSystem clone = clone();
-		Map<String, Artifact> changes = clone.mergeZIP(InputStream);
-		ChangeSet changeSet = validateChanges(globalContext, clone, changes);
-		clone._dirty = true;
+		boolean tidyOut = clone.mergeZIP(InputStream);
+		ChangeSet changeSet = validateChanges(globalContext, clone);
+		if (tidyOut) clone.tidyOut();
 		return changeSet;
 	}
 
-	protected ChangeSet validateChanges(GlobalContext globalContext, FileSystem fileSystem, Map<String, Artifact> changes) throws ValidationException {
-		ChangeSet services = fileSystem.new ChangeSet();
+	protected ChangeSet validateChanges(GlobalContext globalContext, FileSystem changedFileSystem) throws ValidationException {
+		ChangeSet services = changedFileSystem.new ChangeSet();
 		HashSet<String> visited = new HashSet<>();
 		// find affected
-		for (Entry<String, Artifact> entry : changes.entrySet()) {
-			if (entry.getValue() == null) {
+		for (Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
+			if (entry.getValue() == ChangeType.UPDATE) {
 				collectUpwardDependencies(visited, entry.getKey());
 			}
 		}
 		// invalidate
 		for (String original : visited) {
-			Artifact artifact = fileSystem.getArtifact(original);
+			Artifact artifact = changedFileSystem.getArtifact(original);
 			artifact.setValidated(false);
 		}
 		// validate
 		for (String original : visited) {
-			Artifact artifact = fileSystem.getArtifact(original);
-			fileSystem.validateServices(globalContext, artifact, services);
+			Artifact artifact = changedFileSystem.getArtifact(original);
+			changedFileSystem.validateServices(globalContext, artifact, services);
 		}
-		for (Entry<String, Artifact> entry : changes.entrySet()) {
-			if (entry.getValue() != null) {
-				fileSystem.validateServices(globalContext, entry.getValue(), services);
+		for (Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
+			if (entry.getValue() == ChangeType.CREATE) {
+				changedFileSystem.validateServices(globalContext, changedFileSystem.getArtifact(entry.getKey()), services);
 			}
 		}
 		return services;
 	}
-
-	private Map<String, Artifact> mergeZIP(InputStream InputStream) throws IOException {
-		HashMap<String, Artifact> changes = new HashMap<>();
+	
+	private boolean mergeZIP(InputStream InputStream) throws IOException {
+		boolean tidyOut = false;
 		try (JarInputStream zis = new JarInputStream(InputStream)) {
 			Manifest manifest = zis.getManifest();
 			if (manifest != null) {
+				tidyOut = Boolean.parseBoolean(manifest.getMainAttributes().getValue("tidyOut"));
 				String delete = manifest.getMainAttributes().getValue("delete");
 				if (delete != null) {
 					StringTokenizer tokenizer = new StringTokenizer(delete, " ");
 					while (tokenizer.hasMoreTokens()) {
 						String uri = tokenizer.nextToken();
-						if (!deleteArtifact(uri)) {
+						Artifact artifact = getArtifact(uri);
+						if (!deleteArtifact(artifact)) {
 							throw new IllegalArgumentException("Could not delete " + uri);
 						}
+						_changes.put(artifact.getURI(), ChangeType.DELETE);
 					}
 				}
 			}
@@ -378,19 +379,41 @@ public final class FileSystem {
 						artifact.setModificationTime(entry.getTime());
 						if (old != null) {
 							if (!Arrays.equals(old.getContent(), artifact.getContent())) {
-								// value == null means update
-								changes.put(entry.getName(), null);
+								_changes.put(artifact.getURI(), ChangeType.UPDATE);
 							}
 						} else {
-							changes.put(entry.getName(), artifact);
+							_changes.put(artifact.getURI(), ChangeType.CREATE);
 						}
 					}
 				}
 			}
 		}
-		return changes;
+		return tidyOut;
 	}
 
+	public void writeBack(File dir) throws IOException {
+		for (Entry<String, ChangeType> entry : _changes.entrySet()) {
+			File file = new File(dir, entry.getKey());
+			if (entry.getValue() == ChangeType.DELETE) {
+				file.delete();
+			} else {
+				Artifact artifact = getArtifact(entry.getKey());
+				if (artifact instanceof Directory) {
+					file.mkdir();
+				} else {
+					FileOutputStream fos = new FileOutputStream(file);
+					if (artifact.getContent() == null) {
+						System.out.println();
+					}
+					fos.write(artifact.getContent());
+					fos.close();
+				}
+			}			
+		}
+		_anchorDir = dir;
+		_changes.clear();
+	}
+	
 	public void writeZIP(File file) throws IOException {
 		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(file))) {
 

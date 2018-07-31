@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -38,8 +40,9 @@ public final class GlobalContext extends Registry {
 	private final XQDataSource xqds = XQDataSourceFactory.createXQDataSource();
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
 	private final Map<String, WorkerPool> _workerPoolMap = Collections.synchronizedMap(new HashMap<String, WorkerPool>());
-
-	private FileSystem _fileSystem;
+	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
+	
+	private volatile FileSystem _fileSystem;
 
 	public GlobalContext() {
 		try {
@@ -47,6 +50,8 @@ public final class GlobalContext extends Registry {
 		} catch (NamingException e) {
 			throw new RuntimeException(e);
 		}
+		// default WorkerPool
+		_workerPoolMap.put(null, new WorkerPool(this, 20));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -68,6 +73,18 @@ public final class GlobalContext extends Registry {
 		return httpEndpointRegistry;
 	}
 
+	public boolean lockFileSystem() {
+		try {
+			return _fileSystemLock.tryLock(60L, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			return false;
+		}
+	}
+	
+	public void unlockFileSystem() {
+		_fileSystemLock.unlock();
+	}
+	
 	public FileSystem getFileSystem() {
 		return _fileSystem;
 	}
@@ -84,15 +101,15 @@ public final class GlobalContext extends Registry {
 		return _workerPoolMap.get(name);
 	}
 
-	public void putWorkerPool(String name, WorkerPool workerPool) {
-		WorkerPool old = _workerPoolMap.put(name, workerPool);
-		if (old != null) {
-			old.close();
-		}
+	public WorkerPool putWorkerPool(String name, WorkerPool workerPool) {
+		return _workerPoolMap.put(name, workerPool);
 	}
 
 	@Override
 	public void close() {
+		// Phase 1
+		stopIngress();
+		// Phase 2
 		for (WorkerPool workerPool : _workerPoolMap.values()) {
 			workerPool.close();
 		}
@@ -100,9 +117,7 @@ public final class GlobalContext extends Registry {
 			_initialContext.close();
 		} catch (NamingException e) {
 			// Ignore
-			e.printStackTrace();
 		}
-		// Phase2: e.g. KafkaProducer are needed in running workers
 		super.close();
 	}
 

@@ -36,7 +36,7 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
-public class JMSConsumer extends ConsumerPort {
+public class JMSConsumer extends ConsumerPort implements AutoCloseable {
 
 	private final String _jndiConnectionFactory;
 	private final String _jndiDestination;
@@ -101,6 +101,7 @@ public class JMSConsumer extends ConsumerPort {
 		}
 	}
 
+	@Override
 	public void close() throws Exception {
 		for (int i = 0; i < _jmsWorker.length; ++i) {
 			_jmsWorker[i].close();

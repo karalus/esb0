@@ -11,7 +11,6 @@ import org.junit.Before;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
-import com.artofarc.esb.context.WorkerPool;
 
 public abstract class AbstractESBTest {
 
@@ -20,9 +19,6 @@ public abstract class AbstractESBTest {
 	@Before
 	public void createContext() throws Exception {
 		GlobalContext globalContext = new GlobalContext();
-		// default WorkerPool
-		globalContext.putWorkerPool(null, new WorkerPool(globalContext));
-
 		context = new Context(new PoolContext(globalContext));
 	}
 

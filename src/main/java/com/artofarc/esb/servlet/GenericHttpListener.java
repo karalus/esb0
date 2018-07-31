@@ -18,6 +18,7 @@ package com.artofarc.esb.servlet;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -74,6 +75,12 @@ public class GenericHttpListener extends HttpServlet {
 				for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 					String headerName = headerNames.nextElement();
 					message.getHeaders().put(headerName, request.getHeader(headerName));
+				}
+				final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
+				if (certs != null) {
+					// Only for SSL mutual authentication
+					// @see https://stackoverflow.com/questions/24351472/getattributejavax-servlet-request-x509certificate-not-set-spring-cxf-jetty
+					message.getVariables().put(ESBVariableConstants.ClientCertificate, certs[0]);
 				}
 				if (bodyPresent) {
 					final String contentType = request.getContentType();

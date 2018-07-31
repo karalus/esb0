@@ -28,7 +28,6 @@ import com.artofarc.esb.artifact.FileSystem.ChangeSet;
 import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
-import com.artofarc.esb.context.WorkerPool;
 
 public class ESBServletContextListener implements ServletContextListener, Runnable {
 
@@ -44,9 +43,6 @@ public class ESBServletContextListener implements ServletContextListener, Runnab
 		FileSystem fileSystem = new FileSystem();
 		globalContext.setFileSystem(fileSystem);
 		PoolContext poolContext = new PoolContext(globalContext);
-		// default WorkerPool
-		WorkerPool workerPool = new WorkerPool(globalContext);
-		globalContext.putWorkerPool(null, workerPool);
 		try {
 			ChangeSet changeSet = fileSystem.parseDirectory(globalContext, rootDir);
 			DeployServlet.deployChangeSet(globalContext, poolContext, changeSet);
@@ -55,7 +51,7 @@ public class ESBServletContextListener implements ServletContextListener, Runnab
 		} catch (ValidationException e) {
 			throw new RuntimeException("Could not validate artifact " + e.getArtifact(), e.getCause());
 		}
-		workerPool.getScheduledExecutorService().scheduleAtFixedRate(this, 30L, 30L, TimeUnit.SECONDS);
+		globalContext.getWorkerPool(null).getScheduledExecutorService().scheduleAtFixedRate(this, 30L, 30L, TimeUnit.SECONDS);
 		return poolContext;
 	}
 
