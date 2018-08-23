@@ -25,8 +25,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathFactory;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQDataFactory;
@@ -52,8 +50,6 @@ public class Context extends AbstractContext {
 
 	private final Transformer _transformer;
 
-	private final XPath _xPath;
-
 	private final XQConnection xqConnection;
 
 	private final HashMap<String, XQPreparedExpression> _mapXQ = new HashMap<>();
@@ -64,7 +60,6 @@ public class Context extends AbstractContext {
 		_poolContext = poolContext;
 		_documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
 		_transformer = TRANSFORMER_FACTORY.newTransformer();
-		_xPath = XPathFactory.newInstance().newXPath();
 		xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
 		XQStaticContext staticContext = xqConnection.getStaticContext();
 		staticContext.setBindingMode(XQConstants.BINDING_MODE_DEFERRED);
@@ -85,10 +80,6 @@ public class Context extends AbstractContext {
 
 	public Transformer getIdenticalTransformer() {
 		return _transformer;
-	}
-
-	public XPath getXPath() {
-		return _xPath;
 	}
 
 	public XQDataFactory getXQDataFactory() {

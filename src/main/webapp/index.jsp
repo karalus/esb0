@@ -55,10 +55,8 @@
 <%
 		for (WorkerPool workerPool : poolContext.getGlobalContext().getWorkerPools()) {
 			ThreadGroup threadGroup = workerPool.getThreadGroup();
-			java.util.concurrent.BlockingQueue<Runnable> workQueue = workerPool.getWorkQueue();
-			String sizeWorkQueue = workQueue != null ? "" + workQueue.size() : "n/a";
 		   %>
-		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + threadGroup.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=threadGroup.getName()%></a></td><td><%=threadGroup.activeCount()%></td><td><%=sizeWorkQueue%></td></tr>
+		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + threadGroup.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=threadGroup.getName()%></a></td><td><%=threadGroup.activeCount()%></td><td><%=workerPool.getWorkQueue().size()%></td></tr>
 		   <%
 		}
 %>

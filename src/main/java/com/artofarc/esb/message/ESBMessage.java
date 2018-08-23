@@ -62,7 +62,7 @@ import com.artofarc.esb.action.Action;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.http.HttpConstants;
 
-public final class ESBMessage implements Cloneable, XPathVariableResolver {
+public final class ESBMessage implements Cloneable {
 
 	public final static String CHARSET_DEFAULT = "UTF-8";
 	public final static int MTU = 4096;
@@ -580,13 +580,6 @@ public final class ESBMessage implements Cloneable, XPathVariableResolver {
 		clone.getHeaders().putAll(_headers);
 		clone.getVariables().putAll(_variables);
 		return clone;
-	}
-
-	@Override
-	public Object resolveVariable(QName variableName) {
-		// if using namespaces, there's more to do here
-		String key = variableName.getLocalPart();
-		return _variables.get(key);
 	}
 
 }

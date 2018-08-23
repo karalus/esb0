@@ -19,7 +19,7 @@ package com.artofarc.esb.context;
 public class ExecutionContext {
 
 	private final Object _resource;
-	private Object _resource2, _resource3;
+	private Object _resource2;
 
 	public ExecutionContext(Object resource) {
 		_resource = resource;
@@ -34,10 +34,6 @@ public class ExecutionContext {
 		return _resource2 = resource;
 	}
 
-	public Object setResource3(Object resource) {
-		return _resource3 = resource;
-	}
-
 	@SuppressWarnings("unchecked")
 	public <R extends Object> R getResource() {
 		return (R) _resource;
@@ -46,11 +42,6 @@ public class ExecutionContext {
 	@SuppressWarnings("unchecked")
 	public <R extends Object> R getResource2() {
 		return (R) _resource2;
-	}
-
-	@SuppressWarnings("unchecked")
-	public <R extends Object> R getResource3() {
-		return (R) _resource3;
 	}
 
 }

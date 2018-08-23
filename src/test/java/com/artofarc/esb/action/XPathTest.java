@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.XPathConstants;
 
 import org.junit.After;
 import org.junit.Before;
@@ -36,17 +35,6 @@ public class XPathTest {
       if (context != null) {
          context.close();
       }
-   }
-
-   @Test
-   public void testXPath() throws Exception {
-      ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      Action action = new AssignXPathAction("body", XPathConstants.NODE, ".");
-      action.execute(context, message);
-      action = new AssignXPathAction("result", XPathConstants.STRING, "$body/test/text()");
-      action.execute(context, message);
-      Object result = message.getVariables().get("result");
-      assertEquals("Hello", result);
    }
 
    @Test
