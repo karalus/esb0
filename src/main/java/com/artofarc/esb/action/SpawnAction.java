@@ -59,7 +59,7 @@ public class SpawnAction extends Action {
 			PipedInputStream pis = new PipedInputStream(pos, ESBMessage.MTU);
 			ESBMessage clone = message.clone();
 			clone.reset(BodyType.INPUT_STREAM, pis);
-			Future<Void> future = submit(context, clone);
+			Future<ESBMessage> future = submit(context, clone);
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, pos);
 			} else {
@@ -81,7 +81,7 @@ public class SpawnAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		Future<Void> future;
+		Future<ESBMessage> future;
 		if (_usePipe) {
 			PipedOutputStream pos = execContext.getResource();
 			pos.close();
@@ -104,20 +104,20 @@ public class SpawnAction extends Action {
 		}
 	}
 
-	private Future<Void> submit(Context context, final ESBMessage message) throws RejectedExecutionException {
+	private Future<ESBMessage> submit(Context context, final ESBMessage message) throws RejectedExecutionException {
 		String workerPool = message.getVariable(ESBVariableConstants.WorkerPool, _workerPool);
 		return submit(context, message, workerPool, _nextAction);
 	}
 
-	public static Future<Void> submit(Context context, final ESBMessage message, String workerPool, final Action action) throws RejectedExecutionException {
+	public static Future<ESBMessage> submit(Context context, final ESBMessage message, String workerPool, final Action action) throws RejectedExecutionException {
 		context.getTimeGauge().startTimeMeasurement();
 		try {
-			return context.getPoolContext().getGlobalContext().getWorkerPool(workerPool).getExecutorService().submit(new Callable<Void>() {
+			return context.getPoolContext().getGlobalContext().getWorkerPool(workerPool).getExecutorService().submit(new Callable<ESBMessage>() {
 
 				@Override
-				public Void call() throws Exception {
+				public ESBMessage call() throws Exception {
 					action.process(WorkerPoolThreadFactory.getContext(), message);
-					return null;
+					return message;
 				}
 			});
 		} finally {
@@ -125,9 +125,9 @@ public class SpawnAction extends Action {
 		}
 	}
 
-	public static void join(Context context, ESBMessage message, Future<Void> future) throws Exception {
+	public static ESBMessage join(Context context, ESBMessage message, Future<ESBMessage> future) throws Exception {
 		try {
-			future.get(message.getTimeleft(), TimeUnit.MILLISECONDS);
+			return future.get(message.getTimeleft(), TimeUnit.MILLISECONDS);
 		} catch (ExecutionException e) {
 			throw (Exception) e.getCause();
 		} finally {

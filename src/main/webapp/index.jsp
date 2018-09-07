@@ -1,4 +1,3 @@
-<%@page import="com.artofarc.esb.servlet.HttpConsumer"%>
 <html>
 <body>
 <%@ page import = "com.artofarc.esb.context.PoolContext" %>
@@ -7,14 +6,7 @@
 <%@ page import = "com.artofarc.esb.jms.JMSConsumer" %>
 <%@ page import = "com.artofarc.esb.context.WorkerPool" %>
 <%@ page import = "com.artofarc.esb.artifact.*" %>
-<%@ page import = "com.artofarc.esb.service.*" %>
-<%@ page import = "javax.xml.bind.JAXBElement" %>
 <h2>ESB Zero - A lightweight service gateway</h2>
-<%!
-	public String toDOTNode(JAXBElement<?> e, int i) {
-		return e.getName().getLocalPart() + "_" + i;// + "[label=\"" + e.getName().getLocalPart() + "\"]";
-	}
-%>
 <%
 	PoolContext poolContext = (PoolContext) application.getAttribute("WebContainerPoolContext");
 	if (request.getPathInfo() == null) {

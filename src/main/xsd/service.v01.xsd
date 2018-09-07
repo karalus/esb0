@@ -112,6 +112,29 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<element name="file" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase">
+					<attribute name="dir" type="anyURI" use="required" />
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
+	<element name="fileSystemWatch" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase">
+					<sequence>
+						<element name="dir" type="anyURI" maxOccurs="unbounded"/>
+						<element ref="tns:action" maxOccurs="unbounded" />
+					</sequence>
+					<attribute name="workerPool" type="anyURI" />
+					<attribute name="timeout" type="long" use="required" />
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
 	<element name="jdbcParameter">
 		<complexType>
 			<attribute name="pos" type="int" use="required" />

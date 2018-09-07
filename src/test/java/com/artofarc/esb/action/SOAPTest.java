@@ -19,7 +19,6 @@ import org.w3c.dom.Node;
 
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
-import com.artofarc.esb.TimerService;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.http.HttpConstants;
@@ -293,17 +292,4 @@ public class SOAPTest extends AbstractESBTest {
       jmsConsumer.destroy();
    }
    
-   @Test
-   public void testTimerService() throws Exception {
-      TimerService timerService = new TimerService(null, null, 0, 100, false);
-      MarkAction markAction = new MarkAction();
-      timerService.setStartAction(markAction);
-      timerService.init(context.getPoolContext().getGlobalContext());
-      timerService.enable(true);
-      assertFalse(markAction.executed);
-      Thread.sleep(100);
-      timerService.enable(false);
-      assertTrue(markAction.executed);
-      
-   }
 }

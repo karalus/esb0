@@ -16,7 +16,7 @@
  */
 package com.artofarc.esb.action;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Future;
@@ -55,7 +55,7 @@ public class KafkaConsumeAction extends TerminalAction {
 		Consumer<?, ?> consumer = kafkaConsumerFactory.getResource(_properties, _topics);
 		ConsumerRecords<?, ?> consumerRecords = consumer.poll(_timeout);
 
-		HashMap<Future<Void>, ConsumerRecord<?, ?>> futures = new HashMap<>();
+		LinkedHashMap<Future<ESBMessage>, ConsumerRecord<?, ?>> futures = new LinkedHashMap<>();
 		for (ConsumerRecord<?, ?> record : consumerRecords) {
 			final ESBMessage msg = new ESBMessage(null, record.value());
 			msg.putVariable("record.key", record.key());
@@ -73,7 +73,7 @@ public class KafkaConsumeAction extends TerminalAction {
 				}
 			}
 		}
-		for (Future<Void> future : futures.keySet()) {
+		for (Future<ESBMessage> future : futures.keySet()) {
 			try {
 				SpawnAction.join(context, message, future);
 			} catch (Exception e) {

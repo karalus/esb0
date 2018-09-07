@@ -35,6 +35,8 @@ import com.artofarc.esb.action.BranchOnPathAction.PathTemplate;
 import com.artofarc.esb.action.BranchOnVariableAction;
 import com.artofarc.esb.action.ConditionalAction;
 import com.artofarc.esb.action.DumpAction;
+import com.artofarc.esb.action.FileAction;
+import com.artofarc.esb.action.FileSystemWatchAction;
 import com.artofarc.esb.action.ForkAction;
 import com.artofarc.esb.action.HttpInboundAction;
 import com.artofarc.esb.action.HttpOutboundAction;
@@ -68,6 +70,8 @@ import com.artofarc.esb.service.BranchOnPath;
 import com.artofarc.esb.service.BranchOnVariable;
 import com.artofarc.esb.service.Conditional;
 import com.artofarc.esb.service.ConsumeKafka;
+import com.artofarc.esb.service.File;
+import com.artofarc.esb.service.FileSystemWatch;
 import com.artofarc.esb.service.Fork;
 import com.artofarc.esb.service.Http;
 import com.artofarc.esb.service.InternalService;
@@ -201,6 +205,18 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				list.add(kafkaConsumeAction);
 				break;
 			}
+			case "file": {
+				File file = (File) jaxbElement.getValue();
+				list.add(new FileAction(file.getDir()));
+				break;
+			}
+			case "fileSystemWatch": {
+				FileSystemWatch fileSystemWatch = (FileSystemWatch) jaxbElement.getValue();
+				FileSystemWatchAction fileSystemWatchAction = new FileSystemWatchAction(fileSystemWatch.getDir(), fileSystemWatch.getTimeout(),
+						resolveWorkerPool(fileSystemWatch.getWorkerPool()), Action.linkList(transform(globalContext, fileSystemWatch.getAction(), errorHandler)));
+				list.add(fileSystemWatchAction);
+				break;
+			}
 			case "jdbcProcedure": {
 				JdbcProcedure jdbcProcedure = (JdbcProcedure) jaxbElement.getValue();
 				if (jdbcProcedure.getWorkerPool() != null) {
@@ -324,7 +340,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getDefinition(), unwrapSOAP11.getTransport(), unwrapSOAP11.getWsdlURI());
+				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getDefinition(),
+						unwrapSOAP11.getTransport(), wsdlArtifact.getURI());
 				list.add(unwrapSOAP11Action);
 				break;
 			}
