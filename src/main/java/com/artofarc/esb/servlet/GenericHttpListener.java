@@ -23,9 +23,9 @@ import java.util.Enumeration;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import javax.mail.BodyPart;
 import javax.mail.Header;
 import javax.mail.MessagingException;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import javax.servlet.ServletException;
@@ -87,9 +87,13 @@ public class GenericHttpListener extends HttpServlet {
 					if (contentType.startsWith("multipart/")) {
 						try {
 							MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getUncompressedInputStream(), contentType));
+							String start = HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_START);
+							if (start != null) {
+								start = start.substring(1, start.length() - 1);
+							}
 							for (int i = 0; i < mmp.getCount(); i++) {
-								BodyPart bodyPart = mmp.getBodyPart(i);
-								if (i == 0) {
+								MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
+								if (start == null && i == 0 || start.equals(bodyPart.getContentID())) {
 									for (@SuppressWarnings("unchecked")
 									Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
 										final Header header = allHeaders.nextElement();

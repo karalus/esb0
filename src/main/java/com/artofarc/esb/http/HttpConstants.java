@@ -28,11 +28,11 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
 	
-	public static final String HTTP_HEADER_CONTENT_ID = "Content-ID";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET = "charset=";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION = "action=";
+
+	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_START = "start=";
 
 	public static final String HTTP_HEADER_ACCEPT = "Accept";
 

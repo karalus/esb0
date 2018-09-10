@@ -45,6 +45,7 @@ import com.artofarc.esb.action.JDBCProcedureAction;
 import com.artofarc.esb.action.JDBCSQLAction;
 import com.artofarc.esb.action.JMSAction;
 import com.artofarc.esb.action.Json2XMLAction;
+import com.artofarc.esb.action.MtomXopDeserializeAction;
 import com.artofarc.esb.action.ProcessJsonAction;
 import com.artofarc.esb.action.KafkaConsumeAction;
 import com.artofarc.esb.action.KafkaProduceAction;
@@ -441,6 +442,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				list.add(branchOnPathAction);
 				break;
 			}
+			case "deserializeMtomXop":
+				list.add(new MtomXopDeserializeAction());
+				break;
 			case "dump":
 				list.add(new DumpAction());
 				break;

@@ -527,6 +527,13 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<element name="deserializeMtomXop" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase" />
+			</complexContent>
+		</complexType>
+	</element>
 	<element name="dump" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>

@@ -18,20 +18,22 @@ package com.artofarc.esb.action;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import javax.xml.namespace.QName;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xquery.XQConstants;
+import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQItemType;
 import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQResultSequence;
 import javax.xml.xquery.XQSequence;
-
-import org.w3c.dom.Node;
+import javax.xml.xquery.XQSequenceType;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -43,11 +45,8 @@ public class TransformAction extends Action {
 	private final String _xquery;
 	private final List<String> _varNames;
 	protected List<String> _bindNames;
+	private final HashMap<QName, XQItemType> _bindings = new HashMap<>();
 	protected String _contextItem;
-
-	@SuppressWarnings("unused")
-	// not reliable
-	private int _resultItemOccurrence;
 
 	public TransformAction(String xquery) {
 		this(xquery, Collections.<String> emptyList());
@@ -58,6 +57,22 @@ public class TransformAction extends Action {
 		_varNames = varNames;
 	}
 
+	private synchronized void initBindings(XQPreparedExpression xqExpression) throws XQException {
+		if (_bindNames == null) {
+			_bindNames = new ArrayList<>();
+			for (QName qName : xqExpression.getAllExternalVariables()) {
+				_bindNames.add(qName.getLocalPart());
+				XQSequenceType sequenceType = xqExpression.getStaticVariableType(qName);
+				_bindings.put(qName, sequenceType.getItemType());
+			}
+		} else {
+			// old behavior
+			for (String bindName : _bindNames) {
+				_bindings.put(new QName(bindName), null);
+			}
+		}
+	}
+
 	public List<String> getVarNames() {
 		return _varNames;
 	}
@@ -66,20 +81,16 @@ public class TransformAction extends Action {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		return prepare(context, message, message.getVariables());
 	}
-
+	
 	protected ExecutionContext prepare(Context context, ESBMessage message, Map<String, Object> destMap) throws Exception {
 		context.getTimeGauge().startTimeMeasurement();
 		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery);
-		if (_bindNames == null) {
-			_bindNames = new ArrayList<>();
-			for (QName qName : xqExpression.getAllExternalVariables()) {
-				_bindNames.add(qName.getLocalPart());
-			}
-			_resultItemOccurrence = xqExpression.getStaticResultType().getItemOccurrence();
+		if (_bindNames == null || _bindNames.size() != _bindings.size()) {
+			initBindings(xqExpression);
 		}
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
 		if (_contextItem != null) {
-			bind(_contextItem, XQConstants.CONTEXT_ITEM, xqExpression, context, message);
+			bind(_contextItem, XQConstants.CONTEXT_ITEM, null, xqExpression, context, message);
 		} else {
 			if (message.getBodyType() == BodyType.XQ_SEQUENCE) {
 				XQSequence sequence = message.getBody();
@@ -95,8 +106,8 @@ public class TransformAction extends Action {
 				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(), null);
 			}
 		}
-		for (String bindName : _bindNames) {
-			bind(bindName, new QName(bindName), xqExpression, context, message);
+		for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {
+			bind(entry.getKey().getLocalPart(), entry.getKey(), entry.getValue(), xqExpression, context, message);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
 		XQResultSequence resultSequence = xqExpression.executeQuery();
@@ -119,21 +130,18 @@ public class TransformAction extends Action {
 		return new ExecutionContext(resultSequence);
 	}
 
-	private void bind(String bindName, QName qName, XQPreparedExpression xqExpression, Context context, ESBMessage message) throws Exception {
+	private void bind(String bindName, QName qName, XQItemType type, XQPreparedExpression xqExpression, Context context, ESBMessage message) throws Exception {
 		Object header = message.getHeader(bindName);
 		Object variable = message.getVariable(bindName);
-		if (header != null && variable == null) {
-			xqExpression.bindObject(qName, header, null);
-		} else if (header == null && variable != null) {
-			if (variable instanceof Node) {
-				xqExpression.bindNode(qName, (Node) variable, null);
-			} else {
-				xqExpression.bindObject(qName, variable, null);
-			}
-		} else if (header == null && variable == null) {
-			xqExpression.bindString(qName, "", context.getXQDataFactory().createAtomicType(XQItemType.XQBASETYPE_STRING));
-		} else {
+		if (header != null && variable != null) {
 			throw new ExecutionException(this, "name could not unambiguously be resolved: " + bindName);
+		}
+		Object value = variable != null ? variable : header;
+		if (value != null) {
+			xqExpression.bindObject(qName, value, type);
+		} else {
+			// Workaround: XQuery has no NULL value
+			xqExpression.bindString(qName, "", context.getXQDataFactory().createAtomicType(XQItemType.XQBASETYPE_STRING));
 		}
 	}
 	

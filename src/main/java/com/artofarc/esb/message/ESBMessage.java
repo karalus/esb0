@@ -36,9 +36,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
-import javax.mail.BodyPart;
 import javax.mail.MessagingException;
-import javax.xml.namespace.QName;
+import javax.mail.internet.MimeBodyPart;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.Result;
@@ -49,7 +48,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import javax.xml.xpath.XPathVariableResolver;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQSequence;
@@ -69,7 +67,7 @@ public final class ESBMessage implements Cloneable {
 
 	private final HashMap<String, Object> _headers = new HashMap<>();
 	private final HashMap<String, Object> _variables = new HashMap<>();
-	private final HashMap<String, BodyPart> _attachments = new HashMap<>();
+	private final HashMap<String, MimeBodyPart> _attachments = new HashMap<>();
 
 	private BodyType _bodyType;
 	private Object _body;
@@ -111,7 +109,7 @@ public final class ESBMessage implements Cloneable {
 		return _variables;
 	}
 
-	public Map<String, BodyPart> getAttachments() {
+	public Map<String, MimeBodyPart> getAttachments() {
 		return _attachments;
 	}
 
@@ -175,11 +173,10 @@ public final class ESBMessage implements Cloneable {
 		return result;
 	}
 	
-	public void addAttachment(BodyPart bodyPart) throws MessagingException {
-		String[] header = bodyPart.getHeader(HttpConstants.HTTP_HEADER_CONTENT_ID);
-		if (header.length > 0) {
-			_attachments.put(header[0], bodyPart);
-		}
+	public void addAttachment(MimeBodyPart bodyPart) throws MessagingException {
+		String cid = bodyPart.getContentID();
+		cid = cid.substring(1, cid.length() - 1);
+		_attachments.put(cid, bodyPart);
 	}
 
 	public String getCharsetName() {
