@@ -16,25 +16,27 @@
  */
 package com.artofarc.esb.action;
 
+import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpConstants;
+import com.artofarc.esb.message.ESBMessage;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.http.HttpConstants;
-import com.artofarc.esb.message.ESBMessage;
-
 public class SetMessageAction extends Action {
 
+	private final boolean _clearAll;
 	private final ClassLoader _classLoader;
 	private final List<Assignment> _headers = new ArrayList<>();
 	private final List<Assignment> _variables = new ArrayList<>();
 	private final Assignment _body; 
 
-	public SetMessageAction(ClassLoader cl, String bodyExpr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+	public SetMessageAction(boolean clearAll, ClassLoader cl, String bodyExpr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+		_clearAll = clearAll;
 		_pipelineStop = true;
 		_classLoader = cl;
 		_body = bodyExpr != null ? new Assignment(null, bodyExpr, javaType, method) : null;
@@ -50,6 +52,9 @@ public class SetMessageAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		if (_clearAll) {
+			message.getHeaders().clear();
+		}
 		for (Assignment variable : _variables) {
 			message.getVariables().put(variable._name, variable.convert(bindVariable(variable._expr, context, message)));
 		}
@@ -67,7 +72,7 @@ public class SetMessageAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) {
 		if (execContext != null) {
 			message.reset(null, execContext.getResource());
 		}

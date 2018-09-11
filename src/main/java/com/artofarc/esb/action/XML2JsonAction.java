@@ -71,11 +71,14 @@ public class XML2JsonAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		JAXBElement<DynamicEntity> root = execContext.getResource();
+		Object root = execContext.getResource();
 
 		// TOREVIEW: synchronized?
 		if (_urisToPrefixes.isEmpty()) {
-			_urisToPrefixes.put(root.getName().getNamespaceURI(), "");
+			if (root instanceof JAXBElement) {
+				JAXBElement<DynamicEntity> jaxbElement = (JAXBElement<DynamicEntity>) root;
+				_urisToPrefixes.put(jaxbElement.getName().getNamespaceURI(), "");
+			}
 		}
 
 		Marshaller jsonMarshaller = _jaxbContext.createMarshaller();

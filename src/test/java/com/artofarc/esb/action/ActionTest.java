@@ -119,7 +119,7 @@ public class ActionTest {
    @Test
    public void testSetMessage() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), "${body}", "java.lang.String", null);
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), "${body}", "java.lang.String", null);
 		action.addHeader("int", "42", "java.lang.Integer", null);
 		action.addHeader("bool", "true", "java.lang.Boolean", "parseBoolean");
 		action.addHeader("now", "", "java.lang.System", "currentTimeMillis");

@@ -84,7 +84,7 @@ public class GenericHttpListener extends HttpServlet {
 				}
 				if (bodyPresent) {
 					final String contentType = request.getContentType();
-					if (contentType.startsWith("multipart/")) {
+					if (contentType != null && contentType.startsWith("multipart/")) {
 						try {
 							MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getUncompressedInputStream(), contentType));
 							String start = HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_START);
@@ -93,7 +93,7 @@ public class GenericHttpListener extends HttpServlet {
 							}
 							for (int i = 0; i < mmp.getCount(); i++) {
 								MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
-								if (start == null && i == 0 || start.equals(bodyPart.getContentID())) {
+								if (start == null && i == 0 || start != null && start.equals(bodyPart.getContentID())) {
 									for (@SuppressWarnings("unchecked")
 									Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
 										final Header header = allHeaders.nextElement();

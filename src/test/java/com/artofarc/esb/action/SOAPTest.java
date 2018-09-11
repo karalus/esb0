@@ -56,7 +56,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = new UnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new WrapSOAPAction(false, true));
+      action = action.setNextAction(new WrapSOAPAction(false, true,true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
       assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));

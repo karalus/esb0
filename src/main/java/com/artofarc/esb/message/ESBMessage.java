@@ -114,7 +114,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Object> T getHeader(String headerName) {
+	public <T> T getHeader(String headerName) {
 		for (Entry<String, Object> entry : _headers.entrySet()) {
 			if (headerName.equalsIgnoreCase(entry.getKey())) {
 				return (T) entry.getValue();
@@ -123,7 +123,7 @@ public final class ESBMessage implements Cloneable {
 		return null;
 	}
 
-	public <T extends Object> T putHeader(String headerName, Object value) {
+	public <T> T putHeader(String headerName, Object value) {
 		for (Entry<String, Object> entry : _headers.entrySet()) {
 			if (headerName.equalsIgnoreCase(entry.getKey())) {
 				@SuppressWarnings("unchecked")
@@ -137,7 +137,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Object> T removeHeader(String headerName) {
+	public <T> T removeHeader(String headerName) {
 		for (Iterator<Entry<String, Object>> iter = _headers.entrySet().iterator(); iter.hasNext();) {
 			Entry<String, Object> entry = iter.next();
 			if (headerName.equalsIgnoreCase(entry.getKey())) {
@@ -149,22 +149,22 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Object> T getVariable(String varName) {
+	public <T> T getVariable(String varName) {
 		return (T) _variables.get(varName);
 	}
 
-	public <T extends Object> T getVariable(String varName, T def) {
+	public <T> T getVariable(String varName, T def) {
 		@SuppressWarnings("unchecked")
 		T result = (T) _variables.get(varName);
 		return result != null ? result : def;
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Object> T putVariable(String varName, Object value) {
+	public <T> T putVariable(String varName, Object value) {
 		return (T) (value != null ? _variables.put(varName, value) : _variables.remove(varName));
 	}
 	
-	public <T extends Object> T removeVariable(String varName) {
+	public <T> T removeVariable(String varName) {
 		@SuppressWarnings("unchecked")
 		T result = (T) _variables.remove(varName);
 		if (result == null) {
@@ -196,7 +196,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Object> T getBody() {
+	public <T> T getBody() {
 		return (T) _body;
 	}
 
@@ -267,7 +267,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public byte[] getBodyAsByteArray(Context context) throws TransformerException, IOException, XQException {
-		byte[] ba = null;
+		byte[] ba;
 		ByteArrayOutputStream bos;
 		switch (_bodyType) {
 		case DOM:
@@ -308,7 +308,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public String getBodyAsString(Context context) throws TransformerException, IOException, XQException {
-		String str = null;
+		String str;
 		switch (_bodyType) {
 		case DOM:
 			StringWriter sw = new StringWriter();
@@ -336,7 +336,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Document getBodyAsDOM(Context context) throws SAXException, IOException {
-		InputSource inputSource = null;
+		InputSource inputSource;
 		switch (_bodyType) {
 		case DOM:
 			return (Document) _body;
@@ -463,7 +463,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	private void transform(Transformer transformer, Result result) throws TransformerException, XQException, IOException {
-		Source source = null;
+		Source source;
 		switch (_bodyType) {
 		case DOM:
 			source = new DOMSource((Document) _body);
@@ -561,6 +561,8 @@ public final class ESBMessage implements Cloneable {
 			case INPUT_STREAM:
 				newBody = getBodyAsByteArray(context);
 				break;
+			case READER:
+				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			case XQ_ITEM:
 				// TOREVIEW: Should be the context of the Thread receiving this copy
 				newBody = context.getXQDataFactory().createItem((XQItem) _body);

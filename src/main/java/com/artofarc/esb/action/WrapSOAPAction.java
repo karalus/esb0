@@ -27,9 +27,10 @@ public class WrapSOAPAction extends TransformAction {
 
 	protected final boolean _soap12;
 	
-	public WrapSOAPAction(boolean soap12, boolean singlePart) {
+	public WrapSOAPAction(boolean soap12, boolean header, boolean singlePart) {
 		super("declare variable $header as element() external; <soapenv:Envelope xmlns:soapenv=\""
-				+ (soap12 ? SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE : SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE) + "\">{$header}"
+				+ (soap12 ? SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE : SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE) + "\">"
+				+ (header ? "{$header}" : "")
 				+ (singlePart ? "<soapenv:Body>" : "") + "{.}" + (singlePart ? "</soapenv:Body>" : "") + "</soapenv:Envelope>");
 		_soap12 = soap12;
 	}

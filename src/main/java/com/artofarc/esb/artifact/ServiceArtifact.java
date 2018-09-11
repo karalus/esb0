@@ -176,7 +176,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				//globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 				list.add(new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength()));
 				if (http.getWorkerPool() != null) {
-					list.add(new SpawnAction(http.getWorkerPool(), false));
+					list.add(new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false));
 				}
 				list.add(new HttpInboundAction());
 				break;
@@ -221,7 +221,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "jdbcProcedure": {
 				JdbcProcedure jdbcProcedure = (JdbcProcedure) jaxbElement.getValue();
 				if (jdbcProcedure.getWorkerPool() != null) {
-					list.add(new SpawnAction(jdbcProcedure.getWorkerPool(), true));
+					list.add(new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true));
 				}
 				list.add(new JDBCProcedureAction(jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
 						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getFetchSize()));
@@ -230,7 +230,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "jdbc": {
 				Jdbc jdbc = (Jdbc) jaxbElement.getValue();
 				if (jdbc.getWorkerPool() != null) {
-					list.add(new SpawnAction(jdbc.getWorkerPool(), true));
+					list.add(new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true));
 				}
 				list.add(new JDBCSQLAction(jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getFetchSize()));
 				break;
@@ -249,9 +249,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				SetMessageAction setMessageAction;
 				if (setMessage.getBody() != null) {
-					setMessageAction = new SetMessageAction(classLoader, setMessage.getBody().getValue(), setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
+					setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, setMessage.getBody().getValue(), setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
 				} else {
-					setMessageAction = new SetMessageAction(classLoader, null, null, null);
+					setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, null, null, null);
 				}
 				for (com.artofarc.esb.service.SetMessage.Header header : setMessage.getHeader()) {
 					setMessageAction.addHeader(header.getName(), header.getValue(), header.getJavaType(), header.getMethod());
@@ -348,7 +348,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "wrapSOAP":
 				WrapSOAP wrapSOAP11 = (WrapSOAP) jaxbElement.getValue();
-				list.add(new WrapSOAPAction(wrapSOAP11.isSoap12(), wrapSOAP11.isSinglePart()));
+				list.add(new WrapSOAPAction(wrapSOAP11.isSoap12(), wrapSOAP11.isHeader(), wrapSOAP11.isSinglePart()));
 				break;
 			case "preSOAPHttp": {
 				PreSOAPHttp preSOAP11Http = (PreSOAPHttp) jaxbElement.getValue();
@@ -358,7 +358,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				PreSOAPHttpAction preSOAP11HttpAction = new PreSOAPHttpAction(preSOAP11Http.isSoap12(), preSOAP11Http.isSinglePart(), wsdlArtifact.getDefinition(), preSOAP11Http.getTransport());
+				PreSOAPHttpAction preSOAP11HttpAction = new PreSOAPHttpAction(preSOAP11Http.isSoap12(), preSOAP11Http.isHeader(), preSOAP11Http.isSinglePart(), wsdlArtifact.getDefinition(), preSOAP11Http.getTransport());
 				list.add(preSOAP11HttpAction);
 				break;
 			}

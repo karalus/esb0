@@ -32,8 +32,8 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 
 	private final Map<String, String> _mapOperation2SoapActionURI;
 
-	public PreSOAPHttpAction(boolean soap12, boolean singlePart, Definition definition, String transport) {
-		super(soap12, singlePart);
+	public PreSOAPHttpAction(boolean soap12, boolean header, boolean singlePart, Definition definition, String transport) {
+		super(soap12, header, singlePart);
 		_mapOperation2SoapActionURI = WSDL4JUtil.getMapOperation2SoapActionURI(definition, transport);
 	}
 
