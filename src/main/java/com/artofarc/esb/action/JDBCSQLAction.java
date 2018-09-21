@@ -24,13 +24,14 @@ import javax.naming.NamingException;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.message.ESBMessage;
 
 public class JDBCSQLAction extends JDBCAction {
 
-	public JDBCSQLAction(String dsName, String sql, List<JDBCParameter> params, int fetchSize) throws NamingException {
-		super(dsName, sql, params, fetchSize);
+	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int fetchSize) throws NamingException {
+		super(globalContext, dsName, sql, params, fetchSize);
 		if (sql != null) {
 	      int count = 0;
 	      for (int i = sql.length(); i > 0;) {

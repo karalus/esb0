@@ -93,7 +93,7 @@ public abstract class Artifact {
 		return _content;
 	}
 
-	protected final ByteArrayInputStream getContentAsByteArrayInputStream() {
+	public final ByteArrayInputStream getContentAsByteArrayInputStream() {
 		return new ByteArrayInputStream(_content);
 	}
 
@@ -131,7 +131,7 @@ public abstract class Artifact {
 
 	protected abstract void validateInternal(GlobalContext globalContext) throws Exception;
 
-	public final void validate(GlobalContext globalContext) throws ValidationException {
+	public final synchronized void validate(GlobalContext globalContext) throws ValidationException {
 		if (!isValidated()) {
 			try {
 				validateInternal(globalContext);

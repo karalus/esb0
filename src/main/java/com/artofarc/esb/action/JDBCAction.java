@@ -39,7 +39,6 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonStructure;
 import javax.json.JsonWriter;
-import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 import javax.xml.bind.DatatypeConverter;
@@ -48,6 +47,7 @@ import org.eclipse.persistence.oxm.MediaType;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.message.BodyType;
@@ -60,13 +60,8 @@ public abstract class JDBCAction extends TerminalAction {
 	private final List<JDBCParameter> _params;
 	private final int _fetchSize;
 
-	public JDBCAction(String dsName, String sql, List<JDBCParameter> params, int fetchSize) throws NamingException {
-		InitialContext initialContext = new InitialContext();
-		try {
-			_dataSource = (DataSource) initialContext.lookup(dsName);
-		} finally {
-			initialContext.close();
-		}
+	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int fetchSize) throws NamingException {
+		_dataSource = globalContext.lookup(dsName);
 		_sql = sql;
 		_params = params;
 		_fetchSize = fetchSize;

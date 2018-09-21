@@ -147,7 +147,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case JMS:
 			final JmsBinding jmsBinding = _service.getJmsBinding();
-			_consumerPort = new JMSConsumer(getURI(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
+			_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
 					jmsBinding.getTopicName(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount());
 			break;
 		case TIMER:
@@ -223,7 +223,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				if (jdbcProcedure.getWorkerPool() != null) {
 					list.add(new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true));
 				}
-				list.add(new JDBCProcedureAction(jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
+				list.add(new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
 						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getFetchSize()));
 				break;
 			}
@@ -232,7 +232,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				if (jdbc.getWorkerPool() != null) {
 					list.add(new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true));
 				}
-				list.add(new JDBCSQLAction(jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getFetchSize()));
+				list.add(new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getFetchSize()));
 				break;
 			}
 			case "setMessage": {

@@ -31,6 +31,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.Logger;
@@ -111,14 +114,24 @@ public final class FileSystem {
 		return services;
 	}
 
-	private final void validateServices(GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
+	private static void validateServices(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
 		if (artifact instanceof Directory) {
 			for (Artifact artifact2 : ((Directory) artifact).getArtifacts().values()) {
 				validateServices(globalContext, artifact2, changeSet);
 			}
 		} else if (artifact instanceof ServiceArtifact) {
-			artifact.validate(globalContext);
-			changeSet.add((ServiceArtifact) artifact);
+			final ServiceArtifact serviceArtifact = (ServiceArtifact) artifact;
+			Callable<ServiceArtifact> task = new Callable<ServiceArtifact>() {
+
+				@Override
+				public ServiceArtifact call() throws ValidationException {
+					serviceArtifact.validate(globalContext);
+					return serviceArtifact;
+				}
+				
+			};
+			Future<ServiceArtifact> future = globalContext.getDefaultWorkerPool().getExecutorService().submit(task);
+			changeSet.futures.add(future);
 		} else if (artifact instanceof WorkerPoolArtifact) {
 			artifact.validate(globalContext);
 			changeSet.getWorkerPoolArtifacts().add((WorkerPoolArtifact) artifact);
@@ -294,13 +307,29 @@ public final class FileSystem {
 
 	protected enum ChangeType { CREATE, UPDATE, DELETE };
 
-	public class ChangeSet extends ArrayList<ServiceArtifact> {
-		private static final long serialVersionUID = 1L;
-
+	public class ChangeSet {
+		private final ArrayList<Future<ServiceArtifact>> futures = new ArrayList<>();
 		private final ArrayList<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
 
 		public FileSystem getFileSystem() {
 			return FileSystem.this;
+		}
+
+		public ArrayList<ServiceArtifact> getServiceArtifacts() throws ValidationException {
+			ArrayList<ServiceArtifact> serviceArtifacts = new ArrayList<>();
+			for (Future<ServiceArtifact> future : futures) {
+				try {
+					serviceArtifacts.add(future.get());
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				} catch (ExecutionException e) {
+					if (e.getCause() instanceof ValidationException) {
+						throw (ValidationException) e.getCause();
+					}
+					throw new RuntimeException(e);
+				} 
+			}
+			return serviceArtifacts;
 		}
 
 		public ArrayList<WorkerPoolArtifact> getWorkerPoolArtifacts() {
@@ -333,11 +362,11 @@ public final class FileSystem {
 		// validate
 		for (String original : visited) {
 			Artifact artifact = changedFileSystem.getArtifact(original);
-			changedFileSystem.validateServices(globalContext, artifact, services);
+			validateServices(globalContext, artifact, services);
 		}
 		for (Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
 			if (entry.getValue() == ChangeType.CREATE) {
-				changedFileSystem.validateServices(globalContext, changedFileSystem.getArtifact(entry.getKey()), services);
+				validateServices(globalContext, changedFileSystem.getArtifact(entry.getKey()), services);
 			}
 		}
 		return services;

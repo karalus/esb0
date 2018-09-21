@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,10 +27,12 @@ import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQSequenceType;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.resource.XQDataSourceFactory;
 
 public class XQueryArtifact extends Artifact {
 
 	private final List<String> _externalVariables = new ArrayList<>();
+	private boolean _module;
 
 	public XQueryArtifact(Directory parent, String name) {
 		super(parent, name);
@@ -39,19 +42,35 @@ public class XQueryArtifact extends Artifact {
 		return _externalVariables;
 	}
 
+	public boolean isModule() {
+		return _module;
+	}
+
+	public void setModule(boolean module) {
+		_module = module;
+	}
+
 	@Override
 	public XQueryArtifact clone(Directory parent) {
 		XQueryArtifact clone = initClone(new XQueryArtifact(parent, getName()));
 		return clone;
 	}
 
-	public String getXQuery() {
-		return new String(getContent());
+	public String getXQuery() throws UnsupportedEncodingException {
+		// TODO: UTF-8 is just an assumption
+		return new String(getContent(), "UTF-8");
 	}
 
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws XQException {
-		XQConnection connection = globalContext.getXQDataSource().getConnection();
+		// Needs an individual XQDataSourceFactory to track the use of modules
+		XQDataSourceFactory dataSourceFactory = new XQDataSourceFactory(globalContext) {
+			@Override
+			public void registerModule(XQueryArtifact xQueryArtifact) {
+				addReference(xQueryArtifact);
+			}
+		};
+		XQConnection connection = dataSourceFactory.createXQDataSource().getConnection();
 		try {
 			logger.info("Parsing XQuery: " + getURI());
 			XQPreparedExpression preparedExpression = connection.prepareExpression(getContentAsByteArrayInputStream());
@@ -61,6 +80,10 @@ public class XQueryArtifact extends Artifact {
 			}
 			logger.info("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
 			preparedExpression.close();
+			// set modules to validated 
+			for (String referenced : getReferenced()) {
+				getArtifact(referenced).setValidated(true);
+			}
 		} finally {
 			connection.close();
 		}

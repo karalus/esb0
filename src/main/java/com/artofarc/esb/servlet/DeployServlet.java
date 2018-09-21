@@ -18,6 +18,7 @@ package com.artofarc.esb.servlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -119,8 +120,9 @@ public class DeployServlet extends HttpServlet {
 		resp.sendRedirect(req.getContextPath() + "/admin");
 	}
 
-	public static void deployChangeSet(GlobalContext globalContext, PoolContext poolContext, ChangeSet updateSet) {
-		Closer closer = new Closer(globalContext.getWorkerPool(null).getExecutorService());
+	public static void deployChangeSet(GlobalContext globalContext, PoolContext poolContext, ChangeSet updateSet) throws ValidationException {
+		ArrayList<ServiceArtifact> serviceArtifacts = updateSet.getServiceArtifacts();
+		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
 		for (WorkerPoolArtifact workerPoolArtifact : updateSet.getWorkerPoolArtifacts()) {
 			String name = WorkerPoolArtifact.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
@@ -131,7 +133,7 @@ public class DeployServlet extends HttpServlet {
 				closer.add(oldWorkerPool);
 			}
 		}
-		for (ServiceArtifact service : updateSet) {
+		for (ServiceArtifact service : serviceArtifacts) {
 			switch (service.getService().getProtocol()) {
 			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();

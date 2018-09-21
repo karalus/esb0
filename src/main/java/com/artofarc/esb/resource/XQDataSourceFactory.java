@@ -16,11 +16,17 @@
  */
 package com.artofarc.esb.resource;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.xquery.XQDataSource;
 
+import net.sf.saxon.Configuration;
 import net.sf.saxon.expr.XPathContext;
 import net.sf.saxon.lib.ExtensionFunctionCall;
 import net.sf.saxon.lib.ExtensionFunctionDefinition;
+import net.sf.saxon.lib.ModuleURIResolver;
 import net.sf.saxon.om.Sequence;
 import net.sf.saxon.om.StructuredQName;
 import net.sf.saxon.trans.XPathException;
@@ -29,15 +35,51 @@ import net.sf.saxon.value.Int64Value;
 import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
+import com.artofarc.esb.artifact.XQueryArtifact;
+import com.artofarc.esb.context.GlobalContext;
 import com.saxonica.xqj.SaxonXQDataSource;
 
-public class XQDataSourceFactory {
+public class XQDataSourceFactory implements ModuleURIResolver {
+	
+	private final static UUID functionUUID = new UUID();
+	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
+	
+	private final GlobalContext _globalContext;
 
-	public static XQDataSource createXQDataSource() {
+	public XQDataSourceFactory(GlobalContext globalContext) {
+		_globalContext = globalContext;
+	}
+
+	public XQDataSource createXQDataSource() {
 		SaxonXQDataSource dataSource = new SaxonXQDataSource();
-		dataSource.getConfiguration().registerExtensionFunction(new UUID());
-		dataSource.getConfiguration().registerExtensionFunction(new CurrentTimeMillis());
+		Configuration configuration = dataSource.getConfiguration();
+		configuration.registerExtensionFunction(functionUUID);
+		configuration.registerExtensionFunction(functionCurrentTimeMillis);
+		configuration.setModuleURIResolver(this);
 		return dataSource;
+	}
+
+	@Override
+	public StreamSource[] resolve(String moduleURI, String baseURI, String[] locations) throws XPathException {
+		StreamSource[] result = new StreamSource[locations.length];
+		for (int i = 0; i < locations.length; ++i) {
+			try {
+				URI uri = new URI(locations[i]);
+				XQueryArtifact xQueryArtifact = _globalContext.getFileSystem().getArtifact(uri.getPath());
+				if (xQueryArtifact == null) {
+					throw new XPathException("module not found: " + uri.getPath());
+				}
+				xQueryArtifact.setModule(true);
+				registerModule(xQueryArtifact);
+				result[i] = new StreamSource(xQueryArtifact.getContentAsByteArrayInputStream());
+			} catch (URISyntaxException e) {
+				throw new XPathException("location is not a valid URI: " + locations[i]);
+			}
+		}
+		return result;
+	}
+	
+	public void registerModule(XQueryArtifact xQueryArtifact) {
 	}
 
 	private static class UUID extends ExtensionFunctionDefinition {

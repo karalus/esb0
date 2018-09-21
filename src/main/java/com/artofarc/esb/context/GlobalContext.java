@@ -37,7 +37,7 @@ public final class GlobalContext extends Registry {
 
 	private final InitialContext _initialContext;
 	private final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-	private final XQDataSource xqds = XQDataSourceFactory.createXQDataSource();
+	private final XQDataSource xqds = new XQDataSourceFactory(this).createXQDataSource();
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
 	private final Map<String, WorkerPool> _workerPoolMap = Collections.synchronizedMap(new HashMap<String, WorkerPool>());
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
@@ -55,9 +55,8 @@ public final class GlobalContext extends Registry {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <O extends Object> O lookup(String name) throws NamingException {
-		// TOREVIEW: InitialContext is not thread safe, for lookups it should be
-		// safe
+	public <O> O lookup(String name) throws NamingException {
+		// InitialContext is not thread safe, for lookups it should be safe
 		return (O) _initialContext.lookup(name);
 	}
 
@@ -99,6 +98,10 @@ public final class GlobalContext extends Registry {
 
 	public WorkerPool getWorkerPool(String name) {
 		return _workerPoolMap.get(name);
+	}
+
+	public WorkerPool getDefaultWorkerPool() {
+		return _workerPoolMap.get(null);
 	}
 
 	public WorkerPool putWorkerPool(String name, WorkerPool workerPool) {

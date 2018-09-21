@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -21,6 +22,7 @@ import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.message.BodyType;
@@ -270,8 +272,55 @@ public class SOAPTest extends AbstractESBTest {
       assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
    }
    
+   @Test
+   public void testTransformWithModule() throws Exception {
+      GlobalContext globalContext = context.getPoolContext().getGlobalContext();
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      Action action = new UnwrapSOAPAction(false, true);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      action = action.setNextAction(new AssignAction("request", "."));
+		XQueryArtifact module = new XQueryArtifact(globalContext.getFileSystem().getRoot(), "helloworld.xqy");
+      module.setContent("module namespace hello = 'helloworld'; declare function hello:helloworld() { 'hello world' };".getBytes());
+      XQueryArtifact xqueryArtifact = new XQueryArtifact(globalContext.getFileSystem().getRoot(), "test.xqy");
+      xqueryArtifact.setContent("import module namespace hw='helloworld' at '/helloworld.xqy'; declare variable $request as element() external; (hw:helloworld(), $request)".getBytes());
+      xqueryArtifact.validateInternal(globalContext);
+      assertTrue(module.isModule());
+      assertTrue(module.isValidated());
+      assertTrue(xqueryArtifact.getReferenced().contains("/helloworld.xqy"));
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("greetings"));
+      action = action.setNextAction(nextAction);
+      action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("hello world", message.getVariable("greetings"));
+   }
+   
+   public void testTransformWithSchema() throws Exception {
+   	// Feature not supported in Saxon HE
+      GlobalContext globalContext = context.getPoolContext().getGlobalContext();
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      Action action = new UnwrapSOAPAction(false, true);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      action = action.setNextAction(new AssignAction("request", "."));
+      XSDArtifact xsdArtifact = new XSDArtifact(globalContext.getFileSystem().getRoot(), "kdf.xsd");
+      xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
+      xsdArtifact.validateInternal(null);
+      XQueryArtifact xqueryArtifact = new XQueryArtifact(null, null);
+      xqueryArtifact.setContent("import schema default element namespace 'http://aoa.de/ei/foundation/v1' at '/kdf.xsd'; declare variable $request as element() external; (validate($request/*[1]/*[1]), $request)".getBytes());
+      xqueryArtifact.validateInternal(globalContext);
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("validate"));
+      action = action.setNextAction(nextAction);
+      action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+   }
+   
    public void testJMSConsumer() throws Exception {
-      JMSConsumer jmsConsumer = new JMSConsumer(null, "ConnectionFactory", "dynamicQueues/test1", null, null, null, 1);
+      JMSConsumer jmsConsumer = new JMSConsumer(context.getPoolContext().getGlobalContext(), null, "ConnectionFactory", "dynamicQueues/test1", null, null, null, 1);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
       jmsConsumer.init(context.getPoolContext());

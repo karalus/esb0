@@ -39,7 +39,7 @@ public class HttpEndpointRegistry {
 	public synchronized HttpUrlSelector getHttpUrlSelector(HttpEndpoint httpEndpoint) {
 		HttpUrlSelector state = _map.get(httpEndpoint);
 		if (state == null) {
-			state = new HttpUrlSelector(httpEndpoint, _globalContext.getWorkerPool(null));
+			state = new HttpUrlSelector(httpEndpoint, _globalContext.getDefaultWorkerPool());
 			_map.put(httpEndpoint, state);
 		} else {
 			// take non diversifying parameters from most recent version

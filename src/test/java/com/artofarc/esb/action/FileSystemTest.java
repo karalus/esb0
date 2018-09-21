@@ -11,6 +11,7 @@ import javax.xml.soap.SOAPConstants;
 
 import org.junit.Test;
 
+import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.context.Context;
@@ -23,14 +24,14 @@ import com.artofarc.esb.message.ESBVariableConstants;
 import com.artofarc.esb.servlet.ESBServletContextListener;
 
 
-public class FileSystemTest {
+public class FileSystemTest extends AbstractESBTest {
 
    @Test
    public void testFileSystem() throws Exception {
       File dir = new File("src/test/resources");
       assertTrue(dir.exists());
       FileSystem fileSystem = new FileSystem();
-      fileSystem.parseDirectory(null, dir);
+      fileSystem.parseDirectory(context.getPoolContext().getGlobalContext(), dir);
       FileSystem clone = fileSystem.clone();
       assertFalse(fileSystem.getRoot() == clone.getRoot());
       assertFalse(fileSystem.tidyOut());

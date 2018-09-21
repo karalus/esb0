@@ -26,6 +26,7 @@ import javax.naming.NamingException;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -34,8 +35,8 @@ public class JDBCProcedureAction extends JDBCAction {
 
 	private final List<JDBCParameter> _outParams;
 
-	public JDBCProcedureAction(String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int fetchSize) throws NamingException {
-		super(dsName, sql, inParams, fetchSize);
+	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int fetchSize) throws NamingException {
+		super(globalContext, dsName, sql, inParams, fetchSize);
 		_outParams = outParams;
 	}
 

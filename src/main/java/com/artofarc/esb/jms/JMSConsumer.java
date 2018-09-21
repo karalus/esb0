@@ -26,11 +26,11 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -46,7 +46,8 @@ public class JMSConsumer extends ConsumerPort implements AutoCloseable {
 	private final String _topicName;
 	private final JMSWorker[] _jmsWorker;
 
-	public JMSConsumer(String uri, String jndiConnectionFactory, String jndiDestination, String queueName, String topicName, String messageSelector, int workerCount) throws NamingException {
+	public JMSConsumer(GlobalContext globalContext, String uri, String jndiConnectionFactory, String jndiDestination, String queueName, String topicName,
+			String messageSelector, int workerCount) throws NamingException {
 		super(uri);
 		_jndiConnectionFactory = jndiConnectionFactory;
 		_jndiDestination = jndiDestination;
@@ -54,12 +55,7 @@ public class JMSConsumer extends ConsumerPort implements AutoCloseable {
 		_queueName = queueName;
 		_topicName = topicName;
 		if (jndiDestination != null) {
-			InitialContext initialContext = new InitialContext();
-			try {
-				_destination = (Destination) initialContext.lookup(jndiDestination);
-			} finally {
-				initialContext.close();
-			}
+			_destination = globalContext.lookup(jndiDestination);
 		}
 		_jmsWorker = new JMSWorker[workerCount];
 	}

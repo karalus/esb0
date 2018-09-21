@@ -26,7 +26,6 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.soap.SOAPConstants;
 import javax.xml.validation.Schema;
 
-import org.eclipse.persistence.dynamic.DynamicEntity;
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 import org.eclipse.persistence.oxm.MediaType;
@@ -76,7 +75,7 @@ public class XML2JsonAction extends Action {
 		// TOREVIEW: synchronized?
 		if (_urisToPrefixes.isEmpty()) {
 			if (root instanceof JAXBElement) {
-				JAXBElement<DynamicEntity> jaxbElement = (JAXBElement<DynamicEntity>) root;
+				JAXBElement<?> jaxbElement = (JAXBElement<?>) root;
 				_urisToPrefixes.put(jaxbElement.getName().getNamespaceURI(), "");
 			}
 		}

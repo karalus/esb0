@@ -8,6 +8,7 @@ import java.io.IOException;
 import org.junit.After;
 import org.junit.Before;
 
+import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
@@ -19,6 +20,7 @@ public abstract class AbstractESBTest {
 	@Before
 	public void createContext() throws Exception {
 		GlobalContext globalContext = new GlobalContext();
+		globalContext.setFileSystem(new FileSystem());
 		context = new Context(new PoolContext(globalContext));
 	}
 

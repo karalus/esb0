@@ -51,7 +51,7 @@ public class ESBServletContextListener implements ServletContextListener, Runnab
 		} catch (ValidationException e) {
 			throw new RuntimeException("Could not validate artifact " + e.getArtifact(), e.getCause());
 		}
-		globalContext.getWorkerPool(null).getScheduledExecutorService().scheduleAtFixedRate(this, 30L, 30L, TimeUnit.SECONDS);
+		globalContext.getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 30L, 30L, TimeUnit.SECONDS);
 		return poolContext;
 	}
 
