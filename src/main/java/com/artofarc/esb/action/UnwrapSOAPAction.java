@@ -56,7 +56,7 @@ public class UnwrapSOAPAction extends TransformAction {
 		super("declare namespace soapenv=\"" + (soap12 ? SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE : SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
 				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
 				+ (singlePart ? "local-name($b), " : "") + "if ($h) then $h else <soapenv:Header/>, $b)",
-				singlePart ? Arrays.asList(SOAP_OPERATION, SOAP_HEADER) : Arrays.asList(SOAP_HEADER));
+				singlePart ? Arrays.asList(SOAP_OPERATION, SOAP_HEADER) : Arrays.asList(SOAP_HEADER), null);
 		
 		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;

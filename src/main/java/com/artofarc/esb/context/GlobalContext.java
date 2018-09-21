@@ -29,6 +29,7 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.xquery.XQDataSource;
 
 import com.artofarc.esb.Registry;
+import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQDataSourceFactory;
@@ -37,7 +38,7 @@ public final class GlobalContext extends Registry {
 
 	private final InitialContext _initialContext;
 	private final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-	private final XQDataSource xqds = new XQDataSourceFactory(this).createXQDataSource();
+	private final XQDataSource xqds;
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
 	private final Map<String, WorkerPool> _workerPoolMap = Collections.synchronizedMap(new HashMap<String, WorkerPool>());
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
@@ -50,6 +51,12 @@ public final class GlobalContext extends Registry {
 		} catch (NamingException e) {
 			throw new RuntimeException(e);
 		}
+		xqds = new XQDataSourceFactory() {
+			@Override
+			public Artifact resolveArtifact(String path) {
+				return getFileSystem().getArtifact(path);
+			}
+		}.createXQDataSource();
 		// default WorkerPool
 		_workerPoolMap.put(null, new WorkerPool(this, 20));
 	}

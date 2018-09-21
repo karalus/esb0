@@ -197,6 +197,8 @@ public final class FileSystem {
 		switch (extension) {
 		case ServiceArtifact.FILE_EXTENSION:
 			return new ServiceArtifact(parent, name);
+		case "xml":
+			return new XMLArtifact(parent, name);
 		case "xsd":
 			return new XSDArtifact(parent, name);
 		case "wsdl":

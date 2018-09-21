@@ -16,11 +16,13 @@
  */
 package com.artofarc.esb.resource;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQDataSource;
+import javax.xml.xquery.XQException;
+import javax.xml.xquery.XQStaticContext;
 
 import net.sf.saxon.Configuration;
 import net.sf.saxon.expr.XPathContext;
@@ -35,58 +37,65 @@ import net.sf.saxon.value.Int64Value;
 import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
-import com.artofarc.esb.artifact.XQueryArtifact;
-import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.artifact.Artifact;
 import com.saxonica.xqj.SaxonXQDataSource;
 
-public class XQDataSourceFactory implements ModuleURIResolver {
+public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResolver {
 	
+	public static final String XPATH_EXTENSION_NS_URI = "http://artofarc.com/xpath-extension";
+	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
+
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
 	
-	private final GlobalContext _globalContext;
-
-	public XQDataSourceFactory(GlobalContext globalContext) {
-		_globalContext = globalContext;
-	}
-
 	public XQDataSource createXQDataSource() {
 		SaxonXQDataSource dataSource = new SaxonXQDataSource();
 		Configuration configuration = dataSource.getConfiguration();
 		configuration.registerExtensionFunction(functionUUID);
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
 		configuration.setModuleURIResolver(this);
+		configuration.setURIResolver(this);
 		return dataSource;
+	}
+	
+	public final static void setBaseURI(XQConnection connection, String baseURI) throws XQException {
+		XQStaticContext staticContext = connection.getStaticContext();
+		// In Saxon baseURI must not be an empty string
+		staticContext.setBaseURI(baseURI.isEmpty() ? "/." : baseURI);
+		connection.setStaticContext(staticContext);
+	}
+
+	@Override
+	public StreamSource resolve(String href, String base) throws TransformerException {
+		String path = base + href;
+		Artifact artifact = resolveArtifact(path);
+		if (artifact == null) {
+			throw new TransformerException("document not found: " + path);
+		}
+		return new StreamSource(artifact.getContentAsByteArrayInputStream());
 	}
 
 	@Override
 	public StreamSource[] resolve(String moduleURI, String baseURI, String[] locations) throws XPathException {
 		StreamSource[] result = new StreamSource[locations.length];
 		for (int i = 0; i < locations.length; ++i) {
-			try {
-				URI uri = new URI(locations[i]);
-				XQueryArtifact xQueryArtifact = _globalContext.getFileSystem().getArtifact(uri.getPath());
-				if (xQueryArtifact == null) {
-					throw new XPathException("module not found: " + uri.getPath());
-				}
-				xQueryArtifact.setModule(true);
-				registerModule(xQueryArtifact);
-				result[i] = new StreamSource(xQueryArtifact.getContentAsByteArrayInputStream());
-			} catch (URISyntaxException e) {
-				throw new XPathException("location is not a valid URI: " + locations[i]);
+			String path = baseURI + locations[i];
+			Artifact artifact = resolveArtifact(path);
+			if (artifact == null) {
+				throw new XPathException("module not found: " + path);
 			}
+			result[i] = new StreamSource(artifact.getContentAsByteArrayInputStream());
 		}
 		return result;
 	}
 	
-	public void registerModule(XQueryArtifact xQueryArtifact) {
-	}
-
+	public abstract Artifact resolveArtifact(String path);
+	
 	private static class UUID extends ExtensionFunctionDefinition {
 
 		@Override
 		public StructuredQName getFunctionQName() {
-			return new StructuredQName("fn-artofarc", "http://artofarc.com/xpath-extension", "uuid");
+			return new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "uuid");
 		}
 
 		@Override
@@ -116,7 +125,7 @@ public class XQDataSourceFactory implements ModuleURIResolver {
 
 		@Override
 		public StructuredQName getFunctionQName() {
-			return new StructuredQName("fn-artofarc", "http://artofarc.com/xpath-extension", "currentTimeMillis");
+			return new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "currentTimeMillis");
 		}
 
 		@Override

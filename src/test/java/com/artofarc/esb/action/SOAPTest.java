@@ -20,6 +20,8 @@ import org.w3c.dom.Node;
 
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
+import com.artofarc.esb.artifact.Directory;
+import com.artofarc.esb.artifact.XMLArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.context.GlobalContext;
@@ -262,8 +264,31 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new AssignAction("request", "."));
-      XQueryArtifact xqueryArtifact = new XQueryArtifact(null, null);
+      XQueryArtifact xqueryArtifact = new XQueryArtifact(context.getPoolContext().getGlobalContext().getFileSystem().getRoot(), null);
       xqueryArtifact.setContent("declare variable $request as element() external; $request".getBytes());
+      xqueryArtifact.validateInternal(context.getPoolContext().getGlobalContext());
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery());
+      action = action.setNextAction(nextAction);
+      action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+   }
+   
+   @Test
+   public void testTransformWithStaticData() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      Action action = new UnwrapSOAPAction(false, true);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      action = action.setNextAction(new AssignAction("request", "."));
+      Directory root = context.getPoolContext().getGlobalContext().getFileSystem().getRoot();
+      Directory queries = new Directory(root, "queries");
+      Directory staticData = new Directory(root, "data");
+		XQueryArtifact xqueryArtifact = new XQueryArtifact(queries, null);
+      xqueryArtifact.setContent("declare variable $request as element() external; (doc('/data/static.xml')/*[1]/text(), $request)".getBytes());
+		XMLArtifact staticXML = new XMLArtifact(staticData, "static.xml");
+		staticXML.setContent("<root>Hello World!</root>".getBytes());
       xqueryArtifact.validateInternal(context.getPoolContext().getGlobalContext());
       TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery());
       action = action.setNextAction(nextAction);
@@ -281,15 +306,43 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new AssignAction("request", "."));
-		XQueryArtifact module = new XQueryArtifact(globalContext.getFileSystem().getRoot(), "helloworld.xqy");
-      module.setContent("module namespace hello = 'helloworld'; declare function hello:helloworld() { 'hello world' };".getBytes());
-      XQueryArtifact xqueryArtifact = new XQueryArtifact(globalContext.getFileSystem().getRoot(), "test.xqy");
-      xqueryArtifact.setContent("import module namespace hw='helloworld' at '/helloworld.xqy'; declare variable $request as element() external; (hw:helloworld(), $request)".getBytes());
+      Directory modules = new Directory(globalContext.getFileSystem().getRoot(), "modules");
+      Directory queries = new Directory(globalContext.getFileSystem().getRoot(), "queries");
+		XQueryArtifact module = new XQueryArtifact(modules, "helloworld.xqy");
+      module.setContent("module namespace hello = 'http://helloworld'; declare function hello:helloworld() { 'hello world' };".getBytes());
+      XQueryArtifact xqueryArtifact = new XQueryArtifact(queries, "test.xqy");
+      xqueryArtifact.setContent("import module namespace hw='http://helloworld' at '../modules/helloworld.xqy'; declare variable $request as element() external; (hw:helloworld(), $request)".getBytes());
       xqueryArtifact.validateInternal(globalContext);
-      assertTrue(module.isModule());
       assertTrue(module.isValidated());
-      assertTrue(xqueryArtifact.getReferenced().contains("/helloworld.xqy"));
-      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("greetings"));
+      assertTrue(xqueryArtifact.getReferenced().size() > 0);
+      assertTrue(xqueryArtifact.getReferenced().contains("/modules/helloworld.xqy"));
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("greetings"), xqueryArtifact.getParent().getURI());
+      action = action.setNextAction(nextAction);
+      action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("hello world", message.getVariable("greetings"));
+   }
+   
+   @Test
+   public void testTransformWithModuleFromRoot() throws Exception {
+      GlobalContext globalContext = context.getPoolContext().getGlobalContext();
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      Action action = new UnwrapSOAPAction(false, true);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      action = action.setNextAction(new AssignAction("request", "."));
+      Directory modules = new Directory(globalContext.getFileSystem().getRoot(), "modules");
+		XQueryArtifact module = new XQueryArtifact(modules, "helloworld.xqy");
+      module.setContent("module namespace hello = 'http://helloworld'; declare function hello:helloworld() { 'hello world' };".getBytes());
+      XQueryArtifact xqueryArtifact = new XQueryArtifact(globalContext.getFileSystem().getRoot(), "test.xqy");
+      xqueryArtifact.setContent("import module namespace hw='http://helloworld' at 'modules/helloworld.xqy'; declare variable $request as element() external; (hw:helloworld(), $request)".getBytes());
+      xqueryArtifact.validateInternal(globalContext);
+      assertTrue(module.isValidated());
+      assertTrue(xqueryArtifact.getReferenced().size() > 0);
+      assertTrue(xqueryArtifact.getReferenced().contains("/modules/helloworld.xqy"));
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("greetings"), xqueryArtifact.getParent().getURI());
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
@@ -312,7 +365,7 @@ public class SOAPTest extends AbstractESBTest {
       XQueryArtifact xqueryArtifact = new XQueryArtifact(null, null);
       xqueryArtifact.setContent("import schema default element namespace 'http://aoa.de/ei/foundation/v1' at '/kdf.xsd'; declare variable $request as element() external; (validate($request/*[1]/*[1]), $request)".getBytes());
       xqueryArtifact.validateInternal(globalContext);
-      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("validate"));
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("validate"), xqueryArtifact.getParent().getURI());
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);

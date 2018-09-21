@@ -17,8 +17,6 @@
 package com.artofarc.esb.artifact;
 
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConnection;
@@ -31,29 +29,13 @@ import com.artofarc.esb.resource.XQDataSourceFactory;
 
 public class XQueryArtifact extends Artifact {
 
-	private final List<String> _externalVariables = new ArrayList<>();
-	private boolean _module;
-
 	public XQueryArtifact(Directory parent, String name) {
 		super(parent, name);
 	}
 
-	public List<String> getExternalVariables() {
-		return _externalVariables;
-	}
-
-	public boolean isModule() {
-		return _module;
-	}
-
-	public void setModule(boolean module) {
-		_module = module;
-	}
-
 	@Override
 	public XQueryArtifact clone(Directory parent) {
-		XQueryArtifact clone = initClone(new XQueryArtifact(parent, getName()));
-		return clone;
+		return initClone(new XQueryArtifact(parent, getName()));
 	}
 
 	public String getXQuery() throws UnsupportedEncodingException {
@@ -64,18 +46,22 @@ public class XQueryArtifact extends Artifact {
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws XQException {
 		// Needs an individual XQDataSourceFactory to track the use of modules
-		XQDataSourceFactory dataSourceFactory = new XQDataSourceFactory(globalContext) {
+		XQDataSourceFactory dataSourceFactory = new XQDataSourceFactory() {
 			@Override
-			public void registerModule(XQueryArtifact xQueryArtifact) {
-				addReference(xQueryArtifact);
+			public Artifact resolveArtifact(String path) {
+				Artifact artifact = getArtifact(path);
+				if (artifact != null) {
+					addReference(artifact);
+				}
+				return artifact;
 			}
 		};
 		XQConnection connection = dataSourceFactory.createXQDataSource().getConnection();
+		XQDataSourceFactory.setBaseURI(connection, getParent().getURI());
 		try {
 			logger.info("Parsing XQuery: " + getURI());
 			XQPreparedExpression preparedExpression = connection.prepareExpression(getContentAsByteArrayInputStream());
 			for (QName qName : preparedExpression.getAllExternalVariables()) {
-				_externalVariables.add(qName.getLocalPart());
 				logger.info("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
 			}
 			logger.info("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));

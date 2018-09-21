@@ -320,6 +320,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "transform": {
 				Transform transform = (Transform) jaxbElement.getValue();
 				String xquery = transform.getXquery();
+				String baseURI = getParent().getURI();
 				if (transform.getXqueryURI() != null) {
 					XQueryArtifact xQueryArtifact = getArtifact(transform.getXqueryURI());
 					if (xQueryArtifact == null) {
@@ -328,8 +329,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					addReference(xQueryArtifact);
 					xQueryArtifact.validate(globalContext);
 					xquery = xQueryArtifact.getXQuery();
+					baseURI = xQueryArtifact.getParent().getURI();
 				}
-				TransformAction transformAction = new TransformAction(xquery);
+				TransformAction transformAction = new TransformAction(xquery, baseURI);
 				list.add(transformAction);
 				break;
 			}

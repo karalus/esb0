@@ -44,17 +44,23 @@ public class TransformAction extends Action {
 
 	private final String _xquery;
 	private final List<String> _varNames;
+	private final String _baseURI; 
 	protected List<String> _bindNames;
 	private final HashMap<QName, XQItemType> _bindings = new HashMap<>();
 	protected String _contextItem;
 
-	public TransformAction(String xquery) {
-		this(xquery, Collections.<String> emptyList());
+	public TransformAction(String xquery, String baseURI) {
+		this(xquery, Collections.<String> emptyList(), baseURI);
 	}
 
-	protected TransformAction(String xquery, List<String> varNames) {
+	protected TransformAction(String xquery) {
+		this(xquery, null);
+	}
+
+	protected TransformAction(String xquery, List<String> varNames, String baseURI) {
 		_xquery = xquery;
 		_varNames = varNames;
+		_baseURI = baseURI;
 	}
 
 	private synchronized void initBindings(XQPreparedExpression xqExpression) throws XQException {
@@ -84,7 +90,7 @@ public class TransformAction extends Action {
 	
 	protected ExecutionContext prepare(Context context, ESBMessage message, Map<String, Object> destMap) throws Exception {
 		context.getTimeGauge().startTimeMeasurement();
-		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery);
+		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery, _baseURI);
 		if (_bindNames == null || _bindNames.size() != _bindings.size()) {
 			initBindings(xqExpression);
 		}

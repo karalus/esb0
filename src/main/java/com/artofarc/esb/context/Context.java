@@ -32,6 +32,7 @@ import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQStaticContext;
 
+import com.artofarc.esb.resource.XQDataSourceFactory;
 import com.artofarc.util.TimeGauge;
 
 public class Context extends AbstractContext {
@@ -86,9 +87,12 @@ public class Context extends AbstractContext {
 		return xqConnection;
 	}
 
-	public XQPreparedExpression getXQPreparedExpression(String xquery) throws XQException {
+	public XQPreparedExpression getXQPreparedExpression(String xquery, String baseURI) throws XQException {
 		XQPreparedExpression preparedExpression = _mapXQ.get(xquery);
 		if (preparedExpression == null) {
+			if (baseURI != null) {
+				XQDataSourceFactory.setBaseURI(xqConnection, baseURI);
+			}
 			preparedExpression = xqConnection.prepareExpression(xquery);
 			_mapXQ.put(xquery, preparedExpression);
 		}
