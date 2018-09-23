@@ -16,7 +16,7 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConnection;
@@ -38,9 +38,9 @@ public class XQueryArtifact extends Artifact {
 		return initClone(new XQueryArtifact(parent, getName()));
 	}
 
-	public String getXQuery() throws UnsupportedEncodingException {
+	public String getXQuery() {
 		// TODO: UTF-8 is just an assumption
-		return new String(getContent(), "UTF-8");
+		return new String(getContent(), StandardCharsets.UTF_8);
 	}
 
 	@Override

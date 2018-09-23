@@ -22,7 +22,6 @@ import java.util.Map;
 
 import javax.xml.validation.Schema;
 import javax.xml.xquery.XQException;
-import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQResultSequence;
 
 import com.artofarc.esb.context.Context;
@@ -42,9 +41,6 @@ public class ValidateAction extends AssignAction {
 			throw new ExecutionException(this, "Expression had no result");
 		}
 		try (AutoCloseable timer = context.getTimeGauge().createTimer("validator.validate")) {
-//			XQItem xqItem = resultSequence.getItem();
-//			xqItem.writeItem(System.out, null);
-//			xqItem.writeItemToSAX(_schema.newValidatorHandler());
 			resultSequence.writeItemToSAX(_schema.newValidatorHandler());
 		} catch (XQException e) {
 			throw new ExecutionException(this, "Validation failed", e.getCause());

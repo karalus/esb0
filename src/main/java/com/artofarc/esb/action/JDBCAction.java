@@ -75,7 +75,7 @@ public abstract class JDBCAction extends TerminalAction {
 					switch (param.getType()) {
 					case Types.CLOB:
 					case Types.BLOB:
-						return super.prepare(context, message, inPipeline);
+						return super.prepare(context, message, true);
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
@@ -225,7 +225,7 @@ public abstract class JDBCAction extends TerminalAction {
 		return result.build();
 	}
 	
-	private final static boolean checkNotNull(ResultSet resultSet, JsonArrayBuilder row) throws SQLException {
+	private static boolean checkNotNull(ResultSet resultSet, JsonArrayBuilder row) throws SQLException {
 		if (resultSet.wasNull()) {
 			row.addNull();
 			return false;
@@ -234,7 +234,7 @@ public abstract class JDBCAction extends TerminalAction {
 		}
 	}
 	
-	private final static GregorianCalendar convert(Date date) {
+	private static GregorianCalendar convert(Date date) {
 		GregorianCalendar gc = new GregorianCalendar();
 		gc.setTime(date);
 		return gc;

@@ -46,8 +46,7 @@ public class JDBCProcedureAction extends JDBCAction {
 
 		final String sql = bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.fine("JDBCProcedureAction sql=" + sql);
-		Connection connection = _dataSource.getConnection();
-		try (AutoCloseable timer = context.getTimeGauge().createTimer("prepareCall & execute"); CallableStatement cs = connection.prepareCall(sql)) {
+		try (Connection connection = _dataSource.getConnection(); AutoCloseable timer = context.getTimeGauge().createTimer("prepareCall & execute"); CallableStatement cs = connection.prepareCall(sql)) {
 			bindParameters(cs, context, message);
 			for (JDBCParameter param : _outParams) {
 				cs.registerOutParameter(param.getPos(), param.getType());
@@ -56,24 +55,22 @@ public class JDBCProcedureAction extends JDBCAction {
 			for (JDBCParameter param : _outParams) {
 				if (param.isBody()) {
 					switch (param.getType()) {
-					case Types.CLOB:
-						message.reset(BodyType.READER, cs.getCharacterStream(param.getPos()));
-						break;
-					case Types.BLOB:
-						final Blob blob = cs.getBlob(param.getPos());
-						message.reset(BodyType.BYTES, blob.getBytes(1, (int) blob.length()));
-						blob.free();
-						break;
-					default:
-						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
+						case Types.CLOB:
+							message.reset(BodyType.READER, cs.getCharacterStream(param.getPos()));
+							break;
+						case Types.BLOB:
+							final Blob blob = cs.getBlob(param.getPos());
+							message.reset(BodyType.BYTES, blob.getBytes(1, (int) blob.length()));
+							blob.free();
+							break;
+						default:
+							throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
 				} else {
 					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));
 				}
 			}
 			extractResult(cs, message);
-		} finally {
-			connection.close();
 		}
 	}
 

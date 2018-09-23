@@ -391,7 +391,7 @@ public class SOAPTest extends AbstractESBTest {
       
       assertTrue(markAction.executed);
       
-      jmsConsumer.destroy();
+      jmsConsumer.close();
    }
    
 }

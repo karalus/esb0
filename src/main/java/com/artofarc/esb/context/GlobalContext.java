@@ -58,7 +58,8 @@ public final class GlobalContext extends Registry {
 			}
 		}.createXQDataSource();
 		// default WorkerPool
-		_workerPoolMap.put(null, new WorkerPool(this, 20));
+		String workerThreads = System.getenv("ESB_WORKER_THREADS");
+		_workerPoolMap.put(null, new WorkerPool(this, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
 	}
 
 	@SuppressWarnings("unchecked")

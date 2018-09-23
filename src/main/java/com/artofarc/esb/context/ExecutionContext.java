@@ -35,12 +35,12 @@ public class ExecutionContext {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <R extends Object> R getResource() {
+	public <R> R getResource() {
 		return (R) _resource;
 	}
 
 	@SuppressWarnings("unchecked")
-	public <R extends Object> R getResource2() {
+	public <R> R getResource2() {
 		return (R) _resource2;
 	}
 

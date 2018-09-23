@@ -24,7 +24,7 @@ import java.util.Map.Entry;
 public final class Collections {
 
 	public static final <K, V> Map.Entry<K, V> createEntry(final K key, final V value) {
-		return new AbstractMap.SimpleImmutableEntry<K, V>(key, value);
+		return new AbstractMap.SimpleImmutableEntry<>(key, value);
 	}
 
 	public static final <K, V> Map<V, K> inverseMap(Map<K, V> map) {

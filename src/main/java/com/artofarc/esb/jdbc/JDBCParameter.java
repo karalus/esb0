@@ -49,7 +49,7 @@ public final class JDBCParameter {
 	private final String bindName;
 	private final Integer truncate;
 
-	public JDBCParameter(int pos, String typeName, boolean body, String bindName, Integer truncate) throws NoSuchFieldException {
+	public JDBCParameter(int pos, String typeName, boolean body, String bindName, Integer truncate) {
 		Integer code = TYPES.get(typeName);
 		if (code == null) {
 			throw new IllegalArgumentException("Not a SQL type: " + typeName);
@@ -87,7 +87,7 @@ public final class JDBCParameter {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Object> T alignValue(Object value) {
+	public <T> T alignValue(Object value) {
 		switch (type) {
 		case Types.TIMESTAMP:
 			if (value instanceof XMLGregorianCalendar) {

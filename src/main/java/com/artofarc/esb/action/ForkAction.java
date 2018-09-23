@@ -42,7 +42,7 @@ public class ForkAction extends Action {
 	}
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
 		if (inPipeline) {
 			message.reset(BodyType.INVALID, null);
 		}

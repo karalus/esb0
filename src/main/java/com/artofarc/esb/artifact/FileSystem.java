@@ -16,21 +16,12 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.message.ESBMessage;
+
+import java.io.*;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.StringTokenizer;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -38,10 +29,6 @@ import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-
-import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.message.ESBMessage;
 
 public final class FileSystem {
 
@@ -185,11 +172,6 @@ public final class FileSystem {
 		}
 	}
 	
-	public void writeDir(File dir) throws IOException {
-		writeDir(_root, dir);
-		_anchorDir = dir;
-	}
-
 	protected static final Artifact createArtifact(Directory parent, String name, String extension) {
 		// Mac OSX
 		if (name.startsWith("._"))
@@ -221,8 +203,7 @@ public final class FileSystem {
 	protected Directory makeDirectory(String path) {
 		Directory result = _root;
 		String[] split = path.split("/");
-		for (int i = 0; i < split.length; i++) {
-			String name = split[i];
+		for (String name : split) {
 			Artifact artifact = result.getArtifacts().get(name);
 			if (artifact == null) {
 				result = new Directory(result, name);
@@ -241,7 +222,7 @@ public final class FileSystem {
 		return new FileSystem(_root.clone(null));
 	}
 
-	private final boolean deleteArtifact(Artifact artifact) {
+	private boolean deleteArtifact(Artifact artifact) {
 		boolean deleted = false;
 		if (artifact != null && artifact.getReferencedBy().isEmpty()) {
 			for (String referenced : artifact.getReferenced()) {
@@ -279,7 +260,7 @@ public final class FileSystem {
 		return directory.getArtifacts().isEmpty();
 	}
 
-	private final void collectFolders(HashSet<String> visited, Directory directory) {
+	private void collectFolders(HashSet<String> visited, Directory directory) {
 		for (Artifact artifact : directory.getArtifacts().values()) {
 			if (artifact instanceof ServiceArtifact) {
 				collectDownwardDependencies(visited, artifact.getURI());
@@ -289,7 +270,7 @@ public final class FileSystem {
 		}
 	}
 
-	private final void collectDownwardDependencies(HashSet<String> visited, String artifactUri) {
+	private void collectDownwardDependencies(HashSet<String> visited, String artifactUri) {
 		if (visited.add(artifactUri)) {
 			Artifact artifact = getArtifact(artifactUri);
 			for (String referenced : artifact.getReferenced()) {
@@ -298,7 +279,7 @@ public final class FileSystem {
 		}
 	}
 
-	private final void collectUpwardDependencies(HashSet<String> visited, String artifactUri) {
+	private void collectUpwardDependencies(HashSet<String> visited, String artifactUri) {
 		if (visited.add(artifactUri)) {
 			Artifact artifact = getArtifact(artifactUri);
 			for (String referenced : artifact.getReferencedBy()) {
@@ -307,7 +288,7 @@ public final class FileSystem {
 		}
 	}
 
-	protected enum ChangeType { CREATE, UPDATE, DELETE };
+	protected enum ChangeType { CREATE, UPDATE, DELETE }
 
 	public class ChangeSet {
 		private final ArrayList<Future<ServiceArtifact>> futures = new ArrayList<>();
@@ -445,10 +426,4 @@ public final class FileSystem {
 		_changes.clear();
 	}
 	
-	public void writeZIP(File file) throws IOException {
-		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(file))) {
-
-		}
-	}
-
 }

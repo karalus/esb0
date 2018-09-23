@@ -46,7 +46,7 @@ public abstract class ResourceFactory<R extends AutoCloseable, D, P> implements 
 	}
 
 	@Override
-	public synchronized void close() throws Exception {
+	public synchronized void close() {
 		for (R resource : _pool.values()) {
 			try {
 				resource.close();

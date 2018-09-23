@@ -24,7 +24,7 @@ public final class TimeGauge implements AutoCloseable {
 
 	protected final static Logger logger = Logger.getLogger("ESB");
 
-	private final Stack<Long> timeMeasurement = new Stack<Long>();
+	private final Stack<Long> timeMeasurement = new Stack<>();
 
 	private final Level _level;
 	
@@ -61,7 +61,7 @@ public final class TimeGauge implements AutoCloseable {
 	}
 
 	@Override
-	public void close() throws Exception {
+	public void close() {
 		timeMeasurement.clear();
 	}
 

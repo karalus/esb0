@@ -489,7 +489,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return result;
 	}
 
-	private List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) throws NoSuchFieldException {
+	private List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) {
 		List<JDBCParameter> params = new ArrayList<>();
 		for (JdbcParameter jdbcParameter : jdbcParameters) {
 			params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.getVariable(), jdbcParameter.getTruncate()));

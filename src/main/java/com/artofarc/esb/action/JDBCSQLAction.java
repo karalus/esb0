@@ -50,13 +50,10 @@ public class JDBCSQLAction extends JDBCAction {
 
 		final String sql = bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.fine("JDBCSQLAction sql=" + sql);
-		Connection connection = _dataSource.getConnection();
-		try (AutoCloseable timer = context.getTimeGauge().createTimer("prepareStatement & execute"); PreparedStatement ps = connection.prepareStatement(sql)) {
+		try (Connection connection = _dataSource.getConnection(); AutoCloseable timer = context.getTimeGauge().createTimer("prepareStatement & execute"); PreparedStatement ps = connection.prepareStatement(sql)) {
 			bindParameters(ps, context, message);
 			ps.execute();
 			extractResult(ps, message);
-		} finally {
-			connection.close();
 		}
 	}
 

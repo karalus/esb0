@@ -40,7 +40,7 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		ExecutionContext executionContext = super.prepare(context, message, inPipeline);
-		String soapAction = _mapOperation2SoapActionURI.get(message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+		String soapAction = _mapOperation2SoapActionURI.get(message.<String>getVariable(ESBVariableConstants.SOAP_OPERATION));
 		if (_soap12) {
 			if (soapAction != null) {
 				message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_2_CONTENT_TYPE + ";" + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + soapAction);

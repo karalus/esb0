@@ -61,7 +61,7 @@ public class JMSConsumer extends ConsumerPort implements AutoCloseable {
 	}
 
 	public String getKey() {
-		return _jndiConnectionFactory + '|' + _jndiDestination + '|' + _messageSelector;
+		return _jndiConnectionFactory + '|' + (_jndiDestination != null ? _jndiDestination : _queueName != null ? _queueName : _topicName) + '|' + _messageSelector;
 	}
 
 	public void init(PoolContext poolContext) throws Exception {
@@ -76,8 +76,8 @@ public class JMSConsumer extends ConsumerPort implements AutoCloseable {
 	}
 
 	public void open() throws Exception {
-		for (int i = 0; i < _jmsWorker.length; ++i) {
-			_jmsWorker[i].open();
+		for (JMSWorker jmsWorker : _jmsWorker) {
+			jmsWorker.open();
 		}
 	}
 
@@ -88,30 +88,19 @@ public class JMSConsumer extends ConsumerPort implements AutoCloseable {
 
 	@Override
 	public void enable(boolean enable) throws JMSException {
-		for (int i = 0; i < _jmsWorker.length; ++i) {
+		for (JMSWorker jmsWorker : _jmsWorker) {
 			if (enable) {
-				_jmsWorker[i].startListening();
+				jmsWorker.startListening();
 			} else {
-				_jmsWorker[i].stopListening();
+				jmsWorker.stopListening();
 			}
 		}
 	}
 
 	@Override
 	public void close() throws Exception {
-		for (int i = 0; i < _jmsWorker.length; ++i) {
-			_jmsWorker[i].close();
-		}
-	}
-
-	public void destroy() throws Exception {
-		for (int i = 0; i < _jmsWorker.length; ++i) {
-			try {
-				_jmsWorker[i].close();
-			} catch (JMSException e) {
-				// ignore
-			}
-			_jmsWorker[i]._context.close();
+		for (JMSWorker jmsWorker : _jmsWorker) {
+			jmsWorker.close();
 		}
 	}
 

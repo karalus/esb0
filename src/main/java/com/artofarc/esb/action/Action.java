@@ -118,15 +118,6 @@ public abstract class Action implements Cloneable {
 		timeGauge.stopTimeMeasurement("Finished process: " + getClass(), false);
 	}
 
-	public final void execute(Context context, ESBMessage message) throws Exception {
-		ExecutionContext executionContext = prepare(context, message, false);
-		try {
-			execute(context, executionContext, message, false);
-		} finally {
-			close(executionContext);
-		}
-	}
-
 	// pipelining
 	protected boolean _pipelineStop;
 
@@ -176,7 +167,7 @@ public abstract class Action implements Cloneable {
 	}
 
 	public static final List<Action> cloneService(List<Action> service) {
-		List<Action> clone = new ArrayList<Action>(service.size());
+		List<Action> clone = new ArrayList<>(service.size());
 		for (Action action : service) {
 			clone.add(action.clone());
 		}

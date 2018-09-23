@@ -113,7 +113,7 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 			return new ExtensionFunctionCall() {
 
 				@Override
-				public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException {
+				public Sequence call(XPathContext context, Sequence[] arguments) {
 					return StringValue.makeStringValue(java.util.UUID.randomUUID().toString());
 				}
 
@@ -143,7 +143,7 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 			return new ExtensionFunctionCall() {
 
 				@Override
-				public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException {
+				public Sequence call(XPathContext context, Sequence[] arguments) {
 					return Int64Value.makeDerived(System.currentTimeMillis(), BuiltInAtomicType.LONG);
 				}
 

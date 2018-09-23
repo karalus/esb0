@@ -38,7 +38,7 @@ public final class WorkerPool implements AutoCloseable {
 		_poolContext = new PoolContext(globalContext);
 		_threadFactory = new WorkerPoolThreadFactory(name, _poolContext, priority);
 		if (maxThreads > 0 && queueDepth > 0) {
-			_workQueue = new ArrayBlockingQueue<Runnable>(queueDepth);
+			_workQueue = new ArrayBlockingQueue<>(queueDepth);
 			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, _workQueue, _threadFactory);
 		} else {
 			_executorService = null;
@@ -53,7 +53,7 @@ public final class WorkerPool implements AutoCloseable {
 	WorkerPool(GlobalContext globalContext, int nThreads) {
 		_poolContext = new PoolContext(globalContext);
 		_threadFactory = new WorkerPoolThreadFactory("Default", _poolContext, Thread.NORM_PRIORITY);
-		_workQueue = new LinkedBlockingQueue<Runnable>();
+		_workQueue = new LinkedBlockingQueue<>();
 		// Refer to Executors.newFixedThreadPool 
 		_executorService = new ThreadPoolExecutor(nThreads, nThreads, 0L, TimeUnit.MILLISECONDS, _workQueue, _threadFactory);
 		_scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(_threadFactory);

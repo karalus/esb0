@@ -18,34 +18,34 @@ package com.artofarc.esb.message;
 
 public interface ESBVariableConstants {
 
-	public static final String HttpMethod = "HttpMethod";
+	String HttpMethod = "HttpMethod";
 
-	public static final String ContextPath = "ContextPath";
+	String ContextPath = "ContextPath";
 
-	public static final String PathInfo = "PathInfo";
+	String PathInfo = "PathInfo";
 
-	public static final String QueryString = "QueryString";
+	String QueryString = "QueryString";
 
-	public static final String ClientCertificate = "ClientCertificate";
+	String ClientCertificate = "ClientCertificate";
 
-	public static final String HttpResponseCode = "HttpResponseCode";
+	String HttpResponseCode = "HttpResponseCode";
 
-	public static final String HttpServletResponse = "HttpServletResponse";
+	String HttpServletResponse = "HttpServletResponse";
 
-	public static final String HttpURLConnection = "HttpURLConnection";
+	String HttpURLConnection = "HttpURLConnection";
 
-	public static final String appendHttpUrlPath = "appendHttpUrlPath";
+	String appendHttpUrlPath = "appendHttpUrlPath";
 
-	public static final String AsyncContext = "AsyncContext";
+	String AsyncContext = "AsyncContext";
 
-	public static final String WorkerPool = "WorkerPool";
+	String WorkerPool = "WorkerPool";
 
-	public static final String SOAP_OPERATION = "operation";
+	String SOAP_OPERATION = "operation";
 
-	public static final String SOAP_HEADER = "header";
+	String SOAP_HEADER = "header";
 
-	public static final String hasFault = "hasFault";
+	String hasFault = "hasFault";
 
-	public static final String redirect = "redirect";
+	String redirect = "redirect";
 
 }

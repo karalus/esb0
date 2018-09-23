@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URI;
@@ -32,7 +31,6 @@ import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 public abstract class SchemaArtifact extends Artifact implements LSResourceResolver, EntityResolver {
 
@@ -61,7 +59,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	private URI lastUri;
 
 	@Override
-	public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {
+	public InputSource resolveEntity(String publicId, String systemId) {
 		try {
 			URI uri = new URI(systemId);
 			XSDArtifact artifact = getArtifact(uri.getPath());
@@ -80,7 +78,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	@Override
 	public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
-		if (systemId.indexOf("//") >= 0) {
+		if (systemId.contains("//")) {
 			throw new IllegalArgumentException("systemId must be a relative URI " + systemId);
 		}
 		SchemaArtifact base = this;

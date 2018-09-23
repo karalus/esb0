@@ -88,7 +88,7 @@ public final class WSDL4JUtil {
 
 		ExtensibilityElement extensibilityElement = getExtensibilityElement(elementExtensible, classes);
 		if (extensibilityElement != null) {
-			return (T) extensibilityElement.getClass().getMethod(methodName, new Class<?>[0]).invoke(extensibilityElement, new Object[0]);
+			return (T) extensibilityElement.getClass().getMethod(methodName).invoke(extensibilityElement, new Object[0]);
 		}
 		return null;
 	}

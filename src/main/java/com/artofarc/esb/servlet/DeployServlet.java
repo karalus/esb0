@@ -52,7 +52,7 @@ public class DeployServlet extends HttpServlet {
 	public static final String SERVLET_PATH = "/admin/deploy";
 
 	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
 		GlobalContext globalContext = poolContext.getGlobalContext();
 		Artifact artifact = globalContext.getFileSystem().getArtifact(req.getPathInfo());

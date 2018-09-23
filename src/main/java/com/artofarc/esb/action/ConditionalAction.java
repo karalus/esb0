@@ -35,10 +35,6 @@ public class ConditionalAction extends AssignAction {
 		super(RESULT, expression, namespaces, bindNames, contextItem);
 	}
 
-	public Action getConditionalAction() {
-		return conditionalAction;
-	}
-
 	public void setConditionalAction(Action conditionalAction) {
 		this.conditionalAction = conditionalAction;
 	}

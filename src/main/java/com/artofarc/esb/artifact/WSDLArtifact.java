@@ -117,7 +117,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	@Override
 	public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
 		if (systemId == null) {
-			return new LSInputImpl(publicId, systemId, baseURI, new ByteArrayInputStream(_schemas.get(namespaceURI)));
+			return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(_schemas.get(namespaceURI)));
 		} else {
 			return super.resolveResource(type, namespaceURI, publicId, systemId, baseURI);
 		}
@@ -135,7 +135,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	@Override
 	public InputSource getImportInputSource(String parentLocation, String importLocation) {
-		if (importLocation.indexOf("//") >= 0) {
+		if (importLocation.contains("//")) {
 			throw new IllegalArgumentException("importLocation must be a relative URI " + importLocation);
 		}
 		Artifact artifact;
