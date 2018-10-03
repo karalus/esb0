@@ -14,36 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.message;
+package com.artofarc.util;
 
-public interface ESBVariableConstants {
+import org.jvnet.fastinfoset.sax.FastInfosetReader;
 
-	String HttpMethod = "HttpMethod";
+import com.sun.xml.fastinfoset.sax.SAXDocumentParser;
 
-	String ContextPath = "ContextPath";
+public class FastInfosetDeserializer {
 
-	String PathInfo = "PathInfo";
+	private final SAXDocumentParser saxDocumentParser = new SAXDocumentParser();
 
-	String QueryString = "QueryString";
-
-	String ClientCertificate = "ClientCertificate";
-
-	String HttpResponseCode = "HttpResponseCode";
-
-	String HttpURLConnection = "HttpURLConnection";
-
-	String appendHttpUrlPath = "appendHttpUrlPath";
-
-	String AsyncContext = "AsyncContext";
-
-	String WorkerPool = "WorkerPool";
-
-	String SOAP_OPERATION = "operation";
-
-	String SOAP_HEADER = "header";
-
-	String hasFault = "hasFault";
-
-	String redirect = "redirect";
-
+	public FastInfosetReader getFastInfosetReader() {
+		return saxDocumentParser;
+	}
+	
 }

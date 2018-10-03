@@ -19,10 +19,12 @@ package com.artofarc.esb.action;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.SQLXML;
 import java.sql.Types;
 import java.util.List;
 
 import javax.naming.NamingException;
+import javax.xml.transform.sax.SAXSource;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -46,8 +48,12 @@ public class JDBCProcedureAction extends JDBCAction {
 
 		final String sql = bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.fine("JDBCProcedureAction sql=" + sql);
-		try (Connection connection = _dataSource.getConnection(); AutoCloseable timer = context.getTimeGauge().createTimer("prepareCall & execute"); CallableStatement cs = connection.prepareCall(sql)) {
-			bindParameters(cs, context, message);
+		Connection connection = execContext != null ? execContext.<Connection>getResource2() : null;
+		try (Connection conn = connection != null ? connection : _dataSource.getConnection();
+				AutoCloseable timer = context.getTimeGauge().createTimer("prepareCall & execute");
+				CallableStatement cs = conn.prepareCall(sql)) {
+
+			bindParameters(cs, context, execContext, message);
 			for (JDBCParameter param : _outParams) {
 				cs.registerOutParameter(param.getPos(), param.getType());
 			}
@@ -55,16 +61,20 @@ public class JDBCProcedureAction extends JDBCAction {
 			for (JDBCParameter param : _outParams) {
 				if (param.isBody()) {
 					switch (param.getType()) {
-						case Types.CLOB:
-							message.reset(BodyType.READER, cs.getCharacterStream(param.getPos()));
-							break;
-						case Types.BLOB:
-							final Blob blob = cs.getBlob(param.getPos());
-							message.reset(BodyType.BYTES, blob.getBytes(1, (int) blob.length()));
-							blob.free();
-							break;
-						default:
-							throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
+					case Types.SQLXML:
+						SQLXML sqlxml = cs.getSQLXML(param.getPos());
+						message.reset(BodyType.SOURCE, sqlxml.getSource(SAXSource.class));
+						break;
+					case Types.CLOB:
+						message.reset(BodyType.READER, cs.getCharacterStream(param.getPos()));
+						break;
+					case Types.BLOB:
+						final Blob blob = cs.getBlob(param.getPos());
+						message.reset(BodyType.BYTES, blob.getBytes(1, (int) blob.length()));
+						blob.free();
+						break;
+					default:
+						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
 				} else {
 					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));

@@ -105,6 +105,12 @@
 			<groupId>com.sun.mail</groupId>
 			<artifactId>javax.mail</artifactId>
 			<version>1.4.7</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>activation</artifactId>
+					<groupId>javax.activation</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.glassfish/javax.json
 		<dependency>
@@ -112,7 +118,31 @@
 		    <artifactId>javax.json</artifactId>
 		    <version>1.1.2</version>
 		</dependency>
+		<dependency>
+			<groupId>com.sun.xml.fastinfoset</groupId>
+			<artifactId>FastInfosetUtilities</artifactId>
+			<version>1.2.15</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>stax-api</artifactId>
+					<groupId>javax.xml.stream</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>activation</artifactId>
+					<groupId>javax.activation</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>junit</artifactId>
+					<groupId>junit</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 		 -->
+		<dependency>
+			<groupId>com.sun.xml.fastinfoset</groupId>
+			<artifactId>FastInfoset</artifactId>
+			<version>1.2.15</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<finalName>esb0</finalName>
@@ -143,6 +173,9 @@
 				</executions>
 				<configuration>
 					<generateEpisode>false</generateEpisode>
+					<sources>
+                    	<source>src/main/xsd/service.v01.xsd</source>
+                	</sources>
 				</configuration>
 			</plugin>
 			<!--  plugin>

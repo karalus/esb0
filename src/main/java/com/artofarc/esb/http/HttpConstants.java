@@ -28,6 +28,12 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
 	
+	public static final String HTTP_HEADER_CONTENT_TYPE_JSON = "application/json";
+	
+	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 = "application/fastinfoset";
+	
+	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP12 = "application/soap+fastinfoset";
+	
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET = "charset=";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION = "action=";

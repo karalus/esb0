@@ -5,17 +5,20 @@ Features:
 - Executes service flows defined in XML
 - Supports SOAP, JSON/REST and conversion between each
 - Supports efficient XML Pipelines based on XQJ (XQuery API for Java)
-- Supports HTTP, JMS, JDBC (only outbound) and [Kafka](https://kafka.apache.org/)
+- Supports HTTP, JMS, JDBC, Files and [Kafka](https://kafka.apache.org/)
+- Supports GZIP and [Fast Infoset](https://en.wikipedia.org/wiki/Fast_Infoset) encoding/decoding and (partially) MTOM/XOP
 - Uses resource- and threadpools for effective resource utilization, thus supporting QoS per service.
+- Includes a HTTP loadbalancer component with health check for outbound HTTP traffic
 - New service flows and threadpools can be configured at runtime without service outage
 - Is performant like a network component. Can act at the speed of a reverse proxy (only few millis penalty) even when processing XML.
+- Outperforms most other Service Gateways when XML processing is needed.
 - Simple REST admin services to deploy and control service flows
 
 ### Design goals ###
 
-Most ESB products are very heavy suites which is counterproductive for the main purpose - to act as a fast and easy service gateway to control and monitor service usage within your enterprise.
+Most ESB products are very heavy suites which is counterproductive for the main purpose - to act as a fast and simple service gateway to control and monitor service usage within your enterprise.
 
-ESB Zero is designed to be very small and thus manageable. The zipped sources are currently about 100k of size!
+ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently about 50k of size!
 
 The minimal set of features is supported based on the VETRO pattern.
 
@@ -27,7 +30,7 @@ Apache Camel is a great project, but with offering > 200 Components and all know
 
 Why not using Apache Karaf for deploying?
 
-OSGI is a great idea when managing different versions of JARs but unnecessarily complex for not code based artifacts.
+OSGi is a great idea when managing different versions of JARs but unnecessarily complex for not code based artifacts.
 
 Why not using Apache CXF?
 
@@ -82,6 +85,7 @@ It is written in Java 7 and implements a servlet based on 3.0.1 API.
 - For WSDL parsing [WSDL4J](https://sourceforge.net/projects/wsdl4j/) is used.
 - For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/9.8/)
 - For conversion between XML and JSON [MOXy](http://www.eclipse.org/eclipselink/documentation/2.5/moxy/json002.htm) is used.
+- FastInfoset support is implemented using "com.sun.xml.fastinfoset".
 
 Optional
 - For using Kafka you need the [Kafka Java Client](https://cwiki.apache.org/confluence/display/KAFKA/Clients)

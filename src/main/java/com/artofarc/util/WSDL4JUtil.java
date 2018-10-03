@@ -132,4 +132,28 @@ public final class WSDL4JUtil {
 		return result;
 	}
 
+	public static final boolean hasSOAP11Binding(Definition definition) {
+		@SuppressWarnings("unchecked")
+		final Set<Map.Entry<QName, Binding>> entrySet = definition.getAllBindings().entrySet();
+		for (Map.Entry<QName, Binding> entry : entrySet) {
+			Binding binding = entry.getValue();
+			if (getExtensibilityElement(binding, SOAPBinding.class) != null) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public static final boolean hasSOAP12Binding(Definition definition) {
+		@SuppressWarnings("unchecked")
+		final Set<Map.Entry<QName, Binding>> entrySet = definition.getAllBindings().entrySet();
+		for (Map.Entry<QName, Binding> entry : entrySet) {
+			Binding binding = entry.getValue();
+			if (getExtensibilityElement(binding, SOAP12Binding.class) != null) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 }

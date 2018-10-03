@@ -78,24 +78,34 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	@Override
 	public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
+		InputStream resourceAsStream = null;;
 		if (systemId.contains("//")) {
-			throw new IllegalArgumentException("systemId must be a relative URI " + systemId);
-		}
-		SchemaArtifact base = this;
-		if (baseURI != null) {
-			if (!baseURI.startsWith(FILE_SCHEMA)) {
-				throw new IllegalArgumentException("baseURI must start with " + FILE_SCHEMA);
+			// Must not download anything but search locally (XML catalog)
+			String resourceName = systemId.substring(systemId.lastIndexOf('/') + 1);
+			resourceAsStream = getResourceAsStream(resourceName);
+		} else {
+			SchemaArtifact base = this;
+			if (baseURI != null) {
+				if (!baseURI.startsWith(FILE_SCHEMA)) {
+					throw new IllegalArgumentException("baseURI must start with " + FILE_SCHEMA);
+				}
+				base = getArtifact(baseURI.substring(FILE_SCHEMA.length()));
 			}
-			base = getArtifact(baseURI.substring(FILE_SCHEMA.length()));
+			String resourceURI = base.getParent().getURI() + '/' + systemId;
+			XSDArtifact artifact = getArtifact(resourceURI);
+			if (artifact != null) {
+				if (baseURI == null) {
+					baseURI = FILE_SCHEMA + artifact.getURI();
+					systemId = artifact.getName();
+				}
+				base.addReference(artifact);
+				resourceAsStream = artifact.getContentAsByteArrayInputStream();
+			}
 		}
-		String resourceURI = base.getParent().getURI() + '/' + systemId;
-		XSDArtifact artifact = getArtifact(resourceURI);
-		if (baseURI == null) {
-			baseURI = FILE_SCHEMA + artifact.getURI();
-			systemId = artifact.getName();
+		if (resourceAsStream == null) {
+			throw new IllegalArgumentException("cannot resolve " + systemId);
 		}
-		base.addReference(artifact);
-		return new LSInputImpl(publicId, systemId, baseURI, artifact.getContentAsByteArrayInputStream());
+		return new LSInputImpl(publicId, systemId, baseURI, resourceAsStream);
 	}
 
 	public static class LSInputImpl implements LSInput {

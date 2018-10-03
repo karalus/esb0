@@ -57,7 +57,7 @@ public class XML2JsonAction extends Action {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		message.getHeaders().clear();
-		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MediaType.APPLICATION_JSON.getMediaType());
+		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 		context.getTimeGauge().startTimeMeasurement();
 		Unmarshaller unmarshaller = _jaxbContext.createUnmarshaller();
 		unmarshaller.setSchema(_schema);
@@ -88,7 +88,7 @@ public class XML2JsonAction extends Action {
 			jsonMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 		}
 		if (message.isSink()) {
-			jsonMarshaller.marshal(root, message.getBodyAsSinkResult());
+			jsonMarshaller.marshal(root, message.getBodyAsSinkResult(context));
 		} else {
 			StringWriter sw = new StringWriter();
 			jsonMarshaller.marshal(root, sw);

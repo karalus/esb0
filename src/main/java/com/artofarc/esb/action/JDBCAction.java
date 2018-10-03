@@ -21,10 +21,12 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.sql.Blob;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -42,8 +44,7 @@ import javax.json.JsonWriter;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 import javax.xml.bind.DatatypeConverter;
-
-import org.eclipse.persistence.oxm.MediaType;
+import javax.xml.transform.sax.SAXResult;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -69,26 +70,38 @@ public abstract class JDBCAction extends TerminalAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		ExecutionContext execContext = null;
 		if (inPipeline) {
 			for (JDBCParameter param : _params) {
 				if (param.isBody()) {
+					Connection connection = _dataSource.getConnection();
 					switch (param.getType()) {
+					case Types.SQLXML:
+						SQLXML xmlObject = connection.createSQLXML();
+						message.reset(BodyType.RESULT, xmlObject.setResult(SAXResult.class));
+						execContext = new ExecutionContext(xmlObject);
+						break;
 					case Types.CLOB:
 					case Types.BLOB:
-						return super.prepare(context, message, true);
+						execContext = super.prepare(context, message, true);
+						break;
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
+					execContext.setResource2(connection);
 				}
 			}
 		}
-		return null;
+		return execContext;
 	}
 
-	protected void bindParameters(PreparedStatement ps, Context context, ESBMessage message) throws Exception {
+	protected void bindParameters(PreparedStatement ps, Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
 		for (JDBCParameter param : _params) {
 			if (param.isBody()) {
 				switch (param.getType()) {
+				case Types.SQLXML:
+					ps.setSQLXML(param.getPos(), execContext.<SQLXML>getResource());
+					break;
 				case Types.CLOB:
 					if (param.getTruncate() == null && message.isStream()) {
 						ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
@@ -143,7 +156,7 @@ public abstract class JDBCAction extends TerminalAction {
 			jsonWriter.write(result);
 			jsonWriter.close();
 			message.getHeaders().clear();
-			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MediaType.APPLICATION_JSON.getMediaType());
+			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 			message.reset(BodyType.STRING, sw.toString());
 		} else if (jsonArray.size() > 0) {
 			message.getVariables().put("sqlUpdateCount", jsonArray.getInt(0));

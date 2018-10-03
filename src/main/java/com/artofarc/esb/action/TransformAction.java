@@ -109,7 +109,7 @@ public class TransformAction extends Action {
 			} else if (message.getBodyType() == BodyType.INVALID) {
 				// Nothing to bind
 			} else {
-				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(), null);
+				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
 			}
 		}
 		for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {
@@ -119,7 +119,7 @@ public class TransformAction extends Action {
 		XQResultSequence resultSequence = xqExpression.executeQuery();
 		context.getTimeGauge().stopTimeMeasurement("executeQuery", true);
 		try {
-			processSequence(context, resultSequence, destMap);
+			processSequence(context, message, resultSequence, destMap);
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("processSequence", false);
 		}
@@ -151,7 +151,7 @@ public class TransformAction extends Action {
 		}
 	}
 	
-	protected void processSequence(Context context, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
+	protected void processSequence(Context context, ESBMessage message, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
 		if (destMap == null && !_varNames.isEmpty()) {
 			throw new ExecutionException(this, "Cannot handle assignment");
 		}
@@ -175,7 +175,7 @@ public class TransformAction extends Action {
 				if (_contextItem == null) {
 					context.getTimeGauge().startTimeMeasurement();
 					if (message.isSink()) {
-						resultSequence.writeItemToResult(message.getBodyAsSinkResult());
+						resultSequence.writeItemToResult(message.getBodyAsSinkResult(context));
 						context.getTimeGauge().stopTimeMeasurement("resultSequence.writeItemToResult", false);
 					} else {
 						message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));

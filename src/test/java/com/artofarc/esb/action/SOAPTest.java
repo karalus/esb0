@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +22,8 @@ import org.w3c.dom.Node;
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.Directory;
+import com.artofarc.esb.artifact.FileSystem;
+import com.artofarc.esb.artifact.WSDLArtifact;
 import com.artofarc.esb.artifact.XMLArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
@@ -392,6 +395,55 @@ public class SOAPTest extends AbstractESBTest {
       assertTrue(markAction.executed);
       
       jmsConsumer.close();
+   }
+   
+   @Test
+   public void testFastinfoset() throws Exception {
+      File dir = new File("src/test/resources");
+      assertTrue(dir.exists());
+      FileSystem fileSystem = new FileSystem();
+      fileSystem.parseDirectory(context.getPoolContext().getGlobalContext(), dir).getServiceArtifacts();
+      WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");
+
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
+      Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), wsdlArtifact.getDefinition(), null, null);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      SetMessageAction setMessageAction = new SetMessageAction(false, null, null, null, null);
+      setMessageAction.addHeader(HttpConstants.HTTP_HEADER_ACCEPT, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null);
+		action = action.setNextAction(setMessageAction);
+      action = action.setNextAction(new WrapSOAPAction(false, false, true));
+      action = action.setNextAction(new DumpAction());
+      action = action.setNextAction(new UnwrapSOAPAction(false, true));
+      setMessageAction = new SetMessageAction(false, null, null, null, null);
+      setMessageAction.addHeader(HttpConstants.HTTP_HEADER_ACCEPT, "", null, null);
+		action = action.setNextAction(setMessageAction);
+      action = action.setNextAction(new WrapSOAPAction(false, false, true));
+      action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+   }
+   
+   @Test
+   public void testFastinfosetValidate() throws Exception {
+      File dir = new File("src/test/resources");
+      assertTrue(dir.exists());
+      FileSystem fileSystem = new FileSystem();
+      fileSystem.parseDirectory(context.getPoolContext().getGlobalContext(), dir).getServiceArtifacts();
+      WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");
+
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_ACCEPT, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11);
+      Action action = new ValidateAction(wsdlArtifact.getSchema(), ".", null);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+		List<Entry<String, String>> assignments = java.util.Collections.singletonList(Collections.createEntry(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"));
+		action = action.setNextAction(new AssignHeadersAction(assignments, null, java.util.Collections.<String>emptyList(), null, true));
+      action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
    }
    
 }

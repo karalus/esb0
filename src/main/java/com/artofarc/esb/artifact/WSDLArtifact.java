@@ -30,11 +30,13 @@ import javax.wsdl.extensions.schema.Schema;
 import javax.wsdl.xml.WSDLLocator;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 import org.w3c.dom.Element;
@@ -71,10 +73,17 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	protected void validateInternal(GlobalContext globalContext) throws Exception {
+	public void validateInternal(GlobalContext globalContext) throws Exception {
 		_definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
 		Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
-		List<DOMSource> sources = new ArrayList<>();
+		List<Source> sources = new ArrayList<>();
+		// TODO Cache these resources
+		if (WSDL4JUtil.hasSOAP11Binding(_definition)) {
+			sources.add(new StreamSource(getResourceAsStream("soap11.xsd")));
+		}
+		if (WSDL4JUtil.hasSOAP12Binding(_definition)) {
+			sources.add(new StreamSource(getResourceAsStream("soap12.xsd")));
+		}
 		processSchemas(_definition, sources, transformer);
 		@SuppressWarnings("unchecked")
 		Map<String, List<Import>> importMap = _definition.getImports();
@@ -83,13 +92,13 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				processSchemas(import1.getDefinition(), sources, transformer);
 			}
 		}
-		schema = getSchemaFactory().newSchema(sources.toArray(new DOMSource[sources.size()]));
+		schema = getSchemaFactory().newSchema(sources.toArray(new Source[sources.size()]));
 		_schemas.clear();
 		// refs are now set
 		validateReferenced(globalContext);
 	}
 	
-	private void processSchemas(Definition definition, List<DOMSource> sources, Transformer transformer) throws TransformerException {
+	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws TransformerException {
 		Types types = definition.getTypes();
 		if (types != null) {
 			for (Schema schema : WSDL4JUtil.getExtensibilityElements(types, Schema.class)) {
@@ -110,6 +119,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	public JAXBContext getJAXBContext() throws JAXBException {
 		if (_jaxbContext == null && lastSchemaElement != null) {
 			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(lastSchemaElement, this, null, null);
+			lastSchemaElement = null;
 		}
 		return _jaxbContext;
 	}

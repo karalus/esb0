@@ -63,7 +63,7 @@ public class SpawnAction extends Action {
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, pos);
 			} else {
-				message.writeTo(pos, context);
+				message.writeRawTo(pos, context);
 			}
 			message.setTerminal(null);
 			return new ExecutionContext(pos, future);

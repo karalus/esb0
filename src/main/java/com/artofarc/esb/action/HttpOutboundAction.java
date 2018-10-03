@@ -21,9 +21,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 
-import javax.xml.transform.TransformerException;
-import javax.xml.xquery.XQException;
-
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpEndpoint;
@@ -50,7 +47,7 @@ public class HttpOutboundAction extends Action {
 	}
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws IOException, TransformerException, XQException {
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		HttpUrlSelector httpUrlSelector = context.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
 		String method = message.getVariable(ESBVariableConstants.HttpMethod);
 		// for REST append to URL
@@ -63,7 +60,7 @@ public class HttpOutboundAction extends Action {
 		if (inPipeline) {
 			message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
 		} else {
-			message.writeToCompressedOutputStream(conn.getOutputStream(), context);
+			message.writeTo(conn.getOutputStream(), context);
 		}
 		return new ExecutionContext(conn);
 	}

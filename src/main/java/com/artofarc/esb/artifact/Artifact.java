@@ -17,6 +17,7 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -119,6 +120,10 @@ public abstract class Artifact {
 
 	protected final <A extends Artifact> A getArtifact(String uri) {
 		return FileSystem.getArtifact(getParent(), uri);
+	}
+	
+	protected final static InputStream getResourceAsStream(String name) {
+		return Artifact.class.getClassLoader().getResourceAsStream(name);
 	}
 
 	protected final void addReference(Artifact artifact) {

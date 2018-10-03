@@ -55,7 +55,7 @@ public class Json2XMLAction extends TerminalAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		String contentType = message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null && !contentType.startsWith(MediaType.APPLICATION_JSON.getMediaType())) {
+		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
@@ -72,7 +72,7 @@ public class Json2XMLAction extends TerminalAction {
 		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
 		jsonUnmarshaller.setProperty(JAXBContextProperties.JSON_ATTRIBUTE_PREFIX, "@");
 		try {
-			execContext = new ExecutionContext(jsonUnmarshaller.unmarshal(message.getBodyAsSource()));
+			execContext = new ExecutionContext(jsonUnmarshaller.unmarshal(message.getBodyAsSource(context)));
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("Unmarshal JSON--> Java", true);
 		}
@@ -89,7 +89,7 @@ public class Json2XMLAction extends TerminalAction {
 		}
 		try {
 			if (nextActionIsPipelineStop) {
-				marshaller.marshal(root, message.getBodyAsSinkResult());
+				marshaller.marshal(root, message.getBodyAsSinkResult(context));
 			} else {
 				StringWriter sw = new StringWriter();
 				marshaller.marshal(root, sw);

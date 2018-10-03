@@ -25,7 +25,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.http.HttpConstants;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
@@ -47,10 +47,7 @@ public class HttpServletResponseAction extends Action {
 		if (asyncContext != null) {
 			response = (HttpServletResponse) asyncContext.getResponse();
 		} else {
-			response = message.removeVariable(ESBVariableConstants.HttpServletResponse);
-			if (response == null) {
-				throw new ExecutionException(this, ESBVariableConstants.HttpServletResponse + " not set");
-			}
+			throw new ExecutionException(this, ESBVariableConstants.AsyncContext + " not set");
 		}
 		if (message.getBodyType() == BodyType.EXCEPTION) {
 			GenericHttpListener.sendErrorResponse(response, message.<Exception> getBody());
@@ -65,35 +62,51 @@ public class HttpServletResponseAction extends Action {
 				httpResponseCode = hasFault != null && hasFault ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : HttpServletResponse.SC_OK;
 			}
 			response.setStatus(httpResponseCode.intValue());
-			final String acceptEncoding = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING);
-			if (_supportCompression && acceptEncoding != null) {
-				final StringTokenizer tokenizer = new StringTokenizer(acceptEncoding, ", ");
-				while (tokenizer.hasMoreTokens()) {
-					final String contentEncoding = tokenizer.nextToken();
-					if (contentEncoding.equals("gzip") || contentEncoding.equals("deflate")) {
-						message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_ENCODING, contentEncoding);
-						break;
-					}
-				}
-			}
+			if (_supportCompression) checkCompression(message);
+			checkFastInfoSet(message);
 			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
 				response.addHeader(entry.getKey(), entry.getValue().toString());
 			}
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, response.getOutputStream());
 			} else if (message.getBodyType() != BodyType.INVALID) {
-				message.writeToCompressedOutputStream(response.getOutputStream(), context);
+				message.writeTo(response.getOutputStream(), context);
 			}
 		}
 		return new ExecutionContext(asyncContext);
 	}
+	
+	private static void checkCompression(ESBMessage message) {
+		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
+		if (acceptEncoding != null) {
+			final StringTokenizer tokenizer = new StringTokenizer(acceptEncoding, ", ");
+			while (tokenizer.hasMoreTokens()) {
+				final String contentEncoding = tokenizer.nextToken();
+				if (contentEncoding.equals("gzip") || contentEncoding.equals("deflate")) {
+					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, contentEncoding);
+					break;
+				}
+			}
+		}
+	}
 
+	private static void checkFastInfoSet(ESBMessage message) {
+		final String accept = message.getVariable(HTTP_HEADER_ACCEPT);
+		if (accept != null) {
+			if (accept.contains(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11)) {
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_FI_SOAP11);
+			} else if (accept.contains(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12)) {
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_FI_SOAP12);
+			}
+		}
+	}
+	
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		AsyncContext asyncContext = execContext.getResource();
 		if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
 			// necessary for DeflaterOutputStream
-			message.<OutputStream>getBody().close();
+			message.<OutputStream> getBody().close();
 		}
 		if (asyncContext != null) {
 			asyncContext.complete();

@@ -20,6 +20,7 @@ import java.util.Map;
 
 import javax.wsdl.Definition;
 import javax.xml.soap.SOAPConstants;
+import javax.xml.validation.Schema;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -31,9 +32,11 @@ import com.artofarc.util.WSDL4JUtil;
 public class PreSOAPHttpAction extends WrapSOAPAction {
 
 	private final Map<String, String> _mapOperation2SoapActionURI;
+	private final Schema _schema;
 
-	public PreSOAPHttpAction(boolean soap12, boolean header, boolean singlePart, Definition definition, String transport) {
+	public PreSOAPHttpAction(boolean soap12, boolean header, boolean singlePart, Schema schema, Definition definition, String transport) {
 		super(soap12, header, singlePart);
+		_schema = schema;
 		_mapOperation2SoapActionURI = WSDL4JUtil.getMapOperation2SoapActionURI(definition, transport);
 	}
 
@@ -51,6 +54,7 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
 		}
 		message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
+		message.setSchema(_schema);
 		return executionContext;
 	}
 

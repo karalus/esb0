@@ -43,8 +43,6 @@ import com.artofarc.esb.message.ESBMessage;
  */
 public class ProcessJsonAction extends Action {
 
-	public static final String MEDIA_TYPE_APPLICATION_JSON = "application/json";
-	
 	private final List<Assignment> _headers = new ArrayList<>();
 	private final List<Assignment> _variables = new ArrayList<>();
 	private final String _bodyExpr; 
@@ -65,7 +63,7 @@ public class ProcessJsonAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null && !contentType.startsWith(MEDIA_TYPE_APPLICATION_JSON)) {
+		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		JsonStructure json = Json.createReader(message.getBodyAsReader(context)).read();

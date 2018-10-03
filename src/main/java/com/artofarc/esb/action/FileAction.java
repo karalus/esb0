@@ -50,7 +50,7 @@ public class FileAction extends TerminalAction {
 		case "ENTRY_MODIFY":
 			FileOutputStream fileOutputStream = new FileOutputStream(file);
 			context.getTimeGauge().startTimeMeasurement();
-			message.writeTo(fileOutputStream, context);
+			message.writeRawTo(fileOutputStream, context);
 			fileOutputStream.close();
 			context.getTimeGauge().stopTimeMeasurement("write file %s", false, file);
 			break;

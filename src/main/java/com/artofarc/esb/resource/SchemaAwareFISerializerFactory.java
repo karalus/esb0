@@ -14,36 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.message;
+package com.artofarc.esb.resource;
 
-public interface ESBVariableConstants {
+import javax.xml.validation.Schema;
 
-	String HttpMethod = "HttpMethod";
+import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 
-	String ContextPath = "ContextPath";
+public class SchemaAwareFISerializerFactory extends ResourceFactory<SchemaAwareFastInfosetSerializer, Schema, Void> {
 
-	String PathInfo = "PathInfo";
-
-	String QueryString = "QueryString";
-
-	String ClientCertificate = "ClientCertificate";
-
-	String HttpResponseCode = "HttpResponseCode";
-
-	String HttpURLConnection = "HttpURLConnection";
-
-	String appendHttpUrlPath = "appendHttpUrlPath";
-
-	String AsyncContext = "AsyncContext";
-
-	String WorkerPool = "WorkerPool";
-
-	String SOAP_OPERATION = "operation";
-
-	String SOAP_HEADER = "header";
-
-	String hasFault = "hasFault";
-
-	String redirect = "redirect";
+	@Override
+	protected SchemaAwareFastInfosetSerializer createResource(Schema schema, Void param) throws Exception {
+		return new SchemaAwareFastInfosetSerializer(schema);
+	}
 
 }

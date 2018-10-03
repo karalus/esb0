@@ -47,7 +47,7 @@ public class HttpInboundAction extends Action {
 			message.getHeaders().put(entry.getKey(), value);
 		}
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		message.setCharsetName(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
+		message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 		message.reset(BodyType.INPUT_STREAM, getInputStream(conn));
 		return new ExecutionContext(conn);
 	}
@@ -61,7 +61,7 @@ public class HttpInboundAction extends Action {
 				ESBMessage.copyStream(getInputStream(conn), os);
 			} else {
 				// TODO: Code coverage?
-				Result result = message.getBodyAsSinkResult();
+				Result result = message.getBodyAsSinkResult(context);
 				message.reset(BodyType.INPUT_STREAM, getInputStream(conn));
 				message.writeTo(result, context);
 			}

@@ -36,10 +36,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.PoolContext;
-import com.artofarc.esb.http.HttpConstants;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import static com.artofarc.esb.message.ESBVariableConstants.*;
 
 /**
  * Servlet implementation class GenericHttpListener
@@ -59,81 +59,80 @@ public class GenericHttpListener extends HttpServlet {
 		HttpConsumer consumerPort = poolContext.getGlobalContext().getHttpService(pathInfo);
 		if (consumerPort != null) {
 			if (consumerPort.isEnabled()) {
-				// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
-				final boolean bodyPresent = request.getHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH) != null
-						|| request.getHeader(HttpConstants.HTTP_HEADER_TRANSFER_ENCODING) != null;
-				ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
-				message.getVariables().put(ESBVariableConstants.HttpMethod, request.getMethod());
-				message.getVariables().put(ESBVariableConstants.ContextPath, request.getContextPath());
-				message.getVariables().put(ESBVariableConstants.PathInfo, pathInfo);
-				if (consumerPort.getBindPath().endsWith("*")) {
-					message.getVariables().put(ESBVariableConstants.appendHttpUrlPath, pathInfo.substring(consumerPort.getBindPath().length() - 1));
-				}
-				message.putVariable(ESBVariableConstants.QueryString, request.getQueryString());
-				message.setCharsetName(request.getCharacterEncoding());
-				for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
-					String headerName = headerNames.nextElement();
-					message.getHeaders().put(headerName, request.getHeader(headerName));
-				}
-				final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-				if (certs != null) {
-					// Only for SSL mutual authentication
-					// @see https://stackoverflow.com/questions/24351472/getattributejavax-servlet-request-x509certificate-not-set-spring-cxf-jetty
-					message.getVariables().put(ESBVariableConstants.ClientCertificate, certs[0]);
-				}
-				if (bodyPresent) {
-					final String contentType = request.getContentType();
-					if (contentType != null && contentType.startsWith("multipart/")) {
-						try {
-							MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getUncompressedInputStream(), contentType));
-							String start = HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_START);
-							if (start != null) {
-								start = start.substring(1, start.length() - 1);
-							}
-							for (int i = 0; i < mmp.getCount(); i++) {
-								MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
-								if (start == null && i == 0 || start != null && start.equals(bodyPart.getContentID())) {
-									for (@SuppressWarnings("unchecked")
-									Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
-										final Header header = allHeaders.nextElement();
-										message.putHeader(header.getName(), header.getValue());
-									}
-									message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream());
-								} else {
-									message.addAttachment(bodyPart);
-								}
-							}
-						} catch (MessagingException e) {
-							sendErrorResponse(response, e);
-						}
-					}
-				}
-				// copy into variable for HttpServletResponseAction
-				message.putVariable(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HttpConstants.HTTP_HEADER_ACCEPT_ENCODING));
-				message.getVariables().put(ESBVariableConstants.AsyncContext, request.startAsync());
-				// process message
-				Context context = null;
 				try {
-					context = consumerPort.getContext(poolContext);
+					Context context = consumerPort.getContext(poolContext);
+					if (context != null) {
+						try {
+							consumerPort.process(context, createESBMessage(request, pathInfo, consumerPort));
+						} finally {
+							consumerPort.releaseContext(context);
+						}
+					} else {
+						response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
+					}
 				} catch (Exception e) {
 					sendErrorResponse(response, e);
-				}
-				if (context != null) {
-					try {
-						consumerPort.process(context, message);
-					} catch (Exception e) {
-						sendErrorResponse(response, e);
-					} finally {
-						consumerPort.releaseContext(context);
-					}
-				} else {
-					response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
 				}
 			} else {
 				response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
 			}
 		} else {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
+		}
+	}
+	
+	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer consumerPort) throws IOException, MessagingException {
+		// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
+		final boolean bodyPresent = request.getHeader(HTTP_HEADER_CONTENT_LENGTH) != null || request.getHeader(HTTP_HEADER_TRANSFER_ENCODING) != null;
+		ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
+		message.getVariables().put(HttpMethod, request.getMethod());
+		message.getVariables().put(ContextPath, request.getContextPath());
+		message.getVariables().put(PathInfo, pathInfo);
+		if (consumerPort.getBindPath().endsWith("*")) {
+			message.getVariables().put(appendHttpUrlPath, pathInfo.substring(consumerPort.getBindPath().length() - 1));
+		}
+		message.putVariable(QueryString, request.getQueryString());
+		message.setCharset(request.getCharacterEncoding());
+		for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
+			String headerName = headerNames.nextElement();
+			message.getHeaders().put(headerName, request.getHeader(headerName));
+		}
+		final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
+		if (certs != null) {
+			// Only for SSL mutual authentication
+			// https://stackoverflow.com/questions/24351472/getattributejavax-servlet-request-x509certificate-not-set-spring-cxf-jetty
+			message.getVariables().put(ClientCertificate, certs[0]);
+		}
+		if (bodyPresent) {
+			parseAttachments(request.getContentType(), message);
+		}
+		// copy into variable for HttpServletResponseAction
+		message.putVariable(HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HTTP_HEADER_ACCEPT_ENCODING));
+		message.putVariable(HTTP_HEADER_ACCEPT, message.removeHeader(HTTP_HEADER_ACCEPT));
+		message.getVariables().put(AsyncContext, request.startAsync());
+		return message;
+	}
+	
+	private static void parseAttachments(String contentType, ESBMessage message) throws IOException, MessagingException {
+		if (contentType != null && contentType.startsWith("multipart/")) {
+			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getUncompressedInputStream(), contentType));
+			String start = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START);
+			if (start != null) {
+				start = start.substring(1, start.length() - 1);
+			}
+			for (int i = 0; i < mmp.getCount(); i++) {
+				MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
+				if (start == null && i == 0 || start != null && start.equals(bodyPart.getContentID())) {
+					for (@SuppressWarnings("unchecked")
+					Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
+						final Header header = allHeaders.nextElement();
+						message.putHeader(header.getName(), header.getValue());
+					}
+					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream());
+				} else {
+					message.addAttachment(bodyPart);
+				}
+			}
 		}
 	}
 

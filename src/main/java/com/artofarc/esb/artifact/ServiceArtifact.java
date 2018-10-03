@@ -343,8 +343,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getDefinition(),
-						unwrapSOAP11.getTransport(), wsdlArtifact.getURI());
+				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getSchema(),
+						wsdlArtifact.getDefinition(), unwrapSOAP11.getTransport(), wsdlArtifact.getURI());
 				list.add(unwrapSOAP11Action);
 				break;
 			}
@@ -360,7 +360,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				PreSOAPHttpAction preSOAP11HttpAction = new PreSOAPHttpAction(preSOAP11Http.isSoap12(), preSOAP11Http.isHeader(), preSOAP11Http.isSinglePart(), wsdlArtifact.getDefinition(), preSOAP11Http.getTransport());
+				PreSOAPHttpAction preSOAP11HttpAction = new PreSOAPHttpAction(preSOAP11Http.isSoap12(), preSOAP11Http.isHeader(), preSOAP11Http.isSinglePart(),
+						wsdlArtifact.getSchema(), wsdlArtifact.getDefinition(), preSOAP11Http.getTransport());
 				list.add(preSOAP11HttpAction);
 				break;
 			}

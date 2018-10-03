@@ -17,13 +17,5 @@
 package com.artofarc.esb.message;
 
 public enum BodyType {
-	INVALID, INPUT_STREAM, READER, STRING, BYTES, DOM, XQ_SEQUENCE, XML_FILTER, OUTPUT_STREAM, WRITER, SOURCE, XQ_ITEM, EXCEPTION
-	
-	// XMLFilter, OutputStream
-	// SAXSource
-	
-	// XMLStreamReader reader = sequence.getSequenceAsStream();
-	
-	//CustomSAXEventHandler eventHandler = new CustomSAXEventHandler();
-	//sequence.writeSequenceToSAX(eventHandler);
+	INVALID, INPUT_STREAM, READER, STRING, BYTES, DOM, XQ_SEQUENCE, XML_FILTER, OUTPUT_STREAM, WRITER, SOURCE, RESULT, XQ_ITEM, EXCEPTION
 }
