@@ -36,9 +36,13 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
+import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
@@ -50,6 +54,30 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
 
+	private static final Source _SOAP11SchemaSource, _SOAP12SchemaSource;
+	
+	static {
+		try {
+			XPath xPath = XPathFactory.newInstance().newXPath();
+			// Elements below Body must be strictly validated, with lax we don't detect some kind of errors
+			// TODO: Works only with document/literal WSDL style and messageParts referring to elements
+			String exp = "/*/*[local-name()='complexType' and @name='Body']/*/*/@processContents";
+			{
+				Attr attr = (Attr) xPath.evaluate(exp, new InputSource(getResourceAsStream("soap11.xsd")), XPathConstants.NODE);
+				attr.setValue("strict");
+				_SOAP11SchemaSource = new DOMSource(attr.getOwnerDocument());
+			}
+			xPath.reset();
+			{
+				Attr attr = (Attr) xPath.evaluate(exp, new InputSource(getResourceAsStream("soap12.xsd")), XPathConstants.NODE);
+				attr.setValue("strict");
+				_SOAP12SchemaSource = new DOMSource(attr.getOwnerDocument());
+			}
+		} catch (XPathExpressionException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 	private Definition _definition;
 
 	// only used during validation
@@ -77,12 +105,12 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		_definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
 		Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
 		List<Source> sources = new ArrayList<>();
-		// TODO Cache these resources
 		if (WSDL4JUtil.hasSOAP11Binding(_definition)) {
-			sources.add(new StreamSource(getResourceAsStream("soap11.xsd")));
+			sources.add(_SOAP11SchemaSource);
 		}
 		if (WSDL4JUtil.hasSOAP12Binding(_definition)) {
-			sources.add(new StreamSource(getResourceAsStream("soap12.xsd")));
+			// xml.xsd will implicitly be loaded 
+			sources.add(_SOAP12SchemaSource);
 		}
 		processSchemas(_definition, sources, transformer);
 		@SuppressWarnings("unchecked")
@@ -97,7 +125,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		// refs are now set
 		validateReferenced(globalContext);
 	}
-	
+
 	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws TransformerException {
 		Types types = definition.getTypes();
 		if (types != null) {
