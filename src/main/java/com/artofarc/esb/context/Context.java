@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.context;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.logging.Level;
 
@@ -32,6 +34,7 @@ import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQStaticContext;
 
+import com.artofarc.esb.action.Action;
 import com.artofarc.esb.resource.XQDataSourceFactory;
 import com.artofarc.util.TimeGauge;
 
@@ -56,6 +59,8 @@ public class Context extends AbstractContext {
 	private final HashMap<String, XQPreparedExpression> _mapXQ = new HashMap<>();
 
 	private final TimeGauge timeGauge = new TimeGauge(Level.FINE);
+	
+	private final Deque<Action> _executionStack = new ArrayDeque<>();
 
 	public Context(PoolContext poolContext) throws ParserConfigurationException, TransformerConfigurationException, XQException {
 		_poolContext = poolContext;
@@ -65,6 +70,10 @@ public class Context extends AbstractContext {
 		XQStaticContext staticContext = xqConnection.getStaticContext();
 		staticContext.setBindingMode(XQConstants.BINDING_MODE_DEFERRED);
 		xqConnection.setStaticContext(staticContext);
+	}
+
+	public Deque<Action> getExecutionStack() {
+		return _executionStack;
 	}
 
 	public TimeGauge getTimeGauge() {
@@ -106,7 +115,7 @@ public class Context extends AbstractContext {
 				preparedExpression.close();
 			}
 			xqConnection.close();
-		} catch (XQException e1) {
+		} catch (XQException e) {
 			// ignore
 		}
 		super.close();

@@ -39,6 +39,17 @@ public class BranchOnVariableAction extends Action {
 	}
 
 	@Override
+	public boolean isPipelineStop() {
+		boolean pipelineStop = _defaultAction != null ? _defaultAction.isPipelineStop() : _nextAction != null ? _nextAction.isPipelineStop() : true;
+		for (Action action : _branchMap.values()) {
+			if (pipelineStop |= action.isPipelineStop()) {
+				break;
+			}
+		}
+		return pipelineStop;
+	}
+
+	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		Object value = message.getVariable(_varName);
 		if (value == null) {
@@ -54,13 +65,15 @@ public class BranchOnVariableAction extends Action {
 				action = _defaultAction;
 			}
 		}
+		if (_nextAction != null) {
+			context.getExecutionStack().push(_nextAction);
+		}
 		return new ExecutionContext(action);
 	}
 
 	@Override
 	protected Action nextAction(ExecutionContext execContext) {
-		Action action = execContext.getResource();
-		return action != null ? action : super.nextAction(execContext);
+		return execContext.getResource();
 	}
 
 }

@@ -59,7 +59,6 @@ import javax.xml.xquery.XQSequence;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 
-import com.artofarc.esb.action.Action;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
@@ -80,7 +79,6 @@ public final class ESBMessage implements Cloneable {
 	private Charset _charset;
 	private long _timeleft = 300000L;
 	private boolean _join = true;
-	private Action _terminal;
 	private Schema _schema;
 
 	public ESBMessage(BodyType bodyType, Object body) {
@@ -219,14 +217,6 @@ public final class ESBMessage implements Cloneable {
 		_join = join;
 	}
 
-	public Action getTerminal() {
-		return _terminal;
-	}
-
-	public void setTerminal(Action terminal) {
-		_terminal = terminal;
-	}
-	
 	public Schema getSchema() {
 		return _schema;
 	}
@@ -278,7 +268,14 @@ public final class ESBMessage implements Cloneable {
 		while ((len = is.read(buffer)) >= 0) {
 			os.write(buffer, 0, len);
 		}
-		// is.close();
+	}
+
+	public final static void copyStream(Reader is, Writer os) throws IOException {
+		final char[] buffer = new char[MTU];
+		int len;
+		while ((len = is.read(buffer)) >= 0) {
+			os.write(buffer, 0, len);
+		}
 	}
 
 	public byte[] getBodyAsByteArray(Context context) throws TransformerException, IOException, XQException {
@@ -288,7 +285,6 @@ public final class ESBMessage implements Cloneable {
 		case DOM:
 			bos = new ByteArrayOutputStream(MTU);
 			writeRawTo(bos, context);
-			bos.close();
 			ba = bos.toByteArray();
 			break;
 		case STRING:
@@ -302,14 +298,12 @@ public final class ESBMessage implements Cloneable {
 		case INPUT_STREAM:
 			bos = new ByteArrayOutputStream(MTU);
 			copyStream(getUncompressedInputStream(), bos);
-			bos.close();
 			ba = bos.toByteArray();
 			break;
 		case XQ_ITEM:
 			bos = new ByteArrayOutputStream(MTU);
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(bos, null);
-			bos.close();
 			ba = bos.toByteArray();
 			break;
 		case INVALID:
@@ -324,11 +318,11 @@ public final class ESBMessage implements Cloneable {
 
 	public String getBodyAsString(Context context) throws TransformerException, IOException, XQException {
 		String str;
+		StringWriter sw;
 		switch (_bodyType) {
 		case DOM:
-			StringWriter sw = new StringWriter();
+			sw = new StringWriter();
 			transform(context.getIdenticalTransformer(), new StreamResult(sw));
-			sw.close();
 			str = sw.toString();
 			break;
 		case STRING:
@@ -340,6 +334,11 @@ public final class ESBMessage implements Cloneable {
 		case XQ_ITEM:
 			getBodyAsByteArray(context);
 			return getBodyAsString(context);
+		case READER:
+			sw = new StringWriter();
+			copyStream((Reader) _body, sw);
+			str = sw.toString();
+			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");
 		default:
@@ -581,7 +580,8 @@ public final class ESBMessage implements Cloneable {
 				newBody = getBodyAsByteArray(context);
 				break;
 			case READER:
-				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
+				newBody = getBodyAsString(context);
+				break;
 			case XQ_ITEM:
 				// TOREVIEW: Should be the context of the Thread receiving this copy
 				newBody = context.getXQDataFactory().createItem((XQItem) _body);

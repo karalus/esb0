@@ -65,11 +65,10 @@ public class SpawnAction extends Action {
 			} else {
 				message.writeRawTo(pos, context);
 			}
-			message.setTerminal(null);
+			context.getExecutionStack().poll();
 			return new ExecutionContext(pos, future);
 		} else {
-			ExecutionContext execContext = new ExecutionContext(message.getTerminal());
-			message.setTerminal(null);
+			ExecutionContext execContext = new ExecutionContext(context.getExecutionStack().poll());
 			if (inPipeline) {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
 				message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -88,7 +87,10 @@ public class SpawnAction extends Action {
 			message.reset(BodyType.INVALID, null);
 			future = execContext.getResource2();
 		} else {
-			message.setTerminal(execContext.<Action> getResource());
+			Action terminalAction = execContext.getResource();
+			if (terminalAction != null) {
+				context.getExecutionStack().push(terminalAction);
+			}
 			ByteArrayOutputStream bos = execContext.getResource2();
 			if (bos != null) {
 				message.reset(BodyType.BYTES, bos.toByteArray());

@@ -107,13 +107,14 @@ public class ActionTest {
       branchOnVariableAction.process(context, message);
       assertFalse(action1.executed);
       assertTrue(action2.executed);
-      assertFalse(action3.executed);
+      assertTrue(action3.executed);
+      action3.executed = false;
       action2.executed = false;
       message.putVariable("var", "ok");
       branchOnVariableAction.process(context, message);
       assertTrue(action1.executed);
       assertFalse(action2.executed);
-      assertFalse(action3.executed);
+      assertTrue(action3.executed);
    }
    
    @Test

@@ -32,6 +32,8 @@ public interface ESBVariableConstants {
 
 	String HttpURLConnection = "HttpURLConnection";
 
+	String HttpURLOutbound = "HttpURLOutbound";
+
 	String appendHttpUrlPath = "appendHttpUrlPath";
 
 	String AsyncContext = "AsyncContext";

@@ -72,8 +72,13 @@ public class ConsumerPort {
    }
 
    public void process(Context context, ESBMessage message) throws Exception {
-      message.setTerminal(_terminalAction);
+   	if (_terminalAction != null) {
+         context.getExecutionStack().push(_terminalAction);
+   	}
       _startAction.process(context, message);
+      if (!context.getExecutionStack().isEmpty()) {
+      	throw new IllegalStateException("ExecutionStack not empty");
+      }
    }
 
    public void processInternal(Context context, ESBMessage message) throws Exception {

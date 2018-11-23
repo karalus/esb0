@@ -27,7 +27,7 @@ import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrlSelector;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import static com.artofarc.esb.message.ESBVariableConstants.*;
 
 public class HttpOutboundAction extends Action {
 
@@ -49,13 +49,14 @@ public class HttpOutboundAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		HttpUrlSelector httpUrlSelector = context.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
-		String method = message.getVariable(ESBVariableConstants.HttpMethod);
+		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
-		String appendHttpUrl = message.getVariable(ESBVariableConstants.appendHttpUrlPath);
-		if (message.getVariable(ESBVariableConstants.QueryString) != null) {
-			appendHttpUrl += message.getVariable(ESBVariableConstants.QueryString);
+		String appendHttpUrl = message.getVariable(appendHttpUrlPath);
+		if (message.getVariable(QueryString) != null) {
+			appendHttpUrl += message.getVariable(QueryString);
 		}
 		HttpURLConnection conn = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), true, _chunkLength);
+		message.getVariables().put(HttpURLOutbound, conn.getURL().toString());
 		conn.setReadTimeout(_readTimeout);
 		if (inPipeline) {
 			message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
@@ -71,7 +72,7 @@ public class HttpOutboundAction extends Action {
 			message.<OutputStream> getBody().close();
 		}
 		message.reset(BodyType.INVALID, null);
-		message.getVariables().put(ESBVariableConstants.HttpURLConnection, resource.getResource());
+		message.getVariables().put(HttpURLConnection, resource.getResource());
 	}
 
 }

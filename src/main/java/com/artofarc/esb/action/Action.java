@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.lang.reflect.Method;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -55,6 +56,8 @@ public abstract class Action implements Cloneable {
 		List<ExecutionContext> resources = new ArrayList<>();
 		TimeGauge timeGauge = new TimeGauge(Level.INFO, 250L);
 		timeGauge.startTimeMeasurement();
+		ArrayDeque<Integer> stackPosErrorHandler = new ArrayDeque<Integer>(); 
+		stackPosErrorHandler.push(context.getExecutionStack().size());
 		for (Action nextAction = this; nextAction != null;) {
 			boolean isPipeline = false;
 			Action action = nextAction;
@@ -62,13 +65,15 @@ public abstract class Action implements Cloneable {
 			try {
 				while (action != null) {
 					ExecutionContext execContext = action.prepare(context, message, isPipeline);
+					if (action.getErrorHandler() != null) {
+						stackPosErrorHandler.push(context.getExecutionStack().size());
+					}
 					timeGauge.stopTimeMeasurement("Parent: %s, prepare (isPipeline=%b): %s", true, this, isPipeline, action);
 					pipeline.add(action);
 					resources.add(execContext);
 					nextAction = action.nextAction(execContext);
 					if (nextAction == null) {
-						nextAction = message.getTerminal();
-						message.setTerminal(null);
+						nextAction = context.getExecutionStack().poll();
 					}
 					if (action.isPipelineStop()) {
 						break;
@@ -90,8 +95,11 @@ public abstract class Action implements Cloneable {
 				message.reset(BodyType.EXCEPTION, e);
 				nextAction = action.getErrorHandler();
 				if (nextAction == null) {
-					nextAction = message.getTerminal();
-					message.setTerminal(null);
+					int stackPos = stackPosErrorHandler.peek();
+					while (context.getExecutionStack().size() > stackPos) {
+						nextAction = context.getExecutionStack().pop();
+					}
+					nextAction = context.getExecutionStack().poll();
 				}
 				if (nextAction != null) {
 					nextAction.process(context, message);
@@ -105,6 +113,9 @@ public abstract class Action implements Cloneable {
 					ExecutionContext exContext = resources.get(i);
 					try {
 						action.close(exContext);
+						if (action.getErrorHandler() != null) {
+							stackPosErrorHandler.pop();
+						}
 					} catch (Exception e) {
 						if (!closeSilently)
 							throw e;
@@ -121,7 +132,7 @@ public abstract class Action implements Cloneable {
 	// pipelining
 	protected boolean _pipelineStop;
 
-	public final boolean isPipelineStop() {
+	public boolean isPipelineStop() {
 		return _pipelineStop;
 	}
 
@@ -184,9 +195,6 @@ public abstract class Action implements Cloneable {
 		while (iterator.hasNext()) {
 			action = action.setNextAction(iterator.next());
 		}
-		// if (!action.isPipelineStop()) {
-		// throw new IllegalArgumentException("Last action must stop pipeline");
-		// }
 		return startAction;
 	}
 

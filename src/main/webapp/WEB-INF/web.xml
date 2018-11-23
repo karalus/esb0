@@ -28,7 +28,7 @@
 			<url-pattern>/admin/*</url-pattern>
 		</web-resource-collection>
 		<auth-constraint>
-			<role-name>admin</role-name>
+			<role-name>esb0admin</role-name>
 		</auth-constraint>
 	</security-constraint>
 	<login-config>
@@ -37,6 +37,6 @@
 	</login-config>
 	<security-role>
 		<description>ESB0 admin</description>
-		<role-name>admin</role-name>
+		<role-name>esb0admin</role-name>
 	</security-role>
 </web-app>

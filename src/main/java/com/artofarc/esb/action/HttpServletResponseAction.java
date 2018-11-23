@@ -62,6 +62,9 @@ public class HttpServletResponseAction extends Action {
 				httpResponseCode = hasFault != null && hasFault ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : HttpServletResponse.SC_OK;
 			}
 			response.setStatus(httpResponseCode.intValue());
+			if (message.getCharset() != null) {
+				response.setCharacterEncoding(message.getCharset().name());
+			}
 			if (_supportCompression) checkCompression(message);
 			checkFastInfoSet(message);
 			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
