@@ -128,6 +128,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	public ServiceArtifact clone(Directory parent) {
 		ServiceArtifact clone = initClone(new ServiceArtifact(parent, getName()));
 		clone._service = _service;
+		clone._consumerPort = _consumerPort;
 		return clone;
 	}
 

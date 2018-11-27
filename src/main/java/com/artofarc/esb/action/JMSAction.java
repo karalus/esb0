@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 
 import javax.jms.BytesMessage;
 import javax.jms.Destination;
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.Session;
 import javax.naming.NamingException;
@@ -74,7 +75,11 @@ public class JMSAction extends TerminalAction {
 			jmsMessage = session.createTextMessage(message.getBodyAsString(context));
 		}
 		for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
-			jmsMessage.setObjectProperty(entry.getKey(), entry.getValue());
+			try {
+				jmsMessage.setObjectProperty(entry.getKey(), entry.getValue());
+			} catch (JMSException e) {
+				throw new ExecutionException(this, "Could not set JMS property " + entry.getKey(), e);
+			}
 		}
 		context.getTimeGauge().stopTimeMeasurement("JMS createMessage", true);
 		message.getHeaders().clear();

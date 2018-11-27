@@ -33,6 +33,8 @@ public class XSDArtifact extends SchemaArtifact {
 	@Override
 	public XSDArtifact clone(Directory parent) {
 		XSDArtifact clone = initClone(new XSDArtifact(parent, getName()));
+		clone._jaxbContext = _jaxbContext;
+		clone.schema = schema;
 		return clone;
 	}
 

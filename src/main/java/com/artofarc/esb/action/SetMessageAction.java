@@ -40,6 +40,7 @@ public class SetMessageAction extends Action {
 		_pipelineStop = true;
 		_classLoader = cl;
 		_body = bodyExpr != null ? new Assignment(null, bodyExpr, javaType, method) : null;
+		_pipelineStop = bodyExpr != null;
 	}
 
 	public void addHeader(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
@@ -48,6 +49,9 @@ public class SetMessageAction extends Action {
 
 	public void addVariable(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 		_variables.add(new Assignment(name, expr, javaType, method));
+		if (!_pipelineStop && expr.contains("${body")) {
+			_pipelineStop = true;
+		}
 	}
 
 	@Override
