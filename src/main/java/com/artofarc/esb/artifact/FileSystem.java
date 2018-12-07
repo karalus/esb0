@@ -139,9 +139,7 @@ public final class FileSystem {
 			if (file.isDirectory()) {
 				readDir(new Directory(base, name), file);
 			} else {
-				int i = name.lastIndexOf('.');
-				String extension = i < 0 ? "" : name.substring(i + 1);
-				Artifact artifact = createArtifact(base, name, extension);
+				Artifact artifact = createArtifact(base, name);
 				if (artifact != null) {
 					artifact.setContent(readFile(file));
 					artifact.setModificationTime(file.lastModified());
@@ -172,11 +170,11 @@ public final class FileSystem {
 		}
 	}
 	
-	protected static final Artifact createArtifact(Directory parent, String name, String extension) {
+	protected static final Artifact createArtifact(Directory parent, String name) {
 		// Mac OSX
 		if (name.startsWith("._"))
 			return null;
-		switch (extension) {
+		switch (Artifact.getExt(name)) {
 		case ServiceArtifact.FILE_EXTENSION:
 			return new ServiceArtifact(parent, name);
 		case "xml":
@@ -380,17 +378,18 @@ public final class FileSystem {
 					int i = entry.getName().lastIndexOf('/');
 					Directory dir = i < 0 ? _root : makeDirectory(entry.getName().substring(0, i));
 					String name = i < 0 ? entry.getName() : entry.getName().substring(i + 1);
-					i = name.lastIndexOf('.');
-					String extension = i < 0 ? "" : name.substring(i + 1);
 					Artifact old = getArtifact(entry.getName());
-					Artifact artifact = createArtifact(dir, name, extension);
+					Artifact artifact = createArtifact(dir, name);
 					if (artifact != null) {
 						ByteArrayOutputStream bos = new ByteArrayOutputStream(4096);
 						ESBMessage.copyStream(zis, bos);
 						artifact.setContent(bos.toByteArray());
 						artifact.setModificationTime(entry.getTime());
 						if (old != null) {
-							if (!Arrays.equals(old.getContent(), artifact.getContent())) {
+							if (Arrays.equals(old.getContent(), artifact.getContent())) {
+								// Undo
+								dir.getArtifacts().put(name, old);
+							} else {
 								_changes.put(artifact.getURI(), ChangeType.UPDATE);
 							}
 						} else {

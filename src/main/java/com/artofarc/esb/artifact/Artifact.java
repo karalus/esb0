@@ -68,6 +68,11 @@ public abstract class Artifact {
 		return i > 0 ? name.substring(0, i) : name;
 	}
 
+	public final static String getExt(String name) {
+		int i = name.lastIndexOf('.');
+		return i < 0 ? "" : name.substring(i + 1);
+	}
+
 	public final Collection<String> getReferenced() {
 		return _referenced;
 	}
