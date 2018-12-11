@@ -55,7 +55,7 @@ Java 7 should be used for building in order to support both Java 7 and Java 8 at
 ### How to deploy ###
 
 ESB Zero requires a Java Servlet Container conforming to the servlet 3.0 API. 
-It has been tested with Tomcat 7, 8 and 8.5, Wildfly and Jetty 9.0.0. 
+It has been tested with Tomcat 7, 8 and 8.5, Wildfly, Jetty 9.0.0. and JBoss EAP 7.1.
 
 ESB Zero needs one directory to retrieve and persist service flows and other artifacts.
 Per default it is expected to have a folder named "esb_root" in the user home folder (of the user running the servlet container).

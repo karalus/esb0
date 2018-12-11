@@ -96,6 +96,12 @@
 			<artifactId>jaxb-xjc</artifactId>
 			<version>2.2.11</version>
 		</dependency>
+		<!-- Needed for JBoss EAP 7.1, not for Tomcat -->
+		<dependency>
+			<groupId>com.sun.xml.bind</groupId>
+			<artifactId>jaxb-core</artifactId>
+			<version>2.2.11</version>
+		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-jdk14</artifactId>
@@ -141,7 +147,7 @@
 		<dependency>
 			<groupId>com.sun.xml.fastinfoset</groupId>
 			<artifactId>FastInfoset</artifactId>
-			<version>1.2.15</version>
+			<version>1.2.13</version>
 		</dependency>
 	</dependencies>
 	<build>
