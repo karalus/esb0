@@ -56,7 +56,7 @@ import com.artofarc.esb.message.ESBMessage;
 
 public abstract class JDBCAction extends TerminalAction {
 
-	protected final DataSource _dataSource;
+	private final DataSource _dataSource;
 	protected final String _sql;
 	private final List<JDBCParameter> _params;
 	private final int _fetchSize;
@@ -94,8 +94,13 @@ public abstract class JDBCAction extends TerminalAction {
 		}
 		return execContext;
 	}
+	
+	protected final Connection getConnection(ExecutionContext execContext) throws SQLException {
+		Connection connection = execContext != null ? execContext.<Connection>getResource2() : null;
+		return connection != null ? connection : _dataSource.getConnection();
+	}
 
-	protected void bindParameters(PreparedStatement ps, Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
+	protected final void bindParameters(PreparedStatement ps, Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
 		for (JDBCParameter param : _params) {
 			if (param.isBody()) {
 				switch (param.getType()) {

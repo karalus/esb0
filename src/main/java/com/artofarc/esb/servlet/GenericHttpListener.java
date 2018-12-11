@@ -107,6 +107,7 @@ public class GenericHttpListener extends HttpServlet {
 			parseAttachments(request.getContentType(), message);
 		}
 		// copy into variable for HttpServletResponseAction
+		message.putVariable(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));
 		message.putVariable(HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HTTP_HEADER_ACCEPT_ENCODING));
 		message.putVariable(HTTP_HEADER_ACCEPT, message.removeHeader(HTTP_HEADER_ACCEPT));
 		message.getVariables().put(AsyncContext, request.startAsync());

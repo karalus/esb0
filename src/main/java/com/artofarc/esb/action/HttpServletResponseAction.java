@@ -25,6 +25,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -62,9 +63,11 @@ public class HttpServletResponseAction extends Action {
 				httpResponseCode = hasFault != null && hasFault ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : HttpServletResponse.SC_OK;
 			}
 			response.setStatus(httpResponseCode.intValue());
-			if (message.getCharset() != null) {
-				response.setCharacterEncoding(message.getCharset().name());
+			final String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
+			if (acceptCharset != null) {
+				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset, ""));
 			}
+			response.setCharacterEncoding(message.getSinkEncoding());
 			if (_supportCompression) checkCompression(message);
 			checkFastInfoSet(message);
 			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {

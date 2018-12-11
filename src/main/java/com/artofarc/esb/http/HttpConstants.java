@@ -18,6 +18,8 @@ package com.artofarc.esb.http;
 
 public class HttpConstants {
 
+	public static final String HTTP_HEADER_ACCEPT_CHARSET = "Accept-Charset";
+	
 	public static final String HTTP_HEADER_ACCEPT_ENCODING = "Accept-Encoding";
 
 	public static final String HTTP_HEADER_TRANSFER_ENCODING = "Transfer-Encoding";
@@ -46,7 +48,7 @@ public class HttpConstants {
 	
 	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
 
-	public static final String getValueFromHttpHeader(String httpHeader, String key) {
+	public static String getValueFromHttpHeader(String httpHeader, String key) {
 		int i = httpHeader.indexOf(key);
 		if (i >= 0) {
 			i += key.length();

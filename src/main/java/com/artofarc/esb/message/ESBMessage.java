@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -41,6 +42,7 @@ import java.util.zip.InflaterInputStream;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -76,7 +78,7 @@ public final class ESBMessage implements Cloneable {
 
 	private BodyType _bodyType;
 	private Object _body;
-	private Charset _charset;
+	private Charset _charset, _sinkEncoding; 
 	private long _timeleft = 300000L;
 	private boolean _join = true;
 	private Schema _schema;
@@ -192,6 +194,26 @@ public final class ESBMessage implements Cloneable {
 		_charset = charsetName != null ? Charset.forName(charsetName) : null;
 	}
 
+	public void setSinkEncoding(String sinkEncoding) {
+		_sinkEncoding = Charset.forName(sinkEncoding);
+	}
+
+	public String getSinkEncoding() {
+		return (_sinkEncoding != null ? _sinkEncoding : _charset != null ? _charset : CHARSET_DEFAULT).name();
+	}
+	
+	private Properties getSinkProperties() {
+		Properties props = new Properties();
+		props.setProperty(OutputKeys.ENCODING, getSinkEncoding());
+		return props;
+	}
+
+	private void checkSinkEncodingSame() throws IOException {
+		if (_sinkEncoding != null && _sinkEncoding != _charset) {
+			throw new java.io.UnsupportedEncodingException("Cannot convert from " + _charset + " to " + _sinkEncoding);
+		}
+	}
+	
 	public long getTimeleft() {
 		return _timeleft;
 	}
@@ -288,10 +310,8 @@ public final class ESBMessage implements Cloneable {
 			ba = bos.toByteArray();
 			break;
 		case STRING:
-			if (_charset == null) {
-				_charset = CHARSET_DEFAULT;
-			}
-			ba = ((String) _body).getBytes(_charset);
+			ba = ((String) _body).getBytes(getSinkEncoding());
+			_charset = null;
 			break;
 		case BYTES:
 			return (byte[]) _body;
@@ -519,6 +539,7 @@ public final class ESBMessage implements Cloneable {
 		if (HTTP_HEADER_CONTENT_TYPE_FI_SOAP11.equals(contentType) || HTTP_HEADER_CONTENT_TYPE_FI_SOAP12.equals(contentType)) {
 			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 			serializer.getFastInfosetSerializer().setOutputStream(outputStream);
+			serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
 			writeTo(new SAXResult(serializer.getContentHandler()), context);
 		} else {
 			writeRawTo(outputStream, context);
@@ -529,16 +550,18 @@ public final class ESBMessage implements Cloneable {
 	public void writeRawTo(OutputStream os, Context context) throws TransformerException, IOException, XQException {
 		switch (_bodyType) {
 		case DOM:
-			transform(context.getIdenticalTransformer(), _charset != null ? new StreamResult(new OutputStreamWriter(os, _charset)) : new StreamResult(os));
+			transform(context.getIdenticalTransformer(), new StreamResult(new OutputStreamWriter(os, getSinkEncoding())));
 			break;
 		case STRING:
 			os.write(getBodyAsByteArray(context));
 			break;
 		case BYTES:
+			checkSinkEncodingSame();
 			os.write((byte[]) _body);
 			break;
 		case INPUT_STREAM:
 			// writes compressed data through!
+			checkSinkEncodingSame();
 			try {
 				copyStream((InputStream) _body, os);
 			} finally {
@@ -548,13 +571,13 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(os, null);
+			xqItem.writeItem(os, getSinkProperties());
 			break;
 		case XQ_SEQUENCE:
 			// dummy
 			XQSequence xqSequence = (XQSequence) _body;
 			if (xqSequence.next()) {
-				xqSequence.writeItem(os, null);
+				xqSequence.writeItem(os, getSinkProperties());
 			} else {
 				throw new IllegalStateException("Message already consumed");
 			}
