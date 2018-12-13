@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +30,7 @@ public class AssignAction extends TransformAction {
 	}
 
 	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
-		this(Arrays.asList(Collections.createEntry(varName, expression)), namespaces, bindNames, contextItem);
+		this(java.util.Collections.singletonList(Collections.createEntry(varName, expression)), namespaces, bindNames, contextItem);
 	}
 
 	public AssignAction(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {

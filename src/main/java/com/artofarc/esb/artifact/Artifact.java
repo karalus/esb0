@@ -63,12 +63,12 @@ public abstract class Artifact {
 		}
 	}
 
-	public final static String stripExt(String name) {
+	public static String stripExt(String name) {
 		int i = name.lastIndexOf('.');
 		return i > 0 ? name.substring(0, i) : name;
 	}
 
-	public final static String getExt(String name) {
+	public static String getExt(String name) {
 		int i = name.lastIndexOf('.');
 		return i < 0 ? "" : name.substring(i + 1);
 	}
@@ -127,7 +127,7 @@ public abstract class Artifact {
 		return FileSystem.getArtifact(getParent(), uri);
 	}
 	
-	protected final static InputStream getResourceAsStream(String name) {
+	protected static InputStream getResourceAsStream(String name) {
 		return Artifact.class.getClassLoader().getResourceAsStream(name);
 	}
 

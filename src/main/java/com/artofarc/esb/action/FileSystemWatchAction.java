@@ -26,6 +26,7 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -74,7 +75,7 @@ public class FileSystemWatchAction extends TerminalAction {
 				logger.fine("Absolute path " + absolutePath + ", kind: " + watchEvent.kind());
 				for(;;) {
 					try {
-						futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn), watchEvent);
+						futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action>emptyList(), true), watchEvent);
 						break;
 					} catch (RejectedExecutionException e) {
 						logger.warning("Could not spawn to worker pool " + _workerPool);

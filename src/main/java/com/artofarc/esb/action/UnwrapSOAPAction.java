@@ -47,20 +47,15 @@ public class UnwrapSOAPAction extends TransformAction {
 	private final Schema _schema;
 
 	/**
-	 * @param soap12
-	 * @param singlePart body can contain more than one element.
-	 * @param mapAction2Operation
-	 * @param bindingOperations
-	 * @param wsdlUrl
-	 * @param schema
-	 * 
-	 * @see https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/
+	 * @param singlePart whether body can contain more than one element.
+	 *
+	 * @see <a href="https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/">WSDL styles/</a>
 	 */
 	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, String wsdlUrl, Schema schema) {
 		super("declare namespace soapenv=\"" + (soap12 ? SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE : SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
 				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
 				+ (singlePart ? "local-name($b), " : "") + "if ($h) then $h else <soapenv:Header/>, $b)",
-				singlePart ? Arrays.asList(SOAP_OPERATION, SOAP_HEADER) : Arrays.asList(SOAP_HEADER), null);
+				singlePart ? Arrays.asList(SOAP_OPERATION, SOAP_HEADER) : java.util.Collections.singletonList(SOAP_HEADER), null);
 		
 		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;

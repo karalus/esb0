@@ -98,18 +98,23 @@ public class TransformAction extends Action {
 		if (_contextItem != null) {
 			bind(_contextItem, XQConstants.CONTEXT_ITEM, null, xqExpression, context, message);
 		} else {
-			if (message.getBodyType() == BodyType.XQ_SEQUENCE) {
+			switch (message.getBodyType()) {
+			case XQ_SEQUENCE:
 				XQSequence sequence = message.getBody();
 				if (!sequence.next()) {
 					throw new ExecutionException(this, "body not passed through");
 				}
 				xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
-			} else if (message.getBodyType() == BodyType.XQ_ITEM) {
+				break;
+			case XQ_ITEM:
 				xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
-			} else if (message.getBodyType() == BodyType.INVALID) {
+				break;
+			case INVALID:
 				// Nothing to bind
-			} else {
+				break;
+			default:
 				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
+				break;
 			}
 		}
 		for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {

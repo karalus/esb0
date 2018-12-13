@@ -39,7 +39,7 @@ import com.artofarc.esb.message.ESBMessage;
 /**
  * Extract data from message using JSON Pointer.
  * 
- * @see https://tools.ietf.org/html/rfc6901
+ * @see <a href="https://tools.ietf.org/html/rfc6901">JavaScript Object Notation (JSON) Pointer</a>
  */
 public class ProcessJsonAction extends Action {
 

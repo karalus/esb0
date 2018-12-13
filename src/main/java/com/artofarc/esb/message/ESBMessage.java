@@ -80,7 +80,6 @@ public final class ESBMessage implements Cloneable {
 	private Object _body;
 	private Charset _charset, _sinkEncoding; 
 	private long _timeleft = 300000L;
-	private boolean _join = true;
 	private Schema _schema;
 
 	public ESBMessage(BodyType bodyType, Object body) {
@@ -231,14 +230,6 @@ public final class ESBMessage implements Cloneable {
 		return _bodyType;
 	}
 
-	public boolean isJoin() {
-		return _join;
-	}
-
-	public void setJoin(boolean join) {
-		_join = join;
-	}
-
 	public Schema getSchema() {
 		return _schema;
 	}
@@ -284,7 +275,7 @@ public final class ESBMessage implements Cloneable {
 		return new InputStreamReader(getUncompressedInputStream(), _charset != null ? _charset : CHARSET_DEFAULT);
 	}
 
-	public final static void copyStream(InputStream is, OutputStream os) throws IOException {
+	public static void copyStream(InputStream is, OutputStream os) throws IOException {
 		final byte[] buffer = new byte[MTU];
 		int len;
 		while ((len = is.read(buffer)) >= 0) {
@@ -292,7 +283,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public final static void copyStream(Reader is, Writer os) throws IOException {
+	public static void copyStream(Reader is, Writer os) throws IOException {
 		final char[] buffer = new char[MTU];
 		int len;
 		while ((len = is.read(buffer)) >= 0) {

@@ -32,7 +32,7 @@ import com.artofarc.esb.message.ESBMessage;
 /**
  * Deserialize XOP package. This implementation is memory exhaustive and should be optimized by using stream decoder.
  *   
- * @see https://www.w3.org/TR/xop10/
+ * @see <a href="https://www.w3.org/TR/xop10/">XOP</a>
  */
 public class MtomXopDeserializeAction extends TransformAction {
 

@@ -56,7 +56,7 @@ public abstract class Action implements Cloneable {
 		List<ExecutionContext> resources = new ArrayList<>();
 		TimeGauge timeGauge = new TimeGauge(Level.INFO, 250L);
 		timeGauge.startTimeMeasurement();
-		ArrayDeque<Integer> stackPosErrorHandler = new ArrayDeque<Integer>(); 
+		ArrayDeque<Integer> stackPosErrorHandler = new ArrayDeque<>();
 		stackPosErrorHandler.push(context.getExecutionStack().size());
 		for (Action nextAction = this; nextAction != null;) {
 			boolean isPipeline = false;
@@ -177,7 +177,7 @@ public abstract class Action implements Cloneable {
 		}
 	}
 
-	public static final List<Action> cloneService(List<Action> service) {
+	public static List<Action> cloneService(List<Action> service) {
 		List<Action> clone = new ArrayList<>(service.size());
 		for (Action action : service) {
 			clone.add(action.clone());
@@ -185,7 +185,7 @@ public abstract class Action implements Cloneable {
 		return clone;
 	}
 
-	public final static Action linkList(List<Action> service) {
+	public static Action linkList(List<Action> service) {
 		Action startAction;
 		Iterator<Action> iterator = service.iterator();
 		if (!iterator.hasNext()) {
@@ -198,7 +198,7 @@ public abstract class Action implements Cloneable {
 		return startAction;
 	}
 
-	protected final static String bindVariable(String exp, Context context, ESBMessage message) throws Exception {
+	protected static String bindVariable(String exp, Context context, ESBMessage message) throws Exception {
       StringBuilder builder = new StringBuilder();
       for (int pos = 0;;) {
          int i = exp.indexOf("${", pos);

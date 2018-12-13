@@ -78,7 +78,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	@Override
 	public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
-		InputStream resourceAsStream = null;;
+		InputStream resourceAsStream = null;
 		if (systemId.contains("//")) {
 			// Must not download anything but search locally (XML catalog)
 			String resourceName = systemId.substring(systemId.lastIndexOf('/') + 1);

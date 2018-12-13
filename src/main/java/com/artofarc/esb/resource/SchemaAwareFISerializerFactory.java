@@ -23,7 +23,7 @@ import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 public class SchemaAwareFISerializerFactory extends ResourceFactory<SchemaAwareFastInfosetSerializer, Schema, Void> {
 
 	@Override
-	protected SchemaAwareFastInfosetSerializer createResource(Schema schema, Void param) throws Exception {
+	protected SchemaAwareFastInfosetSerializer createResource(Schema schema, Void param) {
 		return new SchemaAwareFastInfosetSerializer(schema);
 	}
 

@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Properties;
@@ -65,7 +66,7 @@ public class KafkaConsumeAction extends TerminalAction {
 			logger.fine("Kafka Consumer Record(topic=" + record.topic() + ", partition=" + record.partition() + ", offset=" + record.offset() + ")");
 			for(;;) {
 				try {
-					futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn), record);
+					futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action>emptyList(), true), record);
 					break;
 				} catch (RejectedExecutionException e) {
 					logger.warning("Could not spawn to worker pool " + _workerPool);

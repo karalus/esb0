@@ -19,6 +19,8 @@ package com.artofarc.esb.action;
 import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -36,7 +38,7 @@ public class SpawnAction extends Action {
 
 	private final String _workerPool;
 
-	private final boolean _usePipe;
+	private final boolean _usePipe, _join = false;
 
 	public SpawnAction(String workerPool, boolean usePipe) {
 		_workerPool = workerPool;
@@ -54,21 +56,21 @@ public class SpawnAction extends Action {
 		if (_nextAction == null) {
 			throw new com.artofarc.esb.action.ExecutionException(this, "nextAction not set");
 		}
+		Collection<Action> executionStack  = new ArrayList<>(context.getExecutionStack());
+		context.getExecutionStack().clear();
 		if (_usePipe) {
 			PipedOutputStream pos = new PipedOutputStream();
-			PipedInputStream pis = new PipedInputStream(pos, ESBMessage.MTU);
 			ESBMessage clone = message.clone();
-			clone.reset(BodyType.INPUT_STREAM, pis);
-			Future<ESBMessage> future = submit(context, clone);
+			clone.reset(BodyType.INPUT_STREAM, new PipedInputStream(pos, ESBMessage.MTU));
+			Future<ESBMessage> future = submit(context, clone, executionStack);
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, pos);
 			} else {
 				message.writeRawTo(pos, context);
 			}
-			context.getExecutionStack().poll();
 			return new ExecutionContext(pos, future);
 		} else {
-			ExecutionContext execContext = new ExecutionContext(context.getExecutionStack().poll());
+			ExecutionContext execContext = new ExecutionContext(executionStack);
 			if (inPipeline) {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
 				message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -87,10 +89,6 @@ public class SpawnAction extends Action {
 			message.reset(BodyType.INVALID, null);
 			future = execContext.getResource2();
 		} else {
-			Action terminalAction = execContext.getResource();
-			if (terminalAction != null) {
-				context.getExecutionStack().push(terminalAction);
-			}
 			ByteArrayOutputStream bos = execContext.getResource2();
 			if (bos != null) {
 				message.reset(BodyType.BYTES, bos.toByteArray());
@@ -99,31 +97,34 @@ public class SpawnAction extends Action {
 					message.getBodyAsByteArray(context);
 				}
 			}
-			future = submit(context, message);
+			future = submit(context, message, execContext.<Collection<Action>>getResource());
 		}
-		if (message.isJoin()) {
+		if (_join) {
 			join(context, message, future);
 		}
 	}
 
-	private Future<ESBMessage> submit(Context context, final ESBMessage message) throws RejectedExecutionException {
+	private Future<ESBMessage> submit(Context context, final ESBMessage message, Collection<Action> executionStack) throws RejectedExecutionException {
 		String workerPool = message.getVariable(ESBVariableConstants.WorkerPool, _workerPool);
-		return submit(context, message, workerPool, _nextAction);
+        return submit(context, message, workerPool, _nextAction, executionStack, _join);
 	}
 
-	public static Future<ESBMessage> submit(Context context, final ESBMessage message, String workerPool, final Action action) throws RejectedExecutionException {
+	public static Future<ESBMessage> submit(Context context, final ESBMessage message, String workerPool, final Action action, final Collection<Action> executionStack, boolean join) throws RejectedExecutionException {
 		context.getTimeGauge().startTimeMeasurement();
 		try {
 			return context.getPoolContext().getGlobalContext().getWorkerPool(workerPool).getExecutorService().submit(new Callable<ESBMessage>() {
 
 				@Override
 				public ESBMessage call() throws Exception {
-					action.process(WorkerPoolThreadFactory.getContext(), message);
+                    final Context workerContext = WorkerPoolThreadFactory.getContext();
+                    // handover execution stack
+                    workerContext.getExecutionStack().addAll(executionStack);
+                    action.process(workerContext, message);
 					return message;
 				}
 			});
 		} finally {
-			context.getTimeGauge().stopTimeMeasurement("Async submit", message.isJoin());
+			context.getTimeGauge().stopTimeMeasurement("Async submit", join);
 		}
 	}
 
