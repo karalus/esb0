@@ -43,7 +43,7 @@ public abstract class AbstractServiceArtifact extends Artifact {
 			throw new RuntimeException("Cannot initialize JAXBContext", e);
 		}
 		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-		try (InputStream inputStream = getResourceAsStream("service.v01.xsd")) {
+		try (InputStream inputStream = getResourceAsStream("service.xsd")) {
 			schema = factory.newSchema(new StreamSource(inputStream));
 		} catch (SAXException | IOException e) {
 			throw new RuntimeException("Cannot parse service schema", e);

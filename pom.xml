@@ -180,7 +180,7 @@
 				<configuration>
 					<generateEpisode>false</generateEpisode>
 					<sources>
-                    	<source>src/main/xsd/service.v01.xsd</source>
+                    	<source>src/main/xsd/service.xsd</source>
                 	</sources>
 				</configuration>
 			</plugin>
