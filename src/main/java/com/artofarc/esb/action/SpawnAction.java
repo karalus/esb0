@@ -38,11 +38,12 @@ public class SpawnAction extends Action {
 
 	private final String _workerPool;
 
-	private final boolean _usePipe, _join = false;
+	private final boolean _usePipe, _join;
 
-	public SpawnAction(String workerPool, boolean usePipe) {
+	public SpawnAction(String workerPool, boolean usePipe, boolean join) {
 		_workerPool = workerPool;
 		_usePipe = usePipe;
+		_join = join;
 		_pipelineStop = true;
 	}
 
@@ -56,7 +57,7 @@ public class SpawnAction extends Action {
 		if (_nextAction == null) {
 			throw new com.artofarc.esb.action.ExecutionException(this, "nextAction not set");
 		}
-		Collection<Action> executionStack  = new ArrayList<>(context.getExecutionStack());
+		Collection<Action> executionStack = new ArrayList<>(context.getExecutionStack());
 		context.getExecutionStack().clear();
 		if (_usePipe) {
 			PipedOutputStream pos = new PipedOutputStream();

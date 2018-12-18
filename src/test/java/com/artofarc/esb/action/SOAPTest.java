@@ -109,7 +109,7 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new HttpOutboundAction(url));
-      action = action.setNextAction(new SpawnAction(null, false));
+      action = action.setNextAction(new SpawnAction(null, false, true));
       action = action.setNextAction(new HttpInboundAction());
       action = action.setNextAction(new AssignAction("response", "."));
       action = action.setNextAction(new DumpAction());
@@ -131,7 +131,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = new AssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new SpawnAction(null, false));
+      action = action.setNextAction(new SpawnAction(null, false, true));
       //action = action.setNextAction(new AssignAction("request", "."));
       action = action.setNextAction(new HttpOutboundAction(url));
       action = action.setNextAction(new HttpInboundAction());
@@ -156,7 +156,7 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setTerminalAction(new DumpAction());
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new SpawnAction(null, true));
+      action = action.setNextAction(new SpawnAction(null, true, true));
       //action = action.setNextAction(new AssignAction("request", "."));
       action = action.setNextAction(new HttpOutboundAction(url));
       action = action.setNextAction(new HttpInboundAction());
