@@ -14,19 +14,30 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.artofarc.eai</groupId>
 	<artifactId>esb0</artifactId>
 	<packaging>war</packaging>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.1-SNAPSHOT</version>
 	<name>ESB Zero Maven Webapp</name>
 	<url>http://maven.apache.org</url>
 	<properties>
 		<project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
 		<jettyVersion>9.0.0.v20130308</jettyVersion>
 	</properties>
+	<scm>
+		<url>scm:git:git@github.com:karalus/esb0.git</url>
+		<connection>scm:git:git@github.com:karalus/esb0.git</connection>
+		<developerConnection>scm:git:git@github.com:karalus/esb0.git</developerConnection>
+      <tag>HEAD</tag>
+  </scm>	
+	<distributionManagement>
+		<repository>
+			<id>localDeploy</id>
+			<url>file:///tmp</url>
+		</repository>
+	</distributionManagement>
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -161,6 +172,11 @@
 						<source>1.7</source>
 						<target>1.7</target>
 					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-release-plugin</artifactId>
+					<version>2.5.3</version>                
 				</plugin>
 			</plugins>
 		</pluginManagement>
