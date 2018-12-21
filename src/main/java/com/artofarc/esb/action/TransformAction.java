@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import javax.xml.namespace.QName;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
@@ -113,7 +112,7 @@ public class TransformAction extends Action {
 				// Nothing to bind
 				break;
 			default:
-				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
+				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(), null);
 				break;
 			}
 		}
@@ -200,7 +199,7 @@ public class TransformAction extends Action {
 			if (resultSequence.next() && _contextItem == null) {
 				logger.fine("XQResultSequence not fully consumed");
 				if (logger.isLoggable(Level.FINE)) {
-					resultSequence.writeItemToResult(new StreamResult(System.err));
+					resultSequence.writeItem(System.err, null);
 				}
 			}
 			resultSequence.close();

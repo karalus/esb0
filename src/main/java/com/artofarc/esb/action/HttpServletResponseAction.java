@@ -16,7 +16,7 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.OutputStream;
+import java.io.Closeable;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
@@ -112,7 +112,7 @@ public class HttpServletResponseAction extends Action {
 		AsyncContext asyncContext = execContext.getResource();
 		if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
 			// necessary for DeflaterOutputStream
-			message.<OutputStream> getBody().close();
+			message.<Closeable> getBody().close();
 		}
 		if (asyncContext != null) {
 			asyncContext.complete();

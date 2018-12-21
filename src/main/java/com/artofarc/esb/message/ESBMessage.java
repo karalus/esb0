@@ -186,7 +186,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Charset getCharset() {
-		return _charset;
+		return _charset != null ? _charset : CHARSET_DEFAULT;
 	}
 
 	public void setCharset(String charsetName) {
@@ -198,19 +198,18 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public String getSinkEncoding() {
-		return (_sinkEncoding != null ? _sinkEncoding : _charset != null ? _charset : CHARSET_DEFAULT).name();
+		return (_sinkEncoding != null ? _sinkEncoding : getCharset()).name();
 	}
 	
 	private Properties getSinkProperties() {
 		Properties props = new Properties();
 		props.setProperty(OutputKeys.ENCODING, getSinkEncoding());
+		//props.setProperty(OutputKeys.INDENT, "no");
 		return props;
 	}
 
-	private void checkSinkEncodingSame() throws IOException {
-		if (_sinkEncoding != null && _sinkEncoding != _charset) {
-			throw new java.io.UnsupportedEncodingException("Cannot convert from " + _charset + " to " + _sinkEncoding);
-		}
+	private boolean isSinkEncodingdifferent() {
+		return _sinkEncoding != null && _sinkEncoding != getCharset();
 	}
 	
 	public long getTimeleft() {
@@ -272,7 +271,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	private InputStreamReader getInputStreamReader() throws IOException {
-		return new InputStreamReader(getUncompressedInputStream(), _charset != null ? _charset : CHARSET_DEFAULT);
+		return new InputStreamReader(getUncompressedInputStream(), getCharset());
 	}
 
 	public static void copyStream(InputStream is, OutputStream os) throws IOException {
@@ -339,7 +338,7 @@ public final class ESBMessage implements Cloneable {
 		case STRING:
 			return (String) _body;
 		case BYTES:
-			str = new String((byte[]) _body, _charset != null ? _charset : CHARSET_DEFAULT);
+			str = new String((byte[]) _body, getCharset());
 			break;
 		case INPUT_STREAM:
 		case XQ_ITEM:
@@ -380,7 +379,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 	
-	public Source getBodyAsSource(Context context) throws Exception {
+	public Source getBodyAsSource() throws Exception {
 		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && (contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12))) {
 			// TODO Cache FastInfosetDeserializer
@@ -430,11 +429,12 @@ public final class ESBMessage implements Cloneable {
 				throw new IllegalStateException("Message already consumed");
 			}
 			_body = context.getXQDataFactory().createItem(xqSequence.getItem());
+			// nobreak
 		case XQ_ITEM:
 			_bodyType = BodyType.INVALID;
 			return ((XQItem) _body).getItemAsStream();
 		default:
-			return context.getPoolContext().getGlobalContext().getXMLInputFactory().createXMLStreamReader(getBodyAsSource(context));
+			return context.getPoolContext().getGlobalContext().getXMLInputFactory().createXMLStreamReader(getBodyAsSource());
 		}
 	}
 
@@ -466,6 +466,7 @@ public final class ESBMessage implements Cloneable {
 			if (_bodyType == BodyType.OUTPUT_STREAM) {
 				SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 				serializer.getFastInfosetSerializer().setOutputStream(getCompressedOutputStream((OutputStream) _body));
+				serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
 				return new SAXResult(serializer.getContentHandler());
 			} else {
 				throw new IllegalStateException("Message cannot be converted to FastInfoset: " + _bodyType);
@@ -476,7 +477,12 @@ public final class ESBMessage implements Cloneable {
 			return (Result) _body;
 		case OUTPUT_STREAM:
 			_body = getCompressedOutputStream((OutputStream) _body);
-			return new StreamResult((OutputStream) _body);
+			if (isSinkEncodingdifferent()) {
+				_body = new OutputStreamWriter((OutputStream) _body, _sinkEncoding);
+				// nobreak
+			} else {
+				return new StreamResult((OutputStream) _body);
+			}
 		case WRITER:
 			return new StreamResult((Writer) _body);
 		default:
@@ -547,14 +553,19 @@ public final class ESBMessage implements Cloneable {
 			os.write(getBodyAsByteArray(context));
 			break;
 		case BYTES:
-			checkSinkEncodingSame();
+			if (isSinkEncodingdifferent()) {
+				_body = getBodyAsString(context).getBytes(_sinkEncoding);
+			}
 			os.write((byte[]) _body);
 			break;
 		case INPUT_STREAM:
-			// writes compressed data through!
-			checkSinkEncodingSame();
 			try {
-				copyStream((InputStream) _body, os);
+				if (isSinkEncodingdifferent()) {
+					copyStream(getInputStreamReader(), new OutputStreamWriter(os, _sinkEncoding));
+				} else {
+					// writes compressed data through!
+					copyStream((InputStream) _body, os);
+				}
 			} finally {
 				_body = null;
 				_bodyType = BodyType.INVALID;
@@ -565,7 +576,6 @@ public final class ESBMessage implements Cloneable {
 			xqItem.writeItem(os, getSinkProperties());
 			break;
 		case XQ_SEQUENCE:
-			// dummy
 			XQSequence xqSequence = (XQSequence) _body;
 			if (xqSequence.next()) {
 				xqSequence.writeItem(os, getSinkProperties());
