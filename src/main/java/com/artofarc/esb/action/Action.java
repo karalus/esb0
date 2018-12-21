@@ -75,10 +75,10 @@ public abstract class Action implements Cloneable {
 					if (nextAction == null) {
 						nextAction = context.getExecutionStack().poll();
 					}
-					if (action.isPipelineStop()) {
+					isPipeline |= action.isPipelineStart();
+					if (!isPipeline || action.isPipelineStop()) {
 						break;
 					}
-					isPipeline = true;
 					action = nextAction;
 				}
 				// process pipeline fragment
@@ -130,10 +130,14 @@ public abstract class Action implements Cloneable {
 	}
 
 	// pipelining
-	protected boolean _pipelineStop;
+	protected boolean _pipelineStop, _pipelineStart = true;
 
 	public boolean isPipelineStop() {
 		return _pipelineStop;
+	}
+
+	public boolean isPipelineStart() {
+		return _pipelineStart;
 	}
 
 	protected Action nextAction(ExecutionContext execContext) {
@@ -157,7 +161,6 @@ public abstract class Action implements Cloneable {
 	 * action before end of pipeline.
 	 * 
 	 * @param nextActionIsPipelineStop
-	 *           TODO
 	 */
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 	}

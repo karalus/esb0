@@ -45,6 +45,7 @@ public abstract class TerminalAction extends Action {
 		if (execContext != null) {
 			ByteArrayOutputStream bos = execContext.getResource();
 			message.reset(BodyType.BYTES, bos.toByteArray());
+			message.setCharset(message.getSinkEncoding());
 		}
 	}
 

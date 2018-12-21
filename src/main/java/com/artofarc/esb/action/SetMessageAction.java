@@ -37,10 +37,10 @@ public class SetMessageAction extends Action {
 
 	public SetMessageAction(boolean clearAll, ClassLoader cl, String bodyExpr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 		_clearAll = clearAll;
-		_pipelineStop = true;
 		_classLoader = cl;
 		_body = bodyExpr != null ? new Assignment(null, bodyExpr, javaType, method) : null;
 		_pipelineStop = bodyExpr != null;
+		_pipelineStart = false;
 	}
 
 	public void addHeader(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {

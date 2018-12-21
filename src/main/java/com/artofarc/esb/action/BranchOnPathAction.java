@@ -45,6 +45,17 @@ public class BranchOnPathAction extends Action {
 	}
 
 	@Override
+	public boolean isPipelineStop() {
+		boolean pipelineStop = _defaultAction != null ? _defaultAction.isPipelineStop() : _nextAction == null || _nextAction.isPipelineStop();
+		for (Action action : _branchMap.values()) {
+			if (pipelineStop |= action.isPipelineStop()) {
+				break;
+			}
+		}
+		return pipelineStop;
+	}
+
+	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		Action action = null;
 		String appendHttpUrlPath = message.getVariable(ESBVariableConstants.appendHttpUrlPath);
