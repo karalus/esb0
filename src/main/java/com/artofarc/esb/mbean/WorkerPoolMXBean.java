@@ -18,6 +18,8 @@ package com.artofarc.esb.mbean;
 
 public interface WorkerPoolMXBean {
 
+	String getName();
+
 	int getActiveCount();
 
 	int getMaximumPoolSize();

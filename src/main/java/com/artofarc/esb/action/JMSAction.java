@@ -50,7 +50,7 @@ public class JMSAction extends TerminalAction {
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}
-		globalContext.lookup(jndiDestination);
+		globalContext.lookup(jndiConnectionFactory);
 		_jndiConnectionFactory = jndiConnectionFactory;
 		_isBytesMessage = isBytesMessage;
 		_priority = priority;

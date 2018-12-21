@@ -75,6 +75,10 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 	
 	// Methods for monitoring
 
+	public String getName() {
+		return _threadFactory.getName();
+	}
+	
 	public int getActiveCount() {
 		return _threadFactory.activeCount();
 	}
