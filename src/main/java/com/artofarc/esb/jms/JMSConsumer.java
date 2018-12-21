@@ -36,7 +36,7 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
-public class JMSConsumer extends ConsumerPort implements AutoCloseable {
+public final class JMSConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final String _jndiConnectionFactory;
 	private final String _jndiDestination;
@@ -62,6 +62,10 @@ public class JMSConsumer extends ConsumerPort implements AutoCloseable {
 
 	public String getKey() {
 		return _jndiConnectionFactory + '|' + (_jndiDestination != null ? _jndiDestination : _queueName != null ? _queueName : _topicName) + '|' + _messageSelector;
+	}
+	
+	public int getWorkerCount() {
+		return _jmsWorker.length;
 	}
 
 	public void init(PoolContext poolContext) throws Exception {

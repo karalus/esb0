@@ -31,7 +31,7 @@ public class ConfigServiceTest {
    
    @Before
    public void createContext() throws Exception {
-      GlobalContext globalContext = new GlobalContext();
+      GlobalContext globalContext = new GlobalContext(null);
       context = new Context(new PoolContext(globalContext));
    }
 

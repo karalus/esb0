@@ -17,6 +17,7 @@
 package com.artofarc.esb.http;
 
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 import com.artofarc.esb.context.GlobalContext;
 
@@ -41,6 +42,7 @@ public class HttpEndpointRegistry {
 		if (state == null) {
 			state = new HttpUrlSelector(httpEndpoint, _globalContext.getDefaultWorkerPool());
 			_map.put(httpEndpoint, state);
+			_globalContext.registerMBean(state, ",group=HttpEndpointState,name=" + httpEndpoint.getName());
 		} else {
 			// take non diversifying parameters from most recent version
 			if (state.getHttpEndpoint().getModificationTime() < httpEndpoint.getModificationTime()) {
@@ -48,6 +50,13 @@ public class HttpEndpointRegistry {
 			}
 		}
 		return state;
+	}
+
+	public void close() {
+		for (Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
+			entry.getValue().stop();
+			_globalContext.unregisterMBean(",group=HttpEndpointState,name=" + entry.getKey().getName());
+		}
 	}
 
 }

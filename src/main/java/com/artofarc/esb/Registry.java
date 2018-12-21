@@ -20,6 +20,10 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+
 import com.artofarc.esb.context.AbstractContext;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
@@ -35,7 +39,46 @@ public class Registry extends AbstractContext {
 	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
 	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
 
-	public Registry() {
+	private final MBeanServer _mbs;
+	private final String OBJECT_NAME = "com.artofarc.esb:type=" + getClass().getSimpleName();
+	
+	public Registry(MBeanServer mbs) {
+		_mbs = mbs;
+		if (_mbs != null) {
+			try {
+				_mbs.registerMBean(this, new ObjectName(OBJECT_NAME));
+			} catch (JMException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+	
+	public void registerMBean(Object object, String postfix) {
+		if (_mbs != null) {
+			try {
+				_mbs.registerMBean(object, new ObjectName(OBJECT_NAME + postfix));
+			} catch (JMException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public void unregisterMBean(String postfix) {
+		if (_mbs != null) {
+			try {
+				_mbs.unregisterMBean(new ObjectName(OBJECT_NAME + postfix));
+			} catch (JMException e) {
+				// ignore
+			}
+		}
+	}
+
+	public void unregisterMBean(ObjectName name) {
+		try {
+			_mbs.unregisterMBean(name);
+		} catch (JMException e) {
+			// ignore
+		}
 	}
 
 	public ConsumerPort getInternalService(String uri) {
@@ -75,6 +118,7 @@ public class Registry extends AbstractContext {
 
 	public void bindService(ConsumerPort consumerPort) {
 		_services.put(consumerPort.getUri(), consumerPort);
+		registerMBean(consumerPort, ",consumerType=" + consumerPort.getClass().getSimpleName() + ",uri=" + ObjectName.quote(consumerPort.getUri()));
 	}
 
 	public HttpConsumer bindHttpService(String path, HttpConsumer consumerPort) {
@@ -116,6 +160,21 @@ public class Registry extends AbstractContext {
 		}
 		for (JMSConsumer jmsConsumer : _jmsConsumer.values()) {
 			Closer.closeQuietly(jmsConsumer);
+		}
+	}
+
+	@Override
+	public synchronized void close() {
+		super.close();
+		if (_mbs != null) {
+			try {
+				for (ObjectName objectName : _mbs.queryNames(new ObjectName(OBJECT_NAME + ",consumerType=*,uri=*"), null)) {
+					unregisterMBean(objectName);
+				}
+				unregisterMBean(new ObjectName(OBJECT_NAME));
+			} catch (JMException e) {
+				// ignore
+			}
 		}
 	}
 

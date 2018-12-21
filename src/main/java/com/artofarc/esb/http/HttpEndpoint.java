@@ -22,6 +22,7 @@ import java.util.List;
 
 public final class HttpEndpoint {
 
+	private final String _name;
 	private final List<HttpUrl> _endpoints = new ArrayList<>();
 	private final int _connectionTimeout;
 	private final int _retries;
@@ -29,12 +30,17 @@ public final class HttpEndpoint {
 	private final Integer _keepAliveInterval;
 	private final long _modificationTime;
 
-	public HttpEndpoint(int connectionTimeout, int retries, Integer checkAliveInterval, Integer keepAliveInterval, long modificationTime) {
+	public HttpEndpoint(String name, int connectionTimeout, int retries, Integer checkAliveInterval, Integer keepAliveInterval, long modificationTime) {
+		_name = name;
 		_connectionTimeout = connectionTimeout;
 		_retries = retries;
 		_checkAliveInterval = checkAliveInterval;
 		_keepAliveInterval = keepAliveInterval;
 		_modificationTime = modificationTime;
+	}
+
+	public String getName() {
+		return _name != null ? _name : _endpoints.get(0).getUrl().getAuthority().replace(':', '-');
 	}
 
 	public HttpEndpoint addUrl(String url, int weight, boolean active) throws MalformedURLException {

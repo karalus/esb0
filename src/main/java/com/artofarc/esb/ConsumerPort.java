@@ -23,7 +23,7 @@ import com.artofarc.esb.action.Action;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
 
-public class ConsumerPort {
+public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
    
    protected final static Logger logger = Logger.getLogger("ESB");
    

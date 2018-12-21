@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.servlet;
 
+import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,7 +25,7 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.PoolContext;
 
-public class HttpConsumer extends ConsumerPort implements AutoCloseable {
+public final class HttpConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.HttpConsumerMXBean {
 
 	private final String _bindPath;
    private final BlockingQueue<Context> pool;
@@ -50,6 +51,22 @@ public class HttpConsumer extends ConsumerPort implements AutoCloseable {
 
 	public int getPoolSize() {
 		return poolSize.get();
+	}
+
+   public Date getLastAccess() {
+		return new Date(lastAccess);
+	}
+
+	public int getMinPoolSize() {
+		return minPoolSize;
+	}
+
+	public int getMaxPoolSize() {
+		return maxPoolSize;
+	}
+
+	public long getKeepAliveMillis() {
+		return keepAliveMillis;
 	}
 
 	@Override

@@ -64,6 +64,7 @@
 					<attribute name="readTimeout" type="int" default="60000" />
 					<attribute name="chunkLength" type="int" />
 					<attribute name="workerPool" type="anyURI" />
+					<attribute name="name" type="tns:string1" />
 				</extension>
 			</complexContent>
 		</complexType>

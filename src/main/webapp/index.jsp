@@ -1,21 +1,22 @@
 <html>
 <body>
 <%@ page import = "com.artofarc.esb.context.PoolContext" %>
+<%@ page import = "com.artofarc.esb.context.GlobalContext" %>
 <%@ page import = "com.artofarc.esb.ConsumerPort" %>
 <%@ page import = "com.artofarc.esb.servlet.HttpConsumer" %>
 <%@ page import = "com.artofarc.esb.jms.JMSConsumer" %>
 <%@ page import = "com.artofarc.esb.context.WorkerPool" %>
 <%@ page import = "com.artofarc.esb.artifact.*" %>
-<h2>ESB Zero - A lightweight service gateway</h2>
+<h2>ESB Zero - A lightweight service gateway (v1.1)</h2>
 <%
-	PoolContext poolContext = (PoolContext) application.getAttribute("WebContainerPoolContext");
+	GlobalContext globalContext = ((PoolContext) application.getAttribute("WebContainerPoolContext")).getGlobalContext();
 	if (request.getPathInfo() == null) {
 %>
 <br>HttpServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Path</b></td><td align="center"><b>Uri</b></td><td align="center"><b>PoolSize</b></td><td align="center"><b>Enabled</b></td></tr> 
 <%
-		for (String path : poolContext.getGlobalContext().getHttpServicePaths()) {
-		   HttpConsumer consumerPort = poolContext.getGlobalContext().getHttpService(path);
+		for (String path : globalContext.getHttpServicePaths()) {
+		   HttpConsumer consumerPort = globalContext.getHttpService(path);
 		   %>
 		   <tr><td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td><td><%=consumerPort.getPoolSize()%></td><td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></tr>
 		   <%
@@ -25,7 +26,7 @@
 <br>JMSServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Key</b></td><td align="center"><b>Uri</b></td><td align="center"><b>Enabled</b></td></tr> 
 <%
-		for (JMSConsumer jmsConsumer : poolContext.getGlobalContext().getJMSConsumers()) {
+		for (JMSConsumer jmsConsumer : globalContext.getJMSConsumers()) {
 		   %>
 		   <tr><td><%=jmsConsumer.getKey()%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + jmsConsumer.getUri()%>"><%=jmsConsumer.getUri()%></a></td><td><form method="post" action="admin/deploy<%=jmsConsumer.getUri()%>"><input type="submit" value="<%=jmsConsumer.isEnabled()%>"/></form></tr>
 		   <%
@@ -35,7 +36,7 @@
 <br>TimerServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Uri</b></td><td align="center"><b>Enabled</b></td></tr> 
 <%
-		for (ConsumerPort consumerPort : poolContext.getGlobalContext().getTimerServices()) {
+		for (ConsumerPort consumerPort : globalContext.getTimerServices()) {
 		   %>
 		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td><td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></tr>
 		   <%
@@ -45,10 +46,9 @@
 <br>WorkerPools:
 <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Uri</b></td><td align="center"><b>ActiveCount</b></td><td align="center"><b>Size work queue</b></td></tr> 
 <%
-		for (WorkerPool workerPool : poolContext.getGlobalContext().getWorkerPools()) {
-			ThreadGroup threadGroup = workerPool.getThreadGroup();
+		for (WorkerPool workerPool : globalContext.getWorkerPools()) {
 		   %>
-		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + threadGroup.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=threadGroup.getName()%></a></td><td><%=threadGroup.activeCount()%></td><td><%=workerPool.getWorkQueue().size()%></td></tr>
+		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=workerPool.getName()%></a></td><td><%=workerPool.getActiveCount()%></td><td><%=workerPool.getQueueSize()%></td></tr>
 		   <%
 		}
 %>
@@ -64,7 +64,7 @@
 <br>
 <%
    String pathInfo = request.getPathInfo() != null ? request.getPathInfo() : "";
-   Artifact a = poolContext.getGlobalContext().getFileSystem().getArtifact(request.getPathInfo());
+   Artifact a = globalContext.getFileSystem().getArtifact(request.getPathInfo());
    if (a instanceof Directory) {
 %>
 <br>Filesystem:

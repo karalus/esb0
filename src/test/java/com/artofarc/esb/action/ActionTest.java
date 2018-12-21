@@ -1,8 +1,6 @@
 package com.artofarc.esb.action;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
@@ -27,7 +25,7 @@ public class ActionTest {
    
    @Before
    public void createContext() throws Exception {
-      context = new Context(new PoolContext(new GlobalContext()));
+      context = new Context(new PoolContext(new GlobalContext(null)));
    }
 
    @After

@@ -29,17 +29,17 @@ import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 
-public class ESBServletContextListener implements ServletContextListener, Runnable {
+public final class ESBServletContextListener implements ServletContextListener, Runnable {
 
 	public static final String POOL_CONTEXT = "WebContainerPoolContext";
 
 	private GlobalContext globalContext;
 
-	public final PoolContext createGlobalAndDefaultPoolContext(File rootDir) {
+	public PoolContext createGlobalAndDefaultPoolContext(File rootDir) {
 		if (!rootDir.exists() || !rootDir.isDirectory()) {
 			throw new RuntimeException("No directory " + rootDir);
 		}
-		globalContext = new GlobalContext();
+		globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer());
 		FileSystem fileSystem = new FileSystem();
 		globalContext.setFileSystem(fileSystem);
 		PoolContext poolContext = new PoolContext(globalContext);
@@ -51,7 +51,7 @@ public class ESBServletContextListener implements ServletContextListener, Runnab
 		} catch (ValidationException e) {
 			throw new RuntimeException("Could not validate artifact " + e.getArtifact(), e.getCause());
 		}
-		globalContext.getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 30L, 30L, TimeUnit.SECONDS);
+		globalContext.getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
 		return poolContext;
 	}
 
@@ -67,7 +67,7 @@ public class ESBServletContextListener implements ServletContextListener, Runnab
 		PoolContext poolContext = (PoolContext) contextEvent.getServletContext().getAttribute(POOL_CONTEXT);
 		if (poolContext != null) {
 			poolContext.close();
-			poolContext.getGlobalContext().close();
+			globalContext.close();
 		}
 	}
 

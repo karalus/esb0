@@ -20,9 +20,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.management.MBeanServer;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.xml.stream.XMLInputFactory;
@@ -34,7 +36,7 @@ import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQDataSourceFactory;
 
-public final class GlobalContext extends Registry {
+public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
 
 	private final InitialContext _initialContext;
 	private final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
@@ -45,7 +47,8 @@ public final class GlobalContext extends Registry {
 	
 	private volatile FileSystem _fileSystem;
 
-	public GlobalContext() {
+	public GlobalContext(MBeanServer mbs) {
+		super(mbs);
 		try {
 			_initialContext = new InitialContext();
 		} catch (NamingException e) {
@@ -58,8 +61,8 @@ public final class GlobalContext extends Registry {
 			}
 		}.createXQDataSource();
 		// default WorkerPool
-		String workerThreads = System.getenv("ESB_WORKER_THREADS");
-		_workerPoolMap.put(null, new WorkerPool(this, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
+		String workerThreads = System.getProperty("esb0.workerThreads");
+		putWorkerPool(null, new WorkerPool(this, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -113,6 +116,7 @@ public final class GlobalContext extends Registry {
 	}
 
 	public WorkerPool putWorkerPool(String name, WorkerPool workerPool) {
+		registerMBean(workerPool, ",group=WorkerPool,name=" + name);
 		return _workerPoolMap.put(name, workerPool);
 	}
 
@@ -121,8 +125,10 @@ public final class GlobalContext extends Registry {
 		// Phase 1
 		stopIngress();
 		// Phase 2
-		for (WorkerPool workerPool : _workerPoolMap.values()) {
-			workerPool.close();
+		httpEndpointRegistry.close();
+		for (Entry<String, WorkerPool> entry : _workerPoolMap.entrySet()) {
+			entry.getValue().close();
+			unregisterMBean(",group=WorkerPool,name=" + entry.getKey());
 		}
 		try {
 			_initialContext.close();

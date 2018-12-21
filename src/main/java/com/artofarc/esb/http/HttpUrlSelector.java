@@ -25,9 +25,15 @@ import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import javax.management.openmbean.CompositeDataSupport;
+import javax.management.openmbean.CompositeType;
+import javax.management.openmbean.OpenDataException;
+import javax.management.openmbean.OpenType;
+import javax.management.openmbean.SimpleType;
+
 import com.artofarc.esb.context.WorkerPool;
 
-public class HttpUrlSelector implements Runnable {
+public class HttpUrlSelector implements Runnable, com.artofarc.esb.mbean.HttpUrlSelectorMXBean  {
 	
 	private HttpEndpoint _httpEndpoint;
 	
@@ -64,6 +70,19 @@ public class HttpUrlSelector implements Runnable {
 		_httpEndpoint = httpEndpoint;
 	}
 
+	public CompositeDataSupport[] getHttpEndpointStates() throws OpenDataException {
+		String[] itemNames = new String[] { "url", "active" };
+		OpenType<?>[] itemTypes = new OpenType[] { SimpleType.STRING, SimpleType.BOOLEAN };
+		CompositeType rowType = new CompositeType("HttpEndpointState", "State of HttpEndpoint", itemNames, itemNames, itemTypes);
+
+		CompositeDataSupport[] result = new CompositeDataSupport[size];
+		for (int i = 0; i < size; ++i) {
+			Object[] itemValues = new Object[] { _httpEndpoint.getHttpUrls().get(i).getUrl().toString(), isActive(i) };
+			result[i] = new CompositeDataSupport(rowType, itemNames, itemValues);
+		}
+		return result;
+	}
+	
 	private synchronized int computeNextPos() {
 		for (;; ++pos) {
 			if (pos == size) {
@@ -97,6 +116,13 @@ public class HttpUrlSelector implements Runnable {
 					_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _httpEndpoint.getCheckAliveInterval(), _httpEndpoint.getCheckAliveInterval(), TimeUnit.SECONDS);
 				}
 			}
+		}
+	}
+
+	public void stop() {
+		if (_future != null) {
+			_future.cancel(true);
+			_future = null;
 		}
 	}
 

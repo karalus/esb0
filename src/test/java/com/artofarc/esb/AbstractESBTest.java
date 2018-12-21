@@ -19,7 +19,7 @@ public abstract class AbstractESBTest {
 
 	@Before
 	public void createContext() throws Exception {
-		GlobalContext globalContext = new GlobalContext();
+		GlobalContext globalContext = new GlobalContext(null);
 		globalContext.setFileSystem(new FileSystem());
 		context = new Context(new PoolContext(globalContext));
 	}

@@ -27,7 +27,7 @@ public class XPathTest {
    
    @Before
    public void createContext() throws Exception {
-      context = new Context(new PoolContext(new GlobalContext()));
+      context = new Context(new PoolContext(new GlobalContext(null)));
    }
 
    @After

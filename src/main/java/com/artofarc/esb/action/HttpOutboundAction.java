@@ -43,7 +43,7 @@ public class HttpOutboundAction extends Action {
 	}
 
 	public HttpOutboundAction(String url) throws MalformedURLException {
-		this(new HttpEndpoint(1000, 0, null, null, System.currentTimeMillis()).addUrl(url, 1, true), 60000, null);
+		this(new HttpEndpoint(null, 1000, 0, null, null, System.currentTimeMillis()).addUrl(url, 1, true), 60000, null);
 	}
 
 	@Override

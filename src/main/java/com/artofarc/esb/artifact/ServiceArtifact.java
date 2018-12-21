@@ -170,7 +170,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			switch (jaxbElement.getName().getLocalPart()) {
 			case "http": {
 				Http http = (Http) jaxbElement.getValue();
-				HttpEndpoint httpEndpoint = new HttpEndpoint(http.getConnectionTimeout(), http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
+				HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), http.getConnectionTimeout(), http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
 				for (Http.Url url : http.getUrl()) {
 					httpEndpoint.addUrl(url.getValue(), url.getWeight(), url.isActive());
 				}

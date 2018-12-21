@@ -17,7 +17,6 @@
 package com.artofarc.esb.context;
 
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -25,21 +24,18 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public final class WorkerPool implements AutoCloseable {
+public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
 	private final PoolContext _poolContext;
 	private final WorkerPoolThreadFactory _threadFactory;
-	private final ExecutorService _executorService;
+	private final ThreadPoolExecutor _executorService;
 	private final ScheduledExecutorService _scheduledExecutorService;
-
-	private BlockingQueue<Runnable> _workQueue;
 
 	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads) {
 		_poolContext = new PoolContext(globalContext);
 		_threadFactory = new WorkerPoolThreadFactory(name, _poolContext, priority);
 		if (maxThreads > 0 && queueDepth > 0) {
-			_workQueue = new ArrayBlockingQueue<>(queueDepth);
-			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, _workQueue, _threadFactory);
+			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(queueDepth), _threadFactory);
 		} else {
 			_executorService = null;
 		}
@@ -52,19 +48,10 @@ public final class WorkerPool implements AutoCloseable {
 
 	WorkerPool(GlobalContext globalContext, int nThreads) {
 		_poolContext = new PoolContext(globalContext);
-		_threadFactory = new WorkerPoolThreadFactory("Default", _poolContext, Thread.NORM_PRIORITY);
-		_workQueue = new LinkedBlockingQueue<>();
+		_threadFactory = new WorkerPoolThreadFactory("default", _poolContext, Thread.NORM_PRIORITY);
 		// Refer to Executors.newFixedThreadPool 
-		_executorService = new ThreadPoolExecutor(nThreads, nThreads, 0L, TimeUnit.MILLISECONDS, _workQueue, _threadFactory);
+		_executorService = new ThreadPoolExecutor(nThreads, nThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(), _threadFactory);
 		_scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(_threadFactory);
-	}
-
-	public BlockingQueue<Runnable> getWorkQueue() {
-		return _workQueue;
-	}
-
-	public ThreadGroup getThreadGroup() {
-		return _threadFactory;
 	}
 
 	public ExecutorService getExecutorService() {
@@ -84,6 +71,32 @@ public final class WorkerPool implements AutoCloseable {
 			_scheduledExecutorService.shutdown();
 		}
 		_poolContext.close();
+	}
+	
+	// Methods for monitoring
+
+	public int getActiveCount() {
+		return _threadFactory.activeCount();
+	}
+
+	public int getMaximumPoolSize() {
+		return _executorService.getMaximumPoolSize();
+	}
+
+	public int getCorePoolSize() {
+		return _executorService.getCorePoolSize();
+	}
+
+	public long getCompletedTaskCount() {
+		return _executorService.getCompletedTaskCount();
+	}
+
+	public int getQueueSize() {
+		return _executorService.getQueue().size();
+	}
+
+	public int getRemainingCapacity() {
+		return _executorService.getQueue().remainingCapacity();
 	}
 
 }
