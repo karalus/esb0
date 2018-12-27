@@ -23,6 +23,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.WorkerPoolThreadFactory;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.ESBVariableConstants;
 
 public class ForkAction extends Action {
 
@@ -51,13 +52,13 @@ public class ForkAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext resource, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		// super.execute(context, resource, message, nextActionIsPipelineStop);
 		final ESBMessage copy = message.copy(context, _copyMessage);
 		context.getPoolContext().getGlobalContext().getWorkerPool(_workerPool).getExecutorService().execute(new Runnable() {
 
 			@Override
 			public void run() {
 				try {
+					copy.putVariable(ESBVariableConstants.timeleftOrigin, copy.getVariables().remove(ESBVariableConstants.timeleft));
 					_fork.process(WorkerPoolThreadFactory.getContext(), copy);
 				} catch (Exception e) {
 					logger.log(Level.SEVERE, "Exception in forked action pipeline", e);

@@ -27,77 +27,12 @@ import javax.xml.bind.JAXBElement;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
-import com.artofarc.esb.action.Action;
-import com.artofarc.esb.action.AssignAction;
-import com.artofarc.esb.action.AssignHeadersAction;
-import com.artofarc.esb.action.BranchOnPathAction;
-import com.artofarc.esb.action.BranchOnPathAction.PathTemplate;
-import com.artofarc.esb.action.BranchOnVariableAction;
-import com.artofarc.esb.action.ConditionalAction;
-import com.artofarc.esb.action.DumpAction;
-import com.artofarc.esb.action.FileAction;
-import com.artofarc.esb.action.FileSystemWatchAction;
-import com.artofarc.esb.action.ForkAction;
-import com.artofarc.esb.action.HttpInboundAction;
-import com.artofarc.esb.action.HttpOutboundAction;
-import com.artofarc.esb.action.HttpServletResponseAction;
-import com.artofarc.esb.action.JDBCProcedureAction;
-import com.artofarc.esb.action.JDBCSQLAction;
-import com.artofarc.esb.action.JMSAction;
-import com.artofarc.esb.action.Json2XMLAction;
-import com.artofarc.esb.action.MtomXopDeserializeAction;
-import com.artofarc.esb.action.ProcessJsonAction;
-import com.artofarc.esb.action.KafkaConsumeAction;
-import com.artofarc.esb.action.KafkaProduceAction;
-import com.artofarc.esb.action.PostSOAPHttpAction;
-import com.artofarc.esb.action.PreSOAPHttpAction;
-import com.artofarc.esb.action.SetMessageAction;
-import com.artofarc.esb.action.SpawnAction;
-import com.artofarc.esb.action.TransformAction;
-import com.artofarc.esb.action.UnwrapSOAPAction;
-import com.artofarc.esb.action.ValidateAction;
-import com.artofarc.esb.action.WrapSOAPAction;
-import com.artofarc.esb.action.XML2JsonAction;
+import com.artofarc.esb.action.*;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jms.JMSConsumer;
-import com.artofarc.esb.service.ActionBase;
-import com.artofarc.esb.service.ActionPipeline;
-import com.artofarc.esb.service.ActionPipelineRef;
-import com.artofarc.esb.service.Assign;
-import com.artofarc.esb.service.AssignHeaders;
-import com.artofarc.esb.service.BranchOnPath;
-import com.artofarc.esb.service.BranchOnVariable;
-import com.artofarc.esb.service.Conditional;
-import com.artofarc.esb.service.ConsumeKafka;
-import com.artofarc.esb.service.File;
-import com.artofarc.esb.service.FileSystemWatch;
-import com.artofarc.esb.service.Fork;
-import com.artofarc.esb.service.Http;
-import com.artofarc.esb.service.InternalService;
-import com.artofarc.esb.service.Jdbc;
-import com.artofarc.esb.service.JdbcParameter;
-import com.artofarc.esb.service.JdbcProcedure;
-import com.artofarc.esb.service.Jms;
-import com.artofarc.esb.service.Json2Xml;
-import com.artofarc.esb.service.NsDecl;
-import com.artofarc.esb.service.PostSOAPHttp;
-import com.artofarc.esb.service.PreSOAPHttp;
-import com.artofarc.esb.service.ProcessJson;
-import com.artofarc.esb.service.ProduceKafka;
-import com.artofarc.esb.service.Property;
-import com.artofarc.esb.service.Service;
-import com.artofarc.esb.service.Service.HttpBindURI;
-import com.artofarc.esb.service.Service.JmsBinding;
-import com.artofarc.esb.service.Service.TimerBinding;
-import com.artofarc.esb.service.SetMessage;
-import com.artofarc.esb.service.Spawn;
-import com.artofarc.esb.service.Transform;
-import com.artofarc.esb.service.UnwrapSOAP;
-import com.artofarc.esb.service.Validate;
-import com.artofarc.esb.service.WrapSOAP;
-import com.artofarc.esb.service.Xml2Json;
+import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Collections;
 
@@ -142,17 +77,16 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		List<Action> list = transform(globalContext, _service.getAction(), _service.getErrorHandler());
 		switch (_service.getProtocol()) {
 		case HTTP:
-			final HttpBindURI httpBinding = _service.getHttpBindURI();
-			_consumerPort = new HttpConsumer(getURI(), httpBinding.getValue(), httpBinding.getMinPool(), httpBinding.getMaxPool(), httpBinding.getKeepAlive());
-			_consumerPort.setTerminalAction(new HttpServletResponseAction(httpBinding.isSupportCompression()));
+			final Service.HttpBindURI httpBinding = _service.getHttpBindURI();
+			_consumerPort = new HttpConsumer(getURI(), httpBinding.getValue(), httpBinding.getMinPool(), httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression());
 			break;
 		case JMS:
-			final JmsBinding jmsBinding = _service.getJmsBinding();
-			_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
+			final Service.JmsBinding jmsBinding = _service.getJmsBinding();
+			_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getWorkerPool(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
 					jmsBinding.getTopicName(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount());
 			break;
 		case TIMER:
-			final TimerBinding timerBinding = _service.getTimerBinding();
+			final Service.TimerBinding timerBinding = _service.getTimerBinding();
 			_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getInitialDelay(), timerBinding.getPeriod(), timerBinding.isFixedDelay());
 			break;
 		default:
@@ -184,7 +118,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "jms": {
 				Jms jms = (Jms) jaxbElement.getValue();
-				list.add(new JMSAction(globalContext, jms.getJndiConnectionFactory(), jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms.isBytesMessage(), jms.getPriority(), jms.getTimeToLive()));
+				list.add(new JMSAction(globalContext, jms.getJndiConnectionFactory(), jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms
+						.isBytesMessage(), jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.isReceiveFromTempQueue()));
 				break;
 			}
 			case "produceKafka": {
@@ -225,7 +160,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					list.add(new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, false));
 				}
 				list.add(new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
-						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getFetchSize()));
+						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getFetchSize(), jdbcProcedure.getTimeout()));
 				break;
 			}
 			case "jdbc": {
@@ -233,12 +168,12 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				if (jdbc.getWorkerPool() != null) {
 					list.add(new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, false));
 				}
-				list.add(new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getFetchSize()));
+				list.add(new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getFetchSize(), jdbc.getTimeout()));
 				break;
 			}
 			case "setMessage": {
 				SetMessage setMessage = (SetMessage) jaxbElement.getValue();
-				ClassLoader classLoader = null;
+				java.lang.ClassLoader classLoader = null;
 				if (setMessage.getClassLoader() != null) {
 					ClassLoaderArtifact classLoaderArtifact = getArtifact(setMessage.getClassLoader() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
 					if (classLoaderArtifact == null) {
@@ -441,13 +376,25 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				BranchOnPathAction branchOnPathAction = new BranchOnPathAction(branchOnPath.getBasePath(), defaultAction);
 				for (com.artofarc.esb.service.BranchOnPath.Branch branch : branchOnPath.getBranch()) {
-					branchOnPathAction.getBranchMap().put(new PathTemplate(branch.getPathTemplate()), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
+					branchOnPathAction.getBranchMap().put(new BranchOnPathAction.PathTemplate(branch.getPathTemplate()), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
 				}
 				list.add(branchOnPathAction);
 				break;
 			}
 			case "deserializeMtomXop":
 				list.add(new MtomXopDeserializeAction());
+				break;
+			case "suspend":
+				Suspend suspend = (Suspend) jaxbElement.getValue();
+				list.add(new SuspendAction(suspend.getCorrelationID(), suspend.getTimeout()));
+				break;
+			case "resume":
+				Resume resume = (Resume) jaxbElement.getValue();
+				list.add(new ResumeAction(resume.getWorkerPool(), resume.getCorrelationID()));
+				break;
+			case "throwException":
+				ThrowException throwException = (ThrowException) jaxbElement.getValue();
+				list.add(new ThrowExceptionAction(throwException.getMessage()));
 				break;
 			case "dump":
 				list.add(new DumpAction());

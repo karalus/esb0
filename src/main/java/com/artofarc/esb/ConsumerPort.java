@@ -30,7 +30,7 @@ public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
    private final String _uri;
    
    private List<Action> internalService;
-   private Action _startAction, _terminalAction;
+   private Action _startAction;
    
    private volatile boolean _enabled = true;
    
@@ -63,20 +63,13 @@ public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
       _startAction = Action.linkList(service);
    }
    
-   public void setTerminalAction(Action terminalAction) {
-      _terminalAction = terminalAction;
-   }
-
    public Action setStartAction(Action startAction) {
       return _startAction = startAction;
    }
 
    public void process(Context context, ESBMessage message) throws Exception {
-   	if (_terminalAction != null) {
-         context.getExecutionStack().push(_terminalAction);
-   	}
       _startAction.process(context, message);
-      if (!context.getExecutionStack().isEmpty()) {
+      if (context.getExecutionStack().size() > 0) {
       	throw new IllegalStateException("ExecutionStack not empty");
       }
    }

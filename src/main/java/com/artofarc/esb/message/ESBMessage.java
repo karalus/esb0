@@ -79,10 +79,10 @@ public final class ESBMessage implements Cloneable {
 	private BodyType _bodyType;
 	private Object _body;
 	private Charset _charset, _sinkEncoding; 
-	private long _timeleft = 300000L;
 	private Schema _schema;
 
 	public ESBMessage(BodyType bodyType, Object body) {
+		_variables.put(ESBVariableConstants.initialTimestamp, System.currentTimeMillis());
 		reset(bodyType, body);
 	}
 
@@ -212,12 +212,8 @@ public final class ESBMessage implements Cloneable {
 		return _sinkEncoding != null && _sinkEncoding != getCharset();
 	}
 	
-	public long getTimeleft() {
-		return _timeleft;
-	}
-
-	public void setTimeleft(long timeleft) {
-		_timeleft = timeleft;
+	public Number getTimeleft(Number def) {
+		return getVariable(ESBVariableConstants.timeleft, def);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -348,6 +344,9 @@ public final class ESBMessage implements Cloneable {
 			sw = new StringWriter();
 			copyStream((Reader) _body, sw);
 			str = sw.toString();
+			break;
+		case EXCEPTION:
+			str = asXMLString((Exception) _body);
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");

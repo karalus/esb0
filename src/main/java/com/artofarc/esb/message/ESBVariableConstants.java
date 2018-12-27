@@ -40,6 +40,12 @@ public interface ESBVariableConstants {
 
 	String WorkerPool = "WorkerPool";
 
+	String initialTimestamp = "initialTimestamp";
+
+	String timeleft = "timeleft";
+
+	String timeleftOrigin = "timeleftOrigin";
+
 	String SOAP_OPERATION = "operation";
 
 	String SOAP_HEADER = "header";
@@ -47,5 +53,11 @@ public interface ESBVariableConstants {
 	String hasFault = "hasFault";
 
 	String redirect = "redirect";
+	
+	String JMSMessageID = "JMSMessageID";
+
+	String JMSCorrelationID = "JMSCorrelationID";
+	
+	String JMSReplyTo = "JMSReplyTo";
 
 }

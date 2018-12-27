@@ -24,11 +24,12 @@ import com.artofarc.esb.jms.JMSConnectionProvider;
 public class PoolContext extends AbstractContext {
 
 	private final GlobalContext _globalContext;
-
 	private final JMSConnectionProvider _jmsConnectionProvider;
+	private final String _workerPool;
 
-	public PoolContext(GlobalContext globalContext) {
+	PoolContext(GlobalContext globalContext, String workerPool) {
 		_globalContext = globalContext;
+		_workerPool = workerPool;
 		_jmsConnectionProvider = new JMSConnectionProvider(this);
 	}
 
@@ -36,14 +37,23 @@ public class PoolContext extends AbstractContext {
 		return _globalContext;
 	}
 
+	public WorkerPool getWorkerPool() {
+		return _globalContext.getWorkerPool(_workerPool);
+	}
+
 	public JMSConnectionProvider getJMSConnectionProvider() {
 		return _jmsConnectionProvider;
 	}
-
+	
 	@Override
 	public void close() {
 		_jmsConnectionProvider.close();
 		super.close();
+	}
+
+	@Override
+	public String toString() {
+		return "PoolContext [WorkerPool=" + _workerPool + "]";
 	}
 
 }

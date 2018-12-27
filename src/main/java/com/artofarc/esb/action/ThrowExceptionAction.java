@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.mbean;
+package com.artofarc.esb.action;
 
-public interface WorkerPoolMXBean {
+import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.message.ESBMessage;
 
-	String getName();
+public class ThrowExceptionAction extends TerminalAction {
 
-	int getActiveCount();
-
-	int getMaximumPoolSize();
-
-	int getCorePoolSize();
-
-	long getCompletedTaskCount();
-
-	int getQueueSize();
-
-	int getRemainingCapacity();
+	private final String _message;
 	
-	int getAsyncProcessingPoolSize();
+	public ThrowExceptionAction(String message) {
+		_message = message;
+	}
+
+	@Override
+	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+		super.execute(context, resource, message, nextActionIsPipelineStop);
+		throw new ExecutionException(this, bindVariable(_message, context, message));
+	}
 
 }

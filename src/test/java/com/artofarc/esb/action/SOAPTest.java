@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 
+import javax.jms.Message;
 import javax.jws.WebService;
 import javax.jws.soap.SOAPBinding;
 import javax.xml.soap.SOAPConstants;
@@ -151,7 +152,7 @@ public class SOAPTest extends AbstractESBTest {
       //
       Action action = new AssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
-      consumerPort.setTerminalAction(new DumpAction());
+      context.getExecutionStack().push(new DumpAction());
       consumerPort.setStartAction(action);
       action = action.setNextAction(new SpawnAction(null, true, true));
       //action = action.setNextAction(new AssignAction("request", "."));
@@ -373,15 +374,15 @@ public class SOAPTest extends AbstractESBTest {
    }
    
    public void testJMSConsumer() throws Exception {
-      JMSConsumer jmsConsumer = new JMSConsumer(context.getPoolContext().getGlobalContext(), null, "ConnectionFactory", "dynamicQueues/test1", null, null, null, 1);
+      JMSConsumer jmsConsumer = new JMSConsumer(context.getPoolContext().getGlobalContext(), null, null, "ConnectionFactory", "dynamicQueues/test1", null, null, null, 1);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
-      jmsConsumer.init(context.getPoolContext());
+      jmsConsumer.init(context.getPoolContext().getGlobalContext());
       
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest1.xml"));
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       
-      JMSAction jmsAction = new JMSAction(context.getPoolContext().getGlobalContext(), "ConnectionFactory", "dynamicQueues/test1", null, null, false, 4, 100);
+      JMSAction jmsAction = new JMSAction(context.getPoolContext().getGlobalContext(), "ConnectionFactory", "dynamicQueues/test1", null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 100, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(jmsAction);
       consumerPort.process(context, message);

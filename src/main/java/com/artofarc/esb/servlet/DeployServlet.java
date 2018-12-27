@@ -89,7 +89,7 @@ public class DeployServlet extends HttpServlet {
 						ChangeSet changeSet = globalContext.getFileSystem().createUpdate(globalContext, filePart.getInputStream());
 						FileSystem newFileSystem = changeSet.getFileSystem();
 						File anchorDir = globalContext.getFileSystem().getAnchorDir();
-						deployChangeSet(globalContext, poolContext, changeSet);
+						deployChangeSet(globalContext, changeSet);
 						globalContext.setFileSystem(newFileSystem);
 						newFileSystem.writeBack(anchorDir);
 					} catch (ValidationException e) {
@@ -120,7 +120,7 @@ public class DeployServlet extends HttpServlet {
 		resp.sendRedirect(req.getContextPath() + "/admin");
 	}
 
-	public static void deployChangeSet(GlobalContext globalContext, PoolContext poolContext, ChangeSet updateSet) throws ValidationException {
+	public static void deployChangeSet(GlobalContext globalContext, ChangeSet updateSet) throws ValidationException {
 		ArrayList<ServiceArtifact> serviceArtifacts = updateSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
 		for (WorkerPoolArtifact workerPoolArtifact : updateSet.getWorkerPoolArtifacts()) {
@@ -149,7 +149,7 @@ public class DeployServlet extends HttpServlet {
 					closer.closeAsync(oldConsumer);
 				}
 				try {
-					jmsConsumer.init(poolContext);
+					jmsConsumer.init(globalContext);
 				} catch (Exception e) {
 					throw new RuntimeException("Could not create JMSConsumer: " + jmsConsumer.getKey(), e);
 				}

@@ -30,8 +30,8 @@ import com.artofarc.esb.message.ESBMessage;
 
 public class JDBCSQLAction extends JDBCAction {
 
-	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int fetchSize) throws NamingException {
-		super(globalContext, dsName, sql, params, fetchSize);
+	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int fetchSize, int timeout) throws NamingException {
+		super(globalContext, dsName, sql, params, fetchSize, timeout);
 		if (sql != null) {
 	      int count = 0;
 	      for (int i = sql.length(); i > 0;) {

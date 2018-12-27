@@ -11,7 +11,6 @@ import org.junit.Before;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.PoolContext;
 
 public abstract class AbstractESBTest {
 
@@ -21,7 +20,7 @@ public abstract class AbstractESBTest {
 	public void createContext() throws Exception {
 		GlobalContext globalContext = new GlobalContext(null);
 		globalContext.setFileSystem(new FileSystem());
-		context = new Context(new PoolContext(globalContext));
+		context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());
 	}
 
 	@After

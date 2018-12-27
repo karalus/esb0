@@ -17,6 +17,7 @@
 package com.artofarc.esb.jms;
 
 import java.util.Enumeration;
+import java.util.Map;
 
 import javax.jms.BytesMessage;
 import javax.jms.Destination;
@@ -34,10 +35,12 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.ESBVariableConstants;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
 public final class JMSConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
+	private final String _workerPool;
 	private final String _jndiConnectionFactory;
 	private final String _jndiDestination;
 	private final String _messageSelector;
@@ -46,18 +49,41 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	private final String _topicName;
 	private final JMSWorker[] _jmsWorker;
 
-	public JMSConsumer(GlobalContext globalContext, String uri, String jndiConnectionFactory, String jndiDestination, String queueName, String topicName,
-			String messageSelector, int workerCount) throws NamingException {
+	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, String jndiConnectionFactory, String jndiDestination, String queueName,
+			String topicName, String messageSelector, int workerCount) throws NamingException {
 		super(uri);
+		_workerPool = workerPool;
 		_jndiConnectionFactory = jndiConnectionFactory;
 		_jndiDestination = jndiDestination;
-		_messageSelector = messageSelector;
+		_messageSelector = messageSelector != null ? bindProperties(messageSelector, System.getProperties()) : null;
 		_queueName = queueName;
 		_topicName = topicName;
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}
 		_jmsWorker = new JMSWorker[workerCount];
+	}
+
+	private static String bindProperties(String exp, Map<?, ?> props) {
+      StringBuilder builder = new StringBuilder();
+      for (int pos = 0;;) {
+         int i = exp.indexOf("${", pos);
+         if (i < 0) {
+            builder.append(exp.substring(pos));
+            break;
+         }
+         builder.append(exp.substring(pos, i));
+         int j = exp.indexOf('}', i);
+         if (j < 0) throw new IllegalArgumentException("Matching } is missing");
+         String name = exp.substring(i + 2, j);
+			Object value = props.get(name);
+			if (value == null) {
+				throw new NullPointerException(name + " is not set");
+			}
+         builder.append(value);
+         pos = j + 1;
+      }
+      return builder.toString();
 	}
 
 	public String getKey() {
@@ -68,7 +94,8 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		return _jmsWorker.length;
 	}
 
-	public void init(PoolContext poolContext) throws Exception {
+	public void init(GlobalContext globalContext) throws Exception {
+		PoolContext poolContext = globalContext.getWorkerPool(_workerPool).getPoolContext();
 		for (int i = 0; i < _jmsWorker.length; ++i) {
 			_jmsWorker[i] = new JMSWorker(new Context(poolContext));
 			_jmsWorker[i].open();
@@ -159,25 +186,9 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 		@Override
 		public void onMessage(Message message) {
-			final ESBMessage esbMessage;
+			final ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
 			try {
-				if (message instanceof BytesMessage) {
-					BytesMessage bytesMessage = (BytesMessage) message;
-					byte[] ba = new byte[(int) bytesMessage.getBodyLength()];
-					bytesMessage.readBytes(ba);
-					esbMessage = new ESBMessage(BodyType.BYTES, ba);
-				} else if (message instanceof TextMessage) {
-					TextMessage textMessage = (TextMessage) message;
-					esbMessage = new ESBMessage(BodyType.STRING, textMessage.getText());
-				} else {
-					esbMessage = new ESBMessage(BodyType.INVALID, null);
-				}
-				esbMessage.getHeaders().put("JMSMessageID", message.getJMSMessageID());
-				for (@SuppressWarnings("unchecked")
-				Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
-					String propertyName = propertyNames.nextElement();
-					esbMessage.getHeaders().put(propertyName, message.getObjectProperty(propertyName));
-				}
+				fillESBMessage(esbMessage, message);
 			} catch (JMSException e) {
 				throw new RuntimeException(e);
 			}
@@ -196,4 +207,26 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 	}
 
+	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws JMSException {
+		if (message instanceof BytesMessage) {
+			BytesMessage bytesMessage = (BytesMessage) message;
+			byte[] ba = new byte[(int) bytesMessage.getBodyLength()];
+			bytesMessage.readBytes(ba);
+			esbMessage.reset(BodyType.BYTES, ba);
+		} else if (message instanceof TextMessage) {
+			TextMessage textMessage = (TextMessage) message;
+			esbMessage.reset(BodyType.STRING, textMessage.getText());
+		} else {
+			esbMessage.reset(BodyType.INVALID, null);
+		}
+		esbMessage.putVariable(ESBVariableConstants.JMSMessageID, message.getJMSMessageID());
+		esbMessage.putVariable(ESBVariableConstants.JMSCorrelationID, message.getJMSCorrelationID());
+		esbMessage.putVariable(ESBVariableConstants.JMSReplyTo, message.getJMSReplyTo());
+		for (@SuppressWarnings("unchecked")
+		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
+			String propertyName = propertyNames.nextElement();
+			esbMessage.getHeaders().put(propertyName, message.getObjectProperty(propertyName));
+		}
+	}
+	
 }

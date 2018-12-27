@@ -15,7 +15,6 @@ import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -28,7 +27,7 @@ public class JsonXmlTest extends AbstractESBTest {
 
 	@Before
 	public void createContext() throws Exception {
-		context = new Context(new PoolContext(new GlobalContext(null)));
+		context = new Context(new GlobalContext(null).getDefaultWorkerPool().getPoolContext());
       fileSystem = new FileSystem();
       fileSystem.parseDirectory(context.getPoolContext().getGlobalContext(), new File("src/test/resources/example/"));
       XSDArtifact xsd = fileSystem.getArtifact("de.aoa.ei.foundation.v1.xsd");

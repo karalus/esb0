@@ -13,7 +13,6 @@ import org.junit.Test;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBVariableConstants;
@@ -25,7 +24,7 @@ public class ActionTest {
    
    @Before
    public void createContext() throws Exception {
-      context = new Context(new PoolContext(new GlobalContext(null)));
+      context = new Context(new GlobalContext(null).getDefaultWorkerPool().getPoolContext());
    }
 
    @After

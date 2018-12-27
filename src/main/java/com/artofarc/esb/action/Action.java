@@ -220,6 +220,9 @@ public abstract class Action implements Cloneable {
 				value = message.getHeader(name);
 			}
 			if (value == null) {
+				value = System.getProperty(name);
+			}
+			if (value == null) {
 				throw new NullPointerException(name + " is not set");
 			}
 			while (k >= 0) {

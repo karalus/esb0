@@ -32,7 +32,7 @@ import static com.artofarc.esb.message.ESBVariableConstants.*;
 public class HttpOutboundAction extends Action {
 
 	private final HttpEndpoint _httpEndpoint;
-	private final int _readTimeout;
+	private final Integer _readTimeout;
 	private final Integer _chunkLength;
 
 	public HttpOutboundAction(HttpEndpoint httpEndpoint, int readTimeout, Integer chunkLength) {
@@ -57,7 +57,7 @@ public class HttpOutboundAction extends Action {
 		}
 		HttpURLConnection conn = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), true, _chunkLength);
 		message.getVariables().put(HttpURLOutbound, conn.getURL().toString());
-		conn.setReadTimeout(_readTimeout);
+		conn.setReadTimeout(message.getTimeleft(_readTimeout).intValue());
 		if (inPipeline) {
 			message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
 		} else {

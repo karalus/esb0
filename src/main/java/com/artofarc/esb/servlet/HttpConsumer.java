@@ -22,8 +22,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.artofarc.esb.ConsumerPort;
+import com.artofarc.esb.action.HttpServletResponseAction;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.PoolContext;
+import com.artofarc.esb.message.ESBMessage;
 
 public final class HttpConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.HttpConsumerMXBean {
 
@@ -33,16 +35,18 @@ public final class HttpConsumer extends ConsumerPort implements AutoCloseable, c
    private final int minPoolSize;
    private final int maxPoolSize;
    private final long keepAliveMillis;
+   private final HttpServletResponseAction _terminalAction;
    
    private volatile long lastAccess;
    
-	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive) {
+	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive, boolean supportCompression) {
 		super(uri);
 		_bindPath = bindPath;
 		minPoolSize = minPool;
 		maxPoolSize = maxPool;
 		keepAliveMillis = keepAlive;
       pool = new LinkedBlockingQueue<>(maxPool);
+      _terminalAction = new HttpServletResponseAction(supportCompression);
 	}
 	
 	public String getBindPath() {
@@ -67,6 +71,12 @@ public final class HttpConsumer extends ConsumerPort implements AutoCloseable, c
 
 	public long getKeepAliveMillis() {
 		return keepAliveMillis;
+	}
+
+	@Override
+	public void process(Context context, ESBMessage message) throws Exception {
+		context.getExecutionStack().push(_terminalAction);
+		super.process(context, message);
 	}
 
 	@Override

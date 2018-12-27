@@ -42,17 +42,16 @@ public final class ESBServletContextListener implements ServletContextListener, 
 		globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer());
 		FileSystem fileSystem = new FileSystem();
 		globalContext.setFileSystem(fileSystem);
-		PoolContext poolContext = new PoolContext(globalContext);
 		try {
 			ChangeSet changeSet = fileSystem.parseDirectory(globalContext, rootDir);
-			DeployServlet.deployChangeSet(globalContext, poolContext, changeSet);
+			DeployServlet.deployChangeSet(globalContext, changeSet);
 		} catch (IOException e) {
 			throw new RuntimeException("Could not read services", e);
 		} catch (ValidationException e) {
 			throw new RuntimeException("Could not validate artifact " + e.getArtifact(), e.getCause());
 		}
 		globalContext.getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
-		return poolContext;
+		return globalContext.getDefaultWorkerPool().getPoolContext();
 	}
 
 	@Override

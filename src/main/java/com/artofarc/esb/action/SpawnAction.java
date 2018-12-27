@@ -131,7 +131,7 @@ public class SpawnAction extends Action {
 
 	public static ESBMessage join(Context context, ESBMessage message, Future<ESBMessage> future) throws Exception {
 		try {
-			return future.get(message.getTimeleft(), TimeUnit.MILLISECONDS);
+			return future.get(message.getTimeleft(60000L).longValue(), TimeUnit.MILLISECONDS);
 		} catch (ExecutionException e) {
 			throw (Exception) e.getCause();
 		} finally {

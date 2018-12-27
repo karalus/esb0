@@ -28,9 +28,11 @@ import javax.naming.NamingException;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSSession;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.ESBVariableConstants;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
 public class JMSAction extends TerminalAction {
@@ -40,11 +42,13 @@ public class JMSAction extends TerminalAction {
 	private final String _queueName;
 	private final String _topicName;
 	private final boolean _isBytesMessage;
+	private final int _deliveryMode;
 	private final int _priority;
-	private final long _timeToLive;
+	private final Long _timeToLive;
+	private final boolean _receiveFromTempQueue;
 
 	public JMSAction(GlobalContext globalContext, String jndiConnectionFactory, String jndiDestination, String queueName, String topicName,
-			boolean isBytesMessage, int priority, long timeToLive) throws NamingException {
+			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, boolean receiveFromTempQueue) throws NamingException {
 		_queueName = queueName;
 		_topicName = topicName;
 		if (jndiDestination != null) {
@@ -53,8 +57,10 @@ public class JMSAction extends TerminalAction {
 		globalContext.lookup(jndiConnectionFactory);
 		_jndiConnectionFactory = jndiConnectionFactory;
 		_isBytesMessage = isBytesMessage;
+		_deliveryMode = deliveryMode;
 		_priority = priority;
 		_timeToLive = timeToLive;
+		_receiveFromTempQueue = receiveFromTempQueue;
 	}
 
 	@Override
@@ -64,7 +70,11 @@ public class JMSAction extends TerminalAction {
 		JMSSession jmsSession = jmsSessionFactory.getResource(_jndiConnectionFactory, false);
 		final Session session = jmsSession.getSession();
 		if (_destination == null) {
-			_destination = _queueName != null ? session.createQueue(_queueName) : session.createTopic(_topicName);
+			if (_queueName != null) {
+				_destination = session.createQueue(_queueName);
+			} else if (_topicName != null) {
+				_destination = session.createTopic(_topicName);
+			}
 		}
 		context.getTimeGauge().startTimeMeasurement();
 		Message jmsMessage;
@@ -85,9 +95,22 @@ public class JMSAction extends TerminalAction {
 		context.getTimeGauge().stopTimeMeasurement("JMS createMessage", true);
 		message.getHeaders().clear();
 		message.reset(BodyType.INVALID, null);
-		jmsSession.createProducer(_destination).send(jmsMessage, Message.DEFAULT_DELIVERY_MODE, _priority, _timeToLive);
-		message.getHeaders().put("JMSMessageID", jmsMessage.getJMSMessageID());
-		context.getTimeGauge().stopTimeMeasurement("JMS send", false);
+		if (_receiveFromTempQueue) {
+			jmsMessage.setJMSReplyTo(jmsSession.getTemporaryQueue());
+			jmsSession.createProducer(_destination).send(jmsMessage, _deliveryMode, _priority, message.getTimeleft(_timeToLive).longValue());
+			context.getTimeGauge().stopTimeMeasurement("JMS send", true);
+			Message replyMessage = jmsSession.getConsumerForTemporaryQueue().receive(message.getTimeleft(_timeToLive).longValue());
+			context.getTimeGauge().stopTimeMeasurement("JMS receive", false);
+			if (replyMessage == null) {
+				throw new ExecutionException(this, "No reply message received within given timeout");
+			}
+			JMSConsumer.fillESBMessage(message, replyMessage);
+		} else {
+			final Destination destination = _destination != null ? _destination : message.<Destination> getVariable(ESBVariableConstants.JMSReplyTo);
+			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, message.getTimeleft(_timeToLive).longValue());
+			context.getTimeGauge().stopTimeMeasurement("JMS send", false);
+			message.putVariable(ESBVariableConstants.JMSMessageID, jmsMessage.getJMSMessageID());
+		}
 	}
 
 }

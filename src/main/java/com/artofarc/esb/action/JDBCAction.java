@@ -60,12 +60,14 @@ public abstract class JDBCAction extends TerminalAction {
 	protected final String _sql;
 	private final List<JDBCParameter> _params;
 	private final int _fetchSize;
+	private final Integer _timeout;
 
-	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int fetchSize) throws NamingException {
+	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int fetchSize, int timeout) throws NamingException {
 		_dataSource = globalContext.lookup(dsName);
 		_sql = sql;
 		_params = params;
 		_fetchSize = fetchSize;
+		_timeout = timeout;
 	}
 
 	@Override
@@ -132,7 +134,7 @@ public abstract class JDBCAction extends TerminalAction {
 				ps.setObject(param.getPos(), param.alignValue(value), param.getType());
 			}
 		}
-		ps.setQueryTimeout((int) (message.getTimeleft() / 1000L));
+		ps.setQueryTimeout(message.getTimeleft(_timeout).intValue() / 1000);
 		ps.setFetchSize(_fetchSize);
 	}
 	

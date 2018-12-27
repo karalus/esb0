@@ -20,8 +20,10 @@ import java.util.HashMap;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
+import javax.jms.TemporaryQueue;
 
 /**
  * Cache producers because it is expensive to create them.
@@ -30,6 +32,8 @@ public final class JMSSession implements AutoCloseable {
 
 	private final Session _session;
 	private final HashMap<Destination, MessageProducer> _producers = new HashMap<>();
+	private TemporaryQueue _temporaryQueue;
+	private MessageConsumer _consumer;
 
 	public JMSSession(Session session) {
 		_session = session;
@@ -47,9 +51,25 @@ public final class JMSSession implements AutoCloseable {
 		}
 		return producer;
 	}
+	
+	public TemporaryQueue getTemporaryQueue() throws JMSException {
+		if (_temporaryQueue == null) {
+			_temporaryQueue = _session.createTemporaryQueue();
+			_consumer = _session.createConsumer(_temporaryQueue);
+		}
+		return _temporaryQueue;
+	}
+	
+	public MessageConsumer getConsumerForTemporaryQueue() {
+		return _consumer;
+	}
 
 	@Override
 	public void close() throws JMSException {
+		if (_consumer != null) {
+			_consumer.close();
+			_temporaryQueue.delete();
+		}
 		_producers.clear();
 		_session.close();
 	}
