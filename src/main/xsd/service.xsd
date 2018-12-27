@@ -57,7 +57,7 @@
 							</complexType>
 						</element>
 					</sequence>
-					<attribute name="connectionTimeout" type="int" default="1000" />
+					<attribute name="connectionTimeout" type="int" default="10000" />
 					<attribute name="retries" type="int" default="0" />
 					<attribute name="checkAliveInterval" type="int" />
 					<attribute name="keepAliveInterval" type="int" />

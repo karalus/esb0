@@ -33,7 +33,7 @@ import javax.management.openmbean.SimpleType;
 
 import com.artofarc.esb.context.WorkerPool;
 
-public class HttpUrlSelector implements Runnable, com.artofarc.esb.mbean.HttpUrlSelectorMXBean  {
+public class HttpUrlSelector implements Runnable, HttpUrlSelectorMBean  {
 	
 	private HttpEndpoint _httpEndpoint;
 	
@@ -71,13 +71,13 @@ public class HttpUrlSelector implements Runnable, com.artofarc.esb.mbean.HttpUrl
 	}
 
 	public CompositeDataSupport[] getHttpEndpointStates() throws OpenDataException {
-		String[] itemNames = new String[] { "url", "active" };
-		OpenType<?>[] itemTypes = new OpenType[] { SimpleType.STRING, SimpleType.BOOLEAN };
+		String[] itemNames = new String[] { "URL", "weight", "active" };
+		OpenType<?>[] itemTypes = new OpenType[] { SimpleType.STRING, SimpleType.INTEGER, SimpleType.BOOLEAN };
 		CompositeType rowType = new CompositeType("HttpEndpointState", "State of HttpEndpoint", itemNames, itemNames, itemTypes);
 
 		CompositeDataSupport[] result = new CompositeDataSupport[size];
 		for (int i = 0; i < size; ++i) {
-			Object[] itemValues = new Object[] { _httpEndpoint.getHttpUrls().get(i).getUrl().toString(), isActive(i) };
+			Object[] itemValues = new Object[] { _httpEndpoint.getHttpUrls().get(i).getUrl().getAuthority(), weight[i], isActive(i) };
 			result[i] = new CompositeDataSupport(rowType, itemNames, itemValues);
 		}
 		return result;

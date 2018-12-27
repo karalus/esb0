@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.mbean;
+package com.artofarc.esb.http;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.OpenDataException;
 
-public interface HttpUrlSelectorMXBean {
+public interface HttpUrlSelectorMBean {
 
 	CompositeData[] getHttpEndpointStates() throws OpenDataException;
 
