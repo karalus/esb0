@@ -27,7 +27,7 @@ import java.util.TreeMap;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 
 public class BranchOnPathAction extends Action {
 
@@ -58,7 +58,7 @@ public class BranchOnPathAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		Action action = null;
-		String appendHttpUrlPath = message.getVariable(ESBVariableConstants.appendHttpUrlPath);
+		String appendHttpUrlPath = message.getVariable(ESBConstants.appendHttpUrlPath);
 		if (appendHttpUrlPath != null && appendHttpUrlPath.startsWith(_basePath)) {
 			String path = appendHttpUrlPath.substring(_basePath.length());
 			action = _defaultAction;
@@ -72,7 +72,7 @@ public class BranchOnPathAction extends Action {
 			}
 		}
 		// REST: also parse query string
-		String queryString = message.getVariable(ESBVariableConstants.QueryString);
+		String queryString = message.getVariable(ESBConstants.QueryString);
 		if (queryString != null) {
 			StringTokenizer st = new StringTokenizer(queryString, "&");
 			while (st.hasMoreTokens()) {

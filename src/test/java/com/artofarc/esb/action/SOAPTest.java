@@ -30,7 +30,7 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.Collections;
 
 
@@ -64,7 +64,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new WrapSOAPAction(false, true,true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("demoElementRequest", message.getVariable(ESBConstants.SOAP_OPERATION));
       @SuppressWarnings("unused")
 		Node node = message.getVariable("header");
       System.out.println();
@@ -90,7 +90,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
-      message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
+      message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
@@ -113,7 +113,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
-      message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
+      message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
@@ -137,7 +137,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
-      message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
+      message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
@@ -162,7 +162,7 @@ public class SOAPTest extends AbstractESBTest {
       //action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
-      message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
+      message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
@@ -183,7 +183,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
-      message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
+      message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       try {
@@ -211,7 +211,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
-      message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
+      message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
@@ -236,7 +236,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), ".", null));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("demoElementRequest", message.getVariable(ESBConstants.SOAP_OPERATION));
    }
    
    @Test
@@ -254,7 +254,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), "v1:messageHeader", result));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("demoElementRequest", message.getVariable(ESBConstants.SOAP_OPERATION));
    }
    
    @Test
@@ -272,7 +272,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("demoElementRequest", message.getVariable(ESBConstants.SOAP_OPERATION));
    }
    
    @Test
@@ -295,7 +295,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("demoElementRequest", message.getVariable(ESBConstants.SOAP_OPERATION));
    }
    
    @Test
@@ -321,7 +321,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("demoElementRequest", message.getVariable(ESBConstants.SOAP_OPERATION));
       assertEquals("hello world", message.getVariable("greetings"));
    }
    
@@ -347,7 +347,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("demoElementRequest", message.getVariable(ESBConstants.SOAP_OPERATION));
       assertEquals("hello world", message.getVariable("greetings"));
    }
    
@@ -370,7 +370,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
-      assertEquals("demoElementRequest", message.getVariable(ESBVariableConstants.SOAP_OPERATION));
+      assertEquals("demoElementRequest", message.getVariable(ESBConstants.SOAP_OPERATION));
    }
    
    public void testJMSConsumer() throws Exception {

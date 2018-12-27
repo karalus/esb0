@@ -16,7 +16,7 @@
  */
 package com.artofarc.esb.message;
 
-public interface ESBVariableConstants {
+public interface ESBConstants {
 
 	String HttpMethod = "HttpMethod";
 

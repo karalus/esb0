@@ -21,7 +21,7 @@ import java.net.HttpURLConnection;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 
 public class PostSOAPHttpAction extends UnwrapSOAPAction {
 
@@ -31,7 +31,7 @@ public class PostSOAPHttpAction extends UnwrapSOAPAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Integer httpResponseCode = message.getVariable(ESBVariableConstants.HttpResponseCode);
+		Integer httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 		switch (httpResponseCode) {
 		case HttpURLConnection.HTTP_OK:
 		case HttpURLConnection.HTTP_ACCEPTED:

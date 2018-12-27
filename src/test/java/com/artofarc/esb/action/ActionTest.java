@@ -15,7 +15,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 
 
 public class ActionTest {
@@ -37,7 +37,7 @@ public class ActionTest {
    @Test
    public void testBindVariable() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      message.getVariables().put(ESBVariableConstants.SOAP_OPERATION, "op1");
+      message.getVariables().put(ESBConstants.SOAP_OPERATION, "op1");
       assertEquals("void", Action.bindVariable("void", context, message));
       assertEquals("{call op1}", Action.bindVariable("{call ${operation}}", context, message));
       assertEquals("Myop1", Action.bindVariable("My${operation}", context, message));
@@ -62,7 +62,7 @@ public class ActionTest {
    @Test
    public void testResolveTemplate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
-      message.getVariables().put(ESBVariableConstants.appendHttpUrlPath, "partner/4711/order/0815");
+      message.getVariables().put(ESBConstants.appendHttpUrlPath, "partner/4711/order/0815");
       BranchOnPathAction action = new BranchOnPathAction("", null);
       MarkAction markAction = new MarkAction();
 		action.getBranchMap().put(new BranchOnPathAction.PathTemplate("partner/{partnerId}/order/{orderId}"), markAction);
@@ -77,7 +77,7 @@ public class ActionTest {
    @Test
    public void testResolveQuery() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
-      message.getVariables().put(ESBVariableConstants.QueryString, "wsdl&version=1%2E0");
+      message.getVariables().put(ESBConstants.QueryString, "wsdl&version=1%2E0");
       BranchOnPathAction action = new BranchOnPathAction("", null);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);

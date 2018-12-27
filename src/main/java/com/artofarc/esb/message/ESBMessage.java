@@ -82,7 +82,7 @@ public final class ESBMessage implements Cloneable {
 	private Schema _schema;
 
 	public ESBMessage(BodyType bodyType, Object body) {
-		_variables.put(ESBVariableConstants.initialTimestamp, System.currentTimeMillis());
+		_variables.put(ESBConstants.initialTimestamp, System.currentTimeMillis());
 		reset(bodyType, body);
 	}
 
@@ -213,7 +213,7 @@ public final class ESBMessage implements Cloneable {
 	}
 	
 	public Number getTimeleft(Number def) {
-		return getVariable(ESBVariableConstants.timeleft, def);
+		return getVariable(ESBConstants.timeleft, def);
 	}
 
 	@SuppressWarnings("unchecked")

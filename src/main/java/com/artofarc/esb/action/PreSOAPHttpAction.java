@@ -26,7 +26,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.WSDL4JUtil;
 
 public class PreSOAPHttpAction extends WrapSOAPAction {
@@ -43,7 +43,7 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		ExecutionContext executionContext = super.prepare(context, message, inPipeline);
-		String soapAction = _mapOperation2SoapActionURI.get(message.<String>getVariable(ESBVariableConstants.SOAP_OPERATION));
+		String soapAction = _mapOperation2SoapActionURI.get(message.<String>getVariable(ESBConstants.SOAP_OPERATION));
 		if (_soap12) {
 			if (soapAction != null) {
 				message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_2_CONTENT_TYPE + ";" + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + soapAction);
@@ -53,7 +53,7 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 			message.getHeaders().put(HTTP_HEADER_SOAP_ACTION, soapAction != null ? "\"" + soapAction + "\"" : "\"\"");
 			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
 		}
-		message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
+		message.getVariables().put(ESBConstants.HttpMethod, "POST");
 		message.setSchema(_schema);
 		return executionContext;
 	}

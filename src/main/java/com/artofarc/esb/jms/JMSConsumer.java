@@ -35,7 +35,7 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
 public final class JMSConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
@@ -219,9 +219,9 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		} else {
 			esbMessage.reset(BodyType.INVALID, null);
 		}
-		esbMessage.putVariable(ESBVariableConstants.JMSMessageID, message.getJMSMessageID());
-		esbMessage.putVariable(ESBVariableConstants.JMSCorrelationID, message.getJMSCorrelationID());
-		esbMessage.putVariable(ESBVariableConstants.JMSReplyTo, message.getJMSReplyTo());
+		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
+		esbMessage.putVariable(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
+		esbMessage.putVariable(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
 		for (@SuppressWarnings("unchecked")
 		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
 			String propertyName = propertyNames.nextElement();

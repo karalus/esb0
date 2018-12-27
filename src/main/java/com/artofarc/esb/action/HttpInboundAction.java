@@ -30,14 +30,14 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 
 public class HttpInboundAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws IOException {
-		HttpURLConnection conn = message.removeVariable(ESBVariableConstants.HttpURLConnection);
-		message.getVariables().put(ESBVariableConstants.HttpResponseCode, conn.getResponseCode());
+		HttpURLConnection conn = message.removeVariable(ESBConstants.HttpURLConnection);
+		message.getVariables().put(ESBConstants.HttpResponseCode, conn.getResponseCode());
 		message.getHeaders().clear();
 		for (Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
 			Object value = entry.getValue();

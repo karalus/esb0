@@ -24,7 +24,7 @@ import java.io.IOException;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 
 public class FileAction extends TerminalAction {
 	
@@ -43,8 +43,8 @@ public class FileAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
-		File file = new File(_destDir, message.<String>getVariable(ESBVariableConstants.PathInfo));
-		String method = message.getVariable(ESBVariableConstants.HttpMethod);
+		File file = new File(_destDir, message.<String>getVariable(ESBConstants.PathInfo));
+		String method = message.getVariable(ESBConstants.HttpMethod);
 		switch (method) {
 		case "ENTRY_CREATE":
 		case "ENTRY_MODIFY":

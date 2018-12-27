@@ -32,7 +32,7 @@ import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSSession;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
 public class JMSAction extends TerminalAction {
@@ -106,10 +106,10 @@ public class JMSAction extends TerminalAction {
 			}
 			JMSConsumer.fillESBMessage(message, replyMessage);
 		} else {
-			final Destination destination = _destination != null ? _destination : message.<Destination> getVariable(ESBVariableConstants.JMSReplyTo);
+			final Destination destination = _destination != null ? _destination : message.<Destination> getVariable(ESBConstants.JMSReplyTo);
 			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, message.getTimeleft(_timeToLive).longValue());
 			context.getTimeGauge().stopTimeMeasurement("JMS send", false);
-			message.putVariable(ESBVariableConstants.JMSMessageID, jmsMessage.getJMSMessageID());
+			message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
 		}
 	}
 

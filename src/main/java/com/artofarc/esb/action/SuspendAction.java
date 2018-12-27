@@ -22,7 +22,7 @@ import com.artofarc.esb.context.AsyncProcessingPool;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 
 public class SuspendAction extends Action {
 
@@ -55,7 +55,7 @@ public class SuspendAction extends Action {
 		asyncContext.nextAction = _nextAction;
 		asyncContext.executionStack = execContext.getResource();
 		asyncContext.variables = message.getVariables();
-		asyncContext.expriry = message.<Long>getVariable(ESBVariableConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue();
+		asyncContext.expriry = message.<Long>getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue();
 		asyncProcessingPool.putAsyncContext(correlationID, asyncContext);
 	}
 

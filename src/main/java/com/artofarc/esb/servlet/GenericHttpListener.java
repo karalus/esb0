@@ -39,7 +39,7 @@ import com.artofarc.esb.context.PoolContext;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import static com.artofarc.esb.message.ESBVariableConstants.*;
+import static com.artofarc.esb.message.ESBConstants.*;
 
 /**
  * Servlet implementation class GenericHttpListener

@@ -38,7 +38,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 
 public class FileSystemWatchAction extends TerminalAction {
 
@@ -69,9 +69,9 @@ public class FileSystemWatchAction extends TerminalAction {
 				Path absolutePath = parent.resolve(path);
 				final ESBMessage msg = new ESBMessage(BodyType.INPUT_STREAM, Files.newInputStream(absolutePath));
 				msg.getVariables().put("InputStream", msg.getBody());
-				msg.getVariables().put(ESBVariableConstants.HttpMethod, watchEvent.kind().toString());
-				msg.getVariables().put(ESBVariableConstants.ContextPath, parent.toString());
-				msg.getVariables().put(ESBVariableConstants.PathInfo, path.toString());
+				msg.getVariables().put(ESBConstants.HttpMethod, watchEvent.kind().toString());
+				msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
+				msg.getVariables().put(ESBConstants.PathInfo, path.toString());
 				logger.fine("Absolute path " + absolutePath + ", kind: " + watchEvent.kind());
 				for(;;) {
 					try {

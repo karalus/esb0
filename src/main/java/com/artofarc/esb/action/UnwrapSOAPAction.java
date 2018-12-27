@@ -34,7 +34,7 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.servlet.DeployServlet;
 
-import static com.artofarc.esb.message.ESBVariableConstants.*;
+import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.util.Collections;
 import com.artofarc.util.WSDL4JUtil;
 

@@ -29,7 +29,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.servlet.GenericHttpListener;
 
 public class HttpServletResponseAction extends Action {
@@ -43,23 +43,23 @@ public class HttpServletResponseAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		AsyncContext asyncContext = message.removeVariable(ESBVariableConstants.AsyncContext);
+		AsyncContext asyncContext = message.removeVariable(ESBConstants.AsyncContext);
 		HttpServletResponse response;
 		if (asyncContext != null) {
 			response = (HttpServletResponse) asyncContext.getResponse();
 		} else {
-			throw new ExecutionException(this, ESBVariableConstants.AsyncContext + " not set");
+			throw new ExecutionException(this, ESBConstants.AsyncContext + " not set");
 		}
 		if (message.getBodyType() == BodyType.EXCEPTION) {
 			GenericHttpListener.sendErrorResponse(response, message.<Exception> getBody());
-		} else if (message.getVariable(ESBVariableConstants.redirect) != null) {
-			response.sendRedirect(message.<String> getVariable(ESBVariableConstants.redirect));
+		} else if (message.getVariable(ESBConstants.redirect) != null) {
+			response.sendRedirect(message.<String> getVariable(ESBConstants.redirect));
 //			response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
 //			response.setHeader("Location", message.<String> getVariable(ESBVariableConstants.redirect));
 		} else {
-			Number httpResponseCode = message.getVariable(ESBVariableConstants.HttpResponseCode);
+			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 			if (httpResponseCode == null) {
-				Boolean hasFault = message.getVariable(ESBVariableConstants.hasFault);
+				Boolean hasFault = message.getVariable(ESBConstants.hasFault);
 				httpResponseCode = hasFault != null && hasFault ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : HttpServletResponse.SC_OK;
 			}
 			response.setStatus(httpResponseCode.intValue());

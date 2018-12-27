@@ -20,7 +20,7 @@ import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.servlet.ESBServletContextListener;
 
 
@@ -58,10 +58,10 @@ public class FileSystemTest extends AbstractESBTest {
          assertNotNull(service);
          // Call
          ESBMessage message = new ESBMessage(BodyType.BYTES, ConfigServiceTest.readFile("src/test/resources/SOAPRequest.xml"));
-         message.getVariables().put(ESBVariableConstants.HttpMethod, "POST");
+         message.getVariables().put(ESBConstants.HttpMethod, "POST");
          message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
          message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
-         message.getVariables().put(ESBVariableConstants.hasFault, false);
+         message.getVariables().put(ESBConstants.hasFault, false);
          try {
             service.processInternal(new Context(poolContext), message);
          } catch (IOException e) {

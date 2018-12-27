@@ -27,7 +27,7 @@ import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrlSelector;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import static com.artofarc.esb.message.ESBVariableConstants.*;
+import static com.artofarc.esb.message.ESBConstants.*;
 
 public class HttpOutboundAction extends Action {
 

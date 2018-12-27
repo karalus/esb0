@@ -32,7 +32,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.WorkerPoolThreadFactory;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.ESBVariableConstants;
+import com.artofarc.esb.message.ESBConstants;
 
 public class SpawnAction extends Action {
 
@@ -106,7 +106,7 @@ public class SpawnAction extends Action {
 	}
 
 	private Future<ESBMessage> submit(Context context, final ESBMessage message, Collection<Action> executionStack) throws RejectedExecutionException {
-		String workerPool = message.getVariable(ESBVariableConstants.WorkerPool, _workerPool);
+		String workerPool = message.getVariable(ESBConstants.WorkerPool, _workerPool);
         return submit(context, message, workerPool, _nextAction, executionStack, _join);
 	}
 
