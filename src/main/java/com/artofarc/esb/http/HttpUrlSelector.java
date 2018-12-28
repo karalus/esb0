@@ -25,6 +25,9 @@ import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import javax.management.AttributeChangeNotification;
+import javax.management.MBeanNotificationInfo;
+import javax.management.NotificationBroadcasterSupport;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -33,22 +36,26 @@ import javax.management.openmbean.SimpleType;
 
 import com.artofarc.esb.context.WorkerPool;
 
-public class HttpUrlSelector implements Runnable, HttpUrlSelectorMBean  {
-	
+public final class HttpUrlSelector extends NotificationBroadcasterSupport implements Runnable, HttpUrlSelectorMBean {
+
 	private HttpEndpoint _httpEndpoint;
-	
+
 	private final WorkerPool _workerPool;
 
 	private final int size;
 	private final int[] weight;
 	private final boolean[] active;
-	
+
 	private int pos;
 	private int activeCount;
-
+	private long sequenceNumber;
+ 
 	private ScheduledFuture<?> _future;
-	
+
 	public HttpUrlSelector(HttpEndpoint httpEndpoint, WorkerPool workerPool) {
+		super(workerPool.getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
+				AttributeChangeNotification.class.getName(), "An endpoint of " + httpEndpoint.getName() + " changes its state"));
+		
 		_httpEndpoint = httpEndpoint;
 		_workerPool = workerPool;
 		size = httpEndpoint.getHttpUrls().size();
@@ -61,7 +68,7 @@ public class HttpUrlSelector implements Runnable, HttpUrlSelectorMBean  {
 			if (isActive) ++activeCount;
 		}
 	}
-	
+
 	public synchronized HttpEndpoint getHttpEndpoint() {
 		return _httpEndpoint;
 	}
@@ -82,7 +89,7 @@ public class HttpUrlSelector implements Runnable, HttpUrlSelectorMBean  {
 		}
 		return result;
 	}
-	
+
 	private synchronized int computeNextPos() {
 		for (;; ++pos) {
 			if (pos == size) {
@@ -96,11 +103,11 @@ public class HttpUrlSelector implements Runnable, HttpUrlSelectorMBean  {
 			}
 		}
 	}
-	
+
 	public synchronized boolean isActive(int pos) {
 		return active[pos];
 	}
-	
+
 	public synchronized void setActive(int pos, boolean b) {
 		boolean old = active[pos];
 		if (b != old) {
@@ -116,10 +123,15 @@ public class HttpUrlSelector implements Runnable, HttpUrlSelectorMBean  {
 					_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _httpEndpoint.getCheckAliveInterval(), _httpEndpoint.getCheckAliveInterval(), TimeUnit.SECONDS);
 				}
 			}
+			sendNotification(new AttributeChangeNotification(this, ++sequenceNumber, System.currentTimeMillis(), "Endpoint state changed", "active[" + pos + "]", "boolean", old, b));
 		}
 	}
 
-	public void stop() {
+	public synchronized Long getHealthCheckingDelay() {
+		return _future != null ? _future.getDelay(TimeUnit.SECONDS) : null;
+	}
+
+	public synchronized void stop() {
 		if (_future != null) {
 			_future.cancel(true);
 			_future = null;
@@ -141,11 +153,11 @@ public class HttpUrlSelector implements Runnable, HttpUrlSelectorMBean  {
 			}
 		}
 	}
-	
+
 	public HttpURLConnection connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, boolean doOutput, Integer chunkLength) throws IOException {
 		return connectTo(httpEndpoint, method, spec, headers, doOutput, chunkLength, httpEndpoint.getRetries());
 	}
-	
+
 	private HttpURLConnection connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, boolean doOutput, Integer chunkLength, int retryCount) throws IOException {
 		if (activeCount == 0) {
 			throw new ConnectException("No active url");

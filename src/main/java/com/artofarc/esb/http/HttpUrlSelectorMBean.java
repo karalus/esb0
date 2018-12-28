@@ -23,4 +23,8 @@ public interface HttpUrlSelectorMBean {
 
 	CompositeData[] getHttpEndpointStates() throws OpenDataException;
 
+	Long getHealthCheckingDelay();
+
+	void setActive(int pos, boolean b);
+
 }

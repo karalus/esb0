@@ -66,8 +66,8 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	}
 
 	@SuppressWarnings("unchecked")
-	public <O> O lookup(String name) throws NamingException {
-		// InitialContext is not thread safe, for lookups it should be safe
+	public synchronized <O> O lookup(String name) throws NamingException {
+		// InitialContext is not thread safe
 		return (O) _initialContext.lookup(name);
 	}
 

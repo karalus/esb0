@@ -34,9 +34,9 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 
 	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads) {
 		_poolContext = new PoolContext(globalContext, name);
-		_threadFactory = new WorkerPoolThreadFactory(name, _poolContext, priority);
-		if (maxThreads > 0 && queueDepth > 0) {
-			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(queueDepth), _threadFactory);
+		_threadFactory = new WorkerPoolThreadFactory(name != null ? name : "default", _poolContext, priority);
+		if (maxThreads > 0) {
+			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<Runnable>(queueDepth) : new LinkedBlockingQueue<Runnable>(), _threadFactory);
 		} else {
 			_executorService = null;
 		}
@@ -50,12 +50,7 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 	}
 
 	WorkerPool(GlobalContext globalContext, int nThreads) {
-		_poolContext = new PoolContext(globalContext, null);
-		_threadFactory = new WorkerPoolThreadFactory("default", _poolContext, Thread.NORM_PRIORITY);
-		// Refer to Executors.newFixedThreadPool 
-		_executorService = new ThreadPoolExecutor(nThreads, nThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(), _threadFactory);
-		_scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(_threadFactory);
-		_asyncProcessingPool = new AsyncProcessingPool(this);
+		this(globalContext, null, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 1);
 	}
 	
 	public PoolContext getPoolContext() {
