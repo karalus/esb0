@@ -116,8 +116,12 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	}
 
 	public WorkerPool putWorkerPool(String name, WorkerPool workerPool) {
+		WorkerPool old = _workerPoolMap.put(name, workerPool);
+		if (old != null) {
+			unregisterMBean(",group=WorkerPool,name=" + name);
+		}
 		registerMBean(workerPool, ",group=WorkerPool,name=" + name);
-		return _workerPoolMap.put(name, workerPool);
+		return old;
 	}
 
 	@Override
