@@ -40,7 +40,13 @@ public final class HttpEndpoint {
 	}
 
 	public String getName() {
-		return _name != null ? _name : _endpoints.get(0).getUrl().getAuthority().replace(':', '-');
+		if (_name != null) return _name;
+		StringBuilder builder = new StringBuilder("\"");
+		for (HttpUrl httpUrl : _endpoints) {
+			builder.append(httpUrl.getBaseURL()).append(',');
+		}
+		builder.setCharAt(builder.length() - 1, '"');
+		return builder.toString();
 	}
 
 	public HttpEndpoint addUrl(String url, int weight, boolean active) throws MalformedURLException {

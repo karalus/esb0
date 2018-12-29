@@ -28,6 +28,7 @@ import javax.xml.transform.Result;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
+import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
@@ -36,7 +37,8 @@ public class HttpInboundAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws IOException {
-		HttpURLConnection conn = message.removeVariable(ESBConstants.HttpURLConnection);
+		HttpUrlConnectionWrapper wrapper = message.removeVariable(ESBConstants.HttpURLConnection);
+		HttpURLConnection conn = wrapper.getHttpURLConnection();
 		message.getVariables().put(ESBConstants.HttpResponseCode, conn.getResponseCode());
 		message.getHeaders().clear();
 		for (Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
@@ -48,34 +50,34 @@ public class HttpInboundAction extends Action {
 		}
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 		message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
-		message.reset(BodyType.INPUT_STREAM, getInputStream(conn));
-		return new ExecutionContext(conn);
+		InputStream inputStream = conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST ? conn.getInputStream() : conn.getErrorStream();
+		message.reset(BodyType.INPUT_STREAM, inputStream);
+		return new ExecutionContext(inputStream, wrapper);
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
-			HttpURLConnection conn = execContext.getResource();
+			InputStream inputStream = execContext.getResource();
 			if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
 				OutputStream os = message.getBody();
-				ESBMessage.copyStream(getInputStream(conn), os);
+				ESBMessage.copyStream(inputStream, os);
 			} else {
 				// TODO: Code coverage?
 				Result result = message.getBodyAsSinkResult(context);
-				message.reset(BodyType.INPUT_STREAM, getInputStream(conn));
+				message.reset(BodyType.INPUT_STREAM, inputStream);
 				message.writeTo(result, context);
 			}
 		}
 	}
 
 	@Override
-	protected void close(ExecutionContext resource) throws Exception {
-		HttpURLConnection conn = resource.getResource();
-		getInputStream(conn).close();
-	}
-
-	public static InputStream getInputStream(HttpURLConnection conn) throws IOException {
-		return conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST ? conn.getInputStream() : conn.getErrorStream();
+	protected void close(ExecutionContext execContext) throws Exception {
+		try {
+			execContext.<InputStream> getResource().close();
+		} finally {
+			execContext.<HttpUrlConnectionWrapper> getResource2().close();
+		}
 	}
 
 }

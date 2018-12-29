@@ -38,6 +38,25 @@ import com.artofarc.esb.context.WorkerPool;
 
 public final class HttpUrlSelector extends NotificationBroadcasterSupport implements Runnable, HttpUrlSelectorMBean {
 
+	public final class HttpUrlConnectionWrapper {
+		private final int _pos;
+		private final HttpURLConnection _httpURLConnection;
+
+		private HttpUrlConnectionWrapper(int pos, HttpURLConnection httpURLConnection) {
+			_pos = pos;
+			_httpURLConnection = httpURLConnection;
+			setInUse(pos, true);
+		}
+
+		public HttpURLConnection getHttpURLConnection() {
+			return _httpURLConnection;
+		}
+
+		public void close() {
+			setInUse(_pos, false);
+		}
+	}
+	
 	private HttpEndpoint _httpEndpoint;
 
 	private final WorkerPool _workerPool;
@@ -45,11 +64,12 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	private final int size;
 	private final int[] weight;
 	private final boolean[] active;
+	private final boolean[] inUse;
 
 	private int pos;
-	private int activeCount;
-	private long sequenceNumber;
- 
+	private volatile int activeCount;
+	private volatile long sequenceNumber;
+
 	private ScheduledFuture<?> _future;
 
 	public HttpUrlSelector(HttpEndpoint httpEndpoint, WorkerPool workerPool) {
@@ -61,6 +81,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		size = httpEndpoint.getHttpUrls().size();
 		weight = new int[size];
 		active = new boolean[size];
+		inUse = new boolean[size];
 		for (int i = 0; i < size; ++i) {
 			weight[i] = httpEndpoint.getHttpUrls().get(i).getWeight();
 			boolean isActive = httpEndpoint.getHttpUrls().get(i).isActive();
@@ -75,33 +96,6 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 
 	public synchronized void setHttpEndpoint(HttpEndpoint httpEndpoint) {
 		_httpEndpoint = httpEndpoint;
-	}
-
-	public CompositeDataSupport[] getHttpEndpointStates() throws OpenDataException {
-		String[] itemNames = new String[] { "URL", "weight", "active" };
-		OpenType<?>[] itemTypes = new OpenType[] { SimpleType.STRING, SimpleType.INTEGER, SimpleType.BOOLEAN };
-		CompositeType rowType = new CompositeType("HttpEndpointState", "State of HttpEndpoint", itemNames, itemNames, itemTypes);
-
-		CompositeDataSupport[] result = new CompositeDataSupport[size];
-		for (int i = 0; i < size; ++i) {
-			Object[] itemValues = new Object[] { _httpEndpoint.getHttpUrls().get(i).getUrl().getAuthority(), weight[i], isActive(i) };
-			result[i] = new CompositeDataSupport(rowType, itemNames, itemValues);
-		}
-		return result;
-	}
-
-	private synchronized int computeNextPos() {
-		for (;; ++pos) {
-			if (pos == size) {
-				pos = 0;
-			}
-			if (active[pos]) {
-				if (--weight[pos] == 0) {
-					weight[pos] = _httpEndpoint.getHttpUrls().get(pos).getWeight();
-					return pos++;
-				}
-			}
-		}
 	}
 
 	public synchronized boolean isActive(int pos) {
@@ -127,10 +121,10 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	public synchronized Long getHealthCheckingDelay() {
-		return _future != null ? _future.getDelay(TimeUnit.SECONDS) : null;
+	public synchronized void setInUse(int pos, boolean b) {
+		inUse[pos] = b;
 	}
-
+	
 	public synchronized void stop() {
 		if (_future != null) {
 			_future.cancel(true);
@@ -154,17 +148,17 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	public HttpURLConnection connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, boolean doOutput, Integer chunkLength) throws IOException {
+	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, boolean doOutput, Integer chunkLength) throws IOException {
 		return connectTo(httpEndpoint, method, spec, headers, doOutput, chunkLength, httpEndpoint.getRetries());
 	}
 
-	private HttpURLConnection connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, boolean doOutput, Integer chunkLength, int retryCount) throws IOException {
+	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, boolean doOutput, Integer chunkLength, int retryCount) throws IOException {
 		if (activeCount == 0) {
 			throw new ConnectException("No active url");
 		}
 		int pos = computeNextPos();
 		try {
-			return connectTo(httpEndpoint.getHttpUrls().get(pos).getUrl(), method, spec, headers, doOutput, chunkLength);
+			return new HttpUrlConnectionWrapper(pos, connectTo(httpEndpoint.getHttpUrls().get(pos).getUrl(), method, spec, headers, doOutput, chunkLength));
 		} catch (IOException e) {
 			if (_httpEndpoint.getCheckAliveInterval() != null) {
 				setActive(pos, false);
@@ -173,6 +167,20 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				return connectTo(httpEndpoint, method, spec, headers, doOutput, chunkLength, --retryCount);
 			}
 			throw e;
+		}
+	}
+
+	private synchronized int computeNextPos() {
+		for (;; ++pos) {
+			if (pos == size) {
+				pos = 0;
+			}
+			if (active[pos]) {
+				if (--weight[pos] == 0) {
+					weight[pos] = _httpEndpoint.getHttpUrls().get(pos).getWeight();
+					return pos++;
+				}
+			}
 		}
 	}
 
@@ -192,6 +200,25 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 		conn.connect();
 		return conn;
+	}
+
+	// Methods for monitoring, not synchronized to avoid effects on important methods
+
+	public CompositeDataSupport[] getHttpEndpointStates() throws OpenDataException {
+		String[] itemNames = new String[] { "URL", "weight", "active", "inUse" };
+		OpenType<?>[] itemTypes = new OpenType[] { SimpleType.STRING, SimpleType.INTEGER, SimpleType.BOOLEAN, SimpleType.BOOLEAN };
+		CompositeType rowType = new CompositeType("HttpEndpointState", "State of HttpEndpoint", itemNames, itemNames, itemTypes);
+
+		CompositeDataSupport[] result = new CompositeDataSupport[size];
+		for (int i = 0; i < size; ++i) {
+			Object[] itemValues = new Object[] { _httpEndpoint.getHttpUrls().get(i).getBaseURL(), weight[i], isActive(i), inUse[i] };
+			result[i] = new CompositeDataSupport(rowType, itemNames, itemValues);
+		}
+		return result;
+	}
+
+	public Long getHealthCheckingDelay() {
+		return _future != null ? _future.getDelay(TimeUnit.SECONDS) : null;
 	}
 
 }

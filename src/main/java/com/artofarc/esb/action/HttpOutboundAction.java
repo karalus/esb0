@@ -25,6 +25,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrlSelector;
+import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import static com.artofarc.esb.message.ESBConstants.*;
@@ -55,7 +56,8 @@ public class HttpOutboundAction extends Action {
 		if (message.getVariable(QueryString) != null) {
 			appendHttpUrl += message.getVariable(QueryString);
 		}
-		HttpURLConnection conn = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), true, _chunkLength);
+		HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), true, _chunkLength);
+		HttpURLConnection conn = wrapper.getHttpURLConnection();  
 		message.getVariables().put(HttpURLOutbound, conn.getURL().toString());
 		conn.setReadTimeout(message.getTimeleft(_readTimeout).intValue());
 		if (inPipeline) {
@@ -63,7 +65,7 @@ public class HttpOutboundAction extends Action {
 		} else {
 			message.writeTo(conn.getOutputStream(), context);
 		}
-		return new ExecutionContext(conn);
+		return new ExecutionContext(wrapper);
 	}
 
 	@Override
