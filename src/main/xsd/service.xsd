@@ -648,6 +648,7 @@
 			<attribute name="priority" type="int" default="5" />
 			<attribute name="queueDepth" type="int" use="required" />
 			<attribute name="scheduledThreads" type="int" use="required" />
+			<attribute name="allowCoreThreadTimeOut" type="boolean" default="false" />
 		</complexType>
 	</element>
 	<element name="classLoader">

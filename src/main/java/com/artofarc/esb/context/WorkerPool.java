@@ -32,11 +32,12 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 	private final ScheduledExecutorService _scheduledExecutorService;
 	private final AsyncProcessingPool _asyncProcessingPool;
 
-	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads) {
+	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
 		_poolContext = new PoolContext(globalContext, name);
 		_threadFactory = new WorkerPoolThreadFactory(name != null ? name : "default", _poolContext, priority);
 		if (maxThreads > 0) {
 			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<Runnable>(queueDepth) : new LinkedBlockingQueue<Runnable>(), _threadFactory);
+			_executorService.allowCoreThreadTimeOut(allowCoreThreadTimeOut);
 		} else {
 			_executorService = null;
 		}
@@ -50,13 +51,13 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 	}
 
 	WorkerPool(GlobalContext globalContext, int nThreads) {
-		this(globalContext, null, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 1);
+		this(globalContext, null, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
 	}
-	
+
 	public PoolContext getPoolContext() {
 		return _poolContext;
 	}
-	
+
 	public ExecutorService getExecutorService() {
 		return _executorService;
 	}
@@ -88,7 +89,7 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 	public String getName() {
 		return _threadFactory.getName();
 	}
-	
+
 	public int getActiveCount() {
 		return _threadFactory.activeCount();
 	}
