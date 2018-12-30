@@ -25,8 +25,10 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
+import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import javax.jms.Topic;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.ConsumerPort;
@@ -42,7 +44,6 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 	private final String _workerPool;
 	private final String _jndiConnectionFactory;
-	private final String _jndiDestination;
 	private final String _messageSelector;
 	private Destination _destination;
 	private final String _queueName;
@@ -50,46 +51,53 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	private final JMSWorker[] _jmsWorker;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, String jndiConnectionFactory, String jndiDestination, String queueName,
-			String topicName, String messageSelector, int workerCount) throws NamingException {
+			String topicName, String messageSelector, int workerCount) throws NamingException, JMSException {
 		super(uri);
 		_workerPool = workerPool;
 		_jndiConnectionFactory = jndiConnectionFactory;
-		_jndiDestination = jndiDestination;
 		_messageSelector = messageSelector != null ? bindProperties(messageSelector, System.getProperties()) : null;
-		_queueName = queueName;
-		_topicName = topicName;
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
+		}
+		if (_destination instanceof Queue) {
+			_queueName = ((Queue) _destination).getQueueName();
+			_topicName = null;
+		} else if (_destination instanceof Topic) {
+			_queueName = null;
+			_topicName = ((Topic) _destination).getTopicName();
+		} else {
+			_queueName = queueName;
+			_topicName = topicName;
 		}
 		_jmsWorker = new JMSWorker[workerCount];
 	}
 
 	private static String bindProperties(String exp, Map<?, ?> props) {
-      StringBuilder builder = new StringBuilder();
-      for (int pos = 0;;) {
-         int i = exp.indexOf("${", pos);
-         if (i < 0) {
-            builder.append(exp.substring(pos));
-            break;
-         }
-         builder.append(exp.substring(pos, i));
-         int j = exp.indexOf('}', i);
-         if (j < 0) throw new IllegalArgumentException("Matching } is missing");
-         String name = exp.substring(i + 2, j);
+		StringBuilder builder = new StringBuilder();
+		for (int pos = 0;;) {
+			int i = exp.indexOf("${", pos);
+			if (i < 0) {
+				builder.append(exp.substring(pos));
+				break;
+			}
+			builder.append(exp.substring(pos, i));
+			int j = exp.indexOf('}', i);
+			if (j < 0) throw new IllegalArgumentException("Matching } is missing");
+			String name = exp.substring(i + 2, j);
 			Object value = props.get(name);
 			if (value == null) {
 				throw new NullPointerException(name + " is not set");
 			}
-         builder.append(value);
-         pos = j + 1;
-      }
-      return builder.toString();
+			builder.append(value);
+			pos = j + 1;
+		}
+		return builder.toString();
 	}
 
 	public String getKey() {
-		return _jndiConnectionFactory + '|' + (_jndiDestination != null ? _jndiDestination : _queueName != null ? _queueName : _topicName) + '|' + _messageSelector;
+		return _jndiConnectionFactory + '|' + (_queueName != null ? _queueName : _topicName) + '|' + _messageSelector;
 	}
-	
+
 	public int getWorkerCount() {
 		return _jmsWorker.length;
 	}
@@ -189,6 +197,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			final ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
 			try {
 				fillESBMessage(esbMessage, message);
+				esbMessage.putVariable(ESBConstants.JMSOrigin, _queueName != null ? _queueName : _topicName);
 			} catch (JMSException e) {
 				throw new RuntimeException(e);
 			}
@@ -228,5 +237,5 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			esbMessage.getHeaders().put(propertyName, message.getObjectProperty(propertyName));
 		}
 	}
-	
+
 }

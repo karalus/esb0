@@ -53,11 +53,13 @@ public interface ESBConstants {
 	String hasFault = "hasFault";
 
 	String redirect = "redirect";
-	
+
 	String JMSMessageID = "JMSMessageID";
 
 	String JMSCorrelationID = "JMSCorrelationID";
-	
+
 	String JMSReplyTo = "JMSReplyTo";
+
+	String JMSOrigin = "JMSOrigin";
 
 }
