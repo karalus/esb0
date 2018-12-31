@@ -56,7 +56,7 @@ public class HttpOutboundAction extends Action {
 		if (message.getVariable(QueryString) != null) {
 			appendHttpUrl += message.getVariable(QueryString);
 		}
-		HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), true, _chunkLength);
+		HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);
 		HttpURLConnection conn = wrapper.getHttpURLConnection();  
 		message.getVariables().put(HttpURLOutbound, conn.getURL().toString());
 		conn.setReadTimeout(message.getTimeleft(_readTimeout).intValue());

@@ -148,23 +148,23 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, boolean doOutput, Integer chunkLength) throws IOException {
-		return connectTo(httpEndpoint, method, spec, headers, doOutput, chunkLength, httpEndpoint.getRetries());
+	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
+		return connectTo(httpEndpoint, method, spec, headers, chunkLength, httpEndpoint.getRetries());
 	}
 
-	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, boolean doOutput, Integer chunkLength, int retryCount) throws IOException {
+	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, Integer chunkLength, int retryCount) throws IOException {
 		if (activeCount == 0) {
 			throw new ConnectException("No active url");
 		}
 		int pos = computeNextPos();
 		try {
-			return new HttpUrlConnectionWrapper(pos, connectTo(httpEndpoint.getHttpUrls().get(pos).getUrl(), method, spec, headers, doOutput, chunkLength));
+			return new HttpUrlConnectionWrapper(pos, connectTo(httpEndpoint.getHttpUrls().get(pos).getUrl(), method, spec, headers, chunkLength));
 		} catch (IOException e) {
 			if (_httpEndpoint.getCheckAliveInterval() != null) {
 				setActive(pos, false);
 			}
 			if (retryCount > 0) {
-				return connectTo(httpEndpoint, method, spec, headers, doOutput, chunkLength, --retryCount);
+				return connectTo(httpEndpoint, method, spec, headers, chunkLength, --retryCount);
 			}
 			throw e;
 		}
@@ -184,14 +184,15 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	private HttpURLConnection connectTo(URL url, String method, String spec, Set<Entry<String, Object>> headers, boolean doOutput, Integer chunkLength) throws IOException {
+	private HttpURLConnection connectTo(URL url, String method, String spec, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
 		if (spec != null) {
 			url = new URL(url, spec);
 		}
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setConnectTimeout(_httpEndpoint.getConnectionTimeout());
 		conn.setRequestMethod(method);
-		conn.setDoOutput(doOutput);
+		conn.setDoOutput(true);
+		conn.setInstanceFollowRedirects(false);
 		if (chunkLength != null) {
 			conn.setChunkedStreamingMode(chunkLength);
 		}
