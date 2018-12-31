@@ -27,6 +27,11 @@
 			<web-resource-name>Admin console</web-resource-name>
 			<url-pattern>/admin/*</url-pattern>
 		</web-resource-collection>
+		<web-resource-collection>
+			<web-resource-name>File upload</web-resource-name>
+			<url-pattern>/admin/deploy/*</url-pattern>
+			<http-method>POST</http-method>
+		</web-resource-collection>
 		<auth-constraint>
 			<role-name>esb0admin</role-name>
 		</auth-constraint>

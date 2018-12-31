@@ -56,7 +56,7 @@ public class DeployServlet extends HttpServlet {
 		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
 		GlobalContext globalContext = poolContext.getGlobalContext();
 		Artifact artifact = globalContext.getFileSystem().getArtifact(req.getPathInfo());
-		if (artifact != null) {
+		if (artifact != null && artifact.getContent() != null) {
 			String headerAccept = req.getHeader(HttpConstants.HTTP_HEADER_ACCEPT);
 			// SoapUI does not send an "Accept" header
 			if (headerAccept == null || headerAccept.contains("text/")) {
