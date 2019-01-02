@@ -38,7 +38,7 @@
 	</security-constraint>
 	<login-config>
 		<auth-method>BASIC</auth-method>
-		<realm-name>default</realm-name>
+		<realm-name>ESB0</realm-name>
 	</login-config>
 	<security-role>
 		<description>ESB0 admin</description>
