@@ -195,9 +195,9 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		@Override
 		public void onMessage(Message message) {
 			final ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
+			esbMessage.putVariable(ESBConstants.JMSOrigin, _queueName != null ? _queueName : _topicName);
 			try {
 				fillESBMessage(esbMessage, message);
-				esbMessage.putVariable(ESBConstants.JMSOrigin, _queueName != null ? _queueName : _topicName);
 			} catch (JMSException e) {
 				throw new RuntimeException(e);
 			}
@@ -228,6 +228,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		} else {
 			esbMessage.reset(BodyType.INVALID, null);
 		}
+		message.clearBody();
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
 		esbMessage.putVariable(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
 		esbMessage.putVariable(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
