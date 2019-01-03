@@ -86,8 +86,8 @@ public class TransformAction extends Action {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		return prepare(context, message, message.getVariables());
 	}
-	
-	protected ExecutionContext prepare(Context context, ESBMessage message, Map<String, Object> destMap) throws Exception {
+
+	protected final ExecutionContext prepare(Context context, ESBMessage message, Map<String, Object> destMap) throws Exception {
 		context.getTimeGauge().startTimeMeasurement();
 		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery, _baseURI);
 		if (_bindNames == null || _bindNames.size() != _bindings.size()) {
@@ -137,7 +137,7 @@ public class TransformAction extends Action {
 				message.reset(BodyType.XQ_SEQUENCE, resultSequence);
 			}
 		}
-		return new ExecutionContext(resultSequence);
+		return new ExecutionContext(resultSequence, xqExpression);
 	}
 
 	private void bind(String bindName, QName qName, XQItemType type, XQPreparedExpression xqExpression, Context context, ESBMessage message) throws Exception {
@@ -151,10 +151,10 @@ public class TransformAction extends Action {
 			xqExpression.bindObject(qName, value, type);
 		} else {
 			// Workaround: XQuery has no NULL value
-			xqExpression.bindString(qName, "", context.getXQDataFactory().createAtomicType(XQItemType.XQBASETYPE_STRING));
+			xqExpression.bindString(qName, "", null);
 		}
 	}
-	
+
 	protected void processSequence(Context context, ESBMessage message, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
 		if (destMap == null && !_varNames.isEmpty()) {
 			throw new ExecutionException(this, "Cannot handle assignment");
@@ -173,7 +173,7 @@ public class TransformAction extends Action {
 
 	@Override
 	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (nextActionIsPipelineStop && execContext != null) {
+		if (nextActionIsPipelineStop) {
 			XQResultSequence resultSequence = execContext.getResource();
 			if (resultSequence.next()) {
 				if (_contextItem == null) {
@@ -194,16 +194,17 @@ public class TransformAction extends Action {
 
 	@Override
 	protected final void close(ExecutionContext execContext) throws Exception {
-		if (execContext != null) {
-			XQResultSequence resultSequence = execContext.getResource();
-			if (resultSequence.next() && _contextItem == null) {
-				logger.fine("XQResultSequence not fully consumed");
-				if (logger.isLoggable(Level.FINE)) {
-					resultSequence.writeItem(System.err, null);
-				}
+		XQResultSequence resultSequence = execContext.getResource();
+		if (resultSequence.next() && _contextItem == null) {
+			logger.fine("XQResultSequence not fully consumed");
+			if (logger.isLoggable(Level.FINE)) {
+				resultSequence.writeItem(System.err, null);
 			}
-			resultSequence.close();
 		}
+		resultSequence.close();
+		XQPreparedExpression xqExpression = execContext.getResource2();
+		// unbind (large) documents so that they can be garbage collected
+		xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 	}
 
 //	@Override

@@ -43,13 +43,13 @@ public class ConditionalAction extends AssignAction {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		HashMap<String, Object> map = new HashMap<>();
 		ExecutionContext executionContext = prepare(context, message, map);
-		executionContext.setResource2(map.get(RESULT));
+		executionContext.setResource3(map.get(RESULT));
 		return executionContext;
 	}
 
 	@Override
 	protected Action nextAction(ExecutionContext execContext) {
-		Boolean result = execContext.getResource2();
+		Boolean result = execContext.getResource3();
 		return result != null && result ? conditionalAction : super.nextAction(execContext);
 	}
 
