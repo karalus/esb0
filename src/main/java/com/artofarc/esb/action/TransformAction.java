@@ -26,7 +26,7 @@ import java.util.logging.Level;
 
 import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConstants;
-import javax.xml.xquery.XQException;
+import javax.xml.xquery.XQDataFactory;
 import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQItemType;
 import javax.xml.xquery.XQPreparedExpression;
@@ -62,7 +62,7 @@ public class TransformAction extends Action {
 		_baseURI = baseURI;
 	}
 
-	private synchronized void initBindings(XQPreparedExpression xqExpression) throws XQException {
+	private synchronized void initBindings(XQPreparedExpression xqExpression, XQDataFactory xqDataFactory, ESBMessage message) throws Exception {
 		if (_bindNames == null) {
 			_bindNames = new ArrayList<>();
 			for (QName qName : xqExpression.getAllExternalVariables()) {
@@ -71,9 +71,10 @@ public class TransformAction extends Action {
 				_bindings.put(qName, sequenceType.getItemType());
 			}
 		} else {
-			// old behavior
 			for (String bindName : _bindNames) {
-				_bindings.put(new QName(bindName), null);
+				Object value = resolve(message, bindName, true);
+				XQItemType itemType = value != null ? xqDataFactory.createItemFromObject(value, null).getItemType() : null;
+				_bindings.put(new QName(bindName), itemType);
 			}
 		}
 	}
@@ -91,7 +92,7 @@ public class TransformAction extends Action {
 		context.getTimeGauge().startTimeMeasurement();
 		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery, _baseURI);
 		if (_bindNames == null || _bindNames.size() != _bindings.size()) {
-			initBindings(xqExpression);
+			initBindings(xqExpression, context.getXQDataFactory(), message);
 		}
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
 		if (_contextItem != null) {
@@ -141,12 +142,7 @@ public class TransformAction extends Action {
 	}
 
 	private void bind(String bindName, QName qName, XQItemType type, XQPreparedExpression xqExpression, Context context, ESBMessage message) throws Exception {
-		Object header = message.getHeader(bindName);
-		Object variable = message.getVariable(bindName);
-		if (header != null && variable != null) {
-			throw new ExecutionException(this, "name could not unambiguously be resolved: " + bindName);
-		}
-		Object value = variable != null ? variable : header;
+		Object value = resolve(message, bindName, true);
 		if (value != null) {
 			xqExpression.bindObject(qName, value, type);
 		} else {
@@ -205,6 +201,11 @@ public class TransformAction extends Action {
 		XQPreparedExpression xqExpression = execContext.getResource2();
 		// unbind (large) documents so that they can be garbage collected
 		xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
+		for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {
+			if (entry.getValue() == null || entry.getValue().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
+				xqExpression.bindString(entry.getKey(), "", null);
+			}
+		}
 	}
 
 //	@Override

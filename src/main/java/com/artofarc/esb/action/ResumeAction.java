@@ -33,15 +33,10 @@ public class ResumeAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Object header = message.getHeader(_correlationID);
-		Object variable = message.getVariable(_correlationID);
-		if (header != null && variable != null) {
-			throw new ExecutionException(this, "name could not unambiguously be resolved: " + _correlationID);
-		}
-		if (header == null && variable == null) {
+		Object correlationID = resolve(message, _correlationID, true);
+		if (correlationID == null) {
 			throw new ExecutionException(this, "name could not be resolved: " + _correlationID);
 		}
-		Object correlationID = variable != null ? variable : header;
 		AsyncProcessingPool asyncProcessingPool = context.getPoolContext().getGlobalContext().getWorkerPool(_workerPool).getAsyncProcessingPool();
 		if (asyncProcessingPool == null) {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + _workerPool);

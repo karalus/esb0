@@ -38,13 +38,14 @@ public class ActionTest {
    public void testBindVariable() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
       message.getVariables().put(ESBConstants.SOAP_OPERATION, "op1");
-      assertEquals("void", Action.bindVariable("void", context, message));
-      assertEquals("{call op1}", Action.bindVariable("{call ${operation}}", context, message));
-      assertEquals("Myop1", Action.bindVariable("My${operation}", context, message));
+      Action action = new DumpAction(); 
+      assertEquals("void", action.bindVariable("void", context, message));
+      assertEquals("{call op1}", action.bindVariable("{call ${operation}}", context, message));
+      assertEquals("Myop1", action.bindVariable("My${operation}", context, message));
       // new feature
       Exception exception = new Exception("my message", new IllegalArgumentException("wrong arg"));
       message.getVariables().put("exception", exception);
-      assertEquals("Error: my message, wrong arg", Action.bindVariable("Error: ${exception.getMessage}, ${exception.getCause.getMessage}", context, message));
+      assertEquals("Error: my message, wrong arg", action.bindVariable("Error: ${exception.getMessage}, ${exception.getCause.getMessage}", context, message));
       Object object = new Object() {
       	@SuppressWarnings("unused")
 			public void test() {
@@ -53,7 +54,7 @@ public class ActionTest {
       };
       message.getVariables().put("object", object);
       try {
-         Action.bindVariable("${object.test}", context, message);
+      	action.bindVariable("${object.test}", context, message);
       } catch (InvocationTargetException e) {
       	assertTrue(e.getCause() instanceof IllegalStateException);
       }

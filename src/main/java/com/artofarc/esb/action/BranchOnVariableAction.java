@@ -51,10 +51,7 @@ public class BranchOnVariableAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Object value = message.getVariable(_varName);
-		if (value == null) {
-			value = message.getHeader(_varName);
-		}
+		Object value = resolve(message, _varName, true);
 		Action action = null;
 		if (value != null) {
 			if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {

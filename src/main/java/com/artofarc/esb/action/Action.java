@@ -201,29 +201,26 @@ public abstract class Action implements Cloneable {
 		return startAction;
 	}
 
-	protected static String bindVariable(String exp, Context context, ESBMessage message) throws Exception {
-      StringBuilder builder = new StringBuilder();
-      for (int pos = 0;;) {
-         int i = exp.indexOf("${", pos);
-         if (i < 0) {
-            builder.append(exp.substring(pos));
-            break;
-         }
-         builder.append(exp.substring(pos, i));
-         int j = exp.indexOf('}', i);
-         if (j < 0) throw new IllegalArgumentException("Matching } is missing");
-         String path = exp.substring(i + 2, j);
-         int k = path.indexOf('.');
-         String name = k < 0 ? path : path.substring(0, k);
-			Object value = "body".equals(name) ? message.getBodyAsString(context) : message.getVariable(name);
-			if (value == null) {
-				value = message.getHeader(name);
+	protected final String bindVariable(String exp, Context context, ESBMessage message) throws Exception {
+		StringBuilder builder = new StringBuilder();
+		for (int pos = 0;;) {
+			int i = exp.indexOf("${", pos);
+			if (i < 0) {
+				builder.append(exp.substring(pos));
+				break;
 			}
+			builder.append(exp.substring(pos, i));
+			int j = exp.indexOf('}', i);
+			if (j < 0) throw new IllegalArgumentException("Matching } is missing");
+			String path = exp.substring(i + 2, j);
+			int k = path.indexOf('.');
+			String name = k < 0 ? path : path.substring(0, k);
+			Object value = "body".equals(name) ? message.getBodyAsString(context) : resolve(message, name, true);
 			if (value == null) {
 				value = System.getProperty(name);
 			}
 			if (value == null) {
-				throw new NullPointerException(name + " is not set");
+				throw new ExecutionException(this, "name could not be resolved: " + name);
 			}
 			while (k >= 0) {
 				int l = path.indexOf('.', ++k);
@@ -232,10 +229,22 @@ public abstract class Action implements Cloneable {
 				value = method.invoke(value);
 				k = l;
 			}
-         builder.append(value);
-         pos = j + 1;
-      }
-      return builder.toString();
+			builder.append(value);
+			pos = j + 1;
+		}
+		return builder.toString();
+	}
+
+	protected final Object resolve(ESBMessage message, String name, boolean checkAmbiguity) throws ExecutionException {
+		Object variable = message.getVariable(name);
+		if (variable != null) {
+			if (checkAmbiguity && message.getHeader(name) != null) {
+				throw new ExecutionException(this, "name could not unambiguously be resolved: " + name);
+			}
+			return variable;
+		} else {
+			return message.getHeader(name);
+		}
 	}
 
 }
