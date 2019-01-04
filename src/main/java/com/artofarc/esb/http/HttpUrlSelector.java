@@ -211,7 +211,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 
 		CompositeDataSupport[] result = new CompositeDataSupport[size];
 		for (int i = 0; i < size; ++i) {
-			Object[] itemValues = new Object[] { _httpEndpoint.getHttpUrls().get(i).getBaseURL(), weight[i], isActive(i), inUse.get(i) };
+			Object[] itemValues = new Object[] { _httpEndpoint.getHttpUrls().get(i).toString(), weight[i], isActive(i), inUse.get(i) };
 			result[i] = new CompositeDataSupport(rowType, itemNames, itemValues);
 		}
 		return result;

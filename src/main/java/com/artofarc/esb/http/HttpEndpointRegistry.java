@@ -18,6 +18,7 @@ package com.artofarc.esb.http;
 
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.artofarc.esb.context.GlobalContext;
 
@@ -28,6 +29,10 @@ public class HttpEndpointRegistry {
 	
 	public HttpEndpointRegistry(GlobalContext globalContext) {
 		_globalContext = globalContext;
+	}
+
+	public Set<HttpEndpoint> getHttpEndpoints() {
+		return _map.keySet();
 	}
 
 	public synchronized void validate(HttpEndpoint httpEndpoint) {

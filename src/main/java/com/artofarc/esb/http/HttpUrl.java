@@ -65,7 +65,8 @@ public final class HttpUrl {
 		return port == other.port && host.equals(other.host);
 	}
 
-	public String getBaseURL() {
+	@Override
+	public String toString() {
 		return "http://" + host + ':' + port;
 	}
 

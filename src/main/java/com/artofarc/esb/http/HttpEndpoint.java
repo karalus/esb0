@@ -43,7 +43,7 @@ public final class HttpEndpoint {
 		if (_name != null) return _name;
 		StringBuilder builder = new StringBuilder("\"");
 		for (HttpUrl httpUrl : _endpoints) {
-			builder.append(httpUrl.getBaseURL()).append(',');
+			builder.append(httpUrl).append(',');
 		}
 		builder.setCharAt(builder.length() - 1, '"');
 		return builder.toString();

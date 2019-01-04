@@ -18,6 +18,8 @@ package com.artofarc.esb.servlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContextEvent;
@@ -31,6 +33,7 @@ import com.artofarc.esb.context.PoolContext;
 
 public final class ESBServletContextListener implements ServletContextListener, Runnable {
 
+	public static final String VERSION = "esb0.version";
 	public static final String POOL_CONTEXT = "WebContainerPoolContext";
 
 	private GlobalContext globalContext;
@@ -56,6 +59,17 @@ public final class ESBServletContextListener implements ServletContextListener, 
 
 	@Override
 	public void contextInitialized(ServletContextEvent contextEvent) {
+		Properties properties = new Properties();
+		InputStream inputStream = contextEvent.getServletContext().getResourceAsStream("/META-INF/maven/com.artofarc.eai/esb0/pom.properties");
+		if (inputStream != null) {
+			try {
+				properties.load(inputStream);
+				inputStream.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		contextEvent.getServletContext().setAttribute(VERSION, properties.getProperty("version", "1.1"));
 		String rootDirEnv = System.getenv("ESB_ROOT_DIR");
 		File rootDir = rootDirEnv != null ? new File(rootDirEnv) : new File(System.getProperty("user.home"), "esb_root");
 		contextEvent.getServletContext().setAttribute(POOL_CONTEXT, createGlobalAndDefaultPoolContext(rootDir));

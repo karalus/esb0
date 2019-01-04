@@ -1,15 +1,17 @@
+<%@page import="com.artofarc.esb.context.PoolContext"%>
+<%@page import="com.artofarc.esb.context.GlobalContext"%>
+<%@page import="com.artofarc.esb.ConsumerPort"%>
+<%@page import="com.artofarc.esb.servlet.ESBServletContextListener"%>
+<%@page import="com.artofarc.esb.servlet.HttpConsumer"%>
+<%@page import="com.artofarc.esb.jms.JMSConsumer"%>
+<%@page import="com.artofarc.esb.context.WorkerPool"%>
+<%@page import="com.artofarc.esb.http.HttpEndpoint"%>
+<%@page import="com.artofarc.esb.artifact.*"%>
 <html>
 <body>
-<%@ page import = "com.artofarc.esb.context.PoolContext" %>
-<%@ page import = "com.artofarc.esb.context.GlobalContext" %>
-<%@ page import = "com.artofarc.esb.ConsumerPort" %>
-<%@ page import = "com.artofarc.esb.servlet.HttpConsumer" %>
-<%@ page import = "com.artofarc.esb.jms.JMSConsumer" %>
-<%@ page import = "com.artofarc.esb.context.WorkerPool" %>
-<%@ page import = "com.artofarc.esb.artifact.*" %>
-<h2>ESB Zero - A lightweight service gateway (v1.1)</h2>
+<h2>ESB Zero - A lightweight service gateway (v<%=application.getAttribute(ESBServletContextListener.VERSION)%>)</h2>
 <%
-	GlobalContext globalContext = ((PoolContext) application.getAttribute("WebContainerPoolContext")).getGlobalContext();
+	GlobalContext globalContext = ((PoolContext) application.getAttribute(ESBServletContextListener.POOL_CONTEXT)).getGlobalContext();
 	if (request.getPathInfo() == null) {
 %>
 <br>HttpServices:
@@ -49,6 +51,16 @@
 		for (WorkerPool workerPool : globalContext.getWorkerPools()) {
 		   %>
 		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=workerPool.getName()%></a></td><td><%=workerPool.getActiveCount()%></td><td><%=workerPool.getQueueSize()%></td></tr>
+		   <%
+		}
+%>
+</table>
+<br>HttpEndpoints:
+<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Name</b></td><td align="center"><b>Addresses</b></td></tr> 
+<%
+		for (HttpEndpoint httpEndpoint : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
+		   %>
+		   <tr><td><%=httpEndpoint.getName()%></td><td><%=httpEndpoint.getHttpUrls()%></td></tr>
 		   <%
 		}
 %>
