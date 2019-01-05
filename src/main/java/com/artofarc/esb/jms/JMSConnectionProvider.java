@@ -19,6 +19,7 @@ package com.artofarc.esb.jms;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,7 +35,7 @@ import javax.naming.NamingException;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
-public class JMSConnectionProvider {
+public final class JMSConnectionProvider {
 
    protected final static Logger logger = Logger.getLogger("ESB");
    
@@ -48,6 +49,10 @@ public class JMSConnectionProvider {
 		_poolContext = poolContext;
 	}
 
+	public Set<String> getJMSSessionFactories() {
+		return _pool.keySet();
+	}
+	
 	public synchronized Connection getConnection(String jndiConnectionFactory) throws NamingException, JMSException {
 		JMSConnectionGuard connectionGuard = _pool.get(jndiConnectionFactory);
 		if (connectionGuard == null) {
@@ -78,7 +83,7 @@ public class JMSConnectionProvider {
 		_pool.clear();
 	}
 
-	public class JMSConnectionGuard extends TimerTask implements ExceptionListener {
+	private final class JMSConnectionGuard extends TimerTask implements ExceptionListener {
 
 		private final HashMap<JMSConsumer, Boolean> jmsConsumers = new HashMap<>();
 
@@ -88,7 +93,7 @@ public class JMSConnectionProvider {
 
 		private ScheduledExecutorService scheduledExecutorService;
 
-		public JMSConnectionGuard(String jndiConnectionFactory, Connection connection) throws JMSException {
+		private JMSConnectionGuard(String jndiConnectionFactory, Connection connection) throws JMSException {
 			this.jndiConnectionFactory = jndiConnectionFactory;
 			setConnection(connection);
 		}

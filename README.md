@@ -13,6 +13,7 @@ Features:
 - Is performant like a network component. Can act at the speed of a reverse proxy (only few millis penalty) even when processing XML.
 - Outperforms most other Service Gateways when XML processing is needed.
 - Simple REST admin services to deploy and control service flows
+- JMX support, i.e. MBeans for remote monitoring & management
 
 ### Design goals ###
 

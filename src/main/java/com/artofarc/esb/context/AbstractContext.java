@@ -20,10 +20,14 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.artofarc.esb.resource.ResourceFactory;
 
-public class AbstractContext implements AutoCloseable {
+public abstract class AbstractContext implements AutoCloseable {
+
+	protected final static Logger logger = Logger.getLogger("ESB");
 
 	private final HashMap<Class<?>, ResourceFactory<?, ?, ?>> _pool = new HashMap<>();
 
@@ -61,8 +65,7 @@ public class AbstractContext implements AutoCloseable {
 			try {
 				resourceFactory.close();
 			} catch (Exception e) {
-				// ignore
-				e.printStackTrace();
+				logger.log(Level.INFO, "Exception while closing", e);
 			}
 		}
 	}

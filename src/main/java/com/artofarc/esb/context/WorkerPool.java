@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.context;
 
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,7 +35,11 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 
 	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
 		_poolContext = new PoolContext(globalContext, name);
-		_threadFactory = new WorkerPoolThreadFactory(name != null ? name : "default", _poolContext, priority);
+		if (maxThreads > 0 || scheduledThreads > 0) {
+			_threadFactory = new WorkerPoolThreadFactory(name != null ? name : "default", _poolContext, priority);
+		} else {
+			_threadFactory = null;
+		}
 		if (maxThreads > 0) {
 			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<Runnable>(queueDepth) : new LinkedBlockingQueue<Runnable>(), _threadFactory);
 			_executorService.allowCoreThreadTimeOut(allowCoreThreadTimeOut);
@@ -83,39 +88,43 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 		}
 		_poolContext.close();
 	}
-	
+
 	// Methods for monitoring
 
 	public String getName() {
-		return _threadFactory.getName();
+		return _threadFactory != null ? _threadFactory.getName() : null;
 	}
 
 	public int getActiveCount() {
-		return _threadFactory.activeCount();
+		return _threadFactory != null ? _threadFactory.activeCount() : -1;
 	}
 
 	public int getMaximumPoolSize() {
-		return _executorService.getMaximumPoolSize();
+		return _executorService != null ? _executorService.getMaximumPoolSize() : -1;
 	}
 
 	public int getCorePoolSize() {
-		return _executorService.getCorePoolSize();
+		return _executorService != null ? _executorService.getCorePoolSize() : -1;
 	}
 
 	public long getCompletedTaskCount() {
-		return _executorService.getCompletedTaskCount();
+		return _executorService != null ? _executorService.getCompletedTaskCount() : -1;
 	}
 
 	public int getQueueSize() {
-		return _executorService.getQueue().size();
+		return _executorService != null ? _executorService.getQueue().size() : -1;
 	}
 
 	public int getRemainingCapacity() {
-		return _executorService.getQueue().remainingCapacity();
+		return _executorService != null ? _executorService.getQueue().remainingCapacity() : -1;
 	}
 
 	public int getAsyncProcessingPoolSize() {
 		return _asyncProcessingPool != null ? _asyncProcessingPool.getPoolSize() : -1;
+	}
+
+	public Set<String> getJMSSessionFactories() {
+		return _poolContext.getJMSConnectionProvider().getJMSSessionFactories();
 	}
 
 }

@@ -66,10 +66,10 @@ public final class ESBServletContextListener implements ServletContextListener, 
 				properties.load(inputStream);
 				inputStream.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				// ignore
 			}
 		}
-		contextEvent.getServletContext().setAttribute(VERSION, properties.getProperty("version", "1.1"));
+		contextEvent.getServletContext().setAttribute(VERSION, properties.getProperty("version", "0.0"));
 		String rootDirEnv = System.getenv("ESB_ROOT_DIR");
 		File rootDir = rootDirEnv != null ? new File(rootDirEnv) : new File(System.getProperty("user.home"), "esb_root");
 		contextEvent.getServletContext().setAttribute(POOL_CONTEXT, createGlobalAndDefaultPoolContext(rootDir));

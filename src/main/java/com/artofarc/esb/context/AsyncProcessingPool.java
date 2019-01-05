@@ -22,13 +22,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.action.ThrowExceptionAction;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
-public class AsyncProcessingPool implements Runnable {
+public final class AsyncProcessingPool implements Runnable {
 	
 	public static class AsyncContext {
 		public Action nextAction;
@@ -50,7 +51,7 @@ public class AsyncProcessingPool implements Runnable {
 		return _asyncContexts.size();
 	}
 
-	public synchronized void start() {
+	private synchronized void start() {
 		if (_scheduledFuture == null) {
 			_scheduledFuture = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, 30L, 30L, TimeUnit.SECONDS);
 		}
@@ -75,11 +76,10 @@ public class AsyncProcessingPool implements Runnable {
 
 	@Override
 	public void run() {
-		long currentTimeMillis = System.currentTimeMillis();
 		for (Iterator<Map.Entry<String, AsyncContext>> iter =  _asyncContexts.entrySet().iterator(); iter.hasNext();) {
 			Map.Entry<String, AsyncContext> entry = iter.next();
 			AsyncContext asyncContext = entry.getValue();
-			if (asyncContext.expriry < currentTimeMillis) {
+			if (asyncContext.expriry < System.currentTimeMillis()) {
 				iter.remove();
 				try {
 					Context context = new Context(_workerPool.getPoolContext());
@@ -90,8 +90,7 @@ public class AsyncProcessingPool implements Runnable {
 					action.setNextAction(asyncContext.nextAction);
 					action.process(context, message);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					Context.logger.log(Level.INFO, "Exception while expriring AsyncContext", e);
 				}
 			}
 		}

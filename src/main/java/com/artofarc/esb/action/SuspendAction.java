@@ -41,7 +41,7 @@ public class SuspendAction extends Action {
 	}
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
 		ExecutionContext execContext = new ExecutionContext(new ArrayList<>(context.getExecutionStack()));
 		context.getExecutionStack().clear();
 		return execContext;

@@ -413,9 +413,6 @@ public final class FileSystem {
 					file.mkdir();
 				} else {
 					FileOutputStream fos = new FileOutputStream(file);
-					if (artifact.getContent() == null) {
-						System.out.println();
-					}
 					fos.write(artifact.getContent());
 					fos.close();
 				}

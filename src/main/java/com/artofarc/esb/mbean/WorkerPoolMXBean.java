@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.mbean;
 
+import java.util.Set;
+
 public interface WorkerPoolMXBean {
 
 	String getName();
@@ -33,5 +35,7 @@ public interface WorkerPoolMXBean {
 	int getRemainingCapacity();
 	
 	int getAsyncProcessingPoolSize();
+	
+	Set<String> getJMSSessionFactories();
 
 }
