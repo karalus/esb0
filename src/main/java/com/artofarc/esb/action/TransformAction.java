@@ -27,6 +27,7 @@ import java.util.logging.Level;
 import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQDataFactory;
+import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQItemType;
 import javax.xml.xquery.XQPreparedExpression;
@@ -77,10 +78,6 @@ public class TransformAction extends Action {
 				_bindings.put(new QName(bindName), itemType);
 			}
 		}
-	}
-
-	public List<String> getVarNames() {
-		return _varNames;
 	}
 
 	@Override
@@ -144,7 +141,11 @@ public class TransformAction extends Action {
 	private void bind(String bindName, QName qName, XQItemType type, XQPreparedExpression xqExpression, Context context, ESBMessage message) throws Exception {
 		Object value = resolve(message, bindName, true);
 		if (value != null) {
-			xqExpression.bindObject(qName, value, type);
+			try {
+				xqExpression.bindObject(qName, value, type);
+			} catch (XQException e) {
+				throw new ExecutionException(this, "binding " + bindName + " failed", e);
+			}
 		} else {
 			// Workaround: XQuery has no NULL value
 			xqExpression.bindString(qName, "", null);
