@@ -56,11 +56,11 @@
 %>
 </table>
 <br>HttpEndpoints:
-<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Name</b></td><td align="center"><b>Addresses</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Name</b></td><td align="center"><b>Addresses</b></td><td align="center"><b>Total in use</b></td></tr> 
 <%
 		for (HttpEndpoint httpEndpoint : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
 		   %>
-		   <tr><td><%=httpEndpoint.getName()%></td><td><%=httpEndpoint.getHttpUrls()%></td></tr>
+		   <tr><td><%=httpEndpoint.getName()%></td><td><%=httpEndpoint.getHttpUrls()%></td><td><%=globalContext.getHttpEndpointRegistry().getHttpUrlSelector(httpEndpoint).getInUseTotal()%></td></tr>
 		   <%
 		}
 %>

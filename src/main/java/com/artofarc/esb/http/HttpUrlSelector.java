@@ -221,4 +221,12 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		return _future != null ? _future.getDelay(TimeUnit.SECONDS) : null;
 	}
 
+	public int getInUseTotal() {
+		int total = 0;
+		for (int i = 0; i < size; ++i) {
+			total += inUse.get(i);
+		}
+		return total; 
+	}
+
 }
