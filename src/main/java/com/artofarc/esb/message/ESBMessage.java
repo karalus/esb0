@@ -41,6 +41,7 @@ import java.util.zip.InflaterInputStream;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
@@ -69,8 +70,9 @@ import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 
 public final class ESBMessage implements Cloneable {
 
-	public final static Charset CHARSET_DEFAULT = StandardCharsets.UTF_8;
-	public final static int MTU = 4096;
+	public static final Charset CHARSET_DEFAULT = StandardCharsets.UTF_8;
+	public static final int MTU = Integer.parseInt(System.getProperty("esb0.internalMTU", "4096"));
+	private static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
 
 	private final HashMap<String, Object> _headers = new HashMap<>();
 	private final HashMap<String, Object> _variables = new HashMap<>();
@@ -91,7 +93,8 @@ public final class ESBMessage implements Cloneable {
 		return "ESBMessage [_bodyType=" + _bodyType + ", _charsetName=" + _charset + ", _headers=" + _headers + ", _variables=" + _variables + "]";
 	}
 
-	public void reset(BodyType bodyType, Object body) {
+	@SuppressWarnings("unchecked")
+	public <T> T reset(BodyType bodyType, Object body) {
 		if (bodyType == null) {
 			// auto detect
 			if (body instanceof String) {
@@ -104,7 +107,19 @@ public final class ESBMessage implements Cloneable {
 		} else {
 			_bodyType = bodyType;
 		}
-		_body = body;
+		switch (_bodyType) {
+		case INVALID:
+		case STRING:
+		case XQ_ITEM:
+		case DOM:
+		case SOURCE:
+		case READER:
+			_charset = null;
+			break;
+		default:
+			break;
+		}
+		return (T) (_body = body);
 	}
 
 	public Map<String, Object> getHeaders() {
@@ -204,7 +219,7 @@ public final class ESBMessage implements Cloneable {
 	private Properties getSinkProperties() {
 		Properties props = new Properties();
 		props.setProperty(OutputKeys.ENCODING, getSinkEncoding());
-		//props.setProperty(OutputKeys.INDENT, "no");
+		props.setProperty(OutputKeys.INDENT, XML_OUTPUT_INDENT);
 		return props;
 	}
 
@@ -294,10 +309,11 @@ public final class ESBMessage implements Cloneable {
 			bos = new ByteArrayOutputStream(MTU);
 			writeRawTo(bos, context);
 			ba = bos.toByteArray();
+			_charset = _sinkEncoding;
 			break;
 		case STRING:
 			ba = ((String) _body).getBytes(getSinkEncoding());
-			_charset = null;
+			_charset = _sinkEncoding;
 			break;
 		case BYTES:
 			return (byte[]) _body;
@@ -309,8 +325,9 @@ public final class ESBMessage implements Cloneable {
 		case XQ_ITEM:
 			bos = new ByteArrayOutputStream(MTU);
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(bos, null);
+			xqItem.writeItem(bos, getSinkProperties());
 			ba = bos.toByteArray();
+			_charset = _sinkEncoding;
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");
@@ -353,9 +370,7 @@ public final class ESBMessage implements Cloneable {
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 		}
-		_body = str;
-		_bodyType = BodyType.STRING;
-		return str;
+		return reset(BodyType.STRING, str);
 	}
 
 	public InputStream getBodyAsInputStream(Context context) throws TransformerException, IOException, XQException {
@@ -372,13 +387,13 @@ public final class ESBMessage implements Cloneable {
 		case READER:
 			return (Reader) _body;
 		case INPUT_STREAM:
-			return getInputStreamReader();
+			return reset(BodyType.READER, getInputStreamReader());
 		default:
 			return new StringReader(getBodyAsString(context));
 		}
 	}
 	
-	public Source getBodyAsSource() throws Exception {
+	public Source getBodyAsSource() throws IOException {
 		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && (contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12))) {
 			// TODO Cache FastInfosetDeserializer
@@ -401,8 +416,7 @@ public final class ESBMessage implements Cloneable {
 			_body = new ByteArrayInputStream((byte[]) _body);
 			// nobreak
 		case INPUT_STREAM:
-			_bodyType = BodyType.INVALID;
-			return new StreamSource(getInputStreamReader());
+			return reset(BodyType.INVALID, new StreamSource(getInputStreamReader()));
 		case READER:
 			_bodyType = BodyType.INVALID;
 			return new StreamSource((Reader) _body);
@@ -412,15 +426,15 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	private static String asXMLString(Exception e) {
-		String xml = "<exception><message>" + e.getMessage() + "</message>";
+		String xml = "<exception><message><![CDATA[" + e.getMessage() + "]]></message>";
 		if (e.getCause() != null) {
-			xml += "<cause>" + e.getCause().getMessage() + "</cause>";
+			xml += "<cause><![CDATA[" + e.getCause().getMessage() + "]]></cause>";
 		}
 		xml += "</exception>";
 		return xml;
 	}
 
-	public XMLStreamReader getBodyAsXMLStreamReader(Context context) throws Exception {
+	public XMLStreamReader getBodyAsXMLStreamReader(Context context) throws IOException, XQException, XMLStreamException {
 		switch (_bodyType) {
 		case XQ_SEQUENCE:
 			XQSequence xqSequence = (XQSequence) _body;
@@ -439,13 +453,13 @@ public final class ESBMessage implements Cloneable {
 
 	private InputSource getBodyAsSaxSource() throws IOException {
 		switch (_bodyType) {
+		case BYTES:
+			reset(BodyType.STRING, new String((byte[]) _body, getCharset()));
+			// nobreak
 		case STRING:
 			return new InputSource(new StringReader((String) _body));
-		case BYTES:
-			return new InputSource(new ByteArrayInputStream((byte[]) _body));
 		case INPUT_STREAM:
-			_bodyType = BodyType.INVALID;
-			return new InputSource(getInputStreamReader());
+			return reset(BodyType.INVALID, new InputSource(getInputStreamReader()));
 		default:
 			throw new IllegalStateException("Message is invalid");
 		}
