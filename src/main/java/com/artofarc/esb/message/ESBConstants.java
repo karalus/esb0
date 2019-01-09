@@ -61,5 +61,7 @@ public interface ESBConstants {
 	String JMSReplyTo = "JMSReplyTo";
 
 	String JMSOrigin = "JMSOrigin";
+	
+	String Charset = "Charset";
 
 }

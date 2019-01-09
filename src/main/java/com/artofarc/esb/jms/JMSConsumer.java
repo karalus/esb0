@@ -221,7 +221,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			BytesMessage bytesMessage = (BytesMessage) message;
 			byte[] ba = new byte[(int) bytesMessage.getBodyLength()];
 			bytesMessage.readBytes(ba);
-			esbMessage.reset(BodyType.BYTES, ba);
+			esbMessage.reset(BodyType.BYTES, ba, message.getStringProperty(ESBConstants.Charset));
 		} else if (message instanceof TextMessage) {
 			TextMessage textMessage = (TextMessage) message;
 			esbMessage.reset(BodyType.STRING, textMessage.getText());

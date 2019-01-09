@@ -205,7 +205,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	// Methods for monitoring, not synchronized to avoid effects on important methods
 
 	public CompositeDataSupport[] getHttpEndpointStates() throws OpenDataException {
-		String[] itemNames = new String[] { "URL", "weight", "active", "inUse" };
+		String[] itemNames = { "URL", "weight", "active", "inUse" };
 		OpenType<?>[] itemTypes = new OpenType[] { SimpleType.STRING, SimpleType.INTEGER, SimpleType.BOOLEAN, SimpleType.INTEGER };
 		CompositeType rowType = new CompositeType("HttpEndpointState", "State of HttpEndpoint", itemNames, itemNames, itemTypes);
 

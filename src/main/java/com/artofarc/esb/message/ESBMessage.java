@@ -83,9 +83,13 @@ public final class ESBMessage implements Cloneable {
 	private Charset _charset, _sinkEncoding; 
 	private Schema _schema;
 
-	public ESBMessage(BodyType bodyType, Object body) {
+	public ESBMessage(BodyType bodyType, Object body, Charset charset) {
 		_variables.put(ESBConstants.initialTimestamp, System.currentTimeMillis());
-		reset(bodyType, body);
+		init(bodyType, body, charset);
+	}
+
+	public ESBMessage(BodyType bodyType, Object body) {
+		this(bodyType, body, null);
 	}
 
 	@Override
@@ -94,32 +98,30 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> T reset(BodyType bodyType, Object body) {
-		if (bodyType == null) {
-			// auto detect
-			if (body instanceof String) {
-				_bodyType = BodyType.STRING;
-			} else if (body instanceof byte[]) {
-				_bodyType = BodyType.BYTES;
-			} else {
-				throw new NullPointerException("bodyType is null and not auto detected");
-			}
-		} else {
-			_bodyType = bodyType;
-		}
-		switch (_bodyType) {
-		case INVALID:
-		case STRING:
-		case XQ_ITEM:
-		case DOM:
-		case SOURCE:
-		case READER:
-			_charset = null;
-			break;
-		default:
-			break;
-		}
+	private <T> T init(BodyType bodyType, Object body, Charset charset) {
+		_bodyType = bodyType != null ? bodyType : BodyType.detect(body);
+		_charset = charset;
 		return (T) (_body = body);
+	}
+
+	public void reset(BodyType bodyType, Object body, String charsetName) {
+		_bodyType = bodyType; 
+		_body = body;
+		setCharset(charsetName);
+	}
+
+	public void reset(BodyType bodyType, Object body) {
+		if (bodyType == null) {
+			bodyType = BodyType.detect(body);
+		}
+		if (bodyType.hasCharset()) {
+			if (_bodyType.hasCharset() && _charset != null) {
+				System.err.println("Warning: old binary type had non default charset");
+			}
+			init(bodyType, body, _charset); 
+		} else {
+			init(bodyType, body, null); 
+		}
 	}
 
 	public Map<String, Object> getHeaders() {
@@ -205,7 +207,12 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void setCharset(String charsetName) {
-		_charset = charsetName != null ? Charset.forName(charsetName) : null;
+		if (charsetName != null) {
+			Charset charset = Charset.forName(charsetName);
+			_charset = charset != CHARSET_DEFAULT ? charset : null;
+		} else {
+			_charset = null;
+		}
 	}
 
 	public void setSinkEncoding(String sinkEncoding) {
@@ -303,17 +310,18 @@ public final class ESBMessage implements Cloneable {
 
 	public byte[] getBodyAsByteArray(Context context) throws TransformerException, IOException, XQException {
 		byte[] ba;
+		Charset charset = _charset;
 		ByteArrayOutputStream bos;
 		switch (_bodyType) {
 		case DOM:
 			bos = new ByteArrayOutputStream(MTU);
 			writeRawTo(bos, context);
 			ba = bos.toByteArray();
-			_charset = _sinkEncoding;
+			charset = _sinkEncoding;
 			break;
 		case STRING:
 			ba = ((String) _body).getBytes(getSinkEncoding());
-			_charset = _sinkEncoding;
+			charset = _sinkEncoding;
 			break;
 		case BYTES:
 			return (byte[]) _body;
@@ -327,16 +335,14 @@ public final class ESBMessage implements Cloneable {
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(bos, getSinkProperties());
 			ba = bos.toByteArray();
-			_charset = _sinkEncoding;
+			charset = _sinkEncoding;
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 		}
-		_body = ba;
-		_bodyType = BodyType.BYTES;
-		return ba;
+		return init(BodyType.BYTES, ba, charset);
 	}
 
 	public String getBodyAsString(Context context) throws TransformerException, IOException, XQException {
@@ -370,7 +376,7 @@ public final class ESBMessage implements Cloneable {
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 		}
-		return reset(BodyType.STRING, str);
+		return init(BodyType.STRING, str, null);
 	}
 
 	public InputStream getBodyAsInputStream(Context context) throws TransformerException, IOException, XQException {
@@ -387,7 +393,7 @@ public final class ESBMessage implements Cloneable {
 		case READER:
 			return (Reader) _body;
 		case INPUT_STREAM:
-			return reset(BodyType.READER, getInputStreamReader());
+			return init(BodyType.READER, getInputStreamReader(), null);
 		default:
 			return new StringReader(getBodyAsString(context));
 		}
@@ -409,14 +415,14 @@ public final class ESBMessage implements Cloneable {
 		case DOM:
 			return new DOMSource((Document) _body);
 		case EXCEPTION:
-			reset(BodyType.STRING, asXMLString((Exception) _body));
+			init(BodyType.STRING, asXMLString((Exception) _body), null);
 		case STRING:
 			return new StreamSource(new StringReader((String) _body));
 		case BYTES:
 			_body = new ByteArrayInputStream((byte[]) _body);
 			// nobreak
 		case INPUT_STREAM:
-			return reset(BodyType.INVALID, new StreamSource(getInputStreamReader()));
+			return init(BodyType.INVALID, new StreamSource(getInputStreamReader()), null);
 		case READER:
 			_bodyType = BodyType.INVALID;
 			return new StreamSource((Reader) _body);
@@ -454,12 +460,12 @@ public final class ESBMessage implements Cloneable {
 	private InputSource getBodyAsSaxSource() throws IOException {
 		switch (_bodyType) {
 		case BYTES:
-			reset(BodyType.STRING, new String((byte[]) _body, getCharset()));
+			init(BodyType.STRING, new String((byte[]) _body, getCharset()), null);
 			// nobreak
 		case STRING:
 			return new InputSource(new StringReader((String) _body));
 		case INPUT_STREAM:
-			return reset(BodyType.INVALID, new InputSource(getInputStreamReader()));
+			return init(BodyType.INVALID, new InputSource(getInputStreamReader()), null);
 		default:
 			throw new IllegalStateException("Message is invalid");
 		}
@@ -627,11 +633,10 @@ public final class ESBMessage implements Cloneable {
 				newBody = _body;
 				break;
 			}
-			clone = new ESBMessage(_bodyType, newBody);
+			clone = new ESBMessage(_bodyType, newBody, _charset);
 		} else {
 			clone = new ESBMessage(BodyType.INVALID, null);
 		}
-		clone._charset = _charset;
 		clone.getHeaders().putAll(_headers);
 		clone.getVariables().putAll(_variables);
 		return clone;

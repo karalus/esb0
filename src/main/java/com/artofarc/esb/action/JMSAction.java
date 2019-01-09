@@ -82,6 +82,7 @@ public class JMSAction extends TerminalAction {
 			BytesMessage bytesMessage = session.createBytesMessage();
 			bytesMessage.writeBytes(message.getBodyAsByteArray(context));
 			jmsMessage = bytesMessage;
+			jmsMessage.setStringProperty(ESBConstants.Charset, message.getCharset().name());
 		} else {
 			jmsMessage = session.createTextMessage(message.getBodyAsString(context));
 		}

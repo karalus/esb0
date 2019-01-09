@@ -17,5 +17,27 @@
 package com.artofarc.esb.message;
 
 public enum BodyType {
-	INVALID, INPUT_STREAM, READER, STRING, BYTES, DOM, XQ_SEQUENCE, XML_FILTER, OUTPUT_STREAM, WRITER, SOURCE, RESULT, XQ_ITEM, EXCEPTION
+	INVALID(false), INPUT_STREAM(true), READER(false), STRING(false), BYTES(true), DOM(false), XQ_SEQUENCE(false), OUTPUT_STREAM(true), WRITER(true), SOURCE(
+			false), RESULT(false), XQ_ITEM(false), EXCEPTION(false);
+
+	private final boolean _hasCharset;
+
+	private BodyType(boolean hasCharset) {
+		_hasCharset = hasCharset;
+	}
+
+	public boolean hasCharset() {
+		return _hasCharset;
+	}
+
+	static BodyType detect(Object body) {
+		if (body instanceof String) {
+			return STRING;
+		} else if (body instanceof byte[]) {
+			return BYTES;
+		} else {
+			throw new IllegalArgumentException("BodyType cannot be auto detected: " + body);
+		}
+	}
+	
 }
