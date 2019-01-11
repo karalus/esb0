@@ -8,34 +8,20 @@ import java.util.LinkedHashMap;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Node;
 
+import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
-import com.artofarc.esb.context.Context;
+import com.artofarc.esb.artifact.Directory;
+import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
 
-public class XPathTest {
+public class XPathTest extends AbstractESBTest {
    
-   private Context context;
-   
-   @Before
-   public void createContext() throws Exception {
-      context = new Context(new GlobalContext(null).getDefaultWorkerPool().getPoolContext());
-   }
-
-   @After
-   public void closeContext() throws Exception {
-      if (context != null) {
-         context.close();
-      }
-   }
-
    @Test
    public void testXQuery() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
@@ -73,19 +59,19 @@ public class XPathTest {
       action.setNextAction(action2);
       action.setConditionalAction(action3);
       action.process(context, message);
-      assertTrue(action3.executed);
+      assertTrue(action3.isExecuted());
       message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
       action.process(context, message);
-      assertTrue(action2.executed);
+      assertTrue(action2.isExecuted());
    }
    
    @Test
    public void testJavaExtension() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
       LinkedHashMap<String, String> map = new LinkedHashMap<>();
-      map.put("result", "<result>{fn-artofarc:uuid()}</result>");
+      map.put("result", "<result>{fn-bea:uuid(), fn-artofarc:uuid()}</result>");
       LinkedHashMap<String, String> ns = new LinkedHashMap<>();
-      ns.put("fn-artofarc", "http://artofarc.com/xpath-extension");
+      ns.put("fn-bea", "http://artofarc.com/xpath-extension");
       Action action = new AssignAction(map.entrySet(), ns.entrySet(), Collections.<String>emptyList(), null);
       action.setNextAction(new DumpAction());
       ConsumerPort consumerPort = new ConsumerPort(null);
@@ -99,5 +85,35 @@ public class XPathTest {
          context.getIdenticalTransformer().transform(new DOMSource(node), new StreamResult(System.out));
       }
    }
-
+   
+   @Test
+   public void testLegacySupport() throws Exception {
+      GlobalContext globalContext = context.getPoolContext().getGlobalContext();
+      ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+      Directory modules = new Directory(globalContext.getFileSystem().getRoot(), "modules");
+      Directory queries = new Directory(globalContext.getFileSystem().getRoot(), "queries");
+		XQueryArtifact module = new XQueryArtifact(modules, "osb-legacy-support.xqy");
+		module.setContent(readFile("src/test/resources/osb-legacy-support.xqy"));
+      XQueryArtifact xqueryArtifact = new XQueryArtifact(queries, "test.xqy");
+      String xqueryStr = "import module namespace fn-bea='http://osb-legacy-support' at '../modules/osb-legacy-support.xqy';\n" +
+      		"(:: pragma bea:global-element-parameter parameter=\"$messageHeader1\" ::)" +
+      		"(<doc>" +
+      		"<messageId>M-{ fn-bea:uuid() }</messageId>" +
+      		"<schadendatum>{ fn-bea:date-to-string-with-format(\"yyyy-MM-dd\", current-date()) }</schadendatum>" +
+      		"<schadenuhrzeit>{ fn-bea:time-from-string-with-format(\"HHmmss\", current-time()) }</schadenuhrzeit>" +
+      		"<kontonummer>{ fn-bea:format-number(4711, \"000000000000\") }</kontonummer>" +
+      		"<anfragedatum>{ fn-bea:date-to-string-with-format(\"yyyy-MM-dd\", fn-bea:date-from-string-with-format(\"dd.MM.yyy\", '11.01.1970'))}</anfragedatum>" +
+      		"</doc>)";
+		xqueryArtifact.setContent(xqueryStr.getBytes());
+      xqueryArtifact.validateInternal(globalContext);
+      assertTrue(module.isValidated());
+      assertTrue(xqueryArtifact.getReferenced().size() > 0);
+      assertTrue(xqueryArtifact.getReferenced().contains("/modules/osb-legacy-support.xqy"));
+      Action action = new TransformAction(xqueryArtifact.getXQuery(),  Collections.<String> emptyList(), xqueryArtifact.getParent().getURI());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+   }
+   
 }

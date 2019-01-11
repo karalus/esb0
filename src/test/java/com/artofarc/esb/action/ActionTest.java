@@ -70,7 +70,7 @@ public class ActionTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       consumerPort.process(context, message);
-      assertTrue(markAction.executed);
+      assertTrue(markAction.isExecuted());
       assertEquals("4711", message.getVariable("partnerId"));
       assertEquals("0815", message.getVariable("orderId"));
    }
@@ -97,22 +97,22 @@ public class ActionTest {
       branchOnVariableAction.getBranchMap().put("ok", action1);
       branchOnVariableAction.setNextAction(action3);
       branchOnVariableAction.process(context, message);
-      assertFalse(action1.executed);
-      assertFalse(action2.executed);
-      assertTrue(action3.executed);
-      action3.executed = false;
+      assertFalse(action1.isExecuted());
+      assertFalse(action2.isExecuted());
+      assertTrue(action3.isExecuted());
+      action3.setExecuted(false);
       message.putVariable("var", "nok");
       branchOnVariableAction.process(context, message);
-      assertFalse(action1.executed);
-      assertTrue(action2.executed);
-      assertTrue(action3.executed);
-      action3.executed = false;
-      action2.executed = false;
+      assertFalse(action1.isExecuted());
+      assertTrue(action2.isExecuted());
+      assertTrue(action3.isExecuted());
+      action3.setExecuted(false);
+      action2.setExecuted(false);
       message.putVariable("var", "ok");
       branchOnVariableAction.process(context, message);
-      assertTrue(action1.executed);
-      assertFalse(action2.executed);
-      assertTrue(action3.executed);
+      assertTrue(action1.isExecuted());
+      assertFalse(action2.isExecuted());
+      assertTrue(action3.isExecuted());
    }
    
    @Test

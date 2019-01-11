@@ -69,6 +69,7 @@ public class Context extends AbstractContext {
 		xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
 		XQStaticContext staticContext = xqConnection.getStaticContext();
 		staticContext.setBindingMode(XQConstants.BINDING_MODE_DEFERRED);
+		staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
 		xqConnection.setStaticContext(staticContext);
 	}
 
@@ -100,9 +101,10 @@ public class Context extends AbstractContext {
 		XQPreparedExpression preparedExpression = _mapXQ.get(xquery);
 		if (preparedExpression == null) {
 			if (baseURI != null) {
-				XQDataSourceFactory.setBaseURI(xqConnection, baseURI);
+				preparedExpression = xqConnection.prepareExpression(xquery, XQDataSourceFactory.getStaticContext(xqConnection, baseURI));
+			} else {
+				preparedExpression = xqConnection.prepareExpression(xquery);
 			}
-			preparedExpression = xqConnection.prepareExpression(xquery);
 			_mapXQ.put(xquery, preparedExpression);
 		}
 		return preparedExpression;

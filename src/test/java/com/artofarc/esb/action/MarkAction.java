@@ -5,12 +5,26 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
 
 public class MarkAction extends DumpAction {
-   volatile boolean executed;
+   private boolean executed;
    
    @Override
-   protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+   protected synchronized void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
       super.execute(context, execContext, message, nextActionIsPipelineStop);
-      executed = true;
+      setExecuted(true);
+      notify();
    }
+   
+   public synchronized boolean isExecuted(long timeout) throws InterruptedException {
+		wait(timeout);
+   	return executed;
+   }
+
+	public boolean isExecuted() {
+		return executed;
+	}
+
+	public void setExecuted(boolean executed) {
+		this.executed = executed;
+	}
    
 }

@@ -104,18 +104,20 @@ public class SOAPTest extends AbstractESBTest {
       //
       Action action = new AssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
+      MarkAction markAction = new MarkAction();
+		context.getExecutionStack().push(markAction);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new HttpOutboundAction(url));
-      action = action.setNextAction(new SpawnAction(null, false, true));
+      action = action.setNextAction(new SpawnAction(null, false, false));
       action = action.setNextAction(new HttpInboundAction());
       action = action.setNextAction(new AssignAction("response", "."));
-      action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
+      assertTrue(markAction.isExecuted(1000l));
       endpoint.stop();
    }
 
@@ -127,19 +129,21 @@ public class SOAPTest extends AbstractESBTest {
       //
       Action action = new AssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
+      MarkAction markAction = new MarkAction();
+		context.getExecutionStack().push(markAction);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new SpawnAction(null, false, true));
+      action = action.setNextAction(new SpawnAction(null, false, false));
       //action = action.setNextAction(new AssignAction("request", "."));
       action = action.setNextAction(new HttpOutboundAction(url));
       action = action.setNextAction(new HttpInboundAction());
       //action = action.setNextAction(new AssignAction("response", "."));
-      action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
+      assertTrue(markAction.isExecuted(1000l));
       endpoint.stop();
    }
 
@@ -151,9 +155,10 @@ public class SOAPTest extends AbstractESBTest {
       //
       Action action = new AssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
-      context.getExecutionStack().push(new DumpAction());
+      MarkAction markAction = new MarkAction();
+		context.getExecutionStack().push(markAction);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new SpawnAction(null, true, true));
+      action = action.setNextAction(new SpawnAction(null, true, false));
       //action = action.setNextAction(new AssignAction("request", "."));
       action = action.setNextAction(new HttpOutboundAction(url));
       action = action.setNextAction(new HttpInboundAction());
@@ -165,6 +170,7 @@ public class SOAPTest extends AbstractESBTest {
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
+      assertTrue(markAction.isExecuted(1000l));
       endpoint.stop();
    }
 
@@ -214,7 +220,7 @@ public class SOAPTest extends AbstractESBTest {
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
-      assertTrue(errorHandler.executed);
+      assertTrue(errorHandler.isExecuted());
       endpoint.stop();
    }
 
@@ -379,11 +385,11 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(jmsAction);
       consumerPort.process(context, message);
-      assertFalse(markAction.executed);
+      assertFalse(markAction.isExecuted());
 
       Thread.sleep(100);
       
-      assertTrue(markAction.executed);
+      assertTrue(markAction.isExecuted());
       
       jmsConsumer.close();
    }

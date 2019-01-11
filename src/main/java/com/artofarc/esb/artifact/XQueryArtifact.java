@@ -23,6 +23,7 @@ import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQSequenceType;
+import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.resource.XQDataSourceFactory;
@@ -57,10 +58,11 @@ public class XQueryArtifact extends Artifact {
 			}
 		};
 		XQConnection connection = dataSourceFactory.createXQDataSource().getConnection();
-		XQDataSourceFactory.setBaseURI(connection, getParent().getURI());
 		try {
+			XQStaticContext staticContext = XQDataSourceFactory.getStaticContext(connection, getParent().getURI());
+			staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
 			logger.info("Parsing XQuery: " + getURI());
-			XQPreparedExpression preparedExpression = connection.prepareExpression(getContentAsByteArrayInputStream());
+			XQPreparedExpression preparedExpression = connection.prepareExpression(getContentAsByteArrayInputStream(), staticContext);
 			for (QName qName : preparedExpression.getAllExternalVariables()) {
 				logger.info("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
 			}

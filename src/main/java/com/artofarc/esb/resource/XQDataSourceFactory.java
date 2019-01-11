@@ -58,11 +58,11 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 		return dataSource;
 	}
 	
-	public final static void setBaseURI(XQConnection connection, String baseURI) throws XQException {
+	public static XQStaticContext getStaticContext(XQConnection connection, String baseURI) throws XQException {
 		XQStaticContext staticContext = connection.getStaticContext();
 		// In Saxon baseURI must not be an empty string
 		staticContext.setBaseURI(baseURI.isEmpty() ? "/." : baseURI);
-		connection.setStaticContext(staticContext);
+		return staticContext;
 	}
 
 	@Override
