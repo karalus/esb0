@@ -1,9 +1,9 @@
 (: Implements part of the functions from BEA ALSB, refer to https://docs.oracle.com/cd/E13171_01/alsb/docs25/userguide/appendixxquery.html :)
+xquery version "3.0";
 
 module namespace fn-bea='http://osb-legacy-support';
 
 declare function fn-bea:uuid() as xs:string { fn-artofarc:uuid() };
-declare function fn-bea:serialize($input as item()) as xs:string { fn:serialize($input) };
 declare function fn-bea:format-number($number as xs:double, $pattern as xs:string) as xs:string { fn:format-number($number, $pattern) };
 declare function fn-bea:time-from-string-with-format($format as xs:string, $time as xs:time) as xs:string { fn:format-time($time, '[H,2][m,2][s,2]') };
 declare function fn-bea:date-to-string-with-format($format as xs:string, $date as xs:date) as xs:string {

@@ -32,8 +32,8 @@ import java.util.zip.ZipEntry;
 
 public final class FileSystem {
 
-   protected final static Logger logger = Logger.getLogger("ESB");
-   
+	protected final static Logger logger = Logger.getLogger("ESB");
+
 	private final Directory _root;
 	private final Map<String, ChangeType> _changes = new LinkedHashMap<>();
 
@@ -82,7 +82,8 @@ public final class FileSystem {
 				current = current.getParent();
 				break;
 			default:
-				current = (Directory) current.getArtifacts().get(dir);
+				Artifact artifact = current.getArtifacts().get(dir);
+				current = artifact instanceof Directory ? (Directory) artifact : null;
 				break;
 			}
 			if (current == null) {
@@ -184,6 +185,7 @@ public final class FileSystem {
 		case "wsdl":
 			return new WSDLArtifact(parent, name);
 		case "xq":
+		case "xqm":
 		case "xqy":
 			return new XQueryArtifact(parent, name);
 		case WorkerPoolArtifact.FILE_EXTENSION:
@@ -421,5 +423,5 @@ public final class FileSystem {
 		_anchorDir = dir;
 		_changes.clear();
 	}
-	
+
 }

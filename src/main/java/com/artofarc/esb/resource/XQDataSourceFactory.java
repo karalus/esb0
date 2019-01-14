@@ -41,13 +41,13 @@ import com.artofarc.esb.artifact.Artifact;
 import com.saxonica.xqj.SaxonXQDataSource;
 
 public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResolver {
-	
+
 	public static final String XPATH_EXTENSION_NS_URI = "http://artofarc.com/xpath-extension";
 	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
 
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
-	
+
 	public XQDataSource createXQDataSource() {
 		SaxonXQDataSource dataSource = new SaxonXQDataSource();
 		Configuration configuration = dataSource.getConfiguration();
@@ -57,7 +57,7 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 		configuration.setURIResolver(this);
 		return dataSource;
 	}
-	
+
 	public static XQStaticContext getStaticContext(XQConnection connection, String baseURI) throws XQException {
 		XQStaticContext staticContext = connection.getStaticContext();
 		// In Saxon baseURI must not be an empty string
@@ -79,18 +79,21 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 	public StreamSource[] resolve(String moduleURI, String baseURI, String[] locations) throws XPathException {
 		StreamSource[] result = new StreamSource[locations.length];
 		for (int i = 0; i < locations.length; ++i) {
-			String path = baseURI + locations[i];
-			Artifact artifact = resolveArtifact(path);
+			Artifact artifact = resolveArtifact(locations[i]);
 			if (artifact == null) {
-				throw new XPathException("module not found: " + path);
+				artifact = resolveArtifact(baseURI + locations[i]);
+				if (artifact == null) {
+					throw new XPathException(locations[i] + " in " + baseURI);
+				}
 			}
 			result[i] = new StreamSource(artifact.getContentAsByteArrayInputStream());
+			result[i].setSystemId(artifact.getURI());
 		}
 		return result;
 	}
-	
+
 	public abstract Artifact resolveArtifact(String path);
-	
+
 	private static class UUID extends ExtensionFunctionDefinition {
 
 		@Override
