@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.StringWriter;
 import java.util.Map;
 
 import javax.xml.bind.JAXBContext;
@@ -37,6 +36,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWriter;
 
 public class Json2XMLAction extends TerminalAction {
 
@@ -91,9 +91,9 @@ public class Json2XMLAction extends TerminalAction {
 			if (nextActionIsPipelineStop) {
 				marshaller.marshal(root, message.getBodyAsSinkResult(context));
 			} else {
-				StringWriter sw = new StringWriter();
+				StringWriter sw = new StringWriter(ESBMessage.MTU);
 				marshaller.marshal(root, sw);
-				message.reset(BodyType.STRING, sw.toString());
+				message.reset(BodyType.READER, sw.getStringReader());
 			}
 		} catch (JAXBException e) {
 			throw new ExecutionException(this, "Validation failed", e.getLinkedException());

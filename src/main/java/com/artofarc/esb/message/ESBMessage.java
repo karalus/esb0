@@ -17,7 +17,6 @@
 package com.artofarc.esb.message;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -25,7 +24,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -65,8 +63,10 @@ import org.xml.sax.InputSource;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
+import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
+import com.artofarc.util.StringWriter;
 
 public final class ESBMessage implements Cloneable {
 
@@ -314,8 +314,7 @@ public final class ESBMessage implements Cloneable {
 		ByteArrayOutputStream bos;
 		switch (_bodyType) {
 		case DOM:
-			bos = new ByteArrayOutputStream(MTU);
-			writeRawTo(bos, context);
+			writeRawTo(bos = new ByteArrayOutputStream(MTU), context);
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
 			break;
@@ -326,14 +325,12 @@ public final class ESBMessage implements Cloneable {
 		case BYTES:
 			return (byte[]) _body;
 		case INPUT_STREAM:
-			bos = new ByteArrayOutputStream(MTU);
-			copyStream(getUncompressedInputStream(), bos);
+			copyStream(getUncompressedInputStream(), bos = new ByteArrayOutputStream(MTU));
 			ba = bos.toByteArray();
 			break;
 		case XQ_ITEM:
-			bos = new ByteArrayOutputStream(MTU);
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(bos, getSinkProperties());
+			xqItem.writeItem(bos = new ByteArrayOutputStream(MTU), getSinkProperties());
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
 			break;
@@ -350,8 +347,7 @@ public final class ESBMessage implements Cloneable {
 		StringWriter sw;
 		switch (_bodyType) {
 		case DOM:
-			sw = new StringWriter();
-			transform(context.getIdenticalTransformer(), new StreamResult(sw));
+			transform(context.getIdenticalTransformer(), new StreamResult(sw = new StringWriter(MTU)));
 			str = sw.toString();
 			break;
 		case STRING:
@@ -360,12 +356,15 @@ public final class ESBMessage implements Cloneable {
 			str = new String((byte[]) _body, getCharset());
 			break;
 		case INPUT_STREAM:
-		case XQ_ITEM:
 			getBodyAsByteArray(context);
 			return getBodyAsString(context);
+		case XQ_ITEM:
+			XQItem xqItem = (XQItem) _body;
+			xqItem.writeItem(sw = new StringWriter(MTU), getSinkProperties());
+			str = sw.toString();
+			break;
 		case READER:
-			sw = new StringWriter();
-			copyStream((Reader) _body, sw);
+			copyStream((Reader) _body, sw = new StringWriter(MTU));
 			str = sw.toString();
 			break;
 		case EXCEPTION:
@@ -383,6 +382,11 @@ public final class ESBMessage implements Cloneable {
 		switch (_bodyType) {
 		case INPUT_STREAM:
 			return getUncompressedInputStream();
+		case XQ_ITEM:
+			ByteArrayOutputStream bos = new ByteArrayOutputStream(MTU);
+			XQItem xqItem = (XQItem) _body;
+			xqItem.writeItem(bos, getSinkProperties());
+			return init(BodyType.INPUT_STREAM, bos.getByteArrayInputStream(), _sinkEncoding);
 		default:
 			return new ByteArrayInputStream(getBodyAsByteArray(context));
 		}
@@ -394,6 +398,11 @@ public final class ESBMessage implements Cloneable {
 			return (Reader) _body;
 		case INPUT_STREAM:
 			return init(BodyType.READER, getInputStreamReader(), null);
+		case XQ_ITEM:
+			StringWriter sw = new StringWriter(MTU);
+			XQItem xqItem = (XQItem) _body;
+			xqItem.writeItem(sw, getSinkProperties());
+			return sw.getStringReader();
 		default:
 			return new StringReader(getBodyAsString(context));
 		}
@@ -583,6 +592,9 @@ public final class ESBMessage implements Cloneable {
 				// writes compressed data through!
 				copyStream((InputStream) _body, init(BodyType.OUTPUT_STREAM, os, _sinkEncoding));
 			}
+			break;
+		case READER:
+			copyStream((Reader) _body, init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncoding()), null));
 			break;
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;

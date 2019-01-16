@@ -18,7 +18,6 @@ package com.artofarc.esb.action;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Connection;
@@ -53,6 +52,7 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWriter;
 
 public abstract class JDBCAction extends TerminalAction {
 
@@ -96,10 +96,13 @@ public abstract class JDBCAction extends TerminalAction {
 		}
 		return execContext;
 	}
-	
+
 	protected final Connection getConnection(ExecutionContext execContext) throws SQLException {
-		Connection connection = execContext != null ? execContext.<Connection>getResource2() : null;
-		return connection != null ? connection : _dataSource.getConnection();
+		Connection connection = execContext != null ? execContext.<Connection> getResource2() : null;
+		if (connection == null) {
+			connection = _dataSource.getConnection();
+		}
+		return connection;
 	}
 
 	protected final void bindParameters(PreparedStatement ps, Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
@@ -110,15 +113,15 @@ public abstract class JDBCAction extends TerminalAction {
 					ps.setSQLXML(param.getPos(), execContext.<SQLXML>getResource());
 					break;
 				case Types.CLOB:
-					if (param.getTruncate() == null && message.isStream()) {
+					if (param.getTruncate() == null) {
 						ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
 					} else {
 						ps.setCharacterStream(param.getPos(), new StringReader(param.<String> alignValue(message.getBodyAsString(context))));
 					}
 					break;
 				case Types.BLOB:
-					if (param.getTruncate() == null && message.getBodyType() == BodyType.INPUT_STREAM) {
-						ps.setBinaryStream(param.getPos(), message.getUncompressedInputStream());
+					if (param.getTruncate() == null) {
+						ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
 					} else {
 						ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(param.<byte[]> alignValue(message.getBodyAsByteArray(context))));
 					}
@@ -133,7 +136,7 @@ public abstract class JDBCAction extends TerminalAction {
 		ps.setQueryTimeout(message.getTimeleft(_timeout).intValue() / 1000);
 		ps.setFetchSize(_fetchSize);
 	}
-	
+
 	protected final static void extractResult(Statement statement, ESBMessage message) throws SQLException {
 		JsonStructure result = null;
 		JsonArrayBuilder builder = Json.createArrayBuilder();
@@ -160,12 +163,12 @@ public abstract class JDBCAction extends TerminalAction {
 			jsonWriter.close();
 			message.getHeaders().clear();
 			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
-			message.reset(BodyType.STRING, sw.toString());
+			message.reset(BodyType.READER, sw.getStringReader());
 		} else if (jsonArray.size() > 0) {
 			message.getVariables().put("sqlUpdateCount", jsonArray.getInt(0));
 		}
 	}
-	
+
 	protected final static JsonObject createJson(ResultSet resultSet) throws SQLException {
 		ResultSetMetaData metaData = resultSet.getMetaData();
 		final int colSize = metaData.getColumnCount();
@@ -240,7 +243,7 @@ public abstract class JDBCAction extends TerminalAction {
 		result.add("rows", rows);
 		return result.build();
 	}
-	
+
 	private static boolean checkNotNull(ResultSet resultSet, JsonArrayBuilder row) throws SQLException {
 		if (resultSet.wasNull()) {
 			row.addNull();
@@ -249,11 +252,11 @@ public abstract class JDBCAction extends TerminalAction {
 			return true;
 		}
 	}
-	
+
 	private static GregorianCalendar convert(Date date) {
 		GregorianCalendar gc = new GregorianCalendar();
 		gc.setTime(date);
 		return gc;
 	}
-	
+
 }

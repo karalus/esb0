@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.StringWriter;
 import java.util.Map;
 
 import javax.xml.bind.JAXBContext;
@@ -35,6 +34,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWriter;
 
 public class XML2JsonAction extends Action {
 
@@ -90,9 +90,9 @@ public class XML2JsonAction extends Action {
 		if (message.isSink()) {
 			jsonMarshaller.marshal(root, message.getBodyAsSinkResult(context));
 		} else {
-			StringWriter sw = new StringWriter();
+			StringWriter sw = new StringWriter(ESBMessage.MTU);
 			jsonMarshaller.marshal(root, sw);
-			message.reset(BodyType.STRING, sw.toString());
+			message.reset(BodyType.READER, sw.getStringReader());
 		}
 		context.getTimeGauge().stopTimeMeasurement("Marshal Java --> JSON", false);
 	}
