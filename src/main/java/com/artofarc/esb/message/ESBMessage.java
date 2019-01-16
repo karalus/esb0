@@ -98,7 +98,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	private <T> T init(BodyType bodyType, Object body, Charset charset) {
+	private <T> T init(BodyType bodyType, T body, Charset charset) {
 		_bodyType = bodyType != null ? bodyType : BodyType.detect(body);
 		_charset = charset;
 		return (T) (_body = body);
@@ -560,7 +560,6 @@ public final class ESBMessage implements Cloneable {
 		} else {
 			writeRawTo(outputStream, context);
 		}
-		outputStream.close();
 	}
 	
 	public void writeRawTo(OutputStream os, Context context) throws TransformerException, IOException, XQException {
@@ -578,16 +577,11 @@ public final class ESBMessage implements Cloneable {
 			os.write((byte[]) _body);
 			break;
 		case INPUT_STREAM:
-			try {
-				if (isSinkEncodingdifferent()) {
-					copyStream(getInputStreamReader(), new OutputStreamWriter(os, _sinkEncoding));
-				} else {
-					// writes compressed data through!
-					copyStream((InputStream) _body, os);
-				}
-			} finally {
-				_body = null;
-				_bodyType = BodyType.INVALID;
+			if (isSinkEncodingdifferent()) {
+				copyStream(getInputStreamReader(), init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
+			} else {
+				// writes compressed data through!
+				copyStream((InputStream) _body, init(BodyType.OUTPUT_STREAM, os, _sinkEncoding));
 			}
 			break;
 		case XQ_ITEM:

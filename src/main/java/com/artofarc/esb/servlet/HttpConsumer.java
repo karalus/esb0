@@ -39,14 +39,14 @@ public final class HttpConsumer extends ConsumerPort implements AutoCloseable, c
    
    private volatile long lastAccess;
    
-	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive, boolean supportCompression) {
+	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive, boolean supportCompression, boolean multipartResponse) {
 		super(uri);
 		_bindPath = bindPath;
 		minPoolSize = minPool;
 		maxPoolSize = maxPool;
 		keepAliveMillis = keepAlive;
       pool = new LinkedBlockingQueue<>(maxPool);
-      _terminalAction = new HttpServletResponseAction(supportCompression);
+      _terminalAction = new HttpServletResponseAction(supportCompression, multipartResponse);
 	}
 	
 	public String getBindPath() {

@@ -16,40 +16,43 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import javax.mail.internet.InternetHeaders;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMultipart;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.servlet.GenericHttpListener;
 
 public class HttpServletResponseAction extends Action {
 	
-	private final boolean _supportCompression;
+	private final boolean _supportCompression, _multipartResponse;
 
-	public HttpServletResponseAction(boolean supportCompression) {
+	public HttpServletResponseAction(boolean supportCompression, boolean multipartResponse) {
 		_pipelineStop = true;
 		_supportCompression = supportCompression;
+		_multipartResponse = multipartResponse;
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		AsyncContext asyncContext = message.removeVariable(ESBConstants.AsyncContext);
-		HttpServletResponse response;
-		if (asyncContext != null) {
-			response = (HttpServletResponse) asyncContext.getResponse();
-		} else {
+		if (asyncContext == null) {
 			throw new ExecutionException(this, ESBConstants.AsyncContext + " not set");
 		}
+		HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
+		ExecutionContext executionContext = new ExecutionContext(asyncContext);
 		if (message.getBodyType() == BodyType.EXCEPTION) {
 			GenericHttpListener.sendErrorResponse(response, message.<Exception> getBody());
 		} else if (message.getVariable(ESBConstants.redirect) != null) {
@@ -67,21 +70,32 @@ public class HttpServletResponseAction extends Action {
 			if (acceptCharset != null) {
 				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset, ""));
 			}
-			response.setCharacterEncoding(message.getSinkEncoding());
 			if (_supportCompression) checkCompression(message);
 			checkFastInfoSet(message);
-			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
-				response.addHeader(entry.getKey(), entry.getValue().toString());
-			}
-			if (inPipeline) {
-				message.reset(BodyType.OUTPUT_STREAM, response.getOutputStream());
-			} else if (message.getBodyType() != BodyType.INVALID) {
-				message.writeTo(response.getOutputStream(), context);
+			if (_multipartResponse) {
+				if (inPipeline) {
+					ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
+					message.reset(BodyType.OUTPUT_STREAM, bos);
+					executionContext.setResource2(bos);
+				}
+			} else {
+				response.setCharacterEncoding(message.getSinkEncoding());
+				for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
+					response.setHeader(entry.getKey(), entry.getValue().toString());
+				}
+				if (inPipeline) {
+					message.reset(BodyType.OUTPUT_STREAM, response.getOutputStream());
+				} else if (message.getBodyType() != BodyType.INVALID) {
+					message.writeTo(response.getOutputStream(), context);
+				}
+				if (message.getAttachments().size() > 0) {
+					logger.warning("Message has attachments");
+				}
 			}
 		}
-		return new ExecutionContext(asyncContext);
+		return executionContext;
 	}
-	
+
 	private static void checkCompression(ESBMessage message) {
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
@@ -106,17 +120,34 @@ public class HttpServletResponseAction extends Action {
 			}
 		}
 	}
-	
+
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		AsyncContext asyncContext = execContext.getResource();
-		if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
-			// necessary for DeflaterOutputStream
+		if (message.getBodyType() == BodyType.OUTPUT_STREAM || message.getBodyType() == BodyType.WRITER) {
+			// necessary for filter streams
 			message.<Closeable> getBody().close();
 		}
-		if (asyncContext != null) {
-			asyncContext.complete();
+		if (_multipartResponse) {
+			String contentType = message.<String> getHeader(HTTP_HEADER_CONTENT_TYPE);
+			MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"');
+			ByteArrayOutputStream bos = execContext.getResource2();
+	   	byte[] content = bos != null ? bos.toByteArray() : message.getBodyAsByteArray(context);
+			InternetHeaders headers = new InternetHeaders();
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
+				headers.setHeader(entry.getKey(), entry.getValue().toString());
+			}
+			MimeBodyPart part = new MimeBodyPart(headers, content);
+			mmp.addBodyPart(part);
+			for (MimeBodyPart bodyPart : message.getAttachments().values()) {
+				mmp.addBodyPart(bodyPart);
+			}
+			HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
+			response.setContentType(mmp.getContentType());
+			mmp.writeTo(response.getOutputStream());
 		}
+		asyncContext.complete();
 	}
 
 }

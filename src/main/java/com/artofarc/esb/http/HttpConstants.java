@@ -19,7 +19,7 @@ package com.artofarc.esb.http;
 public class HttpConstants {
 
 	public static final String HTTP_HEADER_ACCEPT_CHARSET = "Accept-Charset";
-	
+
 	public static final String HTTP_HEADER_ACCEPT_ENCODING = "Accept-Encoding";
 
 	public static final String HTTP_HEADER_TRANSFER_ENCODING = "Transfer-Encoding";
@@ -29,23 +29,25 @@ public class HttpConstants {
 	public static final String HTTP_HEADER_CONTENT_ENCODING = "Content-Encoding";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
-	
+
 	public static final String HTTP_HEADER_CONTENT_TYPE_JSON = "application/json";
-	
+
 	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 = "application/fastinfoset";
-	
+
 	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP12 = "application/soap+fastinfoset";
-	
+
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET = "charset=";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION = "action=";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_START = "start=";
 
+	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE = "type=";
+
 	public static final String HTTP_HEADER_ACCEPT = "Accept";
 
 	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
-	
+
 	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
 
 	public static String getValueFromHttpHeader(String httpHeader, String key) {
