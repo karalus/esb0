@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
@@ -124,21 +123,22 @@ public class HttpServletResponseAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		AsyncContext asyncContext = execContext.getResource();
-		if (message.getBodyType() == BodyType.OUTPUT_STREAM || message.getBodyType() == BodyType.WRITER) {
-			// necessary for filter streams
-			message.<Closeable> getBody().close();
-		}
+		message.closeBody();
 		if (_multipartResponse) {
 			String contentType = message.<String> getHeader(HTTP_HEADER_CONTENT_TYPE);
 			MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"');
 			ByteArrayOutputStream bos = execContext.getResource2();
-	   	byte[] content = bos != null ? bos.toByteArray() : message.getBodyAsByteArray(context);
+			if (bos == null) {
+				bos = new ByteArrayOutputStream(ESBMessage.MTU);
+				message.writeTo(bos, context);
+				message.closeBody();
+			}
 			InternetHeaders headers = new InternetHeaders();
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
 			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
 				headers.setHeader(entry.getKey(), entry.getValue().toString());
 			}
-			MimeBodyPart part = new MimeBodyPart(headers, content);
+			MimeBodyPart part = new MimeBodyPart(headers, bos.toByteArray());
 			mmp.addBodyPart(part);
 			for (MimeBodyPart bodyPart : message.getAttachments().values()) {
 				mmp.addBodyPart(bodyPart);

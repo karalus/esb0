@@ -110,7 +110,7 @@ public class TransformAction extends Action {
 				// Nothing to bind
 				break;
 			default:
-				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(), null);
+				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
 				break;
 			}
 		}

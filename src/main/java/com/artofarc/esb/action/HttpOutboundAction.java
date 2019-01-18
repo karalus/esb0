@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 
@@ -70,10 +69,7 @@ public class HttpOutboundAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws IOException {
-		if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
-			message.<OutputStream> getBody().close();
-		}
-		message.reset(BodyType.INVALID, null);
+		message.closeBody();
 		message.getVariables().put(HttpURLConnection, resource.getResource());
 	}
 

@@ -76,7 +76,7 @@ public final class HttpConsumer extends ConsumerPort implements AutoCloseable, c
 	@Override
 	public void process(Context context, ESBMessage message) throws Exception {
 		context.getExecutionStack().push(_terminalAction);
-		super.process(context, message);
+		processInternal(context, message);
 	}
 
 	@Override

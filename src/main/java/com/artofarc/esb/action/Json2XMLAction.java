@@ -71,7 +71,7 @@ public class Json2XMLAction extends TerminalAction {
 		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
 		jsonUnmarshaller.setProperty(JAXBContextProperties.JSON_ATTRIBUTE_PREFIX, "@");
 		try {
-			execContext = new ExecutionContext(jsonUnmarshaller.unmarshal(message.getBodyAsSource()));
+			execContext = new ExecutionContext(jsonUnmarshaller.unmarshal(message.getBodyAsSource(context)));
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("Unmarshal JSON--> Java", true);
 		}

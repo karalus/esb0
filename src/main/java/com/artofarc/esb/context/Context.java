@@ -36,12 +36,12 @@ import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.resource.XQDataSourceFactory;
+import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.TimeGauge;
 
-public class Context extends AbstractContext {
+public final class Context extends AbstractContext {
 
 	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
-
 	private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
 
 	static {
@@ -49,17 +49,12 @@ public class Context extends AbstractContext {
 	}
 
 	private final PoolContext _poolContext;
-
 	private final DocumentBuilder _documentBuilder;
-
+	private final FastInfosetDeserializer _fastInfosetDeserializer = new FastInfosetDeserializer();
 	private final Transformer _transformer;
-
 	private final XQConnection xqConnection;
-
 	private final HashMap<String, XQPreparedExpression> _mapXQ = new HashMap<>();
-
 	private final TimeGauge timeGauge = new TimeGauge(Level.FINE);
-	
 	private final Deque<Action> _executionStack = new ArrayDeque<>();
 
 	public Context(PoolContext poolContext) throws ParserConfigurationException, TransformerConfigurationException, XQException {
@@ -87,6 +82,10 @@ public class Context extends AbstractContext {
 
 	public DocumentBuilder getDocumentBuilder() {
 		return _documentBuilder;
+	}
+
+	public FastInfosetDeserializer getFastInfosetDeserializer() {
+		return _fastInfosetDeserializer;
 	}
 
 	public Transformer getIdenticalTransformer() {

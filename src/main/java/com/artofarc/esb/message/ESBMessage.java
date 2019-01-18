@@ -64,7 +64,6 @@ import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 import com.artofarc.util.StringWriter;
 
@@ -408,7 +407,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 	
-	public Source getBodyAsSource() throws IOException {
+	public Source getBodyAsSource(Context context) throws IOException {
 		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && (contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12))) {
 			InputStream is;
@@ -423,8 +422,7 @@ public final class ESBMessage implements Cloneable {
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
 			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
-			// TODO Cache FastInfosetDeserializer
-			return new SAXSource(new FastInfosetDeserializer().getFastInfosetReader(), new InputSource(is));
+			return new SAXSource(context.getFastInfosetDeserializer().getFastInfosetReader(), new InputSource(is));
 		}
 		return getBodyAsSourceInternal();
 	}
@@ -474,7 +472,7 @@ public final class ESBMessage implements Cloneable {
 			_bodyType = BodyType.INVALID;
 			return ((XQItem) _body).getItemAsStream();
 		default:
-			return context.getPoolContext().getGlobalContext().getXMLInputFactory().createXMLStreamReader(getBodyAsSource());
+			return context.getPoolContext().getGlobalContext().getXMLInputFactory().createXMLStreamReader(getBodyAsSource(context));
 		}
 	}
 
@@ -504,7 +502,7 @@ public final class ESBMessage implements Cloneable {
 		case OUTPUT_STREAM:
 			_body = getCompressedOutputStream((OutputStream) _body);
 			if (isSinkEncodingdifferent()) {
-				_body = new OutputStreamWriter((OutputStream) _body, _sinkEncoding);
+				init(BodyType.WRITER, new OutputStreamWriter((OutputStream) _body, _sinkEncoding), null);
 				// nobreak
 			} else {
 				return new StreamResult((OutputStream) _body);
@@ -557,15 +555,18 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void writeTo(OutputStream os, Context context) throws Exception {
-		OutputStream outputStream = getCompressedOutputStream(os);
+		os = getCompressedOutputStream(os);
 		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (HTTP_HEADER_CONTENT_TYPE_FI_SOAP11.equals(contentType) || HTTP_HEADER_CONTENT_TYPE_FI_SOAP12.equals(contentType)) {
 			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
-			serializer.getFastInfosetSerializer().setOutputStream(outputStream);
+			serializer.getFastInfosetSerializer().setOutputStream(os);
 			serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
 			writeTo(new SAXResult(serializer.getContentHandler()), context);
 		} else {
-			writeRawTo(outputStream, context);
+			writeRawTo(os, context);
+		}
+		if (!isSink()) {
+			init(BodyType.OUTPUT_STREAM, os, _sinkEncoding);
 		}
 	}
 	
@@ -610,6 +611,14 @@ public final class ESBMessage implements Cloneable {
 			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
+		}
+	}
+
+	public void closeBody() throws IOException {
+		if (_bodyType == BodyType.OUTPUT_STREAM || _bodyType == BodyType.WRITER) {
+			// necessary for filter streams
+			((java.io.Closeable) _body).close();
+			init(BodyType.INVALID, null, null);
 		}
 	}
 

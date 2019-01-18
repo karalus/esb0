@@ -24,58 +24,59 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
 
 public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
-   
-   protected final static Logger logger = Logger.getLogger("ESB");
-   
-   private final String _uri;
-   
-   private List<Action> internalService;
-   private Action _startAction;
-   
-   private volatile boolean _enabled = true;
-   
-   public ConsumerPort(String uri) {
-      _uri = uri;
-   }
 
-   public String getUri() {
-      return _uri;
-   }
-   
-   public boolean isEnabled() {
-      return _enabled;
-   }
+	protected final static Logger logger = Logger.getLogger("ESB");
 
-   public void setEnabled(boolean enabled) {
-      _enabled = enabled;
-   }
+	private final String _uri;
 
-   public void enable(boolean enable) throws Exception {
-      _enabled = enable;
-   }
+	private List<Action> internalService;
+	private Action _startAction;
 
-   public List<Action> getInternalService() {
-      return Action.cloneService(internalService);
-   }
-   
-   public void setInternalService(List<Action> service) {
-      internalService = service;
-      _startAction = Action.linkList(service);
-   }
-   
-   public Action setStartAction(Action startAction) {
-      return _startAction = startAction;
-   }
+	private volatile boolean _enabled = true;
 
-   public void process(Context context, ESBMessage message) throws Exception {
-      _startAction.process(context, message);
-      if (context.getExecutionStack().size() > 0) {
-      	throw new IllegalStateException("ExecutionStack not empty");
-      }
-   }
+	public ConsumerPort(String uri) {
+		_uri = uri;
+	}
 
-   public void processInternal(Context context, ESBMessage message) throws Exception {
-      _startAction.process(context, message);
-   }
- 
+	public final String getUri() {
+		return _uri;
+	}
+
+	public boolean isEnabled() {
+		return _enabled;
+	}
+
+	public final void setEnabled(boolean enabled) {
+		_enabled = enabled;
+	}
+
+	public void enable(boolean enable) throws Exception {
+		_enabled = enable;
+	}
+
+	public final List<Action> getInternalService() {
+		return Action.cloneService(internalService);
+	}
+
+	public final Action setInternalService(List<Action> service) {
+		internalService = service;
+		return _startAction = Action.linkList(service);
+	}
+
+	public void process(Context context, ESBMessage message) throws Exception {
+		processInternal(context, message);
+	}
+
+	public final void processInternal(Context context, ESBMessage message) throws Exception {
+		_startAction.process(context, message);
+		if (context.getExecutionStack().size() > 0) {
+			throw new IllegalStateException("ExecutionStack not empty");
+		}
+	}
+
+	// For JUnit
+	public final Action setStartAction(Action... actions) {
+		return setInternalService(java.util.Arrays.asList(actions));
+	}
+
 }
