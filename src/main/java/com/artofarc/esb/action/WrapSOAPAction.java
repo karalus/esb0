@@ -16,11 +16,9 @@
  */
 package com.artofarc.esb.action;
 
-import javax.xml.soap.SOAPConstants;
-
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.http.HttpConstants;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.ESBMessage;
 
 public class WrapSOAPAction extends TransformAction {
@@ -29,7 +27,7 @@ public class WrapSOAPAction extends TransformAction {
 	
 	public WrapSOAPAction(boolean soap12, boolean header, boolean singlePart) {
 		super("declare variable $header as element() external; <soapenv:Envelope xmlns:soapenv=\""
-				+ (soap12 ? SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE : SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE) + "\">"
+				+ (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE) + "\">"
 				+ (header ? "{$header}" : "")
 				+ (singlePart ? "<soapenv:Body>" : "") + "{.}" + (singlePart ? "</soapenv:Body>" : "") + "</soapenv:Envelope>");
 		_soap12 = soap12;
@@ -38,7 +36,7 @@ public class WrapSOAPAction extends TransformAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		message.getHeaders().clear();
-		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, _soap12 ? SOAPConstants.SOAP_1_2_CONTENT_TYPE : SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, _soap12 ? SOAP_1_2_CONTENT_TYPE : SOAP_1_1_CONTENT_TYPE);
 		return super.prepare(context, message, inPipeline);
 	}
 

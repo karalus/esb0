@@ -19,7 +19,6 @@ package com.artofarc.esb.action;
 import java.util.Map;
 
 import javax.wsdl.Definition;
-import javax.xml.soap.SOAPConstants;
 import javax.xml.validation.Schema;
 
 import com.artofarc.esb.context.Context;
@@ -46,12 +45,12 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 		String soapAction = _mapOperation2SoapActionURI.get(message.<String>getVariable(ESBConstants.SOAP_OPERATION));
 		if (_soap12) {
 			if (soapAction != null) {
-				message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_2_CONTENT_TYPE + ";" + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + soapAction);
+				message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAP_1_2_CONTENT_TYPE + ";" + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + soapAction);
 			}
-			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAPConstants.SOAP_1_2_CONTENT_TYPE);
+			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAP_1_2_CONTENT_TYPE);
 		} else {
 			message.getHeaders().put(HTTP_HEADER_SOAP_ACTION, soapAction != null ? "\"" + soapAction + "\"" : "\"\"");
-			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAP_1_1_CONTENT_TYPE);
 		}
 		message.getVariables().put(ESBConstants.HttpMethod, "POST");
 		message.setSchema(_schema);

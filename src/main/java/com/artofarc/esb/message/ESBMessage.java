@@ -411,8 +411,20 @@ public final class ESBMessage implements Cloneable {
 	public Source getBodyAsSource() throws IOException {
 		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && (contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12))) {
+			InputStream is;
+			switch (_bodyType) {
+			case BYTES:
+				is = new ByteArrayInputStream((byte[]) _body);
+				break;
+			case INPUT_STREAM:
+				is = getUncompressedInputStream();
+				break;
+			default:
+				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
+			}
+			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
 			// TODO Cache FastInfosetDeserializer
-			return new SAXSource(new FastInfosetDeserializer().getFastInfosetReader(), getBodyAsSaxSource());
+			return new SAXSource(new FastInfosetDeserializer().getFastInfosetReader(), new InputSource(is));
 		}
 		return getBodyAsSourceInternal();
 	}
@@ -463,20 +475,6 @@ public final class ESBMessage implements Cloneable {
 			return ((XQItem) _body).getItemAsStream();
 		default:
 			return context.getPoolContext().getGlobalContext().getXMLInputFactory().createXMLStreamReader(getBodyAsSource());
-		}
-	}
-
-	private InputSource getBodyAsSaxSource() throws IOException {
-		switch (_bodyType) {
-		case BYTES:
-			init(BodyType.STRING, new String((byte[]) _body, getCharset()), null);
-			// nobreak
-		case STRING:
-			return new InputSource(new StringReader((String) _body));
-		case INPUT_STREAM:
-			return init(BodyType.INVALID, new InputSource(getInputStreamReader()), null);
-		default:
-			throw new IllegalStateException("Message is invalid");
 		}
 	}
 

@@ -23,7 +23,6 @@ import java.util.Map;
 
 import javax.wsdl.BindingOperation;
 import javax.wsdl.Definition;
-import javax.xml.soap.SOAPConstants;
 import javax.xml.validation.Schema;
 
 import com.artofarc.esb.context.Context;
@@ -52,7 +51,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	 * @see <a href="https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/">WSDL styles/</a>
 	 */
 	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, String wsdlUrl, Schema schema) {
-		super("declare namespace soapenv=\"" + (soap12 ? SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE : SOAPConstants.URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
+		super("declare namespace soapenv=\"" + (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
 				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
 				+ (singlePart && bindingOperations != null ? "local-name($b), " : "") + "if ($h) then $h else <soapenv:Header/>, $b)",
 				singlePart && bindingOperations != null ? Arrays.asList(SOAP_OPERATION, SOAP_HEADER) : java.util.Collections.singletonList(SOAP_HEADER), null);
@@ -91,7 +90,7 @@ public class UnwrapSOAPAction extends TransformAction {
 		}
 		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType == null || !(_soap12 ? HTTP_HEADER_CONTENT_TYPE_FI_SOAP12.equals(contentType) : HTTP_HEADER_CONTENT_TYPE_FI_SOAP11.equals(contentType))
-				&& !contentType.contains(_soap12 ? SOAPConstants.SOAP_1_2_CONTENT_TYPE : SOAPConstants.SOAP_1_1_CONTENT_TYPE)) {
+				&& !contentType.contains(_soap12 ? SOAP_1_2_CONTENT_TYPE : SOAP_1_1_CONTENT_TYPE)) {
 
 			String error = "Unexpected Content-Type: " + contentType;
 			if (message.getBodyType() != BodyType.INVALID) {

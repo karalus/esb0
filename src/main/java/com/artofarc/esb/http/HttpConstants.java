@@ -16,7 +16,7 @@
  */
 package com.artofarc.esb.http;
 
-public class HttpConstants {
+public class HttpConstants implements javax.xml.soap.SOAPConstants {
 
 	public static final String HTTP_HEADER_ACCEPT_CHARSET = "Accept-Charset";
 

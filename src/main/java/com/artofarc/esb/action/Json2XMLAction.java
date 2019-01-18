@@ -23,7 +23,6 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.soap.SOAPConstants;
 import javax.xml.validation.Schema;
 
 import org.eclipse.persistence.dynamic.DynamicEntity;
@@ -33,7 +32,7 @@ import org.eclipse.persistence.oxm.MediaType;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.http.HttpConstants;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.StringWriter;
@@ -54,11 +53,11 @@ public class Json2XMLAction extends TerminalAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
+		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType != null && !contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
 		return super.prepare(context, message, inPipeline);
 	}
 
