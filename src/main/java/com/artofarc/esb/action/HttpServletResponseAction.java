@@ -37,11 +37,13 @@ import com.artofarc.esb.servlet.GenericHttpListener;
 public class HttpServletResponseAction extends Action {
 	
 	private final boolean _supportCompression, _multipartResponse;
+	private final Integer _bufferSize;
 
-	public HttpServletResponseAction(boolean supportCompression, boolean multipartResponse) {
+	public HttpServletResponseAction(boolean supportCompression, boolean multipartResponse, Integer bufferSize) {
 		_pipelineStop = true;
 		_supportCompression = supportCompression;
 		_multipartResponse = multipartResponse;
+		_bufferSize = bufferSize;
 	}
 
 	@Override
@@ -65,6 +67,7 @@ public class HttpServletResponseAction extends Action {
 				httpResponseCode = hasFault != null && hasFault ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : HttpServletResponse.SC_OK;
 			}
 			response.setStatus(httpResponseCode.intValue());
+			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			final String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
 			if (acceptCharset != null) {
 				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset, ""));
@@ -83,9 +86,9 @@ public class HttpServletResponseAction extends Action {
 					response.setHeader(entry.getKey(), entry.getValue().toString());
 				}
 				if (inPipeline) {
-					message.reset(BodyType.OUTPUT_STREAM, response.getOutputStream());
+					message.reset(BodyType.OUTPUT_STREAM, new PreventFlushOutputStream(response.getOutputStream()));
 				} else if (message.getBodyType() != BodyType.INVALID) {
-					message.writeTo(response.getOutputStream(), context);
+					message.writeTo(new PreventFlushOutputStream(response.getOutputStream()), context);
 				}
 				if (message.getAttachments().size() > 0) {
 					logger.warning("Message has attachments");
@@ -148,6 +151,27 @@ public class HttpServletResponseAction extends Action {
 			mmp.writeTo(response.getOutputStream());
 		}
 		asyncContext.complete();
+	}
+
+	/**
+	 * prevent flushing to avoid "transfer encoding chunked" on small responses
+	 */
+	static final class PreventFlushOutputStream extends java.io.FilterOutputStream {
+
+		PreventFlushOutputStream(java.io.OutputStream out) {
+			super(out);
+		}
+
+		@Override
+		public void write(byte b[], int off, int len) throws java.io.IOException {
+			out.write(b, off, len);
+		}
+
+		@Override
+		public void flush() {
+			// don't flush, wait until close()
+		}
+
 	}
 
 }

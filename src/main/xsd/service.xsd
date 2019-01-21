@@ -603,6 +603,7 @@
 								<extension base="anyURI">
 									<attribute name="supportCompression" type="boolean" default="false" />
 									<attribute name="multipartResponse" type="boolean" default="false" />
+									<attribute name="bufferSize" type="int" />
 									<attribute name="minPool" type="int" default="1" />
 									<attribute name="maxPool" type="int" default="20" />
 									<attribute name="keepAlive" type="long" default="300000" />
