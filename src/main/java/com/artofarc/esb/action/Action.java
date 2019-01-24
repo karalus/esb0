@@ -235,8 +235,8 @@ public abstract class Action implements Cloneable {
 		return builder.toString();
 	}
 
-	protected final Object resolve(ESBMessage message, String name, boolean checkAmbiguity) throws ExecutionException {
-		Object variable = message.getVariable(name);
+	protected final <T> T resolve(ESBMessage message, String name, boolean checkAmbiguity) throws ExecutionException {
+		T variable = message.getVariable(name);
 		if (variable != null) {
 			if (checkAmbiguity && message.getHeader(name) != null) {
 				throw new ExecutionException(this, "name could not unambiguously be resolved: " + name);

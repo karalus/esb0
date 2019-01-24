@@ -30,23 +30,23 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
 public final class AsyncProcessingPool implements Runnable {
-	
+
 	public static class AsyncContext {
 		public Action nextAction;
 		public Collection<Action> executionStack;
 		public Map<String, Object> variables;
 		public long expriry;
 	}
-	
+
 	private final Map<String, AsyncContext> _asyncContexts = new ConcurrentHashMap<>();
 	private final WorkerPool _workerPool;
-	
+
 	private ScheduledFuture<?> _scheduledFuture;
-	
+
 	public AsyncProcessingPool(WorkerPool workerPool) {
 		_workerPool = workerPool;
 	}
-	
+
 	public int getPoolSize() {
 		return _asyncContexts.size();
 	}
@@ -69,14 +69,14 @@ public final class AsyncProcessingPool implements Runnable {
 		}
 		start();
 	}
-	
-	public AsyncContext removeAsyncContext(Object correlationID) {
+
+	public AsyncContext removeAsyncContext(String correlationID) {
 		return _asyncContexts.remove(correlationID);
 	}
 
 	@Override
 	public void run() {
-		for (Iterator<Map.Entry<String, AsyncContext>> iter =  _asyncContexts.entrySet().iterator(); iter.hasNext();) {
+		for (Iterator<Map.Entry<String, AsyncContext>> iter = _asyncContexts.entrySet().iterator(); iter.hasNext();) {
 			Map.Entry<String, AsyncContext> entry = iter.next();
 			AsyncContext asyncContext = entry.getValue();
 			if (asyncContext.expriry < System.currentTimeMillis()) {

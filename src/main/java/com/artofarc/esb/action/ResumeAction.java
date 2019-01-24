@@ -25,7 +25,7 @@ public class ResumeAction extends Action {
 
 	private final String _workerPool;
 	private final String _correlationID;
-	
+
 	public ResumeAction(String workerPool, String correlationID) {
 		_workerPool = workerPool;
 		_correlationID = correlationID;
@@ -33,7 +33,7 @@ public class ResumeAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Object correlationID = resolve(message, _correlationID, true);
+		String correlationID = resolve(message, _correlationID, true);
 		if (correlationID == null) {
 			throw new ExecutionException(this, "name could not be resolved: " + _correlationID);
 		}

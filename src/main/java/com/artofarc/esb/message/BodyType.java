@@ -22,7 +22,7 @@ public enum BodyType {
 
 	private final boolean _hasCharset;
 
-	private BodyType(boolean hasCharset) {
+	BodyType(boolean hasCharset) {
 		_hasCharset = hasCharset;
 	}
 
@@ -39,5 +39,5 @@ public enum BodyType {
 			throw new IllegalArgumentException("BodyType cannot be auto detected: " + body);
 		}
 	}
-	
+
 }
