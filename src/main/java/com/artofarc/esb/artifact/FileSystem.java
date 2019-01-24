@@ -65,8 +65,7 @@ public final class FileSystem {
 
 	@SuppressWarnings("unchecked")
 	protected static final <A extends Artifact> A getArtifact(Directory current, String uri) {
-		if (uri == null)
-			return (A) current;
+		if (uri == null) return (A) current;
 		int i = 0, j;
 		while ((j = uri.indexOf('/', i)) >= 0) {
 			String dir = uri.substring(i, j);
@@ -91,7 +90,8 @@ public final class FileSystem {
 			}
 			i = j + 1;
 		}
-		return (A) current.getArtifacts().get(uri.substring(i));
+		String name = uri.substring(i);
+		return (A) (name.isEmpty() ? current : current.getArtifacts().get(name));
 	}
 
 	public ChangeSet parseDirectory(GlobalContext globalContext, File rootDir) throws IOException, ValidationException {

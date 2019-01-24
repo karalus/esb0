@@ -26,7 +26,6 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
 import com.artofarc.esb.artifact.FileSystem;
-import com.artofarc.esb.artifact.FileSystem.ChangeSet;
 import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
@@ -46,7 +45,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 		FileSystem fileSystem = new FileSystem();
 		globalContext.setFileSystem(fileSystem);
 		try {
-			ChangeSet changeSet = fileSystem.parseDirectory(globalContext, rootDir);
+			FileSystem.ChangeSet changeSet = fileSystem.parseDirectory(globalContext, rootDir);
 			DeployServlet.deployChangeSet(globalContext, changeSet);
 		} catch (IOException e) {
 			throw new RuntimeException("Could not read services", e);

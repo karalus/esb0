@@ -36,7 +36,6 @@ import com.artofarc.esb.TimerService;
 import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.Directory;
 import com.artofarc.esb.artifact.FileSystem;
-import com.artofarc.esb.artifact.FileSystem.ChangeSet;
 import com.artofarc.esb.artifact.ServiceArtifact;
 import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.artifact.WorkerPoolArtifact;
@@ -76,7 +75,7 @@ public class DeployServlet extends HttpServlet {
 				// SoapUI does not send an "Accept" header
 				if (headerAccept == null || headerAccept.contains("text/")) {
 					resp.setContentType("text/plain");
-					resp.setHeader("Content-Disposition", "filename=\"" + artifact.getName() + "\"");
+					resp.setHeader(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
 					resp.getOutputStream().write(artifact.getContent());
 				} else {
 					resp.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
@@ -101,7 +100,7 @@ public class DeployServlet extends HttpServlet {
 				}
 				if (globalContext.lockFileSystem()) {
 					try {
-						ChangeSet changeSet = globalContext.getFileSystem().createUpdate(globalContext, filePart.getInputStream());
+						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createUpdate(globalContext, filePart.getInputStream());
 						FileSystem newFileSystem = changeSet.getFileSystem();
 						File anchorDir = globalContext.getFileSystem().getAnchorDir();
 						deployChangeSet(globalContext, changeSet);
@@ -135,7 +134,7 @@ public class DeployServlet extends HttpServlet {
 		resp.sendRedirect(req.getContextPath() + "/admin");
 	}
 
-	public static void deployChangeSet(GlobalContext globalContext, ChangeSet updateSet) throws ValidationException {
+	public static void deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet updateSet) throws ValidationException {
 		ArrayList<ServiceArtifact> serviceArtifacts = updateSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
 		for (WorkerPoolArtifact workerPoolArtifact : updateSet.getWorkerPoolArtifacts()) {
