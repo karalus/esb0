@@ -363,7 +363,7 @@ public final class FileSystem {
 				tidyOut = Boolean.parseBoolean(manifest.getMainAttributes().getValue("tidyOut"));
 				String delete = manifest.getMainAttributes().getValue("delete");
 				if (delete != null) {
-					StringTokenizer tokenizer = new StringTokenizer(delete, " ");
+					StringTokenizer tokenizer = new StringTokenizer(delete, ", ");
 					while (tokenizer.hasMoreTokens()) {
 						String uri = tokenizer.nextToken();
 						Artifact artifact = getArtifact(uri);

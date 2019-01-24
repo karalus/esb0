@@ -54,11 +54,14 @@ public class DeployServlet extends HttpServlet {
 	
 	public static final String SERVLET_PATH = "/admin/deploy";
 
+	private GlobalContext getGlobalContext() {
+		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
+		return poolContext.getGlobalContext();
+	}
+	
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
-		GlobalContext globalContext = poolContext.getGlobalContext();
-		Artifact artifact = globalContext.getFileSystem().getArtifact(req.getPathInfo());
+		Artifact artifact = getGlobalContext().getFileSystem().getArtifact(req.getPathInfo());
 		if (artifact != null) {
 			if (artifact instanceof Directory) {
 				Directory directory = (Directory) artifact;
@@ -88,8 +91,7 @@ public class DeployServlet extends HttpServlet {
 
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
-		GlobalContext globalContext = poolContext.getGlobalContext();
+		GlobalContext globalContext = getGlobalContext();
 		if (req.getContentType().startsWith("multipart/")) {
 			Part filePart = req.getPart("file"); // Retrieves <input type="file" name="file">
 			if (filePart != null) {
