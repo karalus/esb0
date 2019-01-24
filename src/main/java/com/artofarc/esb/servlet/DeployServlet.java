@@ -20,6 +20,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.json.Json;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonWriter;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -31,6 +34,7 @@ import javax.servlet.http.Part;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.artifact.Artifact;
+import com.artofarc.esb.artifact.Directory;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystem.ChangeSet;
 import com.artofarc.esb.artifact.ServiceArtifact;
@@ -56,15 +60,27 @@ public class DeployServlet extends HttpServlet {
 		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
 		GlobalContext globalContext = poolContext.getGlobalContext();
 		Artifact artifact = globalContext.getFileSystem().getArtifact(req.getPathInfo());
-		if (artifact != null && artifact.getContent() != null) {
-			String headerAccept = req.getHeader(HttpConstants.HTTP_HEADER_ACCEPT);
-			// SoapUI does not send an "Accept" header
-			if (headerAccept == null || headerAccept.contains("text/")) {
-				resp.setContentType("text/plain");
-				resp.setHeader("Content-Disposition", "filename=\"" + artifact.getName() + "\"");
-				resp.getOutputStream().write(artifact.getContent());
+		if (artifact != null) {
+			if (artifact instanceof Directory) {
+				Directory directory = (Directory) artifact;
+				JsonArrayBuilder builder = Json.createArrayBuilder();
+				for (String artifactName : directory.getArtifacts().keySet()) {
+					builder.add(artifactName);
+				}
+				resp.setContentType(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+				JsonWriter jsonWriter = Json.createWriter(resp.getOutputStream());
+				jsonWriter.writeArray(builder.build());
+				jsonWriter.close();
 			} else {
-				resp.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
+				String headerAccept = req.getHeader(HttpConstants.HTTP_HEADER_ACCEPT);
+				// SoapUI does not send an "Accept" header
+				if (headerAccept == null || headerAccept.contains("text/")) {
+					resp.setContentType("text/plain");
+					resp.setHeader("Content-Disposition", "filename=\"" + artifact.getName() + "\"");
+					resp.getOutputStream().write(artifact.getContent());
+				} else {
+					resp.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
+				}
 			}
 		} else {
 			resp.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -76,8 +92,7 @@ public class DeployServlet extends HttpServlet {
 		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
 		GlobalContext globalContext = poolContext.getGlobalContext();
 		if (req.getContentType().startsWith("multipart/")) {
-			Part filePart = req.getPart("file"); // Retrieves <input type="file"
-																// name="file">
+			Part filePart = req.getPart("file"); // Retrieves <input type="file" name="file">
 			if (filePart != null) {
 				log("Content Type is: " + filePart.getContentType());
 				if (!filePart.getContentType().startsWith("application/")) {

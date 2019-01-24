@@ -54,7 +54,6 @@ public class GenericHttpListener extends HttpServlet {
 	protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		// process input
 		final String pathInfo = request.getRequestURI().substring(request.getContextPath().length());
-		log("Incoming HTTP request with uri " + request.getRequestURI());
 		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
 		HttpConsumer consumerPort = poolContext.getGlobalContext().getHttpService(pathInfo);
 		if (consumerPort != null) {
