@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.resource;
 
+import java.util.HashMap;
+
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
@@ -31,9 +33,13 @@ import net.sf.saxon.lib.ExtensionFunctionDefinition;
 import net.sf.saxon.lib.ModuleURIResolver;
 import net.sf.saxon.om.Sequence;
 import net.sf.saxon.om.StructuredQName;
+import net.sf.saxon.sxpath.XPathDynamicContext;
+import net.sf.saxon.sxpath.XPathEvaluator;
+import net.sf.saxon.sxpath.XPathExpression;
 import net.sf.saxon.trans.XPathException;
 import net.sf.saxon.type.BuiltInAtomicType;
 import net.sf.saxon.value.Int64Value;
+import net.sf.saxon.value.SequenceExtent;
 import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
@@ -47,12 +53,16 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
+	
+	// Is instance variable because it maintains state
+	private final Evaluate functionEvaluate = new Evaluate();
 
 	public XQDataSource createXQDataSource() {
 		SaxonXQDataSource dataSource = new SaxonXQDataSource();
 		Configuration configuration = dataSource.getConfiguration();
 		configuration.registerExtensionFunction(functionUUID);
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
+		configuration.registerExtensionFunction(functionEvaluate);
 		configuration.setModuleURIResolver(this);
 		configuration.setURIResolver(this);
 		return dataSource;
@@ -103,7 +113,7 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 
 		@Override
 		public SequenceType[] getArgumentTypes() {
-			return new SequenceType[] {};
+			return new SequenceType[0];
 		}
 
 		@Override
@@ -133,7 +143,7 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 
 		@Override
 		public SequenceType[] getArgumentTypes() {
-			return new SequenceType[] {};
+			return new SequenceType[0];
 		}
 
 		@Override
@@ -148,6 +158,54 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 				@Override
 				public Sequence call(XPathContext context, Sequence[] arguments) {
 					return Int64Value.makeDerived(System.currentTimeMillis(), BuiltInAtomicType.LONG);
+				}
+
+			};
+		}
+	}
+
+	private static class Evaluate extends ExtensionFunctionDefinition {
+
+		private XPathEvaluator _xPathEvaluator;
+		private final HashMap<String, XPathExpression> _cache = new HashMap<>();
+
+		private synchronized XPathExpression getXPathExpression(XPathContext context, String expression) throws XPathException {
+			XPathExpression xPathExpression = _cache.get(expression);
+			if (xPathExpression == null) {
+				if (_xPathEvaluator == null) {
+					_xPathEvaluator = new XPathEvaluator(context.getConfiguration());
+				}
+				xPathExpression = _xPathEvaluator.createExpression(expression);
+				_cache.put(expression, xPathExpression);
+			}
+			return xPathExpression;
+		}
+
+		@Override
+		public StructuredQName getFunctionQName() {
+			return new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "evaluate");
+		}
+
+		@Override
+		public SequenceType[] getArgumentTypes() {
+			return new SequenceType[] { BuiltInAtomicType.STRING.one() };
+		}
+
+		@Override
+		public SequenceType getResultType(SequenceType[] suppliedArgumentTypes) {
+			return SequenceType.ANY_SEQUENCE;
+		}
+
+		@Override
+		public ExtensionFunctionCall makeCallExpression() {
+			return new ExtensionFunctionCall() {
+
+				@Override
+				public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException {
+					StringValue xpath = (StringValue) arguments[0];
+					XPathExpression xPathExpression = getXPathExpression(context, xpath.getStringValue());
+					XPathDynamicContext dynamicContext = xPathExpression.createDynamicContext(context.getController(), context.getContextItem());
+					return SequenceExtent.makeSequenceExtent(xPathExpression.iterate(dynamicContext));
 				}
 
 			};
