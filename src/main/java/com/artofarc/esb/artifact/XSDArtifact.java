@@ -34,10 +34,11 @@ public class XSDArtifact extends SchemaArtifact {
 	public XSDArtifact clone(Directory parent) {
 		XSDArtifact clone = initClone(new XSDArtifact(parent, getName()));
 		clone._jaxbContext = _jaxbContext;
-		clone.schema = schema;
+		clone._schema = _schema;
 		return clone;
 	}
 
+	@Override
 	public JAXBContext getJAXBContext() throws JAXBException {
 		if (_jaxbContext == null) {
 			StreamSource streamSource = new StreamSource(getContentAsByteArrayInputStream());
@@ -49,7 +50,7 @@ public class XSDArtifact extends SchemaArtifact {
 
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
-		schema = getSchemaFactory().newSchema(new StreamSource(getContentAsByteArrayInputStream()));
+		_schema = getSchemaFactory().newSchema(new StreamSource(getContentAsByteArrayInputStream()));
 		validateReferenced(globalContext);
 	}
 

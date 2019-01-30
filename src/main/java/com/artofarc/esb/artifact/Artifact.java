@@ -103,16 +103,16 @@ public abstract class Artifact {
 		return new ByteArrayInputStream(_content);
 	}
 
-	public long getModificationTime() {
+	public final long getModificationTime() {
 		return _modificationTime;
 	}
 
-	public void setModificationTime(long modificationTime) {
+	public final void setModificationTime(long modificationTime) {
 		_modificationTime = modificationTime;
 	}
 
-	public final void setContent(byte[] _content) {
-		this._content = _content;
+	public final void setContent(byte[] content) {
+		_content = content;
 	}
 
 	protected final Directory getRootDirectory() {
@@ -167,7 +167,7 @@ public abstract class Artifact {
 		return getURI();
 	}
 
-	protected <A extends Artifact> A initClone(A clone) {
+	protected final <A extends Artifact> A initClone(A clone) {
 		if (isValidated()) {
 			clone.setValidated(true);
 			clone.getReferenced().addAll(getReferenced());

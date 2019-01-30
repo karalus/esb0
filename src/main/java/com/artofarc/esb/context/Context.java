@@ -19,6 +19,7 @@ package com.artofarc.esb.context;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -52,20 +53,20 @@ public final class Context extends AbstractContext {
 	private final DocumentBuilder _documentBuilder;
 	private final FastInfosetDeserializer _fastInfosetDeserializer = new FastInfosetDeserializer();
 	private final Transformer _transformer;
-	private final XQConnection xqConnection;
+	private final XQConnection _xqConnection;
 	private final HashMap<String, XQPreparedExpression> _mapXQ = new HashMap<>();
-	private final TimeGauge timeGauge = new TimeGauge(Level.FINE);
+	private final TimeGauge _timeGauge = new TimeGauge(Level.FINE);
 	private final Deque<Action> _executionStack = new ArrayDeque<>();
 
 	public Context(PoolContext poolContext) throws ParserConfigurationException, TransformerConfigurationException, XQException {
 		_poolContext = poolContext;
 		_documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
 		_transformer = TRANSFORMER_FACTORY.newTransformer();
-		xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
-		XQStaticContext staticContext = xqConnection.getStaticContext();
+		_xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
+		XQStaticContext staticContext = _xqConnection.getStaticContext();
 		staticContext.setBindingMode(XQConstants.BINDING_MODE_DEFERRED);
 		staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
-		xqConnection.setStaticContext(staticContext);
+		_xqConnection.setStaticContext(staticContext);
 	}
 
 	public Deque<Action> getExecutionStack() {
@@ -73,7 +74,7 @@ public final class Context extends AbstractContext {
 	}
 
 	public TimeGauge getTimeGauge() {
-		return timeGauge;
+		return _timeGauge;
 	}
 
 	public PoolContext getPoolContext() {
@@ -93,18 +94,19 @@ public final class Context extends AbstractContext {
 	}
 
 	public XQDataFactory getXQDataFactory() {
-		return xqConnection;
+		return _xqConnection;
 	}
 
 	public XQPreparedExpression getXQPreparedExpression(String xquery, String baseURI) throws XQException {
 		XQPreparedExpression preparedExpression = _mapXQ.get(xquery);
 		if (preparedExpression == null) {
 			if (baseURI != null) {
-				preparedExpression = xqConnection.prepareExpression(xquery, XQDataSourceFactory.getStaticContext(xqConnection, baseURI));
+				preparedExpression = _xqConnection.prepareExpression(xquery, XQDataSourceFactory.getStaticContext(_xqConnection, baseURI));
 			} else {
-				preparedExpression = xqConnection.prepareExpression(xquery);
+				preparedExpression = _xqConnection.prepareExpression(xquery);
 			}
 			_mapXQ.put(xquery, preparedExpression);
+			_poolContext.getWorkerPool().addCachedXQuery(xquery);
 		}
 		return preparedExpression;
 	}
@@ -112,10 +114,11 @@ public final class Context extends AbstractContext {
 	@Override
 	public void close() {
 		try {
-			for (XQPreparedExpression preparedExpression : _mapXQ.values()) {
-				preparedExpression.close();
+			for (Entry<String, XQPreparedExpression> entry : _mapXQ.entrySet()) {
+				_poolContext.getWorkerPool().removeCachedXQuery(entry.getKey());
+				entry.getValue().close();
 			}
-			xqConnection.close();
+			_xqConnection.close();
 		} catch (XQException e) {
 			// ignore
 		}

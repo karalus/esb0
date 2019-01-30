@@ -37,5 +37,9 @@ public interface WorkerPoolMXBean {
 	int getAsyncProcessingPoolSize();
 	
 	Set<String> getJMSSessionFactories();
+	
+	Set<String> getCachedXQueries();
+	
+	int getCachedXQueriesTotal();
 
 }

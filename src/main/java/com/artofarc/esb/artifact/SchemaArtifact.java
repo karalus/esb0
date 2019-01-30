@@ -36,26 +36,26 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	protected static final String FILE_SCHEMA = "file://";
 
-	protected Schema schema;
-
+	protected Schema _schema;
 	protected JAXBContext _jaxbContext;
 
 	protected SchemaArtifact(Directory parent, String name) {
 		super(parent, name);
 	}
 
-	public Schema getSchema() {
-		return schema;
+	public final Schema getSchema() {
+		return _schema;
 	}
 
 	public abstract JAXBContext getJAXBContext() throws JAXBException;
 
-	protected SchemaFactory getSchemaFactory() {
+	protected final SchemaFactory getSchemaFactory() {
 		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 		factory.setResourceResolver(this);
 		return factory;
 	}
-	
+
+	// only used during validation
 	private URI lastUri;
 
 	@Override
@@ -109,55 +109,55 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	}
 
 	public static class LSInputImpl implements LSInput {
-		private String publicId;
-		private String systemId;
-		private String baseURI;
-		private InputStream byteStream;
+		private String _publicId;
+		private String _systemId;
+		private String _baseURI;
+		private InputStream _byteStream;
 
 		public LSInputImpl(String publicId, String systemId, String baseURI, InputStream byteStream) {
-			this.publicId = publicId;
-			this.systemId = systemId;
-			this.baseURI = baseURI;
-			this.byteStream = byteStream;
+			_publicId = publicId;
+			_systemId = systemId;
+			_baseURI = baseURI;
+			_byteStream = byteStream;
 		}
 
 		@Override
 		public String getPublicId() {
-			return publicId;
+			return _publicId;
 		}
 
 		@Override
 		public void setPublicId(String publicId) {
-			this.publicId = publicId;
+			_publicId = publicId;
 		}
 
 		@Override
 		public String getSystemId() {
-			return systemId;
+			return _systemId;
 		}
 
 		@Override
 		public void setSystemId(String systemId) {
-			this.systemId = systemId;
+			_systemId = systemId;
 		}
 
 		@Override
 		public String getBaseURI() {
-			return baseURI;
+			return _baseURI;
 		}
 
 		@Override
 		public void setBaseURI(String baseURI) {
-			this.baseURI = baseURI;
+			_baseURI = baseURI;
 		}
 
 		@Override
 		public InputStream getByteStream() {
-			return byteStream;
+			return _byteStream;
 		}
 
 		public void setByteStream(InputStream byteStream) {
-			this.byteStream = byteStream;
+			_byteStream = byteStream;
 		}
 
 		@Override

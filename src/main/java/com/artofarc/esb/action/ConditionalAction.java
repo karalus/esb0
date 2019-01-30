@@ -29,14 +29,14 @@ public class ConditionalAction extends AssignAction {
 
 	private static final String RESULT = "result";
 
-	private Action conditionalAction;
+	private Action _conditionalAction;
 
 	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
 		super(RESULT, expression, namespaces, bindNames, contextItem);
 	}
 
 	public void setConditionalAction(Action conditionalAction) {
-		this.conditionalAction = conditionalAction;
+		_conditionalAction = conditionalAction;
 	}
 
 	@Override
@@ -50,7 +50,7 @@ public class ConditionalAction extends AssignAction {
 	@Override
 	protected Action nextAction(ExecutionContext execContext) {
 		Boolean result = execContext.getResource3();
-		return result != null && result ? conditionalAction : super.nextAction(execContext);
+		return result != null && result ? _conditionalAction : super.nextAction(execContext);
 	}
 
 }

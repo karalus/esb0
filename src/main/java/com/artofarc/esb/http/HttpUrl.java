@@ -16,24 +16,22 @@
  */
 package com.artofarc.esb.http;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 
 public final class HttpUrl {
-	
+
 	private final URL _url;
-	private final int weight;
-	private final boolean active;
-	
-	private final String host;
-	private final int port;
-	
-	public HttpUrl(String url, int weight, boolean active) throws MalformedURLException {
+	private final int _weight;
+	private final boolean _active;
+	private final String _host;
+	private final int _port;
+
+	public HttpUrl(String url, int weight, boolean active) throws java.net.MalformedURLException {
 		_url = new URL(url);
-		host = _url.getHost();
-		port = _url.getPort() < 0 ? _url.getDefaultPort() : _url.getPort();
-		this.weight = weight;
-		this.active = active;
+		_host = _url.getHost();
+		_port = _url.getPort() < 0 ? _url.getDefaultPort() : _url.getPort();
+		_weight = weight;
+		_active = active;
 	}
 
 	public URL getUrl() {
@@ -41,16 +39,16 @@ public final class HttpUrl {
 	}
 
 	public int getWeight() {
-		return weight;
+		return _weight;
 	}
 
 	public boolean isActive() {
-		return active;
+		return _active;
 	}
 
 	@Override
 	public int hashCode() {
-		return host.hashCode() + port;
+		return _host.hashCode() + _port;
 	}
 
 	@Override
@@ -62,12 +60,12 @@ public final class HttpUrl {
 		if (getClass() != obj.getClass())
 			return false;
 		HttpUrl other = (HttpUrl) obj;
-		return port == other.port && host.equals(other.host);
+		return _port == other._port && _host.equals(other._host);
 	}
 
 	@Override
 	public String toString() {
-		return "http://" + host + ':' + port;
+		return "http://" + _host + ':' + _port;
 	}
 
 }

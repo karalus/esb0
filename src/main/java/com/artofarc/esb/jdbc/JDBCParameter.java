@@ -30,7 +30,7 @@ public final class JDBCParameter {
 
 	public final static Map<String, Integer> TYPES = new HashMap<>();
 	public final static Map<Integer, String> CODES;
-	
+
 	static{
 		for (Field field : Types.class.getFields()) {
 			try {
@@ -41,54 +41,54 @@ public final class JDBCParameter {
 		}
 		CODES = Collections.inverseMap(TYPES);
 	}
-	
-	private final int pos;
-	private final String typeName;
-	private final int type;
-	private final boolean body;
-	private final String bindName;
-	private final Integer truncate;
+
+	private final int _pos;
+	private final String _typeName;
+	private final int _type;
+	private final boolean _body;
+	private final String _bindName;
+	private final Integer _truncate;
 
 	public JDBCParameter(int pos, String typeName, boolean body, String bindName, Integer truncate) {
 		Integer code = TYPES.get(typeName);
 		if (code == null) {
 			throw new IllegalArgumentException("Not a SQL type: " + typeName);
 		}
-		this.pos = pos;
-		this.typeName = typeName;
-		this.type = code;
-		this.body = body;
-		this.bindName = bindName;
-		this.truncate = truncate;
+		_pos = pos;
+		_typeName = typeName;
+		_type = code;
+		_body = body;
+		_bindName = bindName;
+		_truncate = truncate;
 	}
-	
+
 	public int getPos() {
-		return pos;
+		return _pos;
 	}
 
 	public String getTypeName() {
-		return typeName;
+		return _typeName;
 	}
-	
+
 	public int getType() {
-		return type;
+		return _type;
 	}
 
 	public boolean isBody() {
-		return body;
+		return _body;
 	}
 
 	public String getBindName() {
-		return bindName;
+		return _bindName;
 	}
-	
+
 	public Integer getTruncate() {
-		return truncate;
+		return _truncate;
 	}
 
 	@SuppressWarnings("unchecked")
 	public <T> T alignValue(Object value) {
-		switch (type) {
+		switch (_type) {
 		case Types.TIMESTAMP:
 			if (value instanceof XMLGregorianCalendar) {
 				XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
@@ -101,16 +101,16 @@ public final class JDBCParameter {
 		case Types.CHAR:
 		case Types.VARCHAR:
 		case Types.CLOB:
-			if (truncate != null && value != null) {
+			if (_truncate != null && value != null) {
 				String s = (String) value;
-				return (T) (s.length() > truncate ? s.substring(0, truncate) : s);
+				return (T) (s.length() > _truncate ? s.substring(0, _truncate) : s);
 			}
 			break;
 		case Types.BLOB:
 			final byte[] msgBody = (byte[]) value;
-			if (truncate != null && msgBody.length > truncate) {
-				final byte[] newMsgBody = new byte[truncate]; 
-				System.arraycopy(msgBody, 0, newMsgBody, 0, truncate);
+			if (_truncate != null && msgBody.length > _truncate) {
+				final byte[] newMsgBody = new byte[_truncate]; 
+				System.arraycopy(msgBody, 0, newMsgBody, 0, _truncate);
 				return (T) newMsgBody;
 			}
 			break;

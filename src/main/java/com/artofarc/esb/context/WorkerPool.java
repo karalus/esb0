@@ -18,6 +18,7 @@ package com.artofarc.esb.context;
 
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -32,6 +33,7 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 	private final ThreadPoolExecutor _executorService;
 	private final ScheduledExecutorService _scheduledExecutorService;
 	private final AsyncProcessingPool _asyncProcessingPool;
+	private final ConcurrentHashMap<String, Integer> _cachedXQueries = new ConcurrentHashMap<>();
 
 	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
 		_poolContext = new PoolContext(globalContext, name);
@@ -125,6 +127,34 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 
 	public Set<String> getJMSSessionFactories() {
 		return _poolContext.getJMSConnectionProvider().getJMSSessionFactories();
+	}
+
+	public Set<String> getCachedXQueries() {
+		return _cachedXQueries.keySet();
+	}
+
+	public void addCachedXQuery(String xquery) {
+		Integer count;
+		if ((count = _cachedXQueries.putIfAbsent(xquery, 1)) != null) {
+			while (!_cachedXQueries.replace(xquery, count, ++count)) {
+				count = _cachedXQueries.get(xquery);
+			}
+		}
+	}
+
+	public void removeCachedXQuery(String xquery) {
+		Integer count;
+		do {
+			count = _cachedXQueries.get(xquery);
+		} while (!_cachedXQueries.replace(xquery, count, --count));
+	}
+
+	public int getCachedXQueriesTotal() {
+		int sum = 0;
+		for (Integer count : _cachedXQueries.values()) {
+			sum += count;
+		}
+		return sum;
 	}
 
 }
