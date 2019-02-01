@@ -25,12 +25,25 @@ public class XMLArtifact extends Artifact {
 	}
 
 	@Override
-	public XMLArtifact clone(Directory parent) {
+	protected XMLArtifact clone(Directory parent) {
 		return initClone(new XMLArtifact(parent, getName()));
 	}
 
 	@Override
-	protected void validateInternal(GlobalContext globalContext) {
+	protected void validateInternal(GlobalContext globalContext) throws Exception {
+	}
+
+	protected final ArtifactURIResolver getURIResolver() {
+		return new ArtifactURIResolver() {
+			@Override
+			public Artifact resolveArtifact(String path) {
+				Artifact artifact = getArtifact(path);
+				if (artifact != null) {
+					addReference(artifact);
+				}
+				return artifact;
+			}
+		};
 	}
 
 }

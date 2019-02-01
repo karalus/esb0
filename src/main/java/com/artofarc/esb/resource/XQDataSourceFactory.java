@@ -18,8 +18,6 @@ package com.artofarc.esb.resource;
 
 import java.util.HashMap;
 
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQDataSource;
@@ -44,9 +42,10 @@ import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
 import com.artofarc.esb.artifact.Artifact;
+import com.artofarc.esb.artifact.ArtifactURIResolver;
 import com.saxonica.xqj.SaxonXQDataSource;
 
-public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResolver {
+public final class XQDataSourceFactory implements ModuleURIResolver {
 
 	public static final String XPATH_EXTENSION_NS_URI = "http://artofarc.com/xpath-extension";
 	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
@@ -56,6 +55,11 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 	
 	// Is instance variable because it maintains state
 	private final Evaluate functionEvaluate = new Evaluate();
+	private final ArtifactURIResolver _artifactURIResolver;
+	
+	public XQDataSourceFactory(ArtifactURIResolver artifactURIResolver) {
+		_artifactURIResolver = artifactURIResolver;
+	}
 
 	public XQDataSource createXQDataSource() {
 		SaxonXQDataSource dataSource = new SaxonXQDataSource();
@@ -64,7 +68,7 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
 		configuration.registerExtensionFunction(functionEvaluate);
 		configuration.setModuleURIResolver(this);
-		configuration.setURIResolver(this);
+		configuration.setURIResolver(_artifactURIResolver);
 		return dataSource;
 	}
 
@@ -76,22 +80,12 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 	}
 
 	@Override
-	public StreamSource resolve(String href, String base) throws TransformerException {
-		String path = base + href;
-		Artifact artifact = resolveArtifact(path);
-		if (artifact == null) {
-			throw new TransformerException("document not found: " + path);
-		}
-		return new StreamSource(artifact.getContentAsByteArrayInputStream());
-	}
-
-	@Override
 	public StreamSource[] resolve(String moduleURI, String baseURI, String[] locations) throws XPathException {
 		StreamSource[] result = new StreamSource[locations.length];
 		for (int i = 0; i < locations.length; ++i) {
-			Artifact artifact = resolveArtifact(locations[i]);
+			Artifact artifact = _artifactURIResolver.resolveArtifact(locations[i]);
 			if (artifact == null) {
-				artifact = resolveArtifact(baseURI + locations[i]);
+				artifact = _artifactURIResolver.resolveArtifact(baseURI + locations[i]);
 				if (artifact == null) {
 					throw new XPathException(locations[i] + " in " + baseURI);
 				}
@@ -101,8 +95,6 @@ public abstract class XQDataSourceFactory implements URIResolver, ModuleURIResol
 		}
 		return result;
 	}
-
-	public abstract Artifact resolveArtifact(String path);
 
 	private static class UUID extends ExtensionFunctionDefinition {
 

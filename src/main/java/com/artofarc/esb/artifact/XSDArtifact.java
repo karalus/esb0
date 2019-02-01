@@ -31,7 +31,7 @@ public class XSDArtifact extends SchemaArtifact {
 	}
 
 	@Override
-	public XSDArtifact clone(Directory parent) {
+	protected XSDArtifact clone(Directory parent) {
 		XSDArtifact clone = initClone(new XSDArtifact(parent, getName()));
 		clone._jaxbContext = _jaxbContext;
 		clone._schema = _schema;

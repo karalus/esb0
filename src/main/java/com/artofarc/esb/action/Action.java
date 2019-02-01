@@ -39,19 +39,19 @@ public abstract class Action implements Cloneable {
 	// TODO: clone!
 	protected Action _errorHandler;
 
-	public Action setNextAction(Action nextAction) {
+	public final Action setNextAction(Action nextAction) {
 		return _nextAction = nextAction;
 	}
 
-	public Action getErrorHandler() {
+	public final Action getErrorHandler() {
 		return _errorHandler;
 	}
 
-	public void setErrorHandler(Action errorHandler) {
+	public final void setErrorHandler(Action errorHandler) {
 		_errorHandler = errorHandler;
 	}
 
-	public void process(Context context, ESBMessage message) throws Exception {
+	public final void process(Context context, ESBMessage message) throws Exception {
 		List<Action> pipeline = new ArrayList<>();
 		List<ExecutionContext> resources = new ArrayList<>();
 		TimeGauge timeGauge = new TimeGauge(Level.INFO, 250L);
@@ -136,7 +136,7 @@ public abstract class Action implements Cloneable {
 		return _pipelineStop;
 	}
 
-	public boolean isPipelineStart() {
+	public final boolean isPipelineStart() {
 		return _pipelineStart;
 	}
 

@@ -16,35 +16,24 @@
  */
 package com.artofarc.esb.artifact;
 
-import javax.xml.bind.JAXBException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.URIResolver;
+import javax.xml.transform.stream.StreamSource;
 
-import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.service.WorkerPool;
+public abstract class ArtifactURIResolver implements URIResolver {
 
-public class WorkerPoolArtifact extends AbstractServiceArtifact {
-
-	public final static String FILE_EXTENSION = "wpdef";
-
-	private WorkerPool _workerPool;
-
-	public WorkerPoolArtifact(Directory parent, String name) {
-		super(parent, name);
-	}
-
-	public WorkerPool getWorkerPool() {
-		return _workerPool;
-	}
+	public abstract Artifact resolveArtifact(String path);
 
 	@Override
-	protected WorkerPoolArtifact clone(Directory parent) {
-		WorkerPoolArtifact clone = initClone(new WorkerPoolArtifact(parent, getName()));
-		clone._workerPool = _workerPool;
-		return clone;
-	}
-
-	@Override
-	protected void validateInternal(GlobalContext globalContext) throws JAXBException {
-		_workerPool = unmarshal();
+	public StreamSource resolve(String href, String base) throws TransformerException {
+		String path = base + href;
+		Artifact artifact = resolveArtifact(path);
+		if (artifact == null) {
+			throw new TransformerException("document not found: " + path);
+		}
+		StreamSource source = new StreamSource(artifact.getContentAsByteArrayInputStream());
+		source.setSystemId(artifact.getURI());
+		return source;
 	}
 
 }

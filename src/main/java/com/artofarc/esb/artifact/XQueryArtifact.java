@@ -28,14 +28,14 @@ import javax.xml.xquery.XQStaticContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.resource.XQDataSourceFactory;
 
-public class XQueryArtifact extends Artifact {
+public class XQueryArtifact extends XMLArtifact {
 
 	public XQueryArtifact(Directory parent, String name) {
 		super(parent, name);
 	}
 
 	@Override
-	public XQueryArtifact clone(Directory parent) {
+	protected XQueryArtifact clone(Directory parent) {
 		return initClone(new XQueryArtifact(parent, getName()));
 	}
 
@@ -47,17 +47,7 @@ public class XQueryArtifact extends Artifact {
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws XQException {
 		// Needs an individual XQDataSourceFactory to track the use of modules
-		XQDataSourceFactory dataSourceFactory = new XQDataSourceFactory() {
-			@Override
-			public Artifact resolveArtifact(String path) {
-				Artifact artifact = getArtifact(path);
-				if (artifact != null) {
-					addReference(artifact);
-				}
-				return artifact;
-			}
-		};
-		XQConnection connection = dataSourceFactory.createXQDataSource().getConnection();
+		XQConnection connection = new XQDataSourceFactory(getURIResolver()).createXQDataSource().getConnection();
 		try {
 			XQStaticContext staticContext = XQDataSourceFactory.getStaticContext(connection, getParent().getURI());
 			staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);

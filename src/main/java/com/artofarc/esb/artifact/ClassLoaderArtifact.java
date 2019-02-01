@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
 import com.artofarc.esb.context.GlobalContext;
@@ -31,9 +30,9 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 	public ClassLoaderArtifact(Directory parent, String name) {
 		super(parent, name);
 	}
-	
+
 	@Override
-	public ClassLoaderArtifact clone(Directory parent) {
+	protected ClassLoaderArtifact clone(Directory parent) {
 		ClassLoaderArtifact clone = initClone(new ClassLoaderArtifact(parent, getName()));
 		clone._fileSystemClassLoader = _fileSystemClassLoader;
 		return clone;
@@ -44,20 +43,14 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 		ClassLoader classLoader = unmarshal();
 		ArrayList<JarArtifact> jars = new ArrayList<>();
 		for (String jar : classLoader.getJar()) {
-			JarArtifact jarArtifact = getArtifact(jar);
-			if (jarArtifact == null) {
-				throw new FileNotFoundException(jar);
-			}
+			JarArtifact jarArtifact = loadArtifact(jar);
 			addReference(jarArtifact);
 			jarArtifact.validate(globalContext);
 			jars.add(jarArtifact);
 		}
 		// parent
 		if (classLoader.getParent() != null) {
-			ClassLoaderArtifact classLoaderArtifact = getArtifact(classLoader.getParent() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
-			if (classLoaderArtifact == null) {
-				throw new FileNotFoundException(classLoader.getParent());
-			}
+			ClassLoaderArtifact classLoaderArtifact = loadArtifact(classLoader.getParent() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
 			addReference(classLoaderArtifact);
 			classLoaderArtifact.validate(globalContext);
 			_fileSystemClassLoader = new FileSystemClassLoader(jars, classLoaderArtifact.getFileSystemClassLoader());

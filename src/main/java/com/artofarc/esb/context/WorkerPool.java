@@ -146,7 +146,7 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 		Integer count;
 		do {
 			count = _cachedXQueries.get(xquery);
-		} while (!_cachedXQueries.replace(xquery, count, --count));
+		} while (!(count == 1 ? _cachedXQueries.remove(xquery, count) : _cachedXQueries.replace(xquery, count, --count)));
 	}
 
 	public int getCachedXQueriesTotal() {

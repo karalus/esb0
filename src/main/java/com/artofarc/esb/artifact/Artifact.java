@@ -17,6 +17,7 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Iterator;
@@ -126,7 +127,15 @@ public abstract class Artifact {
 	protected final <A extends Artifact> A getArtifact(String uri) {
 		return FileSystem.getArtifact(getParent(), uri);
 	}
-	
+
+	protected final <A extends Artifact> A loadArtifact(String uri) throws FileNotFoundException {
+		A artifact = FileSystem.getArtifact(getParent(), uri);
+		if (artifact == null) {
+			throw new FileNotFoundException(uri);
+		}
+		return artifact;
+	}
+
 	protected static InputStream getResourceAsStream(String name) {
 		return Artifact.class.getClassLoader().getResourceAsStream(name);
 	}
@@ -178,6 +187,6 @@ public abstract class Artifact {
 		return clone;
 	}
 
-	public abstract Artifact clone(Directory parent);
+	protected abstract Artifact clone(Directory parent);
 
 }

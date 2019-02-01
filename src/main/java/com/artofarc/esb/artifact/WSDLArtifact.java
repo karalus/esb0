@@ -97,7 +97,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	public WSDLArtifact clone(Directory parent) {
+	protected WSDLArtifact clone(Directory parent) {
 		WSDLArtifact clone = initClone(new WSDLArtifact(parent, getName()));
 		clone._definition = _definition;
 		clone._jaxbContext = _jaxbContext;

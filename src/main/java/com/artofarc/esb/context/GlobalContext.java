@@ -32,6 +32,7 @@ import javax.xml.xquery.XQDataSource;
 
 import com.artofarc.esb.Registry;
 import com.artofarc.esb.artifact.Artifact;
+import com.artofarc.esb.artifact.ArtifactURIResolver;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQDataSourceFactory;
@@ -39,6 +40,7 @@ import com.artofarc.esb.resource.XQDataSourceFactory;
 public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
 
 	private final InitialContext _initialContext;
+	private final ArtifactURIResolver _uriResolver;
 	private final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 	private final XQDataSource xqds;
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
@@ -54,12 +56,13 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		} catch (NamingException e) {
 			throw new RuntimeException(e);
 		}
-		xqds = new XQDataSourceFactory() {
+		_uriResolver = new ArtifactURIResolver() {
 			@Override
 			public Artifact resolveArtifact(String path) {
 				return getFileSystem().getArtifact(path);
 			}
-		}.createXQDataSource();
+		};
+		xqds = new XQDataSourceFactory(_uriResolver).createXQDataSource();
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
 		putWorkerPool(null, new WorkerPool(this, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
@@ -69,6 +72,10 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	public synchronized <O> O lookup(String name) throws NamingException {
 		// InitialContext is not thread safe
 		return (O) _initialContext.lookup(name);
+	}
+
+	public ArtifactURIResolver getUriResolver() {
+		return _uriResolver;
 	}
 
 	public XMLInputFactory getXMLInputFactory() {

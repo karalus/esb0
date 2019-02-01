@@ -38,7 +38,7 @@ public class JarArtifact extends Artifact {
 	}
 
 	@Override
-	public JarArtifact clone(Directory parent) {
+	protected JarArtifact clone(Directory parent) {
 		JarArtifact clone = initClone(new JarArtifact(parent, getName()));
 		clone._entries = _entries;
 		return clone;

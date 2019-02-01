@@ -185,7 +185,7 @@ public final class ESBMessage implements Cloneable {
 	public <T> T putVariable(String varName, Object value) {
 		return (T) (value != null ? _variables.put(varName, value) : _variables.remove(varName));
 	}
-	
+
 	public <T> T removeVariable(String varName) {
 		@SuppressWarnings("unchecked")
 		T result = (T) _variables.remove(varName);
@@ -194,7 +194,7 @@ public final class ESBMessage implements Cloneable {
 		}
 		return result;
 	}
-	
+
 	public void addAttachment(MimeBodyPart bodyPart) throws MessagingException {
 		String cid = bodyPart.getContentID();
 		cid = cid.substring(1, cid.length() - 1);
@@ -222,7 +222,7 @@ public final class ESBMessage implements Cloneable {
 		return (_sinkEncoding != null ? _sinkEncoding : getCharset()).name();
 	}
 	
-	private Properties getSinkProperties() {
+	public Properties getSinkProperties() {
 		Properties props = new Properties();
 		props.setProperty(OutputKeys.ENCODING, getSinkEncoding());
 		props.setProperty(OutputKeys.INDENT, XML_OUTPUT_INDENT);
@@ -268,7 +268,7 @@ public final class ESBMessage implements Cloneable {
 		}
 		return outputStream;
 	}
-	
+
 	public InputStream getUncompressedInputStream() throws IOException {
 		InputStream inputStream = (InputStream) _body;
 		final String contentEncoding = removeHeader(HTTP_HEADER_CONTENT_ENCODING);
@@ -390,7 +390,7 @@ public final class ESBMessage implements Cloneable {
 			return new ByteArrayInputStream(getBodyAsByteArray(context));
 		}
 	}
-	
+
 	public Reader getBodyAsReader(Context context) throws TransformerException, IOException, XQException {
 		switch (_bodyType) {
 		case READER:
@@ -406,7 +406,7 @@ public final class ESBMessage implements Cloneable {
 			return new StringReader(getBodyAsString(context));
 		}
 	}
-	
+
 	public Source getBodyAsSource(Context context) throws IOException {
 		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && (contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12))) {
@@ -426,7 +426,7 @@ public final class ESBMessage implements Cloneable {
 		}
 		return getBodyAsSourceInternal();
 	}
-	
+
 	private Source getBodyAsSourceInternal() throws IOException {
 		switch (_bodyType) {
 		case SOURCE:

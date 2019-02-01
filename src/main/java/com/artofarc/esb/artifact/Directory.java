@@ -39,7 +39,7 @@ public class Directory extends Artifact {
 	}
 
 	@Override
-	public Directory clone(Directory parent) {
+	protected Directory clone(Directory parent) {
 		Directory clone = initClone(new Directory(parent, getName()));
 		for (Entry<String, Artifact> entry : getArtifacts().entrySet()) {
 			clone.getArtifacts().put(entry.getKey(), entry.getValue().clone(clone));

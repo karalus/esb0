@@ -60,7 +60,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	}
 
 	@Override
-	public ServiceArtifact clone(Directory parent) {
+	protected ServiceArtifact clone(Directory parent) {
 		ServiceArtifact clone = initClone(new ServiceArtifact(parent, getName()));
 		clone._service = _service;
 		clone._consumerPort = _consumerPort;
@@ -175,10 +175,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				SetMessage setMessage = (SetMessage) jaxbElement.getValue();
 				java.lang.ClassLoader classLoader = null;
 				if (setMessage.getClassLoader() != null) {
-					ClassLoaderArtifact classLoaderArtifact = getArtifact(setMessage.getClassLoader() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
-					if (classLoaderArtifact == null) {
-						throw new FileNotFoundException(setMessage.getClassLoader());
-					}
+					ClassLoaderArtifact classLoaderArtifact = loadArtifact(setMessage.getClassLoader() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
 					addReference(classLoaderArtifact);
 					classLoaderArtifact.validate(globalContext);
 					classLoader = classLoaderArtifact.getFileSystemClassLoader();
@@ -231,10 +228,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "xml2json": {
 				Xml2Json xml2Json = (Xml2Json) jaxbElement.getValue();
-				SchemaArtifact schemaArtifact = getArtifact(xml2Json.getSchemaURI());
-				if (schemaArtifact == null) {
-					throw new FileNotFoundException(xml2Json.getSchemaURI());
-				}
+				SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
 				list.add(new XML2JsonAction(schemaArtifact.getJAXBContext(), Collections.inverseMap(createNsDecls(xml2Json.getNsDecl())),
@@ -243,10 +237,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "json2xml": {
 				Json2Xml json2Xml = (Json2Xml) jaxbElement.getValue();
-				SchemaArtifact schemaArtifact = getArtifact(json2Xml.getSchemaURI());
-				if (schemaArtifact == null) {
-					throw new FileNotFoundException(json2Xml.getSchemaURI());
-				}
+				SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
 				list.add(new Json2XMLAction(schemaArtifact.getJAXBContext(), Collections.inverseMap(createNsDecls(json2Xml.getNsDecl())),
@@ -258,25 +249,26 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				String xquery = transform.getXquery();
 				String baseURI = getParent().getURI();
 				if (transform.getXqueryURI() != null) {
-					XQueryArtifact xQueryArtifact = getArtifact(transform.getXqueryURI());
-					if (xQueryArtifact == null) {
-						throw new FileNotFoundException(transform.getXqueryURI());
-					}
+					XQueryArtifact xQueryArtifact = loadArtifact(transform.getXqueryURI());
 					addReference(xQueryArtifact);
 					xQueryArtifact.validate(globalContext);
 					xquery = xQueryArtifact.getXQuery();
 					baseURI = xQueryArtifact.getParent().getURI();
 				}
-				TransformAction transformAction = new TransformAction(xquery, baseURI);
-				list.add(transformAction);
+				list.add(new TransformAction(xquery, baseURI));
+				break;
+			}
+			case "applyXSLT": {
+				ApplyXSLT applyXSLT = (ApplyXSLT) jaxbElement.getValue();
+				XSLTArtifact xsltArtifact = loadArtifact(applyXSLT.getXslURI());
+				addReference(xsltArtifact);
+				xsltArtifact.validate(globalContext);
+				list.add(new XSLTAction(xsltArtifact.getTemplates()));
 				break;
 			}
 			case "unwrapSOAP": {
 				UnwrapSOAP unwrapSOAP11 = (UnwrapSOAP) jaxbElement.getValue();
-				WSDLArtifact wsdlArtifact = getArtifact(unwrapSOAP11.getWsdlURI());
-				if (wsdlArtifact == null) {
-					throw new FileNotFoundException(unwrapSOAP11.getWsdlURI());
-				}
+				WSDLArtifact wsdlArtifact = loadArtifact(unwrapSOAP11.getWsdlURI());
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
 				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getSchema(),
@@ -290,10 +282,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			case "preSOAPHttp": {
 				PreSOAPHttp preSOAP11Http = (PreSOAPHttp) jaxbElement.getValue();
-				WSDLArtifact wsdlArtifact = getArtifact(preSOAP11Http.getWsdlURI());
-				if (wsdlArtifact == null) {
-					throw new FileNotFoundException(preSOAP11Http.getWsdlURI());
-				}
+				WSDLArtifact wsdlArtifact = loadArtifact(preSOAP11Http.getWsdlURI());
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
 				PreSOAPHttpAction preSOAP11HttpAction = new PreSOAPHttpAction(preSOAP11Http.isSoap12(), preSOAP11Http.isHeader(), preSOAP11Http.isSinglePart(),
@@ -307,10 +296,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			case "validate": {
 				Validate validate = (Validate) jaxbElement.getValue();
-				SchemaArtifact schemaArtifact = getArtifact(validate.getSchemaURI());
-				if (schemaArtifact == null) {
-					throw new FileNotFoundException(validate.getSchemaURI());
-				}
+				SchemaArtifact schemaArtifact = loadArtifact(validate.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
 				list.add(new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet()));
@@ -327,10 +313,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "internalService": {
 				InternalService internalService = (InternalService) jaxbElement.getValue();
-				ServiceArtifact serviceArtifact = getArtifact(internalService.getServiceURI() + '.' + FILE_EXTENSION);
-				if (serviceArtifact == null) {
-					throw new FileNotFoundException(internalService.getServiceURI());
-				}
+				ServiceArtifact serviceArtifact = loadArtifact(internalService.getServiceURI() + '.' + FILE_EXTENSION);
 				addReference(serviceArtifact);
 				serviceArtifact.validate(globalContext);
 				list.addAll(serviceArtifact.getConsumerPort().getInternalService());
@@ -418,10 +401,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	private String resolveWorkerPool(String workerPool) throws FileNotFoundException {
 		if (workerPool != null) {
-			WorkerPoolArtifact workerPoolArtifact = getArtifact(workerPool + '.' + WorkerPoolArtifact.FILE_EXTENSION);
-			if (workerPoolArtifact == null) {
-				throw new FileNotFoundException(workerPool);
-			}
+			WorkerPoolArtifact workerPoolArtifact = loadArtifact(workerPool + '.' + WorkerPoolArtifact.FILE_EXTENSION);
 			addReference(workerPoolArtifact);
 			return WorkerPoolArtifact.stripExt(workerPoolArtifact.getURI());
 		} else {

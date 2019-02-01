@@ -296,6 +296,15 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<element name="applyXSLT" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase">
+					<attribute name="xslURI" type="anyURI" use="required" />
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
 	<complexType name="SOAPAction" abstract="true">
 		<complexContent>
 			<extension base="tns:ActionBase">

@@ -27,7 +27,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQDataFactory;
@@ -43,10 +43,19 @@ import com.artofarc.util.TimeGauge;
 public final class Context extends AbstractContext {
 
 	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
-	private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
+	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
 
 	static {
 		DOCUMENT_BUILDER_FACTORY.setNamespaceAware(true);
+		try {
+			SAX_TRANSFORMER_FACTORY.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
+		} catch (TransformerConfigurationException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static SAXTransformerFactory getSAXTransformerFactory() {
+		return SAX_TRANSFORMER_FACTORY;
 	}
 
 	private final PoolContext _poolContext;
@@ -61,7 +70,7 @@ public final class Context extends AbstractContext {
 	public Context(PoolContext poolContext) throws ParserConfigurationException, TransformerConfigurationException, XQException {
 		_poolContext = poolContext;
 		_documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-		_transformer = TRANSFORMER_FACTORY.newTransformer();
+		_transformer = SAX_TRANSFORMER_FACTORY.newTransformer();
 		_xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
 		XQStaticContext staticContext = _xqConnection.getStaticContext();
 		staticContext.setBindingMode(XQConstants.BINDING_MODE_DEFERRED);

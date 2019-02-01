@@ -64,7 +64,7 @@ public final class FileSystem {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected static final <A extends Artifact> A getArtifact(Directory current, String uri) {
+	protected static <A extends Artifact> A getArtifact(Directory current, String uri) {
 		if (uri == null) return (A) current;
 		int i = 0, j;
 		while ((j = uri.indexOf('/', i)) >= 0) {
@@ -126,7 +126,7 @@ public final class FileSystem {
 		}
 	}
 
-	protected static final byte[] readFile(final File file) throws IOException {
+	protected static byte[] readFile(final File file) throws IOException {
 		final byte[] ba = new byte[(int) file.length()];
 		try (final DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
 			dis.readFully(ba);
@@ -134,7 +134,7 @@ public final class FileSystem {
 		return ba;
 	}
 
-	protected static final void readDir(Directory base, File dir) throws IOException {
+	protected static void readDir(Directory base, File dir) throws IOException {
 		for (File file : dir.listFiles()) {
 			String name = file.getName();
 			if (file.isDirectory()) {
@@ -149,7 +149,7 @@ public final class FileSystem {
 		}
 	}
 
-	protected static final void writeDir(Directory base, File dir) throws IOException {
+	protected static void writeDir(Directory base, File dir) throws IOException {
 		boolean prepared;
 		if (!dir.exists()) {
 			prepared = dir.mkdirs();
@@ -171,7 +171,7 @@ public final class FileSystem {
 		}
 	}
 	
-	protected static final Artifact createArtifact(Directory parent, String name) {
+	protected static Artifact createArtifact(Directory parent, String name) {
 		// Mac OSX
 		if (name.startsWith("._"))
 			return null;
@@ -188,6 +188,9 @@ public final class FileSystem {
 		case "xqm":
 		case "xqy":
 			return new XQueryArtifact(parent, name);
+		case "xsl":
+		case "xslt":
+			return new XSLTArtifact(parent, name);
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(parent, name);
 		case ClassLoaderArtifact.FILE_EXTENSION:
