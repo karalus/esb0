@@ -46,9 +46,7 @@ public class XSLTArtifact extends XMLArtifact {
 		SAXTransformerFactory saxTransformerFactory = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
 		saxTransformerFactory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
 		saxTransformerFactory.setURIResolver(getURIResolver());
-		StreamSource source = new StreamSource(getContentAsByteArrayInputStream());
-		source.setSystemId(getURI());
-		_templates = saxTransformerFactory.newTemplates(source);
+		_templates = saxTransformerFactory.newTemplates(new StreamSource(getContentAsByteArrayInputStream()));
 		// set imports/includes to validated 
 		for (String referenced : getReferenced()) {
 			getArtifact(referenced).setValidated(true);
