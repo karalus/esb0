@@ -37,35 +37,35 @@ import javax.xml.xquery.XQSequenceType;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.ByteArrayWrapper;
 
 public class TransformAction extends Action {
 
-	private final ByteArrayWrapper _xquery;
+	private final XQuerySource _xquery;
 	private final List<String> _varNames;
 	private final String _baseURI; 
 	protected List<String> _bindNames;
 	private final HashMap<QName, XQItemType> _bindings = new HashMap<>();
 	protected String _contextItem;
 
-	protected TransformAction(byte[] xquery, List<String> varNames, String baseURI) {
-		_xquery = new ByteArrayWrapper(xquery);
+	protected TransformAction(XQuerySource xquery, List<String> varNames, String baseURI) {
+		_xquery = xquery;
 		_varNames = varNames;
 		_baseURI = baseURI;
 	}
 
-	public TransformAction(byte[] xquery, String baseURI) {
+	public TransformAction(XQuerySource xquery, String baseURI) {
 		this(xquery, Collections.<String> emptyList(), baseURI);
 	}
 
 	protected TransformAction(String xquery, List<String> varNames) {
-		this(xquery.getBytes(), varNames, null);
+		this(new XQuerySource(xquery), varNames, null);
 	}
 
 	protected TransformAction(String xquery) {
-		this(xquery.getBytes(), null);
+		this(new XQuerySource(xquery), null);
 	}
 
 	private synchronized void initBindings(XQPreparedExpression xqExpression, XQDataFactory xqDataFactory, ESBMessage message) throws Exception {

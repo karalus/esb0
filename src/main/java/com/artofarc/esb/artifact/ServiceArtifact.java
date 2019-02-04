@@ -29,6 +29,7 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.action.*;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jms.JMSConsumer;
@@ -250,9 +251,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					XQueryArtifact xQueryArtifact = loadArtifact(transform.getXqueryURI());
 					addReference(xQueryArtifact);
 					xQueryArtifact.validate(globalContext);
-					list.add(new TransformAction(xQueryArtifact.getContent(), xQueryArtifact.getParent().getURI()));
+					list.add(new TransformAction(new XQuerySource(xQueryArtifact.getContent()), xQueryArtifact.getParent().getURI()));
 				} else if (transform.getXquery() != null) {
-					list.add(new TransformAction(transform.getXquery().getBytes(), getParent().getURI()));
+					list.add(new TransformAction(new XQuerySource(transform.getXquery()), getParent().getURI()));
 				} else {
 					throw new ValidationException(this, "transform has no XQuery");
 				}

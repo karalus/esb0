@@ -28,7 +28,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.artofarc.util.ByteArrayWrapper;
 
 public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
@@ -37,7 +36,7 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 	private final ThreadPoolExecutor _executorService;
 	private final ScheduledExecutorService _scheduledExecutorService;
 	private final AsyncProcessingPool _asyncProcessingPool;
-	private final ConcurrentHashMap<ByteArrayWrapper, Integer> _cachedXQueries = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<XQuerySource, Integer> _cachedXQueries = new ConcurrentHashMap<>();
 
 	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
 		_poolContext = new PoolContext(globalContext, name);
@@ -135,13 +134,13 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 
 	public List<String> getCachedXQueries() {
 		List<String> result = new ArrayList<>(); 
-		for (ByteArrayWrapper xquery : _cachedXQueries.keySet()) {
+		for (XQuerySource xquery : _cachedXQueries.keySet()) {
 			result.add(xquery.toString());
 		}
 		return result;
 	}
 
-	public void addCachedXQuery(ByteArrayWrapper xquery) {
+	public void addCachedXQuery(XQuerySource xquery) {
 		Integer count;
 		if ((count = _cachedXQueries.putIfAbsent(xquery, 1)) != null) {
 			while (!_cachedXQueries.replace(xquery, count, ++count)) {
@@ -150,7 +149,7 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 		}
 	}
 
-	public void removeCachedXQuery(ByteArrayWrapper xquery) {
+	public void removeCachedXQuery(XQuerySource xquery) {
 		Integer count;
 		do {
 			count = _cachedXQueries.get(xquery);

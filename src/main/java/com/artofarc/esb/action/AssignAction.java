@@ -39,14 +39,12 @@ public class AssignAction extends TransformAction {
 		_pipelineStop = contextItem != null;
 	}
 
-	private AssignAction(ArrayList<String> varNames, Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces,
-			List<String> bindNames) {
+	private AssignAction(ArrayList<String> varNames, Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames) {
 		super(createQuery(assignments, namespaces, varNames, bindNames), varNames);
 		_bindNames = bindNames;
 	}
 
-	private static String createQuery(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces,
-			List<String> varNames, List<String> bindNames) {
+	private static String createQuery(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> varNames, List<String> bindNames) {
 		StringBuilder builder = new StringBuilder();
 		if (namespaces != null) {
 			for (Map.Entry<String, String> entry : namespaces) {
