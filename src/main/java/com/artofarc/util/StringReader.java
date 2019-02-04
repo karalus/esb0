@@ -19,8 +19,8 @@ package com.artofarc.util;
 public final class StringReader extends java.io.Reader {
 
 	private final StringBuilder builder;
+	private final int length;
 
-	private int length;
 	private int next;
 	private int mark;
 

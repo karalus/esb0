@@ -60,8 +60,8 @@ public class TransformAction extends Action {
 		this(xquery, Collections.<String> emptyList(), baseURI);
 	}
 
-	protected TransformAction(String xquery, List<String> varNames, String baseURI) {
-		this(xquery.getBytes(), varNames, baseURI);
+	protected TransformAction(String xquery, List<String> varNames) {
+		this(xquery.getBytes(), varNames, null);
 	}
 
 	protected TransformAction(String xquery) {

@@ -41,7 +41,7 @@ public class AssignAction extends TransformAction {
 
 	private AssignAction(ArrayList<String> varNames, Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces,
 			List<String> bindNames) {
-		super(createQuery(assignments, namespaces, varNames, bindNames), varNames, null);
+		super(createQuery(assignments, namespaces, varNames, bindNames), varNames);
 		_bindNames = bindNames;
 	}
 

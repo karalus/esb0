@@ -128,7 +128,7 @@ public class HttpServletResponseAction extends Action {
 		AsyncContext asyncContext = execContext.getResource();
 		message.closeBody();
 		if (_multipartResponse) {
-			String contentType = message.<String> getHeader(HTTP_HEADER_CONTENT_TYPE);
+			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 			MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"');
 			ByteArrayOutputStream bos = execContext.getResource2();
 			if (bos == null) {
