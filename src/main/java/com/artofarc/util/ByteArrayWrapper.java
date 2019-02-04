@@ -14,33 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.mbean;
+package com.artofarc.util;
 
-import java.util.List;
-import java.util.Set;
+import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 
-public interface WorkerPoolMXBean {
+public final class ByteArrayWrapper {
 
-	String getName();
+	private final byte[] _data;
+	private final int _hashCode;
 
-	int getActiveCount();
+	public ByteArrayWrapper(byte[] data) {
+		_data = data;
+		_hashCode = Arrays.hashCode(_data);
+	}
 
-	int getMaximumPoolSize();
+	@Override
+	public int hashCode() {
+		return _hashCode;
+	}
 
-	int getCorePoolSize();
+	@Override
+	public boolean equals(Object other) {
+		if (other instanceof ByteArrayWrapper) {
+			return Arrays.equals(_data, ((ByteArrayWrapper) other)._data);
+		}
+		return false;
+	}
 
-	long getCompletedTaskCount();
+	@Override
+	public String toString() {
+		return new String(_data);
+	}
 
-	int getQueueSize();
-
-	int getRemainingCapacity();
-
-	int getAsyncProcessingPoolSize();
-
-	Set<String> getJMSSessionFactories();
-
-	List<String> getCachedXQueries();
-
-	int getCachedXQueriesTotal();
+	public ByteArrayInputStream getByteArrayInputStream() {
+		return new ByteArrayInputStream(_data);
+	}
 
 }

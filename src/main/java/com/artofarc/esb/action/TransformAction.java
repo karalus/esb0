@@ -39,28 +39,33 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ByteArrayWrapper;
 
 public class TransformAction extends Action {
 
-	private final String _xquery;
+	private final ByteArrayWrapper _xquery;
 	private final List<String> _varNames;
 	private final String _baseURI; 
 	protected List<String> _bindNames;
 	private final HashMap<QName, XQItemType> _bindings = new HashMap<>();
 	protected String _contextItem;
 
-	public TransformAction(String xquery, String baseURI) {
+	protected TransformAction(byte[] xquery, List<String> varNames, String baseURI) {
+		_xquery = new ByteArrayWrapper(xquery);
+		_varNames = varNames;
+		_baseURI = baseURI;
+	}
+
+	public TransformAction(byte[] xquery, String baseURI) {
 		this(xquery, Collections.<String> emptyList(), baseURI);
 	}
 
-	protected TransformAction(String xquery) {
-		this(xquery, null);
+	protected TransformAction(String xquery, List<String> varNames, String baseURI) {
+		this(xquery.getBytes(), varNames, baseURI);
 	}
 
-	protected TransformAction(String xquery, List<String> varNames, String baseURI) {
-		_xquery = xquery;
-		_varNames = varNames;
-		_baseURI = baseURI;
+	protected TransformAction(String xquery) {
+		this(xquery.getBytes(), null);
 	}
 
 	private synchronized void initBindings(XQPreparedExpression xqExpression, XQDataFactory xqDataFactory, ESBMessage message) throws Exception {

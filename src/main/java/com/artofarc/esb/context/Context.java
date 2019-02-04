@@ -37,6 +37,7 @@ import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.resource.XQDataSourceFactory;
+import com.artofarc.util.ByteArrayWrapper;
 import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.TimeGauge;
 
@@ -63,7 +64,7 @@ public final class Context extends AbstractContext {
 	private final FastInfosetDeserializer _fastInfosetDeserializer = new FastInfosetDeserializer();
 	private final Transformer _transformer;
 	private final XQConnection _xqConnection;
-	private final HashMap<String, XQPreparedExpression> _mapXQ = new HashMap<>();
+	private final HashMap<ByteArrayWrapper, XQPreparedExpression> _mapXQ = new HashMap<>();
 	private final TimeGauge _timeGauge = new TimeGauge(Level.FINE);
 	private final Deque<Action> _executionStack = new ArrayDeque<>();
 
@@ -106,13 +107,13 @@ public final class Context extends AbstractContext {
 		return _xqConnection;
 	}
 
-	public XQPreparedExpression getXQPreparedExpression(String xquery, String baseURI) throws XQException {
+	public XQPreparedExpression getXQPreparedExpression(ByteArrayWrapper xquery, String baseURI) throws XQException {
 		XQPreparedExpression preparedExpression = _mapXQ.get(xquery);
 		if (preparedExpression == null) {
 			if (baseURI != null) {
-				preparedExpression = _xqConnection.prepareExpression(xquery, XQDataSourceFactory.getStaticContext(_xqConnection, baseURI));
+				preparedExpression = _xqConnection.prepareExpression(xquery.getByteArrayInputStream(), XQDataSourceFactory.getStaticContext(_xqConnection, baseURI));
 			} else {
-				preparedExpression = _xqConnection.prepareExpression(xquery);
+				preparedExpression = _xqConnection.prepareExpression(xquery.getByteArrayInputStream());
 			}
 			_mapXQ.put(xquery, preparedExpression);
 			_poolContext.getWorkerPool().addCachedXQuery(xquery);
@@ -123,7 +124,7 @@ public final class Context extends AbstractContext {
 	@Override
 	public void close() {
 		try {
-			for (Entry<String, XQPreparedExpression> entry : _mapXQ.entrySet()) {
+			for (Entry<ByteArrayWrapper, XQPreparedExpression> entry : _mapXQ.entrySet()) {
 				_poolContext.getWorkerPool().removeCachedXQuery(entry.getKey());
 				entry.getValue().close();
 			}

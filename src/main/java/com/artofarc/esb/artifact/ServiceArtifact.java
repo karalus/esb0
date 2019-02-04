@@ -246,16 +246,16 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "transform": {
 				Transform transform = (Transform) jaxbElement.getValue();
-				String xquery = transform.getXquery();
-				String baseURI = getParent().getURI();
 				if (transform.getXqueryURI() != null) {
 					XQueryArtifact xQueryArtifact = loadArtifact(transform.getXqueryURI());
 					addReference(xQueryArtifact);
 					xQueryArtifact.validate(globalContext);
-					xquery = xQueryArtifact.getXQuery();
-					baseURI = xQueryArtifact.getParent().getURI();
+					list.add(new TransformAction(xQueryArtifact.getContent(), xQueryArtifact.getParent().getURI()));
+				} else if (transform.getXquery() != null) {
+					list.add(new TransformAction(transform.getXquery().getBytes(), getParent().getURI()));
+				} else {
+					throw new ValidationException(this, "transform has no XQuery");
 				}
-				list.add(new TransformAction(xquery, baseURI));
 				break;
 			}
 			case "applyXSLT": {

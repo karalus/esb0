@@ -271,7 +271,7 @@ public class SOAPTest extends AbstractESBTest {
       XQueryArtifact xqueryArtifact = new XQueryArtifact(context.getPoolContext().getGlobalContext().getFileSystem().getRoot(), null);
       xqueryArtifact.setContent("declare variable $request as element() external; $request".getBytes());
       xqueryArtifact.validateInternal(context.getPoolContext().getGlobalContext());
-      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery());
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getContent(), null);
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
@@ -293,7 +293,7 @@ public class SOAPTest extends AbstractESBTest {
 		XMLArtifact staticXML = new XMLArtifact(staticData, "static.xml");
 		staticXML.setContent("<root>Hello World!</root>".getBytes());
       xqueryArtifact.validateInternal(context.getPoolContext().getGlobalContext());
-      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery());
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getContent(), null);
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
@@ -318,7 +318,7 @@ public class SOAPTest extends AbstractESBTest {
       assertTrue(module.isValidated());
       assertTrue(xqueryArtifact.getReferenced().size() > 0);
       assertTrue(xqueryArtifact.getReferenced().contains("/modules/helloworld.xqy"));
-      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("greetings"), xqueryArtifact.getParent().getURI());
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getContent(), Arrays.asList("greetings"), xqueryArtifact.getParent().getURI());
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
@@ -338,12 +338,12 @@ public class SOAPTest extends AbstractESBTest {
 		XQueryArtifact module = new XQueryArtifact(modules, "helloworld.xqy");
       module.setContent("module namespace hello = 'http://helloworld'; declare function hello:helloworld() { 'hello world' };".getBytes());
       XQueryArtifact xqueryArtifact = new XQueryArtifact(globalContext.getFileSystem().getRoot(), "test.xqy");
-      xqueryArtifact.setContent("import module namespace hw='http://helloworld' at 'modules/helloworld.xqy'; declare variable $request as element() external; (hw:helloworld(), $request)".getBytes());
+      xqueryArtifact.setContent("import module namespace hw='http://helloworld' at '/modules/helloworld.xqy'; declare variable $request as element() external; (hw:helloworld(), $request)".getBytes());
       xqueryArtifact.validateInternal(globalContext);
       assertTrue(module.isValidated());
       assertTrue(xqueryArtifact.getReferenced().size() > 0);
       assertTrue(xqueryArtifact.getReferenced().contains("/modules/helloworld.xqy"));
-      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("greetings"), xqueryArtifact.getParent().getURI());
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getContent(), Arrays.asList("greetings"), xqueryArtifact.getParent().getURI());
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
@@ -365,7 +365,7 @@ public class SOAPTest extends AbstractESBTest {
       XQueryArtifact xqueryArtifact = new XQueryArtifact(null, null);
       xqueryArtifact.setContent("import schema default element namespace 'http://aoa.de/ei/foundation/v1' at '/kdf.xsd'; declare variable $request as element() external; (validate($request/*[1]/*[1]), $request)".getBytes());
       xqueryArtifact.validateInternal(globalContext);
-      TransformAction nextAction = new TransformAction(xqueryArtifact.getXQuery(), Arrays.asList("validate"), xqueryArtifact.getParent().getURI());
+      TransformAction nextAction = new TransformAction(xqueryArtifact.getContent(), Arrays.asList("validate"), xqueryArtifact.getParent().getURI());
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);

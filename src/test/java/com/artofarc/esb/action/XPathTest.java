@@ -87,6 +87,20 @@ public class XPathTest extends AbstractESBTest {
    }
    
    @Test
+   public void testJavaExtensionEvaluate() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
+      LinkedHashMap<String, String> map = new LinkedHashMap<>();
+      map.put("result", "fn-artofarc:evaluate('test/text()')");
+      LinkedHashMap<String, String> ns = new LinkedHashMap<>();
+      Action action = new AssignAction(map.entrySet(), ns.entrySet(), Collections.<String>emptyList(), null);
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
+      assertEquals("Hello World!", message.getVariable("result"));
+   }
+   
+   @Test
    public void testLegacySupport() throws Exception {
       GlobalContext globalContext = context.getPoolContext().getGlobalContext();
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
@@ -94,8 +108,10 @@ public class XPathTest extends AbstractESBTest {
       Directory queries = new Directory(globalContext.getFileSystem().getRoot(), "queries");
 		XQueryArtifact module = new XQueryArtifact(modules, "osb-legacy-support.xqy");
 		module.setContent(readFile("src/test/resources/osb-legacy-support.xqy"));
+//		module = new XQueryArtifact(modules, "functx-1.0-doc-2007-01.xq");
+//		module.setContent(readFile("src/test/resources/functx-1.0-doc-2007-01.xq"));
       XQueryArtifact xqueryArtifact = new XQueryArtifact(queries, "test.xqy");
-      String xqueryStr = "import module namespace fn-bea='http://osb-legacy-support' at '../modules/osb-legacy-support.xqy';\n" +
+      String xqueryStr = "import module namespace fn-bea='http://osb-legacy-support' at '/modules/osb-legacy-support.xqy';\n" +
       		"(:: pragma bea:global-element-parameter parameter=\"$messageHeader1\" ::)" +
       		"(<doc>" +
       		"<messageId>M-{ fn-bea:uuid() }</messageId>" +
@@ -108,8 +124,8 @@ public class XPathTest extends AbstractESBTest {
       xqueryArtifact.validateInternal(globalContext);
       assertTrue(module.isValidated());
       assertTrue(xqueryArtifact.getReferenced().size() > 0);
-      assertTrue(xqueryArtifact.getReferenced().contains("/modules/osb-legacy-support.xqy"));
-      Action action = new TransformAction(xqueryArtifact.getXQuery(),  Collections.<String> emptyList(), xqueryArtifact.getParent().getURI());
+      //assertTrue(xqueryArtifact.getReferenced().contains("/modules/osb-legacy-support-v1.xqm"));
+      Action action = new TransformAction(xqueryArtifact.getContent(), xqueryArtifact.getParent().getURI());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new DumpAction());

@@ -16,8 +16,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.nio.charset.StandardCharsets;
-
 import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
@@ -37,11 +35,6 @@ public class XQueryArtifact extends XMLArtifact {
 	@Override
 	protected XQueryArtifact clone(Directory parent) {
 		return initClone(new XQueryArtifact(parent, getName()));
-	}
-
-	public String getXQuery() {
-		// TODO: UTF-8 is just an assumption
-		return new String(getContent(), StandardCharsets.UTF_8);
 	}
 
 	@Override
