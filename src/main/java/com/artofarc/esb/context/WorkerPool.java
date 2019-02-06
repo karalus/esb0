@@ -18,6 +18,7 @@ package com.artofarc.esb.context;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,9 +28,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
-
-public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.WorkerPoolMXBean {
+public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
 	private final PoolContext _poolContext;
 	private final WorkerPoolThreadFactory _threadFactory;
@@ -37,6 +38,7 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 	private final ScheduledExecutorService _scheduledExecutorService;
 	private final AsyncProcessingPool _asyncProcessingPool;
 	private final ConcurrentHashMap<XQuerySource, Integer> _cachedXQueries = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Thread, String> _threads = new ConcurrentHashMap<>();
 
 	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
 		_poolContext = new PoolContext(globalContext, name);
@@ -53,6 +55,7 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 		}
 		if (scheduledThreads > 0) {
 			_scheduledExecutorService = Executors.newScheduledThreadPool(scheduledThreads, _threadFactory);
+			_scheduledExecutorService.scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
 			_asyncProcessingPool = new AsyncProcessingPool(this);
 		} else {
 			_scheduledExecutorService = null;
@@ -80,6 +83,12 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 		return _asyncProcessingPool;
 	}
 
+	public void addThread(Thread thread, String info) {
+		if (_scheduledExecutorService != null && _threads.put(thread, info) == null) {
+			PoolContext.logger.log(Level.INFO, "adding thread " + thread.getName() + " for " + info);
+		}
+	}
+
 	@Override
 	public void close() {
 		if (_executorService != null) {
@@ -98,10 +107,6 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 
 	public String getName() {
 		return _threadFactory != null ? _threadFactory.getName() : null;
-	}
-
-	public int getActiveCount() {
-		return _threadFactory != null ? _threadFactory.activeCount() : -1;
 	}
 
 	public int getMaximumPoolSize() {
@@ -162,6 +167,53 @@ public final class WorkerPool implements AutoCloseable, com.artofarc.esb.mbean.W
 			sum += count;
 		}
 		return sum;
+	}
+
+	public List<String> getActiveThreads() {
+		List<String> result = new ArrayList<>();
+		if (_threadFactory != null) {
+			Thread[] list = new Thread[_threadFactory.activeCount()];
+			int c = _threadFactory.enumerate(list);
+			for (int i = 0; i < c; ++i) {
+				result.add(list[i].getName());
+			}
+		}
+		for (Thread thread : _threads.keySet()) {
+			if (thread.isAlive()) {
+				result.add(thread.getName());
+			}
+		}
+		return result;
+	}
+
+	public int getRunningThreadsCount() {
+		int sum = 0;
+		if (_threadFactory != null) {
+			Thread[] list = new Thread[_threadFactory.activeCount()];
+			int c = _threadFactory.enumerate(list);
+			for (int i = 0; i < c; ++i) {
+				if (list[i].getState() == Thread.State.RUNNABLE) {
+					++sum;
+				}
+			}
+		}
+		for (Thread thread : _threads.keySet()) {
+			if (thread.getState() == Thread.State.RUNNABLE) {
+				++sum;
+			}
+		}
+		return sum;
+	}
+
+	@Override
+	public void run() {
+		for (Entry<Thread, String> entry : _threads.entrySet()) {
+			Thread thread = entry.getKey();
+			if (!thread.isAlive()) {
+				_threads.remove(thread);
+				PoolContext.logger.log(Level.INFO, "removing Thread " + thread.getName() + " for " + entry.getValue());
+			}
+		}
 	}
 
 }

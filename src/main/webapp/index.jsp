@@ -46,11 +46,11 @@
 %>
 </table>
 <br>WorkerPools:
-<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Uri</b></td><td align="center"><b>ActiveCount</b></td><td align="center"><b>Size work queue</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Uri</b></td><td align="center"><b>Active Threads</b></td><td align="center"><b>Size of work queue</b></td><td align="center"><b>Running Threads</b></td></tr> 
 <%
 		for (WorkerPool workerPool : globalContext.getWorkerPools()) {
 		   %>
-		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=workerPool.getName()%></a></td><td><%=workerPool.getActiveCount()%></td><td><%=workerPool.getQueueSize()%></td></tr>
+		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=workerPool.getName()%></a></td><td><%=workerPool.getActiveThreads().size()%></td><td><%=workerPool.getQueueSize()%></td><td><%=workerPool.getRunningThreadsCount()%></td></tr>
 		   <%
 		}
 %>

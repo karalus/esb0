@@ -29,7 +29,7 @@ public class WorkerPoolThreadFactory extends ThreadGroup implements ThreadFactor
 	private static final ConcurrentHashMap<Thread, Context> _map = new ConcurrentHashMap<>();
 
 	private final PoolContext _poolContext;
-	private final AtomicInteger threadNumber = new AtomicInteger(1);
+	private final AtomicInteger threadNumber = new AtomicInteger();
 	private final String namePrefix;
 	private final int _priority;
 
@@ -55,7 +55,7 @@ public class WorkerPoolThreadFactory extends ThreadGroup implements ThreadFactor
 					_map.remove(Thread.currentThread());
 				}
 			}
-		}, namePrefix + threadNumber.getAndIncrement());
+		}, namePrefix + threadNumber.incrementAndGet());
 		thread.setPriority(_priority);
 		return thread;
 	}

@@ -52,6 +52,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, String jndiConnectionFactory, String jndiDestination, String queueName,
 			String topicName, String messageSelector, int workerCount) throws NamingException, JMSException {
+
 		super(uri);
 		_workerPool = workerPool;
 		_jndiConnectionFactory = jndiConnectionFactory;
@@ -94,8 +95,12 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		return builder.toString();
 	}
 
+	private String getDestinationName() {
+		return _queueName != null ? _queueName : _topicName;
+	}
+
 	public String getKey() {
-		return _jndiConnectionFactory + '|' + (_queueName != null ? _queueName : _topicName) + '|' + _messageSelector;
+		return _jndiConnectionFactory + '|' + getDestinationName() + '|' + _messageSelector;
 	}
 
 	public int getWorkerCount() {
@@ -143,12 +148,10 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		}
 	}
 
-	class JMSWorker implements MessageListener {
+	final class JMSWorker implements MessageListener {
 
 		private final Context _context;
-
 		private Session _session;
-
 		private volatile MessageConsumer _messageConsumer;
 
 		JMSWorker(Context context) {
@@ -194,22 +197,22 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 		@Override
 		public void onMessage(Message message) {
-			final ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
-			esbMessage.putVariable(ESBConstants.JMSOrigin, _queueName != null ? _queueName : _topicName);
+			_context.getPoolContext().getWorkerPool().addThread(Thread.currentThread(), getDestinationName());
+			ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
+			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
 			try {
 				fillESBMessage(esbMessage, message);
 			} catch (JMSException e) {
 				throw new RuntimeException(e);
 			}
-
 			try {
 				processInternal(_context, esbMessage);
 				_session.commit();
-			} catch (Exception e) {
+			} catch (Exception ex) {
 				try {
 					_session.rollback();
-				} catch (JMSException e1) {
-					throw new RuntimeException(e1);
+				} catch (JMSException e) {
+					throw new RuntimeException(e);
 				}
 			}
 		}

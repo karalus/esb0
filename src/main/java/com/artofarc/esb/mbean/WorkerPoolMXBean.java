@@ -23,7 +23,9 @@ public interface WorkerPoolMXBean {
 
 	String getName();
 
-	int getActiveCount();
+	List<String> getActiveThreads();
+
+	int getRunningThreadsCount();
 
 	int getMaximumPoolSize();
 
