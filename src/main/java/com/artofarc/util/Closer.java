@@ -21,12 +21,14 @@ import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Closer implements AutoCloseable {
 
-   protected final static Logger logger = Logger.getLogger("ESB");
-   
+	protected final static Logger logger = LoggerFactory.getLogger(Closer.class);
+
 	private final ArrayList<AutoCloseable> _closeables = new ArrayList<>();
 	private final ArrayList<Future<?>> _futures = new ArrayList<>();
 	private final ExecutorService _executorService;
@@ -35,15 +37,15 @@ public final class Closer implements AutoCloseable {
 		_executorService = executorService;
 	}
 	
-	public final static void closeQuietly(AutoCloseable closeable) {
+	public static void closeQuietly(AutoCloseable closeable) {
 		try {
 			closeable.close();
-			logger.fine("Closed " + closeable);
+			logger.debug("Closed " + closeable);
 		} catch (Exception e) {
-			logger.warning("Possible resource leak: Exception while closing " + closeable);
+			logger.warn("Possible resource leak: Exception while closing " + closeable);
 		}
 	}
-	
+
 	public Future<?> closeAsyncUnattended(final AutoCloseable closeable) {
 		return _executorService.submit(new Runnable() {
 
@@ -53,22 +55,22 @@ public final class Closer implements AutoCloseable {
 			}
 		});
 	}
-	
+
 	public void closeAsync(AutoCloseable closeable) {
 		_futures.add(closeAsyncUnattended(closeable));
 	}
-	
+
 	public void add(AutoCloseable closeable) {
 		_closeables.add(closeable);
 	}
-	
+
 	public void submit() {
 		for (AutoCloseable closeable : _closeables) {
 			closeAsync(closeable);
 		}
 		_closeables.clear();
 	}
-	
+
 	@Override
 	public void close() throws InterruptedException, ExecutionException {
 		for (Iterator<Future<?>> iter = _futures.iterator(); iter.hasNext();) {

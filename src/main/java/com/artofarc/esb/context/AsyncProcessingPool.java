@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.action.ThrowExceptionAction;
@@ -90,7 +89,7 @@ public final class AsyncProcessingPool implements Runnable {
 					action.setNextAction(asyncContext.nextAction);
 					action.process(context, message);
 				} catch (Exception e) {
-					Context.logger.log(Level.INFO, "Exception while expriring AsyncContext", e);
+					Context.logger.info("Exception while expriring AsyncContext", e);
 				}
 			}
 		}

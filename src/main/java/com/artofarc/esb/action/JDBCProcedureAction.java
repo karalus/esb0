@@ -47,7 +47,7 @@ public class JDBCProcedureAction extends JDBCAction {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 
 		final String sql = bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
-		logger.fine("JDBCProcedureAction sql=" + sql);
+		logger.debug("JDBCProcedureAction sql=" + sql);
 		try (Connection conn = getConnection(execContext);
 				AutoCloseable timer = context.getTimeGauge().createTimer("prepareCall & execute");
 				CallableStatement cs = conn.prepareCall(sql)) {

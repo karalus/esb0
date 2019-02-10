@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.logging.Level;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -63,13 +62,13 @@ public class KafkaConsumeAction extends TerminalAction {
 			for (Header header : record.headers()) {
 				msg.getHeaders().put(header.key(), new String(header.value(), ESBMessage.CHARSET_DEFAULT));
 			}
-			logger.fine("Kafka Consumer Record(topic=" + record.topic() + ", partition=" + record.partition() + ", offset=" + record.offset() + ")");
+			logger.debug("Kafka Consumer Record(topic=" + record.topic() + ", partition=" + record.partition() + ", offset=" + record.offset() + ")");
 			for(;;) {
 				try {
 					futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action>emptyList(), true), record);
 					break;
 				} catch (RejectedExecutionException e) {
-					logger.warning("Could not spawn to worker pool " + _workerPool);
+					logger.warn("Could not spawn to worker pool " + _workerPool);
 					Thread.sleep(100L);
 				}
 			}
@@ -79,7 +78,7 @@ public class KafkaConsumeAction extends TerminalAction {
 				SpawnAction.join(context, message, future);
 			} catch (Exception e) {
 				ConsumerRecord<?, ?> record = futures.get(future);
-				logger.log(Level.SEVERE, "Exception processing record from topic " + record.topic() + " in partition " + record.partition() + " with offset " + record.offset(), e);
+				logger.error("Exception processing record from topic " + record.topic() + " in partition " + record.partition() + " with offset " + record.offset(), e);
 			}
 		}
 		consumer.commitSync();

@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 
 import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConstants;
@@ -198,8 +197,8 @@ public class TransformAction extends Action {
 	protected final void close(ExecutionContext execContext) throws Exception {
 		XQResultSequence resultSequence = execContext.getResource();
 		if (resultSequence.next() && _contextItem == null) {
-			logger.fine("XQResultSequence not fully consumed");
-			if (logger.isLoggable(Level.FINE)) {
+			logger.debug("XQResultSequence not fully consumed");
+			if (logger.isDebugEnabled()) {
 				resultSequence.writeItem(System.err, null);
 			}
 		}

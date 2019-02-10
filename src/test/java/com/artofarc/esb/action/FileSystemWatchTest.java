@@ -44,6 +44,7 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		timerService.setStartAction(action);
 		timerService.init(context.getPoolContext().getGlobalContext());
 		timerService.enable(true);
+		Thread.sleep(10);
 		File outFile1 = new File(outDir, "test1");
 		File outFile2 = new File(outDir, "test2");
 		assertFalse(outFile1.exists());

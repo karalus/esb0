@@ -20,7 +20,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -64,7 +63,7 @@ public final class Context extends AbstractContext {
 	private final Transformer _transformer;
 	private final XQConnection _xqConnection;
 	private final HashMap<XQuerySource, XQPreparedExpression> _mapXQ = new HashMap<>();
-	private final TimeGauge _timeGauge = new TimeGauge(Level.FINE);
+	private final TimeGauge _timeGauge = new TimeGauge(logger);
 	private final Deque<Action> _executionStack = new ArrayDeque<>();
 
 	public Context(PoolContext poolContext) throws ParserConfigurationException, TransformerConfigurationException, XQException {

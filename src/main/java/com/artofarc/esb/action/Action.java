@@ -21,8 +21,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -32,7 +33,7 @@ import com.artofarc.util.TimeGauge;
 
 public abstract class Action implements Cloneable {
 
-	protected final static Logger logger = Logger.getLogger("ESB");
+	protected final static Logger logger = LoggerFactory.getLogger(Action.class);
 
 	protected Action _nextAction;
 
@@ -54,7 +55,7 @@ public abstract class Action implements Cloneable {
 	public final void process(Context context, ESBMessage message) throws Exception {
 		List<Action> pipeline = new ArrayList<>();
 		List<ExecutionContext> resources = new ArrayList<>();
-		TimeGauge timeGauge = new TimeGauge(Level.INFO, 250L);
+		TimeGauge timeGauge = new TimeGauge(logger, 250L);
 		timeGauge.startTimeMeasurement();
 		ArrayDeque<Integer> stackPosErrorHandler = new ArrayDeque<>();
 		stackPosErrorHandler.push(context.getExecutionStack().size());
@@ -90,7 +91,7 @@ public abstract class Action implements Cloneable {
 					timeGauge.stopTimeMeasurement("Execute: " + action, true);
 				}
 			} catch (Exception e) {
-				logger.log(Level.INFO, "Exception while processing " + action, e);
+				logger.info("Exception while processing " + action, e);
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
 				nextAction = action.getErrorHandler();

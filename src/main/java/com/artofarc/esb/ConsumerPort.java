@@ -17,7 +17,9 @@
 package com.artofarc.esb;
 
 import java.util.List;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.context.Context;
@@ -25,7 +27,7 @@ import com.artofarc.esb.message.ESBMessage;
 
 public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
 
-	protected final static Logger logger = Logger.getLogger("ESB");
+	protected final static Logger logger = LoggerFactory.getLogger(ConsumerPort.class);
 
 	private final String _uri;
 

@@ -24,7 +24,6 @@ import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -32,12 +31,15 @@ import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.naming.NamingException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
 public final class JMSConnectionProvider {
 
-	protected final static Logger logger = Logger.getLogger("ESB");
+	protected final static Logger logger = LoggerFactory.getLogger(JMSConnectionProvider.class);
 
 	private final HashMap<String, JMSConnectionGuard> _pool = new HashMap<>();
 	private final PoolContext _poolContext;
@@ -111,7 +113,7 @@ public final class JMSConnectionProvider {
 
 		@Override
 		public synchronized void onException(JMSException jmsException) {
-			logger.warning(_jndiConnectionFactory + ": Connection will be closed caused by: " + jmsException);
+			logger.warn(_jndiConnectionFactory + ": Connection will be closed caused by: " + jmsException);
 			// For Oracle AQ the connection must be closed first
 			try {
 				logger.info("Closing Connection");
@@ -161,7 +163,7 @@ public final class JMSConnectionProvider {
 				_scheduledExecutorService.shutdown();
 				_scheduledExecutorService = null;
 			} catch (Exception e) {
-				logger.severe(_jndiConnectionFactory + " reconnect failed: " + e);
+				logger.error(_jndiConnectionFactory + " reconnect failed: " + e);
 			}
 		}
 

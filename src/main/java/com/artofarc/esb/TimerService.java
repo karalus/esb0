@@ -19,7 +19,6 @@ package com.artofarc.esb;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPoolThreadFactory;
@@ -89,7 +88,7 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 		try {
 			process(WorkerPoolThreadFactory.getContext(), message);
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "Exception in forked action pipeline", e);
+			logger.error("Exception in forked action pipeline", e);
 		}
 	}
 

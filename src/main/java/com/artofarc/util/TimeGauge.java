@@ -17,26 +17,22 @@
 package com.artofarc.util;
 
 import java.util.Stack;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
 
 public final class TimeGauge implements AutoCloseable {
 
-	protected final static Logger logger = Logger.getLogger("ESB");
-
+	private final Logger _logger; 
+	private final long _threshold;
 	private final Stack<Long> timeMeasurement = new Stack<>();
 
-	private final Level _level;
-	
-	private final long _threshold;
-
-	public TimeGauge(Level level, long threshold) {
-		_level = level;
+	public TimeGauge(Logger logger, long threshold) {
+		_logger = logger;
 		_threshold = threshold;
 	}
 
-	public TimeGauge(Level level) {
-		this(level, 0L);
+	public TimeGauge(Logger logger) {
+		this(logger, 0L);
 	}
 
 	public void startTimeMeasurement() {
@@ -51,9 +47,9 @@ public final class TimeGauge implements AutoCloseable {
 		final long endTS = System.currentTimeMillis();
 		final long startTS = timeMeasurement.pop();
 		final long diff = endTS - startTS;
-		if (diff >= _threshold && logger.isLoggable(_level)) {
-			text = String.format(text, args);
-			logger.log(_level, text + " took " + diff / 1000. + "s");
+		if (diff >= _threshold && _logger.isInfoEnabled()) {
+			if (args.length > 0) text = String.format(text, args);
+			_logger.info(String.format(text, args) + " took " + diff / 1000. + "s");
 		}
 		if (restart) {
 			timeMeasurement.push(endTS);

@@ -22,13 +22,15 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.GlobalContext;
 
 public abstract class Artifact {
 
-	protected final static Logger logger = Logger.getLogger("ESB");
+	protected final static Logger logger = LoggerFactory.getLogger(Artifact.class);
 
 	private final Directory _parent;
 	private final String _name;
@@ -144,7 +146,7 @@ public abstract class Artifact {
 		if (artifact != this) {
 			getReferenced().add(artifact.getURI());
 			artifact.getReferencedBy().add(getURI());
-			logger.fine(getURI() + "->" + artifact);
+			logger.debug(getURI() + "->" + artifact);
 		}
 	}
 

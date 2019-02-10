@@ -27,12 +27,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
-import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class FileSystem {
 
-	protected final static Logger logger = Logger.getLogger("ESB");
+	protected final static Logger logger = LoggerFactory.getLogger(FileSystem.class);
 
 	private final Directory _root;
 	private final Map<String, ChangeType> _changes = new LinkedHashMap<>();
@@ -198,7 +200,7 @@ public final class FileSystem {
 		case "jar":
 			return new JarArtifact(parent, name);
 		default:
-			logger.fine("Cannot be imported: " + name);
+			logger.debug("Cannot be imported: " + name);
 			return null;
 		}
 	}

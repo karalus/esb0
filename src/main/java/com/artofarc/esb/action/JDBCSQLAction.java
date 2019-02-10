@@ -33,11 +33,11 @@ public class JDBCSQLAction extends JDBCAction {
 	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int fetchSize, int timeout) throws NamingException {
 		super(globalContext, dsName, sql, params, fetchSize, timeout);
 		if (sql != null) {
-	      int count = 0;
-	      for (int i = sql.length(); i > 0;) {
-	         // Not handling escape \?
-	         if (sql.charAt(--i) == '?') ++count;
-	      }
+			int count = 0;
+			for (int i = sql.length(); i > 0;) {
+				// Not handling escape \?
+				if (sql.charAt(--i) == '?') ++count;
+			}
 			if (params.size() != count) {
 				throw new IllegalArgumentException("Number of ? is not matching parameter count");
 			}
@@ -49,7 +49,7 @@ public class JDBCSQLAction extends JDBCAction {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 
 		final String sql = bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
-		logger.fine("JDBCSQLAction sql=" + sql);
+		logger.debug("JDBCSQLAction sql=" + sql);
 		try (Connection conn = getConnection(execContext);
 				AutoCloseable timer = context.getTimeGauge().createTimer("prepareStatement & execute");
 				PreparedStatement ps = conn.prepareStatement(sql)) {

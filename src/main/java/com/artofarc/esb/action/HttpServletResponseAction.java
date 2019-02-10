@@ -91,7 +91,7 @@ public class HttpServletResponseAction extends Action {
 					message.writeTo(new PreventFlushOutputStream(response.getOutputStream()), context);
 				}
 				if (message.getAttachments().size() > 0) {
-					logger.warning("Message has attachments");
+					logger.warn("Message has attachments");
 				}
 			}
 		}

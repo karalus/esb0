@@ -16,8 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.util.logging.Level;
-
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.WorkerPoolThreadFactory;
@@ -61,7 +59,7 @@ public class ForkAction extends Action {
 					copy.putVariable(ESBConstants.timeleftOrigin, copy.getVariables().remove(ESBConstants.timeleft));
 					_fork.process(WorkerPoolThreadFactory.getContext(), copy);
 				} catch (Exception e) {
-					logger.log(Level.SEVERE, "Exception in forked action pipeline", e);
+					logger.error("Exception in forked action pipeline", e);
 				}
 			}
 		});
