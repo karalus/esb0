@@ -56,10 +56,12 @@ public abstract class AbstractServiceArtifact extends Artifact {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected <S> S unmarshal() throws JAXBException {
+	protected final <S> S unmarshal() throws JAXBException {
 		Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
 		unmarshaller.setSchema(schema);
-		return (S) unmarshaller.unmarshal(getContentAsByteArrayInputStream());
+		InputStream inputStream = getContentAsByteArrayInputStream();
+		_content = null;
+		return (S) unmarshaller.unmarshal(inputStream);
 	}
 
 }

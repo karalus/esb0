@@ -18,6 +18,7 @@ package com.artofarc.esb.servlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 
 import javax.json.Json;
@@ -45,6 +46,7 @@ import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.util.Closer;
+import com.artofarc.util.StreamUtils;
 
 @WebServlet("/admin/deploy/*")
 @MultipartConfig
@@ -79,7 +81,9 @@ public class DeployServlet extends HttpServlet {
 				if (headerAccept == null || headerAccept.contains("text/")) {
 					resp.setContentType("text/plain");
 					resp.setHeader(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
-					resp.getOutputStream().write(artifact.getContent());
+					try (InputStream contentAsStream = artifact.getContentAsStream(getGlobalContext().getFileSystem().getAnchorDir())) {
+						StreamUtils.copy(contentAsStream, resp.getOutputStream());
+					}
 				} else {
 					resp.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
 				}
@@ -150,7 +154,7 @@ public class DeployServlet extends HttpServlet {
 			}
 		}
 		for (ServiceArtifact service : serviceArtifacts) {
-			switch (service.getService().getProtocol()) {
+			switch (service.getProtocol()) {
 			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();
 				HttpConsumer oldHttpConsumer = globalContext.bindHttpService(httpConsumer.getBindPath(), httpConsumer);

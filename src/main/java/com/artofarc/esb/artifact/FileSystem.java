@@ -17,7 +17,7 @@
 package com.artofarc.esb.artifact;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StreamUtils;
 
 import java.io.*;
 import java.util.*;
@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 
 import org.slf4j.Logger;
@@ -97,7 +98,7 @@ public final class FileSystem {
 	}
 
 	public ChangeSet parseDirectory(GlobalContext globalContext, File rootDir) throws IOException, ValidationException {
-		readDir(_root, rootDir);
+		readDir(_root, rootDir, new CRC32());
 		_anchorDir = rootDir;
 		ChangeSet services = new ChangeSet();
 		validateServices(globalContext, _root, services);
@@ -128,7 +129,7 @@ public final class FileSystem {
 		}
 	}
 
-	protected static byte[] readFile(final File file) throws IOException {
+	private static byte[] readFile(final File file) throws IOException {
 		final byte[] ba = new byte[(int) file.length()];
 		try (final DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
 			dis.readFully(ba);
@@ -136,16 +137,19 @@ public final class FileSystem {
 		return ba;
 	}
 
-	protected static void readDir(Directory base, File dir) throws IOException {
+	private static void readDir(Directory base, File dir, CRC32 crc) throws IOException {
 		for (File file : dir.listFiles()) {
 			String name = file.getName();
 			if (file.isDirectory()) {
-				readDir(new Directory(base, name), file);
+				readDir(new Directory(base, name), file, crc);
 			} else {
 				Artifact artifact = createArtifact(base, name);
 				if (artifact != null) {
 					artifact.setContent(readFile(file));
 					artifact.setModificationTime(file.lastModified());
+					crc.update(artifact.getContent());
+					artifact.setCrc(crc.getValue());
+					crc.reset();
 				}
 			}
 		}
@@ -173,7 +177,7 @@ public final class FileSystem {
 		}
 	}
 	
-	protected static Artifact createArtifact(Directory parent, String name) {
+	private static Artifact createArtifact(Directory parent, String name) {
 		// Mac OSX
 		if (name.startsWith("._"))
 			return null;
@@ -388,12 +392,11 @@ public final class FileSystem {
 					Artifact old = getArtifact(entry.getName());
 					Artifact artifact = createArtifact(dir, name);
 					if (artifact != null) {
-						ByteArrayOutputStream bos = new ByteArrayOutputStream(4096);
-						ESBMessage.copyStream(zis, bos);
-						artifact.setContent(bos.toByteArray());
+						artifact.setContent(StreamUtils.copy(zis));
 						artifact.setModificationTime(entry.getTime());
+						artifact.setCrc(entry.getCrc());
 						if (old != null) {
-							if (Arrays.equals(old.getContent(), artifact.getContent())) {
+							if (old.isEqual(artifact)) {
 								// Undo
 								dir.getArtifacts().put(name, old);
 							} else {

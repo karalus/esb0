@@ -32,6 +32,7 @@ import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.util.StreamUtils;
 
 public class HttpInboundAction extends Action {
 
@@ -60,8 +61,7 @@ public class HttpInboundAction extends Action {
 		if (nextActionIsPipelineStop) {
 			InputStream inputStream = execContext.getResource();
 			if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
-				OutputStream os = message.getBody();
-				ESBMessage.copyStream(inputStream, os);
+				StreamUtils.copy(inputStream, message.<OutputStream> getBody());
 			} else {
 				// TODO: Code coverage?
 				Result result = message.getBodyAsSinkResult(context);

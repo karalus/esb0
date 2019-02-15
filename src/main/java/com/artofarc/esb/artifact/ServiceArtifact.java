@@ -41,7 +41,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "xservice";
 
-	private Service _service;
+	private Protocol _protocol;
 	private ConsumerPort _consumerPort;
 
 	// only used during validation
@@ -51,43 +51,43 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		super(parent, name);
 	}
 
-	public Service getService() {
-		return _service;
+	public final Protocol getProtocol() {
+		return _protocol;
 	}
 
 	@SuppressWarnings("unchecked")
-	public <C extends ConsumerPort> C getConsumerPort() {
+	public final <C extends ConsumerPort> C getConsumerPort() {
 		return (C) _consumerPort;
 	}
 
 	@Override
 	protected ServiceArtifact clone(Directory parent) {
 		ServiceArtifact clone = initClone(new ServiceArtifact(parent, getName()));
-		clone._service = _service;
+		clone._protocol = _protocol;
 		clone._consumerPort = _consumerPort;
 		return clone;
 	}
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
-		_service = unmarshal();
+		Service service = unmarshal();
 		// parse
-		for (ActionPipeline actionPipeline : _service.getActionPipeline()) {
+		for (ActionPipeline actionPipeline : service.getActionPipeline()) {
 			_actionPipelines.put(actionPipeline.getName(), transform(globalContext, actionPipeline.getAction(), actionPipeline.getErrorHandler()));
 		}
-		List<Action> list = transform(globalContext, _service.getAction(), _service.getErrorHandler());
-		switch (_service.getProtocol()) {
+		List<Action> list = transform(globalContext, service.getAction(), service.getErrorHandler());
+		switch (_protocol = service.getProtocol()) {
 		case HTTP:
-			final Service.HttpBindURI httpBinding = _service.getHttpBindURI();
+			final Service.HttpBindURI httpBinding = service.getHttpBindURI();
 			_consumerPort = new HttpConsumer(getURI(), httpBinding.getValue(), httpBinding.getMinPool(), httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.isMultipartResponse(), httpBinding.getBufferSize());
 			break;
 		case JMS:
-			final Service.JmsBinding jmsBinding = _service.getJmsBinding();
+			final Service.JmsBinding jmsBinding = service.getJmsBinding();
 			_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getWorkerPool(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
 					jmsBinding.getTopicName(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount());
 			break;
 		case TIMER:
-			final Service.TimerBinding timerBinding = _service.getTimerBinding();
+			final Service.TimerBinding timerBinding = service.getTimerBinding();
 			_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getInitialDelay(), timerBinding.getPeriod(), timerBinding.isFixedDelay());
 			break;
 		default:
@@ -95,7 +95,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		_consumerPort.setInternalService(list);
-		_consumerPort.setEnabled(_service.isEnabled());
+		_consumerPort.setEnabled(service.isEnabled());
 		_actionPipelines.clear();
 	}
 

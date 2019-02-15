@@ -17,7 +17,10 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Iterator;
@@ -35,7 +38,9 @@ public abstract class Artifact {
 	private final Directory _parent;
 	private final String _name;
 
-	private byte[] _content;
+	protected byte[] _content;
+	protected int _length;
+	private long _crc;
 	private long _modificationTime;
 	private final LinkedHashSet<String> _referenced = new LinkedHashSet<>();
 	private final LinkedHashSet<String> _referencedBy = new LinkedHashSet<>();
@@ -48,6 +53,11 @@ public abstract class Artifact {
 		if (parent != null) {
 			parent.getArtifacts().put(name, this);
 		}
+	}
+
+	public final boolean isEqual(Artifact other) {
+		// not 100% certain, but very likely
+		return _length == other._length && _crc == other._crc;
 	}
 
 	public final Directory getParent() {
@@ -102,8 +112,9 @@ public abstract class Artifact {
 		return _content;
 	}
 
-	public final ByteArrayInputStream getContentAsByteArrayInputStream() {
-		return new ByteArrayInputStream(_content);
+	public final void setContent(byte[] content) {
+		_content = content;
+		_length = content.length;
 	}
 
 	public final long getModificationTime() {
@@ -114,8 +125,20 @@ public abstract class Artifact {
 		_modificationTime = modificationTime;
 	}
 
-	public final void setContent(byte[] content) {
-		_content = content;
+	public final long getCrc() {
+		return _crc;
+	}
+
+	public final void setCrc(long crc) {
+		_crc = crc;
+	}
+
+	public final InputStream getContentAsByteArrayInputStream() {
+		return new ByteArrayInputStream(_content);
+	}
+
+	public final InputStream getContentAsStream(File anchorDir) throws IOException {
+		return _content != null ? getContentAsByteArrayInputStream() : new FileInputStream(new File(anchorDir, getURI()));
 	}
 
 	protected final Directory getRootDirectory() {
@@ -185,7 +208,9 @@ public abstract class Artifact {
 			clone.getReferencedBy().addAll(getReferencedBy());
 		}
 		clone.setModificationTime(getModificationTime());
-		clone.setContent(getContent());
+		clone.setCrc(getCrc());
+		clone._content = _content;
+		clone._length = _length;
 		return clone;
 	}
 
