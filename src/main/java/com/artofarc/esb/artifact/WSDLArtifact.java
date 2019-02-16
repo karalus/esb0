@@ -192,7 +192,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		} else {
 			artifact = getArtifact(latestImportURI = importLocation);
 		}
-		return new InputSource(artifact.getContentAsByteArrayInputStream());
+		return new InputSource(artifact.getContentAsStream());
 	}
 
 	@Override

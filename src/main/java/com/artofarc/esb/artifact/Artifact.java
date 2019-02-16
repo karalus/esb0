@@ -20,7 +20,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Iterator;
@@ -37,14 +36,14 @@ public abstract class Artifact {
 
 	private final Directory _parent;
 	private final String _name;
-
-	protected byte[] _content;
-	protected int _length;
-	private long _crc;
-	private long _modificationTime;
 	private final LinkedHashSet<String> _referenced = new LinkedHashSet<>();
 	private final LinkedHashSet<String> _referencedBy = new LinkedHashSet<>();
 
+	protected byte[] _content;
+	protected int _length;
+	protected long _crc;
+	private long _modificationTime;
+	private FileSystem _fileSystem;
 	private boolean _validated;
 
 	public Artifact(Directory parent, String name) {
@@ -117,6 +116,14 @@ public abstract class Artifact {
 		_length = content.length;
 	}
 
+	protected void clearContent() {
+		_content = null;
+	}
+
+	protected final void setFileSystem(FileSystem fileSystem) {
+		_fileSystem = fileSystem;
+	}
+	
 	public final long getModificationTime() {
 		return _modificationTime;
 	}
@@ -125,20 +132,19 @@ public abstract class Artifact {
 		_modificationTime = modificationTime;
 	}
 
-	public final long getCrc() {
-		return _crc;
-	}
-
 	public final void setCrc(long crc) {
 		_crc = crc;
 	}
 
-	public final InputStream getContentAsByteArrayInputStream() {
-		return new ByteArrayInputStream(_content);
-	}
-
-	public final InputStream getContentAsStream(File anchorDir) throws IOException {
-		return _content != null ? getContentAsByteArrayInputStream() : new FileInputStream(new File(anchorDir, getURI()));
+	public final InputStream getContentAsStream() {
+		if (_content != null) {
+			return new ByteArrayInputStream(_content);
+		}
+		try {
+			return new FileInputStream(new File(_fileSystem.getAnchorDir(), getURI()));
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException("FileSystem corrupted", e);
+		}
 	}
 
 	protected final Directory getRootDirectory() {
@@ -208,7 +214,7 @@ public abstract class Artifact {
 			clone.getReferencedBy().addAll(getReferencedBy());
 		}
 		clone.setModificationTime(getModificationTime());
-		clone.setCrc(getCrc());
+		clone._crc = _crc;
 		clone._content = _content;
 		clone._length = _length;
 		return clone;

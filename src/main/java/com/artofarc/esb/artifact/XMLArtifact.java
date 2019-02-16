@@ -46,4 +46,8 @@ public class XMLArtifact extends Artifact {
 		};
 	}
 
+	@Override
+	protected void clearContent() {
+	}
+
 }

@@ -45,7 +45,7 @@ public class XQueryArtifact extends XMLArtifact {
 			XQStaticContext staticContext = XQDataSourceFactory.getStaticContext(connection, getParent().getURI());
 			staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
 			logger.info("Parsing XQuery: " + getURI());
-			XQPreparedExpression preparedExpression = connection.prepareExpression(getContentAsByteArrayInputStream(), staticContext);
+			XQPreparedExpression preparedExpression = connection.prepareExpression(getContentAsStream(), staticContext);
 			for (QName qName : preparedExpression.getAllExternalVariables()) {
 				logger.info("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
 			}

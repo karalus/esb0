@@ -68,7 +68,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 				artifact = getArtifact(uri.getPath());
 			}
 			lastUri = uri;
-			InputSource is = new InputSource(artifact.getContentAsByteArrayInputStream());
+			InputSource is = new InputSource(artifact.getContentAsStream());
 			is.setSystemId(systemId);
 			return is;
 		} catch (URISyntaxException e) {
@@ -99,7 +99,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 					systemId = artifact.getName();
 				}
 				base.addReference(artifact);
-				resourceAsStream = artifact.getContentAsByteArrayInputStream();
+				resourceAsStream = artifact.getContentAsStream();
 			}
 		}
 		if (resourceAsStream == null) {

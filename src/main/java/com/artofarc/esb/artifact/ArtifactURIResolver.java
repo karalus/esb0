@@ -31,7 +31,7 @@ public abstract class ArtifactURIResolver implements URIResolver {
 		if (artifact == null) {
 			throw new TransformerException("document not found: " + path);
 		}
-		StreamSource source = new StreamSource(artifact.getContentAsByteArrayInputStream());
+		StreamSource source = new StreamSource(artifact.getContentAsStream());
 		source.setSystemId(artifact.getURI());
 		return source;
 	}

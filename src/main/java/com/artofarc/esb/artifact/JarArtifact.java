@@ -53,9 +53,6 @@ public class JarArtifact extends Artifact {
 				}
 			}
 		}
-		if (CACHE_JARS_UNZIPPED) {
-			_content = null;
-		}
 	}
 
 	public final boolean contains(String filename) {
@@ -74,6 +71,13 @@ public class JarArtifact extends Artifact {
 			}
 		}
 		return _entries.get(filename);
+	}
+
+	@Override
+	protected void clearContent() {
+		if (CACHE_JARS_UNZIPPED) {
+			_content = null;
+		}
 	}
 
 }

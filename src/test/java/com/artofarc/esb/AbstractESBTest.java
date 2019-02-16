@@ -1,8 +1,6 @@
 package com.artofarc.esb;
 
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 
 import org.junit.After;
@@ -32,13 +30,8 @@ public abstract class AbstractESBTest {
 		}
 	}
 
-   protected static byte[] readFile(String fileName) throws IOException {
-      File file = new File(fileName);
-      byte[] ba = new byte[(int) file.length()];
-      try (DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
-         dis.readFully(ba);
-      }
-      return ba;
-   }
+	protected static byte[] readFile(String fileName) throws IOException {
+		return FileSystem.readFile(new File(fileName));
+	}
 
 }

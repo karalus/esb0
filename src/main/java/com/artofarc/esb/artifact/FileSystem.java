@@ -105,10 +105,22 @@ public final class FileSystem {
 		return services;
 	}
 
+	private void attachArtifacts(Directory base) {
+		base.setFileSystem(this);
+		for (Artifact artifact : base.getArtifacts().values()) {
+			if (artifact instanceof Directory) {
+				attachArtifacts((Directory) artifact);
+			} else {
+				artifact.setFileSystem(this);
+				artifact.clearContent();
+			}
+		}
+	}
+
 	private static void validateServices(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
 		if (artifact instanceof Directory) {
-			for (Artifact artifact2 : ((Directory) artifact).getArtifacts().values()) {
-				validateServices(globalContext, artifact2, changeSet);
+			for (Artifact child : ((Directory) artifact).getArtifacts().values()) {
+				validateServices(globalContext, child, changeSet);
 			}
 		} else if (artifact instanceof ServiceArtifact) {
 			final ServiceArtifact serviceArtifact = (ServiceArtifact) artifact;
@@ -129,7 +141,7 @@ public final class FileSystem {
 		}
 	}
 
-	private static byte[] readFile(final File file) throws IOException {
+	public static byte[] readFile(final File file) throws IOException {
 		final byte[] ba = new byte[(int) file.length()];
 		try (final DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
 			dis.readFully(ba);
@@ -155,28 +167,6 @@ public final class FileSystem {
 		}
 	}
 
-	protected static void writeDir(Directory base, File dir) throws IOException {
-		boolean prepared;
-		if (!dir.exists()) {
-			prepared = dir.mkdirs();
-		} else {
-			prepared = dir.isDirectory();
-		}
-		if (!prepared) {
-			throw new IOException("Could not provide directory " + dir);
-		}
-		for (Entry<String, Artifact> entry : base.getArtifacts().entrySet()) {
-			File file = new File(dir, entry.getKey());
-			if (entry.getValue() instanceof Directory) {
-				writeDir((Directory) entry.getValue(), file);
-			} else {
-				FileOutputStream fos = new FileOutputStream(file);
-				fos.write(entry.getValue().getContent());
-				fos.close();
-			}
-		}
-	}
-	
 	private static Artifact createArtifact(Directory parent, String name) {
 		// Mac OSX
 		if (name.startsWith("._"))
@@ -321,6 +311,7 @@ public final class FileSystem {
 					throw new RuntimeException(e);
 				} 
 			}
+			attachArtifacts(_root);
 			return serviceArtifacts;
 		}
 
@@ -426,6 +417,8 @@ public final class FileSystem {
 					fos.write(artifact.getContent());
 					fos.close();
 				}
+				artifact.setFileSystem(this);
+				artifact.clearContent();
 			}			
 		}
 		_anchorDir = dir;

@@ -81,7 +81,7 @@ public class DeployServlet extends HttpServlet {
 				if (headerAccept == null || headerAccept.contains("text/")) {
 					resp.setContentType("text/plain");
 					resp.setHeader(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
-					try (InputStream contentAsStream = artifact.getContentAsStream(getGlobalContext().getFileSystem().getAnchorDir())) {
+					try (InputStream contentAsStream = artifact.getContentAsStream()) {
 						StreamUtils.copy(contentAsStream, resp.getOutputStream());
 					}
 				} else {

@@ -90,7 +90,7 @@ public final class XQDataSourceFactory implements ModuleURIResolver {
 					throw new XPathException(locations[i] + " in " + baseURI);
 				}
 			}
-			result[i] = new StreamSource(artifact.getContentAsByteArrayInputStream());
+			result[i] = new StreamSource(artifact.getContentAsStream());
 			result[i].setSystemId(artifact.getURI());
 		}
 		return result;

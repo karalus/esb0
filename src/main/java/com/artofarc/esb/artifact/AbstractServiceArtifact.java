@@ -59,9 +59,7 @@ public abstract class AbstractServiceArtifact extends Artifact {
 	protected final <S> S unmarshal() throws JAXBException {
 		Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
 		unmarshaller.setSchema(schema);
-		InputStream inputStream = getContentAsByteArrayInputStream();
-		_content = null;
-		return (S) unmarshaller.unmarshal(inputStream);
+		return (S) unmarshaller.unmarshal(getContentAsStream());
 	}
 
 }

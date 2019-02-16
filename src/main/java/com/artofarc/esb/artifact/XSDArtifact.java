@@ -41,7 +41,7 @@ public class XSDArtifact extends SchemaArtifact {
 	@Override
 	public JAXBContext getJAXBContext() throws JAXBException {
 		if (_jaxbContext == null) {
-			StreamSource streamSource = new StreamSource(getContentAsByteArrayInputStream());
+			StreamSource streamSource = new StreamSource(getContentAsStream());
 			streamSource.setSystemId(getURI());
 			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(streamSource, this, null, null);
 		}
@@ -50,7 +50,7 @@ public class XSDArtifact extends SchemaArtifact {
 
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
-		_schema = getSchemaFactory().newSchema(new StreamSource(getContentAsByteArrayInputStream()));
+		_schema = getSchemaFactory().newSchema(new StreamSource(getContentAsStream()));
 		validateReferenced(globalContext);
 	}
 
