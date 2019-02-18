@@ -55,7 +55,7 @@ public abstract class Action implements Cloneable {
 	public final void process(Context context, ESBMessage message) throws Exception {
 		List<Action> pipeline = new ArrayList<>();
 		List<ExecutionContext> resources = new ArrayList<>();
-		TimeGauge timeGauge = new TimeGauge(logger, 250L);
+		TimeGauge timeGauge = new TimeGauge(logger, 250L, false);
 		timeGauge.startTimeMeasurement();
 		ArrayDeque<Integer> stackPosErrorHandler = new ArrayDeque<>();
 		stackPosErrorHandler.push(context.getExecutionStack().size());

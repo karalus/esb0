@@ -23,18 +23,28 @@ import org.slf4j.Logger;
 public final class TimeGauge implements AutoCloseable {
 
 	private final Logger _logger; 
+	private final boolean _debug;
 	private final long _threshold;
 	private final Stack<Long> timeMeasurement = new Stack<>();
 
-	public TimeGauge(Logger logger, long threshold) {
+	public TimeGauge(Logger logger, long threshold, boolean debug) {
 		_logger = logger;
 		_threshold = threshold;
+		_debug = debug;
 	}
 
 	public TimeGauge(Logger logger) {
-		this(logger, 0L);
+		this(logger, 0L, true);
 	}
 
+	private boolean isLogEnabled() {
+		return _debug ? _logger.isDebugEnabled() : _logger.isInfoEnabled();
+	}
+	
+	private void log(String msg) {
+		if (_debug) _logger.debug(msg); else _logger.info(msg);
+	}
+	
 	public void startTimeMeasurement() {
 		timeMeasurement.push(System.currentTimeMillis());
 	}
@@ -47,9 +57,9 @@ public final class TimeGauge implements AutoCloseable {
 		final long endTS = System.currentTimeMillis();
 		final long startTS = timeMeasurement.pop();
 		final long diff = endTS - startTS;
-		if (diff >= _threshold && _logger.isInfoEnabled()) {
+		if (diff >= _threshold && isLogEnabled()) {
 			if (args.length > 0) text = String.format(text, args);
-			_logger.info(String.format(text, args) + " took " + diff / 1000. + "s");
+			log(String.format(text, args) + " took " + diff / 1000. + "s");
 		}
 		if (restart) {
 			timeMeasurement.push(endTS);
