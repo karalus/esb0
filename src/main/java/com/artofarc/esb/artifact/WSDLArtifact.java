@@ -92,13 +92,13 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	private String latestImportURI;
 	private final HashMap<String, byte[]> schemas = new HashMap<>();
 
-	public WSDLArtifact(Directory parent, String name) {
-		super(parent, name);
+	public WSDLArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	@Override
-	protected WSDLArtifact clone(Directory parent) {
-		WSDLArtifact clone = initClone(new WSDLArtifact(parent, getName()));
+	protected WSDLArtifact clone(FileSystem fileSystem, Directory parent) {
+		WSDLArtifact clone = initClone(new WSDLArtifact(fileSystem, parent, getName()));
 		clone._definition = _definition;
 		clone._jaxbContext = _jaxbContext;
 		clone._lastSchemaElement = _lastSchemaElement;

@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -34,6 +35,7 @@ public abstract class Artifact {
 
 	protected final static Logger logger = LoggerFactory.getLogger(Artifact.class);
 
+	private final FileSystem _fileSystem;
 	private final Directory _parent;
 	private final String _name;
 	private final LinkedHashSet<String> _referenced = new LinkedHashSet<>();
@@ -43,10 +45,10 @@ public abstract class Artifact {
 	protected int _length;
 	protected long _crc;
 	private long _modificationTime;
-	private FileSystem _fileSystem;
 	private boolean _validated;
 
-	public Artifact(Directory parent, String name) {
+	public Artifact(FileSystem fileSystem, Directory parent, String name) {
+		_fileSystem = fileSystem;
 		_parent = parent;
 		_name = name;
 		if (parent != null) {
@@ -55,6 +57,9 @@ public abstract class Artifact {
 	}
 
 	public final boolean isEqual(Artifact other) {
+		if (_content != null) {
+			return Arrays.equals(_content, other._content);
+		}
 		// not 100% certain, but very likely
 		return _length == other._length && _crc == other._crc;
 	}
@@ -116,14 +121,13 @@ public abstract class Artifact {
 		_length = content.length;
 	}
 
+	/**
+	 * Override when content should be kept in memory.
+	 */
 	protected void clearContent() {
 		_content = null;
 	}
 
-	protected final void setFileSystem(FileSystem fileSystem) {
-		_fileSystem = fileSystem;
-	}
-	
 	public final long getModificationTime() {
 		return _modificationTime;
 	}
@@ -147,20 +151,12 @@ public abstract class Artifact {
 		}
 	}
 
-	protected final Directory getRootDirectory() {
-		Directory result = _parent;
-		while (result.getParent() != null) {
-			result = result.getParent();
-		}
-		return result;
-	}
-
 	protected final <A extends Artifact> A getArtifact(String uri) {
-		return FileSystem.getArtifact(getParent(), uri);
+		return _fileSystem.getArtifact(getParent(), uri);
 	}
 
 	protected final <A extends Artifact> A loadArtifact(String uri) throws FileNotFoundException {
-		A artifact = FileSystem.getArtifact(getParent(), uri);
+		A artifact = _fileSystem.getArtifact(getParent(), uri);
 		if (artifact == null) {
 			throw new FileNotFoundException(uri);
 		}
@@ -220,6 +216,6 @@ public abstract class Artifact {
 		return clone;
 	}
 
-	protected abstract Artifact clone(Directory parent);
+	protected abstract Artifact clone(FileSystem fileSystem, Directory parent);
 
 }

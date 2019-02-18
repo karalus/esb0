@@ -88,6 +88,22 @@ public class XPathTest extends AbstractESBTest {
    }
    
    @Test
+   public void testCurrentUTC() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+      LinkedHashMap<String, String> map = new LinkedHashMap<>();
+      map.put("result", "format-dateTime(adjust-dateTime-to-timezone(current-dateTime(),xs:dayTimeDuration('PT0H')),'[Y,4]-[M,2]-[D,2]T[H01]:[m01]:[s01].[f,3]Z')");
+      Action action = new AssignAction(map.entrySet(), null, Collections.<String>emptyList(), null);
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      for (int i = 0; i < 100; ++i) {
+         consumerPort.process(context, message);
+         String date = message.getVariable("result").toString();
+         assertEquals("Wrong length: " + date, 24, date.length());
+      }
+   }
+   
+   @Test
    public void testJavaExtensionEvaluate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
       LinkedHashMap<String, String> map = new LinkedHashMap<>();
@@ -105,13 +121,13 @@ public class XPathTest extends AbstractESBTest {
    public void testLegacySupport() throws Exception {
       GlobalContext globalContext = context.getPoolContext().getGlobalContext();
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
-      Directory modules = new Directory(globalContext.getFileSystem().getRoot(), "modules");
-      Directory queries = new Directory(globalContext.getFileSystem().getRoot(), "queries");
-		XQueryArtifact module = new XQueryArtifact(modules, "osb-legacy-support.xqy");
+      Directory modules = new Directory(globalContext.getFileSystem(), globalContext.getFileSystem().getRoot(), "modules");
+      Directory queries = new Directory(globalContext.getFileSystem(), globalContext.getFileSystem().getRoot(), "queries");
+		XQueryArtifact module = new XQueryArtifact(globalContext.getFileSystem(), modules, "osb-legacy-support.xqy");
 		module.setContent(readFile("src/test/resources/osb-legacy-support.xqy"));
 //		module = new XQueryArtifact(modules, "functx-1.0-doc-2007-01.xq");
 //		module.setContent(readFile("src/test/resources/functx-1.0-doc-2007-01.xq"));
-      XQueryArtifact xqueryArtifact = new XQueryArtifact(queries, "test.xqy");
+      XQueryArtifact xqueryArtifact = new XQueryArtifact(globalContext.getFileSystem(), queries, "test.xqy");
       String xqueryStr = "import module namespace fn-bea='http://osb-legacy-support' at '/modules/osb-legacy-support.xqy';\n" +
       		"(:: pragma bea:global-element-parameter parameter=\"$messageHeader1\" ::)" +
       		"(<doc>" +

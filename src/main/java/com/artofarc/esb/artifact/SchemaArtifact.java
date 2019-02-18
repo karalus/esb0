@@ -39,8 +39,8 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	protected Schema _schema;
 	protected JAXBContext _jaxbContext;
 
-	protected SchemaArtifact(Directory parent, String name) {
-		super(parent, name);
+	protected SchemaArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	public final Schema getSchema() {

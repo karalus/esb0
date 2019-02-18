@@ -1,7 +1,5 @@
 package com.artofarc.esb.action;
 
-import static org.junit.Assert.*;
-
 import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
@@ -19,7 +17,7 @@ public class TransformerTest extends AbstractESBTest {
 
 	@Test
 	public void testTransform() throws Exception {
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(context.getPoolContext().getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
@@ -32,7 +30,7 @@ public class TransformerTest extends AbstractESBTest {
 
 	@Test
 	public void testTransformStart() throws Exception {
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(context.getPoolContext().getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
@@ -44,7 +42,7 @@ public class TransformerTest extends AbstractESBTest {
 
 	@Test
 	public void testTransformEnd() throws Exception {
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(context.getPoolContext().getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
@@ -56,7 +54,7 @@ public class TransformerTest extends AbstractESBTest {
 
 	@Test
 	public void testTransformDouble() throws Exception {
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(context.getPoolContext().getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
@@ -69,10 +67,10 @@ public class TransformerTest extends AbstractESBTest {
 
 	@Test
 	public void testValidate() throws Exception {
-		XSDArtifact xsdArtifact = new XSDArtifact(null, "kdf");
+		XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
 		xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
 		xsdArtifact.validateInternal(null);
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(context.getPoolContext().getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
@@ -87,7 +85,7 @@ public class TransformerTest extends AbstractESBTest {
 
 	@Test
 	public void testStreamingValidate() throws Exception {
-		XSDArtifact xsdArtifact = new XSDArtifact(null, "kdf");
+		XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
 		xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
 		xsdArtifact.validateInternal(null);
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
@@ -100,7 +98,7 @@ public class TransformerTest extends AbstractESBTest {
 	}
 
 	public void testStreamingValidatePerformance() throws Exception {
-		XSDArtifact xsdArtifact = new XSDArtifact(null, "kdf");
+		XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
 		xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
 		xsdArtifact.validateInternal(null);
 		ConsumerPort consumerPort = new ConsumerPort(null);
@@ -119,7 +117,7 @@ public class TransformerTest extends AbstractESBTest {
 	}
 
 	public void testValidatePerformance() throws Exception {
-		XSDArtifact xsdArtifact = new XSDArtifact(null, "kdf");
+		XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
 		xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
 		xsdArtifact.validateInternal(null);
 		ConsumerPort consumerPort = new ConsumerPort(null);
@@ -139,7 +137,7 @@ public class TransformerTest extends AbstractESBTest {
 
 	@Test
 	public void testStreamingValidateEnd() throws Exception {
-		XSDArtifact xsdArtifact = new XSDArtifact(null, "kdf");
+		XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
 		xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
 		xsdArtifact.validateInternal(null);
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
@@ -153,19 +151,19 @@ public class TransformerTest extends AbstractESBTest {
 
 	@Test
 	public void testXSLTWithStaticData() throws Exception {
-		XSDArtifact xsdArtifact = new XSDArtifact(null, "kdf");
+		XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
 		xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
 		xsdArtifact.validateInternal(null);
-		Directory root = context.getPoolContext().getGlobalContext().getFileSystem().getRoot();
-		Directory stylesheetes = new Directory(root, "stylesheetes");
-		Directory staticData = new Directory(root, "data");
-		XSLTArtifact xsltArtifact1 = new XSLTArtifact(stylesheetes, "transformationUsingStaticData.xslt");
+		Directory root = getGlobalContext().getFileSystem().getRoot();
+		Directory stylesheetes = new Directory(getGlobalContext().getFileSystem(), root, "stylesheetes");
+		Directory staticData = new Directory(getGlobalContext().getFileSystem(), root, "data");
+		XSLTArtifact xsltArtifact1 = new XSLTArtifact(getGlobalContext().getFileSystem(), stylesheetes, "transformationUsingStaticData.xslt");
 		xsltArtifact1.setContent(readFile("src/test/resources/transformationUsingStaticData.xslt"));
-		XSLTArtifact xsltArtifact = new XSLTArtifact(stylesheetes, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(getGlobalContext().getFileSystem(), stylesheetes, "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
-		XMLArtifact staticXML = new XMLArtifact(staticData, "static.xml");
+		XMLArtifact staticXML = new XMLArtifact(getGlobalContext().getFileSystem(), staticData, "static.xml");
 		staticXML.setContent("<root>Hello World!</root>".getBytes());
-		xsltArtifact1.validateInternal(context.getPoolContext().getGlobalContext());
+		xsltArtifact1.validateInternal(getGlobalContext());
 
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");

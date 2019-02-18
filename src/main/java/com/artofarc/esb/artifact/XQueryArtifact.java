@@ -28,13 +28,13 @@ import com.artofarc.esb.resource.XQDataSourceFactory;
 
 public class XQueryArtifact extends XMLArtifact {
 
-	public XQueryArtifact(Directory parent, String name) {
-		super(parent, name);
+	public XQueryArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	@Override
-	protected XQueryArtifact clone(Directory parent) {
-		return initClone(new XQueryArtifact(parent, getName()));
+	protected XQueryArtifact clone(FileSystem fileSystem, Directory parent) {
+		return initClone(new XQueryArtifact(fileSystem, parent, getName()));
 	}
 
 	@Override

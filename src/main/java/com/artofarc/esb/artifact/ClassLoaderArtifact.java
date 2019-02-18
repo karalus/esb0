@@ -27,13 +27,13 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 
 	private FileSystemClassLoader _fileSystemClassLoader;
 
-	public ClassLoaderArtifact(Directory parent, String name) {
-		super(parent, name);
+	public ClassLoaderArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	@Override
-	protected ClassLoaderArtifact clone(Directory parent) {
-		ClassLoaderArtifact clone = initClone(new ClassLoaderArtifact(parent, getName()));
+	protected ClassLoaderArtifact clone(FileSystem fileSystem, Directory parent) {
+		ClassLoaderArtifact clone = initClone(new ClassLoaderArtifact(fileSystem, parent, getName()));
 		clone._fileSystemClassLoader = _fileSystemClassLoader;
 		return clone;
 	}
@@ -59,7 +59,7 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 		}
 	}
 
-	public FileSystemClassLoader getFileSystemClassLoader() {
+	public final FileSystemClassLoader getFileSystemClassLoader() {
 		return _fileSystemClassLoader;
 	}
 

@@ -32,7 +32,7 @@ public class FileSystemTest extends AbstractESBTest {
       assertTrue(dir.exists());
       FileSystem fileSystem = new FileSystem();
       fileSystem.parseDirectory(context.getPoolContext().getGlobalContext(), dir);
-      FileSystem clone = fileSystem.clone();
+      FileSystem clone = new FileSystem(fileSystem);
       assertFalse(fileSystem.getRoot() == clone.getRoot());
       assertFalse(fileSystem.tidyOut());
    }

@@ -26,11 +26,11 @@ public class Directory extends Artifact {
 
 	private final Map<String, Artifact> _artifacts = new LinkedHashMap<>();
 
-	public Directory(Directory parent, String name) {
-		super(parent, name);
+	public Directory(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
-	public Map<String, Artifact> getArtifacts() {
+	public final Map<String, Artifact> getArtifacts() {
 		return _artifacts;
 	}
 
@@ -39,10 +39,10 @@ public class Directory extends Artifact {
 	}
 
 	@Override
-	protected Directory clone(Directory parent) {
-		Directory clone = initClone(new Directory(parent, getName()));
+	protected Directory clone(FileSystem fileSystem, Directory parent) {
+		Directory clone = initClone(new Directory(fileSystem, parent, getName()));
 		for (Entry<String, Artifact> entry : getArtifacts().entrySet()) {
-			clone.getArtifacts().put(entry.getKey(), entry.getValue().clone(clone));
+			clone.getArtifacts().put(entry.getKey(), entry.getValue().clone(fileSystem, clone));
 		}
 		return clone;
 	}

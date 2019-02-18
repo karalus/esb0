@@ -20,13 +20,13 @@ import com.artofarc.esb.context.GlobalContext;
 
 public class XMLArtifact extends Artifact {
 
-	public XMLArtifact(Directory parent, String name) {
-		super(parent, name);
+	public XMLArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	@Override
-	protected XMLArtifact clone(Directory parent) {
-		return initClone(new XMLArtifact(parent, getName()));
+	protected XMLArtifact clone(FileSystem fileSystem, Directory parent) {
+		return initClone(new XMLArtifact(fileSystem, parent, getName()));
 	}
 
 	@Override

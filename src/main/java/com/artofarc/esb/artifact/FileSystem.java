@@ -42,12 +42,12 @@ public final class FileSystem {
 
 	private File _anchorDir;
 
-	private FileSystem(Directory root) {
-		_root = root;
+	public FileSystem(FileSystem fileSystem) {
+		_root = fileSystem._root.clone(this, null);
 	}
 
 	public FileSystem() {
-		this(new Directory(null, ""));
+		_root = new Directory(this, null, "");
 	}
 
 	public Directory getRoot() {
@@ -67,7 +67,7 @@ public final class FileSystem {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected static <A extends Artifact> A getArtifact(Directory current, String uri) {
+	protected <A extends Artifact> A getArtifact(Directory current, String uri) {
 		if (uri == null) return (A) current;
 		int i = 0, j;
 		while ((j = uri.indexOf('/', i)) >= 0) {
@@ -75,7 +75,7 @@ public final class FileSystem {
 			switch (dir) {
 			case "":
 				if (current.getParent() != null) {
-					current = current.getRootDirectory();
+					current = _root;
 				}
 				break;
 			case ".":
@@ -105,14 +105,14 @@ public final class FileSystem {
 		return services;
 	}
 
-	private void attachArtifacts(Directory base) {
-		base.setFileSystem(this);
+	private void dehydrateArtifacts(Directory base) {
 		for (Artifact artifact : base.getArtifacts().values()) {
 			if (artifact instanceof Directory) {
-				attachArtifacts((Directory) artifact);
+				dehydrateArtifacts((Directory) artifact);
 			} else {
-				artifact.setFileSystem(this);
-				artifact.clearContent();
+				if (!_changes.containsKey(artifact.getURI())) {
+					artifact.clearContent();
+				}
 			}
 		}
 	}
@@ -149,11 +149,11 @@ public final class FileSystem {
 		return ba;
 	}
 
-	private static void readDir(Directory base, File dir, CRC32 crc) throws IOException {
+	private void readDir(Directory base, File dir, CRC32 crc) throws IOException {
 		for (File file : dir.listFiles()) {
 			String name = file.getName();
 			if (file.isDirectory()) {
-				readDir(new Directory(base, name), file, crc);
+				readDir(new Directory(this, base, name), file, crc);
 			} else {
 				Artifact artifact = createArtifact(base, name);
 				if (artifact != null) {
@@ -167,32 +167,32 @@ public final class FileSystem {
 		}
 	}
 
-	private static Artifact createArtifact(Directory parent, String name) {
+	private Artifact createArtifact(Directory parent, String name) {
 		// Mac OSX
 		if (name.startsWith("._"))
 			return null;
 		switch (Artifact.getExt(name)) {
 		case ServiceArtifact.FILE_EXTENSION:
-			return new ServiceArtifact(parent, name);
+			return new ServiceArtifact(this, parent, name);
 		case "xml":
-			return new XMLArtifact(parent, name);
+			return new XMLArtifact(this, parent, name);
 		case "xsd":
-			return new XSDArtifact(parent, name);
+			return new XSDArtifact(this, parent, name);
 		case "wsdl":
-			return new WSDLArtifact(parent, name);
+			return new WSDLArtifact(this, parent, name);
 		case "xq":
 		case "xqm":
 		case "xqy":
-			return new XQueryArtifact(parent, name);
+			return new XQueryArtifact(this, parent, name);
 		case "xsl":
 		case "xslt":
-			return new XSLTArtifact(parent, name);
+			return new XSLTArtifact(this, parent, name);
 		case WorkerPoolArtifact.FILE_EXTENSION:
-			return new WorkerPoolArtifact(parent, name);
+			return new WorkerPoolArtifact(this, parent, name);
 		case ClassLoaderArtifact.FILE_EXTENSION:
-			return new ClassLoaderArtifact(parent, name);
+			return new ClassLoaderArtifact(this, parent, name);
 		case "jar":
-			return new JarArtifact(parent, name);
+			return new JarArtifact(this, parent, name);
 		default:
 			logger.debug("Cannot be imported: " + name);
 			return null;
@@ -205,7 +205,7 @@ public final class FileSystem {
 		for (String name : split) {
 			Artifact artifact = result.getArtifacts().get(name);
 			if (artifact == null) {
-				result = new Directory(result, name);
+				result = new Directory(this, result, name);
 				_changes.put(result.getURI(), ChangeType.CREATE);
 			} else if (artifact instanceof Directory) {
 				result = (Directory) artifact;
@@ -214,11 +214,6 @@ public final class FileSystem {
 			}
 		}
 		return result;
-	}
-
-	@Override
-	public FileSystem clone() {
-		return new FileSystem(_root.clone(null));
 	}
 
 	private boolean deleteArtifact(Artifact artifact) {
@@ -311,7 +306,7 @@ public final class FileSystem {
 					throw new RuntimeException(e);
 				} 
 			}
-			attachArtifacts(_root);
+			dehydrateArtifacts(_root);
 			return serviceArtifacts;
 		}
 
@@ -321,7 +316,7 @@ public final class FileSystem {
 	}
 
 	public ChangeSet createUpdate(GlobalContext globalContext, InputStream InputStream) throws IOException, ValidationException {
-		FileSystem clone = clone();
+		FileSystem clone = new FileSystem(this);
 		boolean tidyOut = clone.mergeZIP(InputStream);
 		ChangeSet changeSet = validateChanges(globalContext, clone);
 		if (tidyOut) clone.tidyOut();
@@ -390,6 +385,10 @@ public final class FileSystem {
 							if (old.isEqual(artifact)) {
 								// Undo
 								dir.getArtifacts().put(name, old);
+								if (old.getContent() == null) {
+									// Keep content (until dehydrateArtifacts happens), it might be needed by Resolvers during validation
+									old.setContent(artifact.getContent());
+								}
 							} else {
 								_changes.put(artifact.getURI(), ChangeType.UPDATE);
 							}
@@ -403,9 +402,9 @@ public final class FileSystem {
 		return tidyOut;
 	}
 
-	public void writeBack(File dir) throws IOException {
+	public void writeBackChanges(File anchorDir) throws IOException {
 		for (Entry<String, ChangeType> entry : _changes.entrySet()) {
-			File file = new File(dir, entry.getKey());
+			File file = new File(anchorDir, entry.getKey());
 			if (entry.getValue() == ChangeType.DELETE) {
 				file.delete();
 			} else {
@@ -416,12 +415,11 @@ public final class FileSystem {
 					FileOutputStream fos = new FileOutputStream(file);
 					fos.write(artifact.getContent());
 					fos.close();
+					artifact.clearContent();
 				}
-				artifact.setFileSystem(this);
-				artifact.clearContent();
 			}			
 		}
-		_anchorDir = dir;
+		_anchorDir = anchorDir;
 		_changes.clear();
 	}
 

@@ -27,17 +27,17 @@ public class WorkerPoolArtifact extends AbstractServiceArtifact {
 
 	private WorkerPool _workerPool;
 
-	public WorkerPoolArtifact(Directory parent, String name) {
-		super(parent, name);
+	public WorkerPoolArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
-	public WorkerPool getWorkerPool() {
+	public final WorkerPool getWorkerPool() {
 		return _workerPool;
 	}
 
 	@Override
-	protected WorkerPoolArtifact clone(Directory parent) {
-		WorkerPoolArtifact clone = initClone(new WorkerPoolArtifact(parent, getName()));
+	protected WorkerPoolArtifact clone(FileSystem fileSystem, Directory parent) {
+		WorkerPoolArtifact clone = initClone(new WorkerPoolArtifact(fileSystem, parent, getName()));
 		clone._workerPool = _workerPool;
 		return clone;
 	}

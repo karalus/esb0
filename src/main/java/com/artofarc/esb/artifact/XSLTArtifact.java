@@ -27,13 +27,13 @@ public class XSLTArtifact extends XMLArtifact {
 
 	private Templates _templates;
 	
-	public XSLTArtifact(Directory parent, String name) {
-		super(parent, name);
+	public XSLTArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	@Override
-	protected XSLTArtifact clone(Directory parent) {
-		return initClone(new XSLTArtifact(parent, getName()));
+	protected XSLTArtifact clone(FileSystem fileSystem, Directory parent) {
+		return initClone(new XSLTArtifact(fileSystem, parent, getName()));
 	}
 
 	public final Templates getTemplates() {

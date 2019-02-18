@@ -20,9 +20,9 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		TimerService timerService = new TimerService(null, null, 0, 100, false);
 		MarkAction markAction = new MarkAction();
 		timerService.setStartAction(markAction);
+		assertFalse(markAction.isExecuted());
 		timerService.init(context.getPoolContext().getGlobalContext());
 		timerService.enable(true);
-		assertFalse(markAction.isExecuted());
 		Thread.sleep(100);
 		timerService.enable(false);
 		assertTrue(markAction.isExecuted());

@@ -26,13 +26,13 @@ import com.artofarc.esb.context.GlobalContext;
 
 public class XSDArtifact extends SchemaArtifact {
 
-	public XSDArtifact(Directory parent, String name) {
-		super(parent, name);
+	public XSDArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	@Override
-	protected XSDArtifact clone(Directory parent) {
-		XSDArtifact clone = initClone(new XSDArtifact(parent, getName()));
+	protected XSDArtifact clone(FileSystem fileSystem, Directory parent) {
+		XSDArtifact clone = initClone(new XSDArtifact(fileSystem, parent, getName()));
 		clone._jaxbContext = _jaxbContext;
 		clone._schema = _schema;
 		return clone;

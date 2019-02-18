@@ -30,6 +30,10 @@ public abstract class AbstractESBTest {
 		}
 	}
 
+	protected GlobalContext getGlobalContext() {
+		return context.getPoolContext().getGlobalContext();
+	}
+	
 	protected static byte[] readFile(String fileName) throws IOException {
 		return FileSystem.readFile(new File(fileName));
 	}

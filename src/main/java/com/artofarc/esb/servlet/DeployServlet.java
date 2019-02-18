@@ -111,7 +111,7 @@ public class DeployServlet extends HttpServlet {
 						File anchorDir = globalContext.getFileSystem().getAnchorDir();
 						deployChangeSet(globalContext, changeSet);
 						globalContext.setFileSystem(newFileSystem);
-						newFileSystem.writeBack(anchorDir);
+						newFileSystem.writeBackChanges(anchorDir);
 					} catch (ValidationException e) {
 						log("Not valid", e);
 						resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());

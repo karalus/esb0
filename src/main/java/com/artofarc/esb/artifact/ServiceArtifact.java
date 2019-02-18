@@ -47,8 +47,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	// only used during validation
 	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
 
-	public ServiceArtifact(Directory parent, String name) {
-		super(parent, name);
+	public ServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	public final Protocol getProtocol() {
@@ -61,8 +61,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	}
 
 	@Override
-	protected ServiceArtifact clone(Directory parent) {
-		ServiceArtifact clone = initClone(new ServiceArtifact(parent, getName()));
+	protected ServiceArtifact clone(FileSystem fileSystem, Directory parent) {
+		ServiceArtifact clone = initClone(new ServiceArtifact(fileSystem, parent, getName()));
 		clone._protocol = _protocol;
 		clone._consumerPort = _consumerPort;
 		return clone;

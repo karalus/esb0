@@ -32,20 +32,20 @@ public class JarArtifact extends Artifact {
 
 	private HashMap<String, byte[]> _entries = new HashMap<>();
 
-	public JarArtifact(Directory parent, String name) {
-		super(parent, name);
+	public JarArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	@Override
-	protected JarArtifact clone(Directory parent) {
-		JarArtifact clone = initClone(new JarArtifact(parent, getName()));
+	protected JarArtifact clone(FileSystem fileSystem, Directory parent) {
+		JarArtifact clone = initClone(new JarArtifact(fileSystem, parent, getName()));
 		clone._entries = _entries;
 		return clone;
 	}
 
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws IOException {
-		try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(getContent()))) {
+		try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(_content))) {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				if (!entry.isDirectory()) {
@@ -61,7 +61,7 @@ public class JarArtifact extends Artifact {
 
 	public final byte[] getEntry(String filename) throws IOException {
 		if (!CACHE_JARS_UNZIPPED) {
-			try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(getContent()))) {
+			try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(_content))) {
 				ZipEntry entry;
 				while ((entry = zis.getNextEntry()) != null) {
 					if (entry.getName().equals(filename)) {

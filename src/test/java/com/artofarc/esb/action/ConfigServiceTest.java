@@ -38,7 +38,7 @@ public class ConfigServiceTest extends AbstractESBTest {
 
    @Test
    public void testHTTPService() throws Exception {
-      ServiceArtifact serviceArtifact = new ServiceArtifact(null, null);
+      ServiceArtifact serviceArtifact = new ServiceArtifact(null, null, null);
       serviceArtifact.setContent(readFile("src/test/resources//HttpService4.xservice"));
       serviceArtifact.validate(null);
       ConsumerPort consumerPort = serviceArtifact.getConsumerPort();

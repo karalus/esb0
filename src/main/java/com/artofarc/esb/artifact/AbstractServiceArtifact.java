@@ -51,8 +51,8 @@ public abstract class AbstractServiceArtifact extends Artifact {
 		}
 	}
 
-	public AbstractServiceArtifact(Directory parent, String name) {
-		super(parent, name);
+	public AbstractServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
 	}
 
 	@SuppressWarnings("unchecked")
