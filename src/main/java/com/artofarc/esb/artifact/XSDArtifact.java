@@ -50,7 +50,7 @@ public class XSDArtifact extends SchemaArtifact {
 
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
-		_schema = getSchemaFactory().newSchema(new StreamSource(getContentAsStream()));
+		initSchema(new StreamSource(getContentAsStream()));
 		validateReferenced(globalContext);
 	}
 

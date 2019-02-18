@@ -131,7 +131,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				processSchemas(import1.getDefinition(), sources, transformer);
 			}
 		}
-		_schema = getSchemaFactory().newSchema(sources.toArray(new Source[sources.size()]));
+		initSchema(sources.toArray(new Source[sources.size()]));
 		schemas.clear();
 		// refs are now set
 		validateReferenced(globalContext);

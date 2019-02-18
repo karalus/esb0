@@ -24,6 +24,7 @@ import java.net.URISyntaxException;
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
@@ -31,11 +32,12 @@ import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public abstract class SchemaArtifact extends Artifact implements LSResourceResolver, EntityResolver {
 
 	protected static final String FILE_SCHEMA = "file://";
-
+	
 	protected Schema _schema;
 	protected JAXBContext _jaxbContext;
 
@@ -49,12 +51,12 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	public abstract JAXBContext getJAXBContext() throws JAXBException;
 
-	protected final SchemaFactory getSchemaFactory() {
+	protected final void initSchema(Source... schemas) throws SAXException {
 		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 		factory.setResourceResolver(this);
-		return factory;
+		_schema = factory.newSchema(schemas);
 	}
-
+	
 	// only used during validation
 	private URI lastUri;
 
