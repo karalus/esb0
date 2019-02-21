@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.ReflectionUtils;
 
 public abstract class Artifact {
 
@@ -47,7 +48,7 @@ public abstract class Artifact {
 	private long _modificationTime;
 	private boolean _validated;
 
-	public Artifact(FileSystem fileSystem, Directory parent, String name) {
+	protected Artifact(FileSystem fileSystem, Directory parent, String name) {
 		_fileSystem = fileSystem;
 		_parent = parent;
 		_name = name;
@@ -151,7 +152,7 @@ public abstract class Artifact {
 		}
 	}
 
-	protected final <A extends Artifact> A getArtifact(String uri) {
+	public final <A extends Artifact> A getArtifact(String uri) {
 		return _fileSystem.getArtifact(getParent(), uri);
 	}
 
@@ -181,10 +182,8 @@ public abstract class Artifact {
 		if (!isValidated()) {
 			try {
 				validateInternal(globalContext);
-			} catch (ValidationException e) {
-				throw e;
 			} catch (Exception e) {
-				throw new ValidationException(this, e);
+				throw ReflectionUtils.convert(e, ValidationException.class, this);
 			}
 			setValidated(true);
 			logger.info("Validated: " + getURI());

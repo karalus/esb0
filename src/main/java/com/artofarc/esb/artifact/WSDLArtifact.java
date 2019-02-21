@@ -17,7 +17,6 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,17 +32,9 @@ import javax.xml.bind.JAXBException;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
-import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
@@ -52,39 +43,6 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.WSDL4JUtil;
 
 public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
-
-	private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
-	private static final byte[] _SOAP11Schema, _SOAP12Schema;
-
-	static {
-		try {
-			Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
-			XPath xPath = XPathFactory.newInstance().newXPath();
-			// Elements below Body must be strictly validated, with lax we don't detect some kind of errors
-			// TODO: Works only with document/literal WSDL style and messageParts referring to elements
-			String exp = "/*/*[local-name()='complexType' and @name='Body']/*/*/@processContents";
-			{
-				Attr attr = (Attr) xPath.evaluate(exp, new InputSource(getResourceAsStream("soap11.xsd")), XPathConstants.NODE);
-				attr.setValue("strict");
-				_SOAP11Schema = toByteArray(new DOMSource(attr.getOwnerDocument()), transformer);
-			}
-			xPath.reset();
-			{
-				Attr attr = (Attr) xPath.evaluate(exp, new InputSource(getResourceAsStream("soap12.xsd")), XPathConstants.NODE);
-				attr.setValue("strict");
-				_SOAP12Schema = toByteArray(new DOMSource(attr.getOwnerDocument()), transformer);
-			}
-		} catch (XPathExpressionException | TransformerException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	private static byte[] toByteArray(DOMSource source, Transformer transformer) throws TransformerException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream(8192);
-		transformer.transform(source, new StreamResult(bos));
-		transformer.reset();
-		return bos.toByteArray();
-	}
 
 	private Definition _definition;
 	private DOMSource _lastSchemaElement;
@@ -103,6 +61,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		clone._jaxbContext = _jaxbContext;
 		clone._lastSchemaElement = _lastSchemaElement;
 		clone._schema = _schema;
+		clone._grammars = _grammars;
 		return clone;
 	}
 
@@ -114,14 +73,15 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	public void validateInternal(GlobalContext globalContext) throws Exception {
 		_definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
 		latestImportURI = null;
-		Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
+		Transformer transformer = XMLCatalog.TRANSFORMER_FACTORY.newTransformer();
 		List<Source> sources = new ArrayList<>();
 		if (WSDL4JUtil.hasSOAP11Binding(_definition)) {
-			sources.add(new StreamSource(new ByteArrayInputStream(_SOAP11Schema)));
+			XSDArtifact soap11 = getArtifact(XMLCatalog.PATH + "/soap11.xsd");
+			sources.add(soap11.getStreamSource());
 		}
 		if (WSDL4JUtil.hasSOAP12Binding(_definition)) {
-			// xml.xsd will implicitly be loaded 
-			sources.add(new StreamSource(new ByteArrayInputStream(_SOAP12Schema)));
+			XSDArtifact soap12 = getArtifact(XMLCatalog.PATH + "/soap12.xsd");
+			sources.add(soap12.getStreamSource());
 		}
 		processSchemas(_definition, sources, transformer);
 		@SuppressWarnings("unchecked")
@@ -146,7 +106,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				_lastSchemaElement = new DOMSource(element);
 				_lastSchemaElement.setSystemId(getURI());
 				sources.add(_lastSchemaElement);
-				schemas.put(targetNamespace, toByteArray(_lastSchemaElement, transformer));
+				schemas.put(targetNamespace, XMLCatalog.toByteArray(_lastSchemaElement, transformer));
 			}
 		}
 	}

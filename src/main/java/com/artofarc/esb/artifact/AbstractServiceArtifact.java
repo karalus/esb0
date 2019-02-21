@@ -51,7 +51,7 @@ public abstract class AbstractServiceArtifact extends Artifact {
 		}
 	}
 
-	public AbstractServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
+	protected AbstractServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
 	}
 

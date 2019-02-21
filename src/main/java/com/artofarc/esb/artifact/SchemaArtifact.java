@@ -19,9 +19,8 @@ package com.artofarc.esb.artifact;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.HashMap;
 
-import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.transform.Source;
@@ -34,15 +33,33 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import com.artofarc.util.SchemaUtils;
+
+
 public abstract class SchemaArtifact extends Artifact implements LSResourceResolver, EntityResolver {
 
-	protected static final String FILE_SCHEMA = "file://";
-	
+	public static final String FILE_SCHEMA = "file://";
+
+	private final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
+
+	protected HashMap<String, Object> _grammars = cacheXSGrammars ? new HashMap<String, Object>() : null;
 	protected Schema _schema;
 	protected JAXBContext _jaxbContext;
 
 	protected SchemaArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
+	}
+
+	public final HashMap<String, Object> getGrammars() {
+		return _grammars;
+	}
+
+	public final synchronized Object putGrammarIfAbsent(String namespace, Object grammar) {
+		Object old = _grammars.get(namespace);
+		if (old == null) {
+			_grammars.put(namespace, grammar);
+		}
+		return old;
 	}
 
 	public final Schema getSchema() {
@@ -52,11 +69,15 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	public abstract JAXBContext getJAXBContext() throws JAXBException;
 
 	protected final void initSchema(Source... schemas) throws SAXException {
-		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-		factory.setResourceResolver(this);
-		_schema = factory.newSchema(schemas);
+		if (cacheXSGrammars) {
+			_schema = SchemaUtils.createXMLSchema(this, schemas);
+		} else {
+			SchemaFactory factory = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
+			factory.setResourceResolver(this);
+			_schema = factory.newSchema(schemas);
+		}
 	}
-	
+
 	// only used during validation
 	private URI lastUri;
 
@@ -73,7 +94,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 			InputSource is = new InputSource(artifact.getContentAsStream());
 			is.setSystemId(systemId);
 			return is;
-		} catch (URISyntaxException e) {
+		} catch (java.net.URISyntaxException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -81,28 +102,23 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	@Override
 	public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
 		InputStream resourceAsStream = null;
-		if (systemId.contains("//")) {
-			// Must not download anything but search locally (XML catalog)
-			String resourceName = systemId.substring(systemId.lastIndexOf('/') + 1);
-			resourceAsStream = getResourceAsStream(resourceName);
-		} else {
-			SchemaArtifact base = this;
-			if (baseURI != null) {
-				if (!baseURI.startsWith(FILE_SCHEMA)) {
-					throw new IllegalArgumentException("baseURI must start with " + FILE_SCHEMA);
-				}
-				base = getArtifact(baseURI.substring(FILE_SCHEMA.length()));
+		systemId = XMLCatalog.alignSystemId(systemId);
+		SchemaArtifact base = this;
+		if (baseURI != null) {
+			if (!baseURI.startsWith(FILE_SCHEMA)) {
+				throw new IllegalArgumentException("baseURI must start with " + FILE_SCHEMA);
 			}
-			String resourceURI = base.getParent().getURI() + '/' + systemId;
-			XSDArtifact artifact = getArtifact(resourceURI);
-			if (artifact != null) {
-				if (baseURI == null) {
-					baseURI = FILE_SCHEMA + artifact.getURI();
-					systemId = artifact.getName();
-				}
-				base.addReference(artifact);
-				resourceAsStream = artifact.getContentAsStream();
+			base = getArtifact(baseURI.substring(FILE_SCHEMA.length()));
+		}
+		String resourceURI = base.getParent().getURI() + '/' + systemId;
+		XSDArtifact artifact = getArtifact(resourceURI);
+		if (artifact != null) {
+			if (baseURI == null) {
+				baseURI = FILE_SCHEMA + artifact.getURI();
+				systemId = artifact.getName();
 			}
+			base.addReference(artifact);
+			resourceAsStream = artifact.getContentAsStream();
 		}
 		if (resourceAsStream == null) {
 			throw new IllegalArgumentException("cannot resolve " + systemId);

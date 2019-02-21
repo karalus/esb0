@@ -35,23 +35,33 @@ public class XSDArtifact extends SchemaArtifact {
 		XSDArtifact clone = initClone(new XSDArtifact(fileSystem, parent, getName()));
 		clone._jaxbContext = _jaxbContext;
 		clone._schema = _schema;
+		clone._grammars = _grammars;
 		return clone;
+	}
+
+	protected final StreamSource getStreamSource() {
+		return new StreamSource(getContentAsStream(), getURI());
 	}
 
 	@Override
 	public JAXBContext getJAXBContext() throws JAXBException {
 		if (_jaxbContext == null) {
-			StreamSource streamSource = new StreamSource(getContentAsStream());
-			streamSource.setSystemId(getURI());
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(streamSource, this, null, null);
+			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getStreamSource(), this, null, null);
 		}
 		return _jaxbContext;
 	}
 
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
-		initSchema(new StreamSource(getContentAsStream()));
+		initSchema(getStreamSource());
 		validateReferenced(globalContext);
+	}
+
+	@Override
+	public void clearContent() {
+		if (!getParent().getURI().equals(XMLCatalog.PATH)) {
+			super.clearContent();
+		}
 	}
 
 }

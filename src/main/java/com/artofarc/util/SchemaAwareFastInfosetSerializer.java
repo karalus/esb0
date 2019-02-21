@@ -34,38 +34,38 @@ import com.sun.xml.fastinfoset.sax.SAXDocumentSerializer;
 
 // Not thread safe
 public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
-	
+
 	private final SAXDocumentSerializer saxDocumentSerializer = new SAXDocumentSerializer();
 	private final ValidatorHandler validatorHandler;
-	
+
 	public SchemaAwareFastInfosetSerializer(Schema schema) {
 		if (schema != null) {
 			validatorHandler = schema.newValidatorHandler();
-	      validatorHandler.setContentHandler(new TypeInfoContentHandler());
+			validatorHandler.setContentHandler(new TypeInfoContentHandler());
 		} else {
 			validatorHandler = null;
 		}
 	}
-	
+
 	@Override
 	public void close() {
 	}
-   
+
 	public FastInfosetSerializer getFastInfosetSerializer() {
 		return saxDocumentSerializer;
 	}
-	
+
 	public ContentHandler getContentHandler() {
 		return validatorHandler != null ? validatorHandler : saxDocumentSerializer;
 	}
 
 	private class TypeInfoContentHandler implements ContentHandler {
-   	private TypeInfo typeInfo;
-		
-   	private boolean isXSType(String type) {
-   		return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION);
-   	}
-   	
+		private TypeInfo typeInfo;
+
+		private boolean isXSType(String type) {
+			return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION);
+		}
+
 		@Override
 		public void setDocumentLocator(Locator locator) {
 			saxDocumentSerializer.setDocumentLocator(locator);
@@ -88,7 +88,7 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 
 		@Override
 		public void endPrefixMapping(String prefix) throws SAXException {
-			saxDocumentSerializer.endPrefixMapping(prefix);			
+			saxDocumentSerializer.endPrefixMapping(prefix);
 		}
 
 		@Override
@@ -118,20 +118,24 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 		@Override
 		public void endElement(String uri, String localName, String qName) throws SAXException {
 			typeInfo = null;
-			saxDocumentSerializer.endElement(uri, localName, qName);			
+			saxDocumentSerializer.endElement(uri, localName, qName);
 		}
 
 		@Override
 		public void characters(char[] ch, int start, int length) throws SAXException {
-			if (isXSType("base64Binary")) {
-				byte[] bytes = (byte[]) BuiltInEncodingAlgorithmFactory.base64EncodingAlgorithm.convertFromCharacters(ch, start, length);
-				saxDocumentSerializer.bytes(bytes, 0, bytes.length);
-			} else if (isXSType("int")) {
-				int[] ints = (int[]) BuiltInEncodingAlgorithmFactory.intEncodingAlgorithm.convertFromCharacters(ch, start, length);
-				saxDocumentSerializer.ints(ints, 0, ints.length);
-			} else if (isXSType("long")) {
-				long[] longs = (long[]) BuiltInEncodingAlgorithmFactory.longEncodingAlgorithm.convertFromCharacters(ch, start, length);
-				saxDocumentSerializer.longs(longs, 0, longs.length);
+			if (typeInfo != null) {
+				if (isXSType("base64Binary")) {
+					byte[] bytes = (byte[]) BuiltInEncodingAlgorithmFactory.base64EncodingAlgorithm.convertFromCharacters(ch, start, length);
+					saxDocumentSerializer.bytes(bytes, 0, bytes.length);
+				} else if (isXSType("int")) {
+					int[] ints = (int[]) BuiltInEncodingAlgorithmFactory.intEncodingAlgorithm.convertFromCharacters(ch, start, length);
+					saxDocumentSerializer.ints(ints, 0, ints.length);
+				} else if (isXSType("long")) {
+					long[] longs = (long[]) BuiltInEncodingAlgorithmFactory.longEncodingAlgorithm.convertFromCharacters(ch, start, length);
+					saxDocumentSerializer.longs(longs, 0, longs.length);
+				} else {
+					saxDocumentSerializer.characters(ch, start, length);
+				}
 			} else {
 				saxDocumentSerializer.characters(ch, start, length);
 			}
@@ -139,7 +143,7 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 
 		@Override
 		public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException {
-			saxDocumentSerializer.ignorableWhitespace(ch, start, length);			
+			saxDocumentSerializer.ignorableWhitespace(ch, start, length);
 		}
 
 		@Override
@@ -149,9 +153,9 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 
 		@Override
 		public void skippedEntity(String name) throws SAXException {
-			saxDocumentSerializer.skippedEntity(name);			
+			saxDocumentSerializer.skippedEntity(name);
 		}
 
-   }
+	}
 
 }
