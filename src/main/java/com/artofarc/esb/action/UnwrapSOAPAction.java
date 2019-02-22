@@ -21,8 +21,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
-import javax.wsdl.Definition;
+import javax.xml.namespace.QName;
 import javax.xml.validation.Schema;
 
 import com.artofarc.esb.context.Context;
@@ -70,8 +71,8 @@ public class UnwrapSOAPAction extends TransformAction {
 		_schema = schema;
 	}
 
-	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, Definition definition, String transport, String wsdlUrl) {
-		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(definition, transport)), WSDL4JUtil.getBindingOperations(definition, transport), wsdlUrl, schema);
+	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, Map<QName, Binding> allBindings, String transport, String wsdlUrl) {
+		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(allBindings, transport)), WSDL4JUtil.getBindingOperations(allBindings, transport), wsdlUrl, schema);
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart) {

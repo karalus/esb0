@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.wsdl.Binding;
 import javax.wsdl.Definition;
 import javax.wsdl.Import;
 import javax.wsdl.Types;
@@ -29,6 +30,7 @@ import javax.wsdl.extensions.schema.Schema;
 import javax.wsdl.xml.WSDLLocator;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.namespace.QName;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -44,7 +46,7 @@ import com.artofarc.util.WSDL4JUtil;
 
 public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
-	private Definition _definition;
+	private Map<QName, Binding> _allBindings;
 	private DOMSource _lastSchemaElement;
 	// only used during validation
 	private String latestImportURI;
@@ -57,7 +59,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	@Override
 	protected WSDLArtifact clone(FileSystem fileSystem, Directory parent) {
 		WSDLArtifact clone = initClone(new WSDLArtifact(fileSystem, parent, getName()));
-		clone._definition = _definition;
+		clone._allBindings = _allBindings;
 		clone._jaxbContext = _jaxbContext;
 		clone._lastSchemaElement = _lastSchemaElement;
 		clone._schema = _schema;
@@ -65,27 +67,28 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		return clone;
 	}
 
-	public final Definition getDefinition() {
-		return _definition;
+	public final Map<QName, Binding> getAllBindings() {
+		return _allBindings;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
-		_definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
+		Definition definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
+		_allBindings = definition.getAllBindings();
 		latestImportURI = null;
 		Transformer transformer = XMLCatalog.TRANSFORMER_FACTORY.newTransformer();
 		List<Source> sources = new ArrayList<>();
-		if (WSDL4JUtil.hasSOAP11Binding(_definition)) {
+		if (WSDL4JUtil.hasSOAP11Binding(_allBindings)) {
 			XSDArtifact soap11 = getArtifact(XMLCatalog.PATH + "/soap11.xsd");
 			sources.add(soap11.getStreamSource());
 		}
-		if (WSDL4JUtil.hasSOAP12Binding(_definition)) {
+		if (WSDL4JUtil.hasSOAP12Binding(_allBindings)) {
 			XSDArtifact soap12 = getArtifact(XMLCatalog.PATH + "/soap12.xsd");
 			sources.add(soap12.getStreamSource());
 		}
-		processSchemas(_definition, sources, transformer);
-		@SuppressWarnings("unchecked")
-		Map<String, List<Import>> importMap = _definition.getImports();
+		processSchemas(definition, sources, transformer);
+		Map<String, List<Import>> importMap = definition.getImports();
 		for (List<Import> imports : importMap.values()) {
 			for (Import import1 : imports) {
 				processSchemas(import1.getDefinition(), sources, transformer);

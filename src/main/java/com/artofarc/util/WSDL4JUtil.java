@@ -22,11 +22,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
-import javax.wsdl.Definition;
 import javax.wsdl.WSDLException;
 import javax.wsdl.extensions.ElementExtensible;
 import javax.wsdl.extensions.ExtensibilityElement;
@@ -110,9 +108,8 @@ public final class WSDL4JUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static final List<BindingOperation> getBindingOperations(Definition definition, String transport) {
-		final Set<Map.Entry<QName, Binding>> entrySet = definition.getAllBindings().entrySet();
-		for (Map.Entry<QName, Binding> entry : entrySet) {
+	public static final List<BindingOperation> getBindingOperations(Map<QName, Binding> allBindings, String transport) {
+		for (Map.Entry<QName, Binding> entry : allBindings.entrySet()) {
 			Binding binding = entry.getValue();
 			if (transport == null || transport.equals(getSoapBindingTransportURI(binding))) {
 				return (List<BindingOperation>) binding.getBindingOperations();
@@ -121,9 +118,9 @@ public final class WSDL4JUtil {
 		return Collections.emptyList();
 	}
 
-	public static final Map<String, String> getMapOperation2SoapActionURI(Definition definition, String transport) {
+	public static final Map<String, String> getMapOperation2SoapActionURI(Map<QName, Binding> allBindings, String transport) {
 		final Map<String, String> result = new HashMap<>();
-		for (BindingOperation bindingOperation : getBindingOperations(definition, transport)) {
+		for (BindingOperation bindingOperation : getBindingOperations(allBindings, transport)) {
 			String soapActionURI = WSDL4JUtil.getSoapActionURI(bindingOperation);
 			if (soapActionURI != null) {
 				result.put(bindingOperation.getName(), soapActionURI);
@@ -132,10 +129,8 @@ public final class WSDL4JUtil {
 		return result;
 	}
 
-	public static final boolean hasSOAP11Binding(Definition definition) {
-		@SuppressWarnings("unchecked")
-		final Set<Map.Entry<QName, Binding>> entrySet = definition.getAllBindings().entrySet();
-		for (Map.Entry<QName, Binding> entry : entrySet) {
+	public static final boolean hasSOAP11Binding(Map<QName, Binding> allBindings) {
+		for (Map.Entry<QName, Binding> entry : allBindings.entrySet()) {
 			Binding binding = entry.getValue();
 			if (getExtensibilityElement(binding, SOAPBinding.class) != null) {
 				return true;
@@ -143,11 +138,9 @@ public final class WSDL4JUtil {
 		}
 		return false;
 	}
-	
-	public static final boolean hasSOAP12Binding(Definition definition) {
-		@SuppressWarnings("unchecked")
-		final Set<Map.Entry<QName, Binding>> entrySet = definition.getAllBindings().entrySet();
-		for (Map.Entry<QName, Binding> entry : entrySet) {
+
+	public static final boolean hasSOAP12Binding(Map<QName, Binding> allBindings) {
+		for (Map.Entry<QName, Binding> entry : allBindings.entrySet()) {
 			Binding binding = entry.getValue();
 			if (getExtensibilityElement(binding, SOAP12Binding.class) != null) {
 				return true;
@@ -155,5 +148,5 @@ public final class WSDL4JUtil {
 		}
 		return false;
 	}
-	
+
 }

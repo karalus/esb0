@@ -409,7 +409,7 @@ public class SOAPTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
-      Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), wsdlArtifact.getDefinition(), null, null);
+      Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), wsdlArtifact.getAllBindings(), null, null);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       SetMessageAction setMessageAction = new SetMessageAction(false, null, null, null, null);
