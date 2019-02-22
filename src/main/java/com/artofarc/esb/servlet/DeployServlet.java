@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.servlet;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -108,10 +107,9 @@ public class DeployServlet extends HttpServlet {
 					try {
 						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createUpdate(globalContext, filePart.getInputStream());
 						FileSystem newFileSystem = changeSet.getFileSystem();
-						File anchorDir = globalContext.getFileSystem().getAnchorDir();
 						deployChangeSet(globalContext, changeSet);
 						globalContext.setFileSystem(newFileSystem);
-						newFileSystem.writeBackChanges(anchorDir);
+						newFileSystem.writeBackChanges();
 					} catch (ValidationException e) {
 						log("Not valid", e);
 						resp.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());

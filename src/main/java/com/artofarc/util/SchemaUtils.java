@@ -34,7 +34,7 @@ public final class SchemaUtils {
 	 * This is a hack to allow for global caching of grammars. Relies on Xerces.
 	 */
 	public static Schema createXMLSchema(SchemaArtifact schemaArtifact, Source[] schemas) throws SAXException {
-		SchemaFactory factory = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
+		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 		try {
 			if (schemaArtifact.getGrammars().size() > 0) {
 				ArrayList<Object> grammars = new ArrayList<>();

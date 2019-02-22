@@ -235,7 +235,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"));
       XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
       xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
-      xsdArtifact.validateInternal(null);
+      xsdArtifact.validateInternal(getGlobalContext());
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), ".", null));
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), ".", null));
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), ".", null));
@@ -253,7 +253,7 @@ public class SOAPTest extends AbstractESBTest {
       consumerPort.setStartAction(action);
       XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
       xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
-      xsdArtifact.validateInternal(null);
+      xsdArtifact.validateInternal(getGlobalContext());
       List<Entry<String, String>> result = new ArrayList<>();
       result.add(Collections.createEntry("v1", "http://aoa.de/ei/foundation/v1"));
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), "v1:messageHeader", result));
@@ -269,10 +269,10 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new AssignAction("request", "."));
-      XQueryArtifact xqueryArtifact = new XQueryArtifact(null, context.getPoolContext().getGlobalContext().getFileSystem().getRoot(), null);
+      XQueryArtifact xqueryArtifact = new XQueryArtifact(null, getGlobalContext().getFileSystem().getRoot(), null);
       String strContent = "declare variable $request as element() external; $request";
 		xqueryArtifact.setContent(strContent.getBytes());
-      xqueryArtifact.validateInternal(context.getPoolContext().getGlobalContext());
+      xqueryArtifact.validateInternal(getGlobalContext());
       TransformAction nextAction = new TransformAction(strContent);
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
@@ -287,7 +287,7 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new AssignAction("request", "."));
-      Directory root = context.getPoolContext().getGlobalContext().getFileSystem().getRoot();
+      Directory root = getGlobalContext().getFileSystem().getRoot();
       Directory queries = new Directory(null, root, "queries");
       Directory staticData = new Directory(null, root, "data");
 		XQueryArtifact xqueryArtifact = new XQueryArtifact(null, queries, null);
@@ -295,7 +295,7 @@ public class SOAPTest extends AbstractESBTest {
 		xqueryArtifact.setContent(strContent.getBytes());
 		XMLArtifact staticXML = new XMLArtifact(null, staticData, "static.xml");
 		staticXML.setContent("<root>Hello World!</root>".getBytes());
-      xqueryArtifact.validateInternal(context.getPoolContext().getGlobalContext());
+      xqueryArtifact.validateInternal(getGlobalContext());
       TransformAction nextAction = new TransformAction(strContent);
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
@@ -304,7 +304,7 @@ public class SOAPTest extends AbstractESBTest {
    
    @Test
    public void testTransformWithModule() throws Exception {
-      GlobalContext globalContext = context.getPoolContext().getGlobalContext();
+      GlobalContext globalContext = getGlobalContext();
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       Action action = new UnwrapSOAPAction(false, true);
@@ -330,7 +330,7 @@ public class SOAPTest extends AbstractESBTest {
    
    @Test
    public void testTransformWithModuleFromRoot() throws Exception {
-      GlobalContext globalContext = context.getPoolContext().getGlobalContext();
+      GlobalContext globalContext = getGlobalContext();
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       Action action = new UnwrapSOAPAction(false, true);
@@ -355,7 +355,7 @@ public class SOAPTest extends AbstractESBTest {
    
    public void testTransformWithSchema() throws Exception {
    	// Feature not supported in Saxon HE
-      GlobalContext globalContext = context.getPoolContext().getGlobalContext();
+      GlobalContext globalContext = getGlobalContext();
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       Action action = new UnwrapSOAPAction(false, true);
@@ -376,15 +376,15 @@ public class SOAPTest extends AbstractESBTest {
    }
    
    public void testJMSConsumer() throws Exception {
-      JMSConsumer jmsConsumer = new JMSConsumer(context.getPoolContext().getGlobalContext(), null, null, "ConnectionFactory", "dynamicQueues/test1", null, null, null, 1);
+      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, "ConnectionFactory", "dynamicQueues/test1", null, null, null, 1);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
-      jmsConsumer.init(context.getPoolContext().getGlobalContext());
+      jmsConsumer.init(getGlobalContext());
       
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest1.xml"));
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       
-      JMSAction jmsAction = new JMSAction(context.getPoolContext().getGlobalContext(), "ConnectionFactory", "dynamicQueues/test1", null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 100, false);
+      JMSAction jmsAction = new JMSAction(getGlobalContext(), "ConnectionFactory", "dynamicQueues/test1", null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 100, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(jmsAction);
       consumerPort.process(context, message);
@@ -401,8 +401,9 @@ public class SOAPTest extends AbstractESBTest {
    public void testFastinfoset() throws Exception {
       File dir = new File("src/test/resources");
       assertTrue(dir.exists());
-      FileSystem fileSystem = new FileSystem();
-      fileSystem.parseDirectory(context.getPoolContext().getGlobalContext(), dir).getServiceArtifacts();
+      createContext(dir);
+      FileSystem fileSystem = getGlobalContext().getFileSystem();
+      fileSystem.parseDirectory(getGlobalContext()).getServiceArtifacts();
       WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");
 
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
@@ -429,8 +430,9 @@ public class SOAPTest extends AbstractESBTest {
    public void testFastinfosetValidate() throws Exception {
       File dir = new File("src/test/resources");
       assertTrue(dir.exists());
-      FileSystem fileSystem = new FileSystem();
-      fileSystem.parseDirectory(context.getPoolContext().getGlobalContext(), dir).getServiceArtifacts();
+      createContext(dir);
+      FileSystem fileSystem = getGlobalContext().getFileSystem();
+      fileSystem.parseDirectory(getGlobalContext()).getServiceArtifacts();
       WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");
 
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));

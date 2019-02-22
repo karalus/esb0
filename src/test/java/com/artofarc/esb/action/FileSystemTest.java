@@ -19,8 +19,8 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.servlet.ESBServletContextListener;
 
 
@@ -30,8 +30,8 @@ public class FileSystemTest extends AbstractESBTest {
    public void testFileSystem() throws Exception {
       File dir = new File("src/test/resources");
       assertTrue(dir.exists());
-      FileSystem fileSystem = new FileSystem();
-      fileSystem.parseDirectory(context.getPoolContext().getGlobalContext(), dir);
+      FileSystem fileSystem = new FileSystem(dir);
+      fileSystem.parseDirectory(context.getPoolContext().getGlobalContext());
       FileSystem clone = new FileSystem(fileSystem);
       assertFalse(fileSystem.getRoot() == clone.getRoot());
       assertFalse(fileSystem.tidyOut());

@@ -43,11 +43,11 @@ public final class ESBServletContextListener implements ServletContextListener, 
 			throw new RuntimeException("No directory " + rootDir);
 		}
 		globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer());
-		FileSystem fileSystem = new FileSystem();
+		FileSystem fileSystem = new FileSystem(rootDir);
 		globalContext.setFileSystem(fileSystem);
 		try {
 			XMLCatalog.attachToFileSystem(globalContext);
-			FileSystem.ChangeSet changeSet = fileSystem.parseDirectory(globalContext, rootDir);
+			FileSystem.ChangeSet changeSet = fileSystem.parseDirectory(globalContext);
 			DeployServlet.deployChangeSet(globalContext, changeSet);
 		} catch (IOException e) {
 			throw new RuntimeException("Could not read services", e);

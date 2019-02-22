@@ -37,28 +37,25 @@ public final class FileSystem {
 
 	protected final static Logger logger = LoggerFactory.getLogger(FileSystem.class);
 
+	private final File _anchorDir;
 	private final Directory _root;
 	private final Map<String, ChangeType> _changes = new LinkedHashMap<>();
 
-	private File _anchorDir;
-
 	public FileSystem(FileSystem fileSystem) {
+		_anchorDir = fileSystem._anchorDir;
 		_root = fileSystem._root.clone(this, null);
 	}
 
-	public FileSystem() {
+	public FileSystem(File anchorDir) {
+		_anchorDir = anchorDir;
 		_root = new Directory(this, null, "");
 	}
 
 	public Directory getRoot() {
 		return _root;
 	}
-	
-	protected Map<String, ChangeType> getChanges() {
-		return _changes;
-	}
 
-	public File getAnchorDir() {
+	protected File getAnchorDir() {
 		return _anchorDir;
 	}
 
@@ -97,9 +94,8 @@ public final class FileSystem {
 		return (A) (name.isEmpty() ? current : current.getArtifacts().get(name));
 	}
 
-	public ChangeSet parseDirectory(GlobalContext globalContext, File rootDir) throws IOException, ValidationException {
-		readDir(_root, rootDir, new CRC32());
-		_anchorDir = rootDir;
+	public ChangeSet parseDirectory(GlobalContext globalContext) throws IOException, ValidationException {
+		readDir(_root, _anchorDir, new CRC32());
 		ChangeSet services = new ChangeSet();
 		validateServices(globalContext, _root, services);
 		return services;
@@ -402,9 +398,9 @@ public final class FileSystem {
 		return tidyOut;
 	}
 
-	public void writeBackChanges(File anchorDir) throws IOException {
+	public void writeBackChanges() throws IOException {
 		for (Entry<String, ChangeType> entry : _changes.entrySet()) {
-			File file = new File(anchorDir, entry.getKey());
+			File file = new File(_anchorDir, entry.getKey());
 			if (entry.getValue() == ChangeType.DELETE) {
 				file.delete();
 			} else {
@@ -415,12 +411,11 @@ public final class FileSystem {
 					FileOutputStream fos = new FileOutputStream(file);
 					fos.write(artifact.getContent());
 					fos.close();
-					artifact.clearContent();
 				}
 			}			
 		}
-		_anchorDir = anchorDir;
 		_changes.clear();
+		dehydrateArtifacts(_root);
 	}
 
 }

@@ -48,6 +48,14 @@ public class XMLArtifact extends Artifact {
 
 	@Override
 	protected void clearContent() {
+		for (String referencedBy : getReferencedBy()) {
+			Artifact referencedArtifact = getArtifact(referencedBy);
+			if (referencedArtifact instanceof XMLArtifact) {
+				// is needed for compilation of XQuery or XSLT
+				return;
+			}
+		}
+		super.clearContent();
 	}
 
 }

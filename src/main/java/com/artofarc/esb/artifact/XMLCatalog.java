@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -34,7 +35,6 @@ import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.StreamUtils;
 
 public final class XMLCatalog {
@@ -77,7 +77,7 @@ public final class XMLCatalog {
 	}
 
 	public static String alignSystemId(String systemId) {
-		if (systemId.contains("//")) {
+		if (systemId != null && systemId.contains("//")) {
 			// Must not download anything but search locally (XML catalog)
 			systemId = systemId.substring(systemId.lastIndexOf('/') + 1);
 		}

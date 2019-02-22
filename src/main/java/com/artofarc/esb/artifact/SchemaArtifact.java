@@ -121,7 +121,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 			resourceAsStream = artifact.getContentAsStream();
 		}
 		if (resourceAsStream == null) {
-			throw new IllegalArgumentException("cannot resolve " + systemId);
+			throw new IllegalArgumentException("cannot resolve " + namespaceURI + " in " + base.getURI());
 		}
 		return new LSInputImpl(publicId, systemId, baseURI, resourceAsStream);
 	}

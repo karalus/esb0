@@ -7,6 +7,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import com.artofarc.esb.artifact.FileSystem;
+import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 
@@ -16,8 +17,13 @@ public abstract class AbstractESBTest {
 
 	@Before
 	public void createContext() throws Exception {
+		createContext(null);
+	}
+
+	protected void createContext(File dir) throws Exception {
 		GlobalContext globalContext = new GlobalContext(null);
-		globalContext.setFileSystem(new FileSystem());
+		globalContext.setFileSystem(new FileSystem(dir));
+		XMLCatalog.attachToFileSystem(globalContext);
 		context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());
 	}
 
