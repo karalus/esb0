@@ -45,4 +45,6 @@ public interface WorkerPoolMXBean {
 
 	int getCachedXQueriesTotal();
 
+	int getContextCount();
+
 }

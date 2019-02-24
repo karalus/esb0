@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
 	private final PoolContext _poolContext;
+	private final ContextPool _contextPool;
 	private final WorkerPoolThreadFactory _threadFactory;
 	private final ThreadPoolExecutor _executorService;
 	private final ScheduledExecutorService _scheduledExecutorService;
@@ -41,8 +42,9 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 
 	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
 		_poolContext = new PoolContext(globalContext, name);
+		_contextPool = new ContextPool(minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L, true);
 		if (maxThreads > 0 || scheduledThreads > 0) {
-			_threadFactory = new WorkerPoolThreadFactory(name != null ? name : "default", _poolContext, priority);
+			_threadFactory = new WorkerPoolThreadFactory(name != null ? name : "default", priority);
 		} else {
 			_threadFactory = null;
 		}
@@ -82,6 +84,14 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		return _asyncProcessingPool;
 	}
 
+	public Context getContext() throws Exception {
+		return _contextPool.getContext(_poolContext);
+	}
+
+	public void releaseContext(Context context) {
+		_contextPool.releaseContext(context);
+	}
+
 	public void addThread(Thread thread, String info) {
 		if (_scheduledExecutorService != null && _threads.put(thread, info) == null) {
 			PoolContext.logger.info("adding thread " + thread.getName() + " for " + info);
@@ -98,6 +108,11 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		}
 		if (_scheduledExecutorService != null) {
 			_scheduledExecutorService.shutdown();
+		}
+		try {
+			_contextPool.close();
+		} catch (InterruptedException e) {
+			PoolContext.logger.error("Unexpected", e);
 		}
 		_poolContext.close();
 	}
@@ -213,6 +228,11 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 				PoolContext.logger.info("removing Thread " + thread.getName() + " for " + entry.getValue());
 			}
 		}
+	}
+
+	@Override
+	public int getContextCount() {
+		return _contextPool.getPoolSize();
 	}
 
 }

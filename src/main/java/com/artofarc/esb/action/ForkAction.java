@@ -18,7 +18,7 @@ package com.artofarc.esb.action;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.context.WorkerPoolThreadFactory;
+import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
@@ -36,7 +36,7 @@ public class ForkAction extends Action {
 		_copyMessage = copyMessage;
 	}
 
-	public void setFork(Action fork) {
+	public final void setFork(Action fork) {
 		_fork = fork;
 	}
 
@@ -50,19 +50,28 @@ public class ForkAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext resource, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		final ESBMessage copy = message.copy(context, _copyMessage);
-		context.getPoolContext().getGlobalContext().getWorkerPool(_workerPool).getExecutorService().execute(new Runnable() {
+		final WorkerPool workerPool = context.getPoolContext().getGlobalContext().getWorkerPool(_workerPool);
+		final Context workerContext = workerPool.getContext();
+		try {
+			final ESBMessage copy = message.copy(workerContext, _copyMessage);
+			workerPool.getExecutorService().execute(new Runnable() {
 
-			@Override
-			public void run() {
-				try {
-					copy.putVariable(ESBConstants.timeleftOrigin, copy.getVariables().remove(ESBConstants.timeleft));
-					_fork.process(WorkerPoolThreadFactory.getContext(), copy);
-				} catch (Exception e) {
-					logger.error("Exception in forked action pipeline", e);
+				@Override
+				public void run() {
+					try {
+						copy.putVariable(ESBConstants.timeleftOrigin, copy.getVariables().remove(ESBConstants.timeleft));
+						_fork.process(workerContext, copy);
+					} catch (Exception e) {
+						logger.error("Exception in forked action pipeline", e);
+					} finally {
+						workerPool.releaseContext(workerContext);
+					}
 				}
-			}
-		});
+			});
+		} catch (Exception e) {
+			workerPool.releaseContext(workerContext);
+			throw e;
+		}
 	}
 
 }

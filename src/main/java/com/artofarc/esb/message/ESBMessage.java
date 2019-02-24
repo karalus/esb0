@@ -608,6 +608,7 @@ public final class ESBMessage implements Cloneable {
 		return (ESBMessage) super.clone();
 	}
 
+	// Should be the context of the Thread receiving this copy
 	public ESBMessage copy(Context context, boolean withBody) throws Exception {
 		final ESBMessage clone;
 		if (withBody) {
@@ -620,7 +621,6 @@ public final class ESBMessage implements Cloneable {
 				newBody = getBodyAsString(context);
 				break;
 			case XQ_ITEM:
-				// TOREVIEW: Should be the context of the Thread receiving this copy
 				newBody = context.getXQDataFactory().createItem((XQItem) _body);
 				break;
 			default:

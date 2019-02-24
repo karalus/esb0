@@ -16,35 +16,35 @@
  */
 package com.artofarc.esb;
 
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.WorkerPoolThreadFactory;
+import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
 public final class TimerService extends ConsumerPort implements AutoCloseable, Runnable, com.artofarc.esb.mbean.TimerServiceMXBean {
 
-	private final String _workerPool;
+	private final String _workerPoolName;
 	private final int _initialDelay, _period;
 	private final boolean _fixedDelay;
 
-	private ScheduledExecutorService _scheduledExecutorService;
+	private WorkerPool _workerPool;
 
 	private volatile ScheduledFuture<?> _future;
 
 	public TimerService(String uri, String workerPool, int initialDelay, int period, boolean fixedDelay) {
 		super(uri);
-		_workerPool = workerPool;
+		_workerPoolName = workerPool;
 		_initialDelay = initialDelay;
 		_period = period;
 		_fixedDelay = fixedDelay;
 	}
 
 	public void init(GlobalContext globalContext) {
-		_scheduledExecutorService = globalContext.getWorkerPool(_workerPool).getScheduledExecutorService();
+		_workerPool = globalContext.getWorkerPool(_workerPoolName);
 		if (super.isEnabled()) {
 			enable(true);
 		}
@@ -60,9 +60,9 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 		if (enable) {
 			if (_future == null) {
 				if (_fixedDelay) {
-					_future = _scheduledExecutorService.scheduleWithFixedDelay(this, _initialDelay, _period, TimeUnit.SECONDS);
+					_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _initialDelay, _period, TimeUnit.SECONDS);
 				} else {
-					_future = _scheduledExecutorService.scheduleAtFixedRate(this, _initialDelay, _period, TimeUnit.SECONDS);
+					_future = _workerPool.getScheduledExecutorService().scheduleAtFixedRate(this, _initialDelay, _period, TimeUnit.SECONDS);
 				}
 			}
 		} else {
@@ -84,11 +84,17 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 
 	@Override
 	public void run() {
-		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
 		try {
-			process(WorkerPoolThreadFactory.getContext(), message);
+			Context context = _workerPool.getContext();
+			try {
+				process(context, new ESBMessage(BodyType.INVALID, null));
+			} catch (Exception e) {
+				logger.error("Exception in forked action pipeline", e);
+			} finally {
+				_workerPool.releaseContext(context);
+			}
 		} catch (Exception e) {
-			logger.error("Exception in forked action pipeline", e);
+			throw new RuntimeException(e);
 		}
 	}
 

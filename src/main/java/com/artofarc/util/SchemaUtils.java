@@ -16,6 +16,7 @@
  */
 package com.artofarc.util;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 
 import javax.xml.XMLConstants;
@@ -100,6 +101,15 @@ public final class SchemaUtils {
 		for (String referenced : schemaArtifact.getReferenced()) {
 			SchemaArtifact artifact = schemaArtifact.getArtifact(referenced);
 			collectGrammars(artifact, grammars);
+		}
+	}
+
+	public static void printGrammars(Schema schema, PrintStream printStream) throws ReflectiveOperationException {
+		Object[] grammars = ReflectionUtils.eval(schema, "grammarPool.retrieveInitialGrammarSet($1)", XMLConstants.W3C_XML_SCHEMA_NS_URI);
+		for (Object grammar : grammars) {
+			Object grammarDescription = ReflectionUtils.eval(grammar, "grammarDescription");
+			printStream.println(ReflectionUtils.eval(grammarDescription, "namespace") + ": " + ReflectionUtils.eval(grammarDescription, "baseSystemId") + "->"
+					+ ReflectionUtils.eval(grammarDescription, "literalSystemId") + ": " + System.identityHashCode(grammar));
 		}
 	}
 

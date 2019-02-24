@@ -17,60 +17,32 @@
 package com.artofarc.esb.servlet;
 
 import java.util.Date;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.action.HttpServletResponseAction;
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.PoolContext;
+import com.artofarc.esb.context.ContextPool;
 import com.artofarc.esb.message.ESBMessage;
 
 public final class HttpConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.HttpConsumerMXBean {
 
 	private final String _bindPath;
-   private final BlockingQueue<Context> pool;
-   private final AtomicInteger poolSize = new AtomicInteger();
-   private final int minPoolSize;
-   private final int maxPoolSize;
-   private final long keepAliveMillis;
-   private final HttpServletResponseAction _terminalAction;
-   
-   private volatile long lastAccess;
-   
+	private final ContextPool _contextPool;
+	private final HttpServletResponseAction _terminalAction;
+
 	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive, boolean supportCompression, boolean multipartResponse, Integer bufferSize) {
 		super(uri);
 		_bindPath = bindPath;
-		minPoolSize = minPool;
-		maxPoolSize = maxPool;
-		keepAliveMillis = keepAlive;
-      pool = new LinkedBlockingQueue<>(maxPool);
-      _terminalAction = new HttpServletResponseAction(supportCompression, multipartResponse, bufferSize);
+		_contextPool = new ContextPool(minPool, maxPool, keepAlive, false);
+		_terminalAction = new HttpServletResponseAction(supportCompression, multipartResponse, bufferSize);
 	}
-	
+
 	public String getBindPath() {
 		return _bindPath;
 	}
 
-	public int getPoolSize() {
-		return poolSize.get();
-	}
-
-   public Date getLastAccess() {
-		return new Date(lastAccess);
-	}
-
-	public int getMinPoolSize() {
-		return minPoolSize;
-	}
-
-	public int getMaxPoolSize() {
-		return maxPoolSize;
-	}
-
-	public long getKeepAliveMillis() {
-		return keepAliveMillis;
+	public ContextPool getContextPool() {
+		return _contextPool;
 	}
 
 	@Override
@@ -80,58 +52,42 @@ public final class HttpConsumer extends ConsumerPort implements AutoCloseable, c
 	}
 
 	@Override
-   public void enable(boolean enable) throws Exception {
-      super.enable(enable);
-      if (!enable) {
-      	close();
-      }
-   }
-
-   public Context getContext(PoolContext poolContext) throws Exception {
-   	Context context = pool.poll();
-   	if (context == null) {
-   		int newPoolSize = poolSize.incrementAndGet();
-   		if (newPoolSize > maxPoolSize) {
-   			poolSize.decrementAndGet();
-   		} else {
-   			context = new Context(poolContext);
-   		}
-   	}
-   	return context;
-   }
-   
-   public void releaseContext(Context context) {
-   	lastAccess = System.currentTimeMillis();
-   	pool.add(context);
-   }
-   
-   public void shrinkPool() {
-   	int overflow = poolSize.get() - minPoolSize;
-   	if (overflow > 0) {
-   		long timediff = System.currentTimeMillis() - lastAccess;
-   		if (timediff > keepAliveMillis) {
-   			while (overflow > 0) {
-   				Context context = pool.poll();
-   				if (context != null) {
-      				overflow = poolSize.decrementAndGet() - minPoolSize;
-      				context.close();
-   				} else {
-   					logger.info("Context not given back to pool, yet");
-   					break;
-   				}
-   			}
-   		}
-   	}
-   }
-
-   @Override
-	public void close() throws InterruptedException {
-		while (poolSize.getAndDecrement() > 0) {
-			// this possibly blocks for a long time
-			Context context = pool.take();
-			context.close();
+	public void enable(boolean enable) throws Exception {
+		super.enable(enable);
+		if (!enable) {
+			close();
 		}
-		poolSize.set(0);
+	}
+
+	@Override
+	public void close() throws Exception {
+		_contextPool.close();
+	}
+
+	// Methods for monitoring
+	@Override
+	public int getPoolSize() {
+		return _contextPool.getPoolSize();
+	}
+
+	@Override
+	public Date getLastAccess() {
+		return new Date(_contextPool.getLastAccess());
+	}
+
+	@Override
+	public int getMinPoolSize() {
+		return _contextPool.getMinPoolSize();
+	}
+
+	@Override
+	public int getMaxPoolSize() {
+		return _contextPool.getMaxPoolSize();
+	}
+
+	@Override
+	public long getKeepAliveMillis() {
+		return _contextPool.getKeepAliveMillis();
 	}
 
 }

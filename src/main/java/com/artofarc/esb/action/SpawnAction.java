@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.context.WorkerPoolThreadFactory;
+import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
@@ -37,7 +37,6 @@ import com.artofarc.esb.message.ESBConstants;
 public class SpawnAction extends Action {
 
 	private final String _workerPool;
-
 	private final boolean _usePipe, _join;
 
 	public SpawnAction(String workerPool, boolean usePipe, boolean join) {
@@ -85,8 +84,7 @@ public class SpawnAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		Future<ESBMessage> future;
 		if (_usePipe) {
-			PipedOutputStream pos = execContext.getResource();
-			pos.close();
+			execContext.<PipedOutputStream> getResource().close();
 			message.reset(BodyType.INVALID, null);
 			future = execContext.getResource2();
 		} else {
@@ -107,21 +105,26 @@ public class SpawnAction extends Action {
 
 	private Future<ESBMessage> submit(Context context, final ESBMessage message, Collection<Action> executionStack) throws RejectedExecutionException {
 		String workerPool = message.getVariable(ESBConstants.WorkerPool, _workerPool);
-        return submit(context, message, workerPool, _nextAction, executionStack, _join);
+		return submit(context, message, workerPool, _nextAction, executionStack, _join);
 	}
 
-	public static Future<ESBMessage> submit(Context context, final ESBMessage message, String workerPool, final Action action, final Collection<Action> executionStack, boolean join) throws RejectedExecutionException {
+	public static Future<ESBMessage> submit(Context context, final ESBMessage message, String workerPoolName, final Action action, final Collection<Action> executionStack, boolean join) throws RejectedExecutionException {
 		context.getTimeGauge().startTimeMeasurement();
+		final WorkerPool workerPool = context.getPoolContext().getGlobalContext().getWorkerPool(workerPoolName);
 		try {
-			return context.getPoolContext().getGlobalContext().getWorkerPool(workerPool).getExecutorService().submit(new Callable<ESBMessage>() {
+			return workerPool.getExecutorService().submit(new Callable<ESBMessage>() {
 
 				@Override
 				public ESBMessage call() throws Exception {
-                    final Context workerContext = WorkerPoolThreadFactory.getContext();
-                    // handover execution stack
-                    workerContext.getExecutionStack().addAll(executionStack);
-                    action.process(workerContext, message);
-					return message;
+					final Context workerContext = workerPool.getContext();
+					// hand over execution stack
+					workerContext.getExecutionStack().addAll(executionStack);
+					try {
+						action.process(workerContext, message);
+						return message;
+					} finally {
+						workerPool.releaseContext(workerContext);
+					}
 				}
 			});
 		} finally {

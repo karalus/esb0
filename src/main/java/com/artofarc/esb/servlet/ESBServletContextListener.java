@@ -91,7 +91,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 			HttpConsumer consumerPort = globalContext.getHttpService(path);
 			// check because it could be undeployed meanwhile
 			if (consumerPort != null) {
-				consumerPort.shrinkPool();
+				consumerPort.getContextPool().shrinkPool();
 			}
 		}
 

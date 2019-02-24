@@ -16,52 +16,26 @@
  */
 package com.artofarc.esb.context;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.xquery.XQException;
-
 public class WorkerPoolThreadFactory extends ThreadGroup implements ThreadFactory {
 
-	private static final ConcurrentHashMap<Thread, Context> _map = new ConcurrentHashMap<>();
-
-	private final PoolContext _poolContext;
 	private final AtomicInteger threadNumber = new AtomicInteger();
 	private final String namePrefix;
 	private final int _priority;
 
-	protected WorkerPoolThreadFactory(String name, PoolContext poolContext, int priority) {
+	protected WorkerPoolThreadFactory(String name, int priority) {
 		super(name);
-		_poolContext = poolContext;
 		namePrefix = "WorkerPool-" + name + "-thread-";
 		_priority = priority;
 	}
 
 	@Override
 	public Thread newThread(final Runnable r) {
-		final Thread thread = new Thread(this, new Runnable() {
-
-			@Override
-			public void run() {
-				try (Context context = new Context(_poolContext)) {
-					_map.put(Thread.currentThread(), context);
-					r.run();
-				} catch (TransformerConfigurationException | ParserConfigurationException | XQException e) {
-					throw new RuntimeException(e);
-				} finally {
-					_map.remove(Thread.currentThread());
-				}
-			}
-		}, namePrefix + threadNumber.incrementAndGet());
+		final Thread thread = new Thread(this, r, namePrefix + threadNumber.incrementAndGet());
 		thread.setPriority(_priority);
 		return thread;
-	}
-
-	public static Context getContext() {
-		return _map.get(Thread.currentThread());
 	}
 
 }

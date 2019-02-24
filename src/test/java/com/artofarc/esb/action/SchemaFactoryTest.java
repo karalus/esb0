@@ -6,9 +6,6 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import javax.xml.XMLConstants;
-import javax.xml.validation.Schema;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -18,7 +15,7 @@ import com.artofarc.esb.artifact.SchemaArtifact;
 import com.artofarc.esb.artifact.WSDLArtifact;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.artifact.XSDArtifact;
-import com.artofarc.util.ReflectionUtils;
+import com.artofarc.util.SchemaUtils;
 
 
 public class SchemaFactoryTest extends AbstractESBTest {
@@ -62,21 +59,13 @@ public class SchemaFactoryTest extends AbstractESBTest {
 	
 	private static void printSchemaInternals(SchemaArtifact schemaArtifact) throws ReflectiveOperationException {
 		System.out.println("Internals of: " + schemaArtifact.getURI());
-		printGrammars(schemaArtifact.getSchema());
+		SchemaUtils.printGrammars(schemaArtifact.getSchema(), System.out);
 		Collection<String> collection = schemaArtifact.getReferenced();
 		printReferencedGrammars(schemaArtifact);
 		for (String referenced : collection) {
 			SchemaArtifact artifact = schemaArtifact.getArtifact(referenced);
 			printReferencedGrammars(artifact);
 			//System.out.println("Referenced: " + artifact.getURI() + ": " + System.identityHashCode(artifact.getGrammar()));
-		}
-	}
-	
-	public static void printGrammars(Schema schema) throws ReflectiveOperationException {
-		Object[] grammars = ReflectionUtils.eval(schema, "grammarPool.retrieveInitialGrammarSet($1)", XMLConstants.W3C_XML_SCHEMA_NS_URI);
-		for (Object grammar : grammars) {
-			System.out.println(ReflectionUtils.eval(grammar, "grammarDescription.baseSystemId") + "->"
-					+ ReflectionUtils.eval(grammar, "grammarDescription.literalSystemId") + ": " + System.identityHashCode(grammar));
 		}
 	}
 	

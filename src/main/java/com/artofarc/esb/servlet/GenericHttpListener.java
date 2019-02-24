@@ -59,12 +59,12 @@ public class GenericHttpListener extends HttpServlet {
 		if (consumerPort != null) {
 			if (consumerPort.isEnabled()) {
 				try {
-					Context context = consumerPort.getContext(poolContext);
+					Context context = consumerPort.getContextPool().getContext(poolContext);
 					if (context != null) {
 						try {
 							consumerPort.process(context, createESBMessage(request, pathInfo, consumerPort));
 						} finally {
-							consumerPort.releaseContext(context);
+							consumerPort.getContextPool().releaseContext(context);
 						}
 					} else {
 						response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
@@ -79,7 +79,7 @@ public class GenericHttpListener extends HttpServlet {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
 		}
 	}
-	
+
 	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer consumerPort) throws IOException, MessagingException {
 		// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
 		final boolean bodyPresent = request.getHeader(HTTP_HEADER_CONTENT_LENGTH) != null || request.getHeader(HTTP_HEADER_TRANSFER_ENCODING) != null;
@@ -112,7 +112,7 @@ public class GenericHttpListener extends HttpServlet {
 		message.getVariables().put(AsyncContext, request.startAsync());
 		return message;
 	}
-	
+
 	private static void parseAttachments(String contentType, ESBMessage message) throws IOException, MessagingException {
 		if (contentType != null && contentType.startsWith("multipart/")) {
 			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getUncompressedInputStream(), contentType));
@@ -125,7 +125,7 @@ public class GenericHttpListener extends HttpServlet {
 				if (start == null && i == 0 || start != null && start.equals(bodyPart.getContentID())) {
 					for (@SuppressWarnings("unchecked")
 					Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
-						final Header header = allHeaders.nextElement();
+						Header header = allHeaders.nextElement();
 						message.putHeader(header.getName(), header.getValue());
 					}
 					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream());
