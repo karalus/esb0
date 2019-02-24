@@ -26,7 +26,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -70,7 +69,7 @@ import com.artofarc.util.StringWriter;
 
 public final class ESBMessage implements Cloneable {
 
-	public static final Charset CHARSET_DEFAULT = StandardCharsets.UTF_8;
+	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
 	public static final int MTU = StreamUtils.MTU;
 	private static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
 
@@ -83,7 +82,7 @@ public final class ESBMessage implements Cloneable {
 	private Charset _charset, _sinkEncoding; 
 	private Schema _schema;
 
-	public ESBMessage(BodyType bodyType, Object body, Charset charset) {
+	private ESBMessage(BodyType bodyType, Object body, Charset charset) {
 		_variables.put(ESBConstants.initialTimestamp, System.currentTimeMillis());
 		init(bodyType, body, charset);
 	}
@@ -392,7 +391,8 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Source getBodyAsSource(Context context) throws IOException {
-		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
+		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (isFastInfoset(contentType)) {
 			InputStream is;
 			switch (_bodyType) {
 			case BYTES:
@@ -404,7 +404,7 @@ public final class ESBMessage implements Cloneable {
 			default:
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
-			putHeader(HTTP_HEADER_CONTENT_TYPE, this.<String>getHeader(HTTP_HEADER_CONTENT_TYPE).startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
+			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
 			return new SAXSource(context.getFastInfosetDeserializer().getFastInfosetReader(), new InputSource(is));
 		}
 		return getBodyAsSourceInternal();
