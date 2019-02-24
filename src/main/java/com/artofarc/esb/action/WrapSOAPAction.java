@@ -36,9 +36,7 @@ public class WrapSOAPAction extends TransformAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		message.getHeaders().clear();
-		StringBuilder contentType = new StringBuilder(_soap12 ? SOAP_1_2_CONTENT_TYPE : SOAP_1_1_CONTENT_TYPE);
-		contentType.append(';').append(HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET).append(message.getSinkEncoding());
-		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, contentType.toString());
+		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, _soap12 ? SOAP_1_2_CONTENT_TYPE : SOAP_1_1_CONTENT_TYPE);
 		return super.prepare(context, message, inPipeline);
 	}
 

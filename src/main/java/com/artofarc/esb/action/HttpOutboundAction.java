@@ -16,18 +16,16 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrlSelector;
-import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
 import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBMessage;
 import static com.artofarc.esb.message.ESBConstants.*;
+import com.artofarc.esb.message.ESBMessage;
 
 public class HttpOutboundAction extends Action {
 
@@ -42,10 +40,6 @@ public class HttpOutboundAction extends Action {
 		_pipelineStop = true;
 	}
 
-	public HttpOutboundAction(String url) throws MalformedURLException {
-		this(new HttpEndpoint(null, 1000, 0, null, null, System.currentTimeMillis()).addUrl(url, 1, true), 60000, null);
-	}
-
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		HttpUrlSelector httpUrlSelector = context.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
@@ -55,7 +49,10 @@ public class HttpOutboundAction extends Action {
 		if (message.getVariable(QueryString) != null) {
 			appendHttpUrl += message.getVariable(QueryString);
 		}
-		HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);
+		StringBuilder contentType = new StringBuilder(message.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
+		contentType.append(';').append(HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET).append(message.getSinkEncoding());
+		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, contentType.toString());
+		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);
 		HttpURLConnection conn = wrapper.getHttpURLConnection();  
 		message.getVariables().put(HttpURLOutbound, conn.getURL().toString());
 		conn.setReadTimeout(message.getTimeleft(_readTimeout).intValue());
@@ -68,7 +65,7 @@ public class HttpOutboundAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws IOException {
+	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		message.closeBody();
 		message.getVariables().put(HttpURLConnection, resource.getResource());
 	}

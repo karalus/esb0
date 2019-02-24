@@ -84,7 +84,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = new AssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new HttpOutboundAction(url));
+      action = action.setNextAction(createHttpOutboundAction((url)));
       action = action.setNextAction(new HttpInboundAction());
       action = action.setNextAction(new AssignAction("response", "."));
       action = action.setNextAction(new DumpAction());
@@ -108,7 +108,7 @@ public class SOAPTest extends AbstractESBTest {
       MarkAction markAction = new MarkAction();
 		context.getExecutionStack().push(markAction);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new HttpOutboundAction(url));
+      action = action.setNextAction(createHttpOutboundAction(url));
       action = action.setNextAction(new SpawnAction(null, false, false));
       action = action.setNextAction(new HttpInboundAction());
       action = action.setNextAction(new AssignAction("response", "."));
@@ -135,7 +135,7 @@ public class SOAPTest extends AbstractESBTest {
       consumerPort.setStartAction(action);
       action = action.setNextAction(new SpawnAction(null, false, false));
       //action = action.setNextAction(new AssignAction("request", "."));
-      action = action.setNextAction(new HttpOutboundAction(url));
+      action = action.setNextAction(createHttpOutboundAction(url));
       action = action.setNextAction(new HttpInboundAction());
       //action = action.setNextAction(new AssignAction("response", "."));
       //
@@ -161,7 +161,7 @@ public class SOAPTest extends AbstractESBTest {
       consumerPort.setStartAction(action);
       action = action.setNextAction(new SpawnAction(null, true, false));
       //action = action.setNextAction(new AssignAction("request", "."));
-      action = action.setNextAction(new HttpOutboundAction(url));
+      action = action.setNextAction(createHttpOutboundAction(url));
       action = action.setNextAction(new HttpInboundAction());
       //action = action.setNextAction(new AssignAction("response", "."));
       //action = action.setNextAction(new DumpAction());
@@ -181,7 +181,7 @@ public class SOAPTest extends AbstractESBTest {
       Endpoint endpoint = Endpoint.publish(url, new Echo());
       System.out.println("Service started @ " + url);
       //
-      Action action = new HttpOutboundAction("http://localhost:1212/e");
+      Action action = createHttpOutboundAction("http://localhost:1212/e");
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new HttpInboundAction());
@@ -207,7 +207,7 @@ public class SOAPTest extends AbstractESBTest {
       Endpoint endpoint = Endpoint.publish(url, new Echo());
       System.out.println("Service started @ " + url);
       //
-      Action action = new HttpOutboundAction("http://localhost:1212/e");
+      Action action = createHttpOutboundAction("http://localhost:1212/e");
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new HttpInboundAction());

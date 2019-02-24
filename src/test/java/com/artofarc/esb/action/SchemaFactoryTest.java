@@ -37,7 +37,6 @@ public class SchemaFactoryTest extends AbstractESBTest {
 	public void testCacheGrammars() throws Exception {
 		XMLCatalog.attachToFileSystem(getGlobalContext());
 		XSDArtifact soap11 = getGlobalContext().getFileSystem().getArtifact(XMLCatalog.PATH + "/soap11.xsd");
-		printSchemaInternals(soap11);
 		soap11.clearContent();
 		assertNotNull(soap11.getContent());
 		
@@ -56,6 +55,7 @@ public class SchemaFactoryTest extends AbstractESBTest {
 		WSDLArtifact wsdlArtifact = new WSDLArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "example.wsdl");
 		wsdlArtifact.setContent(readFile("src/test/resources/example/example.wsdl"));
 		wsdlArtifact.validate(getGlobalContext());
+		printSchemaInternals(soap11);
 		printSchemaInternals(wsdlArtifact);
 
 	}
@@ -88,4 +88,25 @@ public class SchemaFactoryTest extends AbstractESBTest {
 		}
 	}
 
+//	@Test
+//	public void testCacheGrammars1() throws Exception {
+//		XSDArtifact xsdArtifact1 = new XSDArtifact(null, null, "kdf");
+//		xsdArtifact1.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
+//		xsdArtifact1.validateInternal(getGlobalContext());
+//		XMLGrammarPool schema1 = (XMLGrammarPool) xsdArtifact1.getSchema();
+//		Grammar[] grammars1 = schema1.retrieveInitialGrammarSet(XMLGrammarDescription.XML_SCHEMA);
+//		XSDArtifact xsdArtifact2 = new XSDArtifact(null, null, "kdf");
+//		xsdArtifact2.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
+//		xsdArtifact2.validateInternal(getGlobalContext());
+//		XMLGrammarPool schema2 = (XMLGrammarPool) xsdArtifact2.getSchema();
+//		Grammar[] grammars2 = schema2.retrieveInitialGrammarSet(XMLGrammarDescription.XML_SCHEMA);
+//		XSDArtifact xsdArtifact3 = new XSDArtifact(null, null, "other");
+//		xsdArtifact3.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
+//		xsdArtifact3.validateInternal(getGlobalContext());
+//		XMLGrammarPool schema3 = (XMLGrammarPool) xsdArtifact3.getSchema();
+//		Grammar[] grammars3 = schema3.retrieveInitialGrammarSet(XMLGrammarDescription.XML_SCHEMA);
+//		assertTrue(grammars1[0] == grammars2[0]);
+//		assertTrue(grammars1[0] != grammars3[0]);
+//	}
+//
 }
