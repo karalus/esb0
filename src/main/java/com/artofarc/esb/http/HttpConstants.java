@@ -63,7 +63,7 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 	}
 
 	public static boolean isFastInfoset(String contentType) {
-		return contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12);
+		return contentType != null && (contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
 	}
 
 }

@@ -392,8 +392,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Source getBodyAsSource(Context context) throws IOException {
-		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null && isFastInfoset(contentType)) {
+		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
 			InputStream is;
 			switch (_bodyType) {
 			case BYTES:
@@ -405,7 +404,7 @@ public final class ESBMessage implements Cloneable {
 			default:
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
-			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
+			putHeader(HTTP_HEADER_CONTENT_TYPE, this.<String>getHeader(HTTP_HEADER_CONTENT_TYPE).startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
 			return new SAXSource(context.getFastInfosetDeserializer().getFastInfosetReader(), new InputSource(is));
 		}
 		return getBodyAsSourceInternal();
