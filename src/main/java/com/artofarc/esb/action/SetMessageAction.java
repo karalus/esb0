@@ -70,23 +70,18 @@ public class SetMessageAction extends Action {
 		for (Assignment header : _headers) {
 			message.putHeader(header._name, header.convert(bindVariable(header._expr, context, message)));
 		}
-		ExecutionContext execContext = null;
+		return null;
+	}
+
+	@Override
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (_body != null) {
 			Object body = _body.convert(bindVariable(_body._expr, context, message));
 			message.reset(null, body);
 			message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
-			execContext = new ExecutionContext(body);
 		}
-		return execContext;
 	}
 
-	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) {
-		if (execContext != null) {
-			message.reset(null, execContext.getResource());
-		}
-	}
-	
 	private final class Assignment {
 		
 		private final String _name;
@@ -109,7 +104,7 @@ public class SetMessageAction extends Action {
 				}
 			}
 		}
-		
+
 		public Object convert(String value) throws Exception {
 			if (_con != null) {
 				return _expr.isEmpty() ? _con.newInstance() : _con.newInstance(value);

@@ -53,23 +53,21 @@ public final class XMLCatalog {
 			// TODO: Works only with document/literal WSDL style and messageParts referring to elements
 			String exp = "/*/*[local-name()='complexType' and @name='Body']/*/*/@processContents";
 			{
-				Attr attr = evaluate(xPath, exp, Artifact.getResourceAsStream("soap11.xsd"));
+				Attr attr = evaluate(xPath, exp, getResourceAsStream("soap11.xsd"));
 				attr.setValue("strict");
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "soap11.xsd");
 				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
-				xsdArtifact.validate(globalContext);
 			}
 			xPath.reset();
 			{
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "xml.xsd");
-				xsdArtifact.setContent(StreamUtils.copy(Artifact.getResourceAsStream("xml.xsd")));
+				xsdArtifact.setContent(StreamUtils.copy(getResourceAsStream("xml.xsd")));
 			}
 			{
-				Attr attr = evaluate(xPath, exp, Artifact.getResourceAsStream("soap12.xsd"));
+				Attr attr = evaluate(xPath, exp, getResourceAsStream("soap12.xsd"));
 				attr.setValue("strict");
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "soap12.xsd");
 				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
-				xsdArtifact.validate(globalContext);
 			}
 		} catch (XPathExpressionException | TransformerException e) {
 			throw new RuntimeException(e);
@@ -84,7 +82,11 @@ public final class XMLCatalog {
 		return systemId;
 	}
 
-	public static byte[] toByteArray(DOMSource source, Transformer transformer) throws TransformerException {
+	protected static InputStream getResourceAsStream(String name) {
+		return XMLCatalog.class.getClassLoader().getResourceAsStream(name);
+	}
+
+	protected static byte[] toByteArray(DOMSource source, Transformer transformer) throws TransformerException {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream(StreamUtils.MTU);
 		transformer.transform(source, new StreamResult(bos));
 		transformer.reset();

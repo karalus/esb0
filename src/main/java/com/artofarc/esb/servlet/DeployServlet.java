@@ -78,7 +78,7 @@ public class DeployServlet extends HttpServlet {
 				String headerAccept = req.getHeader(HttpConstants.HTTP_HEADER_ACCEPT);
 				// SoapUI does not send an "Accept" header
 				if (headerAccept == null || headerAccept.contains("text/")) {
-					resp.setContentType("text/plain");
+					resp.setContentType(artifact.getContentType());
 					resp.setHeader(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
 					try (InputStream contentAsStream = artifact.getContentAsStream()) {
 						StreamUtils.copy(contentAsStream, resp.getOutputStream());

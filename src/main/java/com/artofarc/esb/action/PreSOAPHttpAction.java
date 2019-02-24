@@ -25,6 +25,7 @@ import javax.xml.validation.Schema;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
+
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.WSDL4JUtil;
@@ -45,8 +46,10 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 		ExecutionContext executionContext = super.prepare(context, message, inPipeline);
 		String soapAction = _mapOperation2SoapActionURI.get(message.<String>getVariable(ESBConstants.SOAP_OPERATION));
 		if (_soap12) {
-			if (soapAction != null) {
-				message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAP_1_2_CONTENT_TYPE + ";" + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + soapAction);
+			if (soapAction != null && soapAction.length() > 0) {
+				StringBuilder contentType = new StringBuilder(message.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
+				contentType.append(';').append(HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION).append(soapAction);
+				message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, contentType.toString());
 			}
 			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAP_1_2_CONTENT_TYPE);
 		} else {

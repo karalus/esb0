@@ -152,6 +152,10 @@ public abstract class Artifact {
 		}
 	}
 
+	public String getContentType() {
+		return "text/plain;charset=utf-8";		
+	}
+
 	public final <A extends Artifact> A getArtifact(String uri) {
 		return _fileSystem.getArtifact(getParent(), uri);
 	}
@@ -162,10 +166,6 @@ public abstract class Artifact {
 			throw new FileNotFoundException(uri);
 		}
 		return artifact;
-	}
-
-	protected static InputStream getResourceAsStream(String name) {
-		return Artifact.class.getClassLoader().getResourceAsStream(name);
 	}
 
 	protected final void addReference(Artifact artifact) {

@@ -80,12 +80,14 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		Transformer transformer = XMLCatalog.TRANSFORMER_FACTORY.newTransformer();
 		List<Source> sources = new ArrayList<>();
 		if (WSDL4JUtil.hasSOAP11Binding(_allBindings)) {
-			XSDArtifact soap11 = getArtifact(XMLCatalog.PATH + "/soap11.xsd");
+			XSDArtifact soap11 = loadArtifact(XMLCatalog.PATH + "/soap11.xsd");
 			sources.add(soap11.getStreamSource());
+			addReference(soap11);
 		}
 		if (WSDL4JUtil.hasSOAP12Binding(_allBindings)) {
-			XSDArtifact soap12 = getArtifact(XMLCatalog.PATH + "/soap12.xsd");
+			XSDArtifact soap12 = loadArtifact(XMLCatalog.PATH + "/soap12.xsd");
 			sources.add(soap12.getStreamSource());
+			addReference(soap12);
 		}
 		processSchemas(definition, sources, transformer);
 		Map<String, List<Import>> importMap = definition.getImports();
@@ -117,6 +119,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	@Override
 	public JAXBContext getJAXBContext() throws JAXBException {
 		if (_jaxbContext == null && _lastSchemaElement != null) {
+			// TODO: This just works when the WSDL contains the one schema with the elements used in messages
 			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(_lastSchemaElement, this, null, null);
 			_lastSchemaElement = null;
 		}

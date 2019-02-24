@@ -111,7 +111,11 @@ public class UnwrapSOAPAction extends TransformAction {
 		}
 		String operation = message.getVariable(SOAP_OPERATION);
 		if (_operations != null && !_operations.contains(operation)) {
-			throw new ExecutionException(this, "Operation not found in WSDL: " + operation);
+			if (_operations.size() == 1) {
+				message.getVariables().put(SOAP_OPERATION, _operations.iterator().next());
+			} else {
+				throw new ExecutionException(this, "Operation not found in WSDL: " + operation);
+			}
 		}
 		if (_schema != null) {
 			message.setSchema(_schema);

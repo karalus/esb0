@@ -25,64 +25,75 @@ import java.util.List;
 public class FileSystemClassLoader extends SecureClassLoader {
 
 	private final List<JarArtifact> _jars;
-	
-   public FileSystemClassLoader(List<JarArtifact> jars, ClassLoader parent) {
-   	super(parent);
-      _jars = jars;
-   }
 
-   /**
-    * Order of classloading:
-    * <ol>
-    * <li>look in cache</li>
-    * <li>call findClass: look in jars</li>
-    * <li>propagate to parent classloader</li>
-    * </ol>
-    * @see FileSystemClassLoader#findClass(String)
-    * @see ClassLoader#loadClass(String)
-    */
-   @Override
-   public synchronized Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
-      // First, check if the class has already been loaded
-      Class<?> result = findLoadedClass(name);
-      if (result == null) {
-         try {
-            result = findClass(name); // invoke our own find algorithm
-         } catch (Exception e) { // also catches java.lang.SecurityException
-            result = getParent().loadClass(name); // invoke parent
-         }
-      }
-      if (resolve) {
-         resolveClass(result);
-      }
-      return result;
-   }
+	public FileSystemClassLoader(List<JarArtifact> jars, ClassLoader parent) {
+		super(parent);
+		_jars = jars;
+	}
 
+	/**
+	 * Order of classloading:
+	 * <ol>
+	 * <li>look in cache</li>
+	 * <li>call findClass: look in jars</li>
+	 * <li>propagate to parent classloader</li>
+	 * </ol>
+	 * 
+	 * @see FileSystemClassLoader#findClass(String)
+	 * @see ClassLoader#loadClass(String)
+	 */
+	@Override
+	public synchronized Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
+		// First, check if the class has already been loaded
+		Class<?> result = findLoadedClass(name);
+		if (result == null) {
+			try {
+				result = findClass(name); // invoke our own find algorithm
+			} catch (Exception e) { // also catches java.lang.SecurityException
+				result = getParent().loadClass(name); // invoke parent
+			}
+		}
+		if (resolve) {
+			resolveClass(result);
+		}
+		return result;
+	}
 
-   @Override
-   protected Class<?> findClass(final String name) throws ClassNotFoundException {
-      String classFilename = name.replace('.', '/') + ".class";
-      try {
-         // search only with our own mechanism here!
-      	byte[] classData = findInJarArtifacts(classFilename);
-         if (classData != null) {
-         	return defineClass(name, classData, 0, classData.length);
-         }
-      }
-      catch (Exception e) {
-         throw new ClassNotFoundException(name, e);
-      }
-      throw new ClassNotFoundException(name);
-   }
+	@Override
+	protected Class<?> findClass(final String name) throws ClassNotFoundException {
+		String classFilename = name.replace('.', '/') + ".class";
+		try {
+			// search only with our own mechanism here!
+			byte[] classData = findInJarArtifacts(classFilename);
+			if (classData != null) {
+				// Looking up the package
+				int pos = name.lastIndexOf('.');
+				if (pos > 0) {
+					String packageName = name.substring(0, pos);
+					if (getPackage(packageName) == null) {
+						try {
+							definePackage(packageName, null, null, null, null, null, null, null);
+						} catch (IllegalArgumentException e) {
+							// Ignore: normal error due to dual definition of package
+						}
+					}
+				}
+				return defineClass(name, classData, 0, classData.length);
+			}
+		} catch (Exception e) {
+			throw new ClassNotFoundException(name, e);
+		}
+		throw new ClassNotFoundException(name);
+	}
 
-   private byte[] findInJarArtifacts(final String filename) throws IOException {
-   	for (JarArtifact jarArtifact : _jars) {
-   		if (jarArtifact.contains(filename)) {
-   			return jarArtifact.getEntry(filename);
-   		}
-   	}
-      return null;
-   }
+	private byte[] findInJarArtifacts(final String filename) throws IOException {
+		for (JarArtifact jarArtifact : _jars) {
+			if (jarArtifact.contains(filename)) {
+				return jarArtifact.getEntry(filename);
+			}
+		}
+		return null;
+	}
 
 	@Override
 	public InputStream getResourceAsStream(String name) {

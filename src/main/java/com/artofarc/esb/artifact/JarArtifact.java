@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.zip.ZipEntry;
@@ -37,6 +36,11 @@ public class JarArtifact extends Artifact {
 	}
 
 	@Override
+	public String getContentType() {
+		return "application/octet-stream";
+	}
+
+	@Override
 	protected JarArtifact clone(FileSystem fileSystem, Directory parent) {
 		JarArtifact clone = initClone(new JarArtifact(fileSystem, parent, getName()));
 		clone._entries = _entries;
@@ -45,7 +49,7 @@ public class JarArtifact extends Artifact {
 
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws IOException {
-		try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(_content))) {
+		try (ZipInputStream zis = new ZipInputStream(getContentAsStream())) {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				if (!entry.isDirectory()) {
@@ -61,7 +65,7 @@ public class JarArtifact extends Artifact {
 
 	public final byte[] getEntry(String filename) throws IOException {
 		if (!CACHE_JARS_UNZIPPED) {
-			try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(_content))) {
+			try (ZipInputStream zis = new ZipInputStream(getContentAsStream())) {
 				ZipEntry entry;
 				while ((entry = zis.getNextEntry()) != null) {
 					if (entry.getName().equals(filename)) {
@@ -76,7 +80,7 @@ public class JarArtifact extends Artifact {
 	@Override
 	protected void clearContent() {
 		if (CACHE_JARS_UNZIPPED) {
-			_content = null;
+			super.clearContent();
 		}
 	}
 
