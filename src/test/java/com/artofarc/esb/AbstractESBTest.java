@@ -47,7 +47,7 @@ public abstract class AbstractESBTest {
 		return FileSystem.readFile(new File(fileName));
 	}
 
-	public HttpOutboundAction createHttpOutboundAction(String url) throws MalformedURLException {
+	protected static HttpOutboundAction createHttpOutboundAction(String url) throws MalformedURLException {
 		return new HttpOutboundAction(new HttpEndpoint(null, 1000, 0, null, null, System.currentTimeMillis()).addUrl(url, 1, true), 60000, null);
 	}
 	

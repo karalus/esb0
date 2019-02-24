@@ -393,7 +393,7 @@ public final class ESBMessage implements Cloneable {
 
 	public Source getBodyAsSource(Context context) throws IOException {
 		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null && (contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12))) {
+		if (contentType != null && isFastInfoset(contentType)) {
 			InputStream is;
 			switch (_bodyType) {
 			case BYTES:
@@ -469,8 +469,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Result getBodyAsSinkResult(Context context) throws Exception {
-		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (HTTP_HEADER_CONTENT_TYPE_FI_SOAP11.equals(contentType) || HTTP_HEADER_CONTENT_TYPE_FI_SOAP12.equals(contentType)) {
+		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
 			if (_bodyType == BodyType.OUTPUT_STREAM) {
 				SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 				serializer.getFastInfosetSerializer().setOutputStream(getCompressedOutputStream((OutputStream) _body));
@@ -540,8 +539,7 @@ public final class ESBMessage implements Cloneable {
 
 	public void writeTo(OutputStream os, Context context) throws Exception {
 		os = getCompressedOutputStream(os);
-		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (HTTP_HEADER_CONTENT_TYPE_FI_SOAP11.equals(contentType) || HTTP_HEADER_CONTENT_TYPE_FI_SOAP12.equals(contentType)) {
+		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
 			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 			serializer.getFastInfosetSerializer().setOutputStream(os);
 			serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
