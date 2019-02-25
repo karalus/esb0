@@ -18,6 +18,7 @@ package com.artofarc.util;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
@@ -63,6 +64,16 @@ public final class SchemaUtils {
 				String namespace = ReflectionUtils.eval(grammarDescription, "namespace");
 				Object cachedGrammar = artifact.putGrammarIfAbsent(namespace, grammar);
 				if (cachedGrammar != null) {
+					for (Object other : grammars) {
+						List<Object> importedGrammars = ReflectionUtils.eval(other, "importedGrammars");
+						if (importedGrammars != null) {
+							for (int j = 0; j < importedGrammars.size(); ++j) {
+								if (importedGrammars.get(j) == grammar) {
+									importedGrammars.set(j, cachedGrammar);
+								}
+							}
+						}
+					}
 					grammars[i] = cachedGrammar;
 					fromCache = true;
 				}
