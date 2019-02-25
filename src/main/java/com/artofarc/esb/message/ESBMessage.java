@@ -27,7 +27,6 @@ import java.io.StringReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -136,23 +135,24 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> T getHeader(String headerName) {
+	public <T> Entry<String, T> getHeaderEntry(String headerName) {
 		for (Entry<String, Object> entry : _headers.entrySet()) {
 			if (headerName.equalsIgnoreCase(entry.getKey())) {
-				return (T) entry.getValue();
+				return (Entry<String, T>) entry;
 			}
 		}
 		return null;
 	}
 
-	public <T> T putHeader(String headerName, Object value) {
-		for (Entry<String, Object> entry : _headers.entrySet()) {
-			if (headerName.equalsIgnoreCase(entry.getKey())) {
-				@SuppressWarnings("unchecked")
-				T oldValue = (T) entry.getValue();
-				entry.setValue(value);
-				return oldValue;
-			}
+	public <T> T getHeader(String headerName) {
+		Entry<String, T> entry = getHeaderEntry(headerName);
+		return entry != null ? entry.getValue() : null;
+	}
+
+	public <T> T putHeader(String headerName, T value) {
+		Entry<String, T> entry = getHeaderEntry(headerName);
+		if (entry != null) {
+			return entry.setValue(value);
 		}
 		_headers.put(headerName, value);
 		return null;
@@ -160,12 +160,9 @@ public final class ESBMessage implements Cloneable {
 
 	@SuppressWarnings("unchecked")
 	public <T> T removeHeader(String headerName) {
-		for (Iterator<Entry<String, Object>> iter = _headers.entrySet().iterator(); iter.hasNext();) {
-			Entry<String, Object> entry = iter.next();
-			if (headerName.equalsIgnoreCase(entry.getKey())) {
-				iter.remove();
-				return (T) entry.getValue();
-			}
+		Entry<String, T> entry = getHeaderEntry(headerName);
+		if (entry != null) {
+			return (T) _headers.remove(entry.getKey());
 		}
 		return null;
 	}
@@ -391,8 +388,8 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Source getBodyAsSource(Context context) throws IOException {
-		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (isFastInfoset(contentType)) {
+		Entry<String, String> contentType = getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType != null && isFastInfoset(contentType.getValue())) {
 			InputStream is;
 			switch (_bodyType) {
 			case BYTES:
@@ -404,7 +401,7 @@ public final class ESBMessage implements Cloneable {
 			default:
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
-			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
+			contentType.setValue(contentType.getValue().startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
 			return new SAXSource(context.getFastInfosetDeserializer().getFastInfosetReader(), new InputSource(is));
 		}
 		return getBodyAsSourceInternal();

@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.net.HttpURLConnection;
+import java.util.Map.Entry;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -49,9 +50,8 @@ public class HttpOutboundAction extends Action {
 		if (message.getVariable(QueryString) != null) {
 			appendHttpUrl += message.getVariable(QueryString);
 		}
-		StringBuilder contentType = new StringBuilder(message.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
-		contentType.append(';').append(HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET).append(message.getSinkEncoding());
-		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, contentType.toString());
+		Entry<String, String> contentType = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
+		contentType.setValue(contentType.getValue() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
 		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);
 		HttpURLConnection conn = wrapper.getHttpURLConnection();  
 		message.getVariables().put(HttpURLOutbound, conn.getURL().toString());

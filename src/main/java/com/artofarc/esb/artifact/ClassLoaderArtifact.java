@@ -50,7 +50,7 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 		}
 		// parent
 		if (classLoader.getParent() != null) {
-			ClassLoaderArtifact classLoaderArtifact = loadArtifact(classLoader.getParent() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
+			ClassLoaderArtifact classLoaderArtifact = loadArtifact(classLoader.getParent() + '.' + FILE_EXTENSION);
 			addReference(classLoaderArtifact);
 			classLoaderArtifact.validate(globalContext);
 			_fileSystemClassLoader = new FileSystemClassLoader(jars, classLoaderArtifact.getFileSystemClassLoader());

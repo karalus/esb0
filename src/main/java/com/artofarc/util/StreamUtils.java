@@ -52,4 +52,12 @@ public final class StreamUtils {
 		return ba;
 	}
 
+	public static InputStream getResourceAsStream(String name) throws FileNotFoundException {
+		InputStream stream = StreamUtils.class.getClassLoader().getResourceAsStream(name);
+		if (stream == null) {
+			throw new FileNotFoundException(name);
+		}
+		return stream;
+	}
+
 }
