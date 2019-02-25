@@ -7,12 +7,14 @@ import java.net.MalformedURLException;
 import org.junit.After;
 import org.junit.Before;
 
+import com.artofarc.esb.action.AssignAction;
 import com.artofarc.esb.action.HttpOutboundAction;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpEndpoint;
+import com.artofarc.util.StreamUtils;
 
 public abstract class AbstractESBTest {
 
@@ -42,13 +44,17 @@ public abstract class AbstractESBTest {
 	protected GlobalContext getGlobalContext() {
 		return context.getPoolContext().getGlobalContext();
 	}
-	
+
 	protected static byte[] readFile(String fileName) throws IOException {
-		return FileSystem.readFile(new File(fileName));
+		return StreamUtils.readFile(new File(fileName));
 	}
 
 	protected static HttpOutboundAction createHttpOutboundAction(String url) throws MalformedURLException {
 		return new HttpOutboundAction(new HttpEndpoint(null, 1000, 0, null, null, System.currentTimeMillis()).addUrl(url, 1, true), 60000, null);
 	}
-	
+
+	protected static AssignAction createAssignAction(String varName, String expression) {
+		return new AssignAction(varName, expression, null, java.util.Collections.<String> emptyList(), null);
+	}
+
 }
