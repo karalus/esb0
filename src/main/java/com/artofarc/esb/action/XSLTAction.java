@@ -44,7 +44,6 @@ public class XSLTAction extends SAXAction {
 	}
 
 	class TransformerFilter extends FeatureFilter {
-
 		private final TransformerHandler transformerHandler;
 		private final Transformer transformer;
 
@@ -81,7 +80,6 @@ public class XSLTAction extends SAXAction {
 				}
 			}
 		}
-
 	}
 
 	private void apply(ESBMessage message, Transformer transformer) {
@@ -91,12 +89,14 @@ public class XSLTAction extends SAXAction {
 		transformer.setOutputProperties(message.getSinkProperties());
 	}
 
+	@Override
 	protected SAXSource createSAXSource(XQItem item, Context context, ESBMessage message) throws TransformerConfigurationException {
 		TransformerFilter transformerFilter = new TransformerFilter(context, new XQJFilter(item));
 		apply(message, transformerFilter.transformer);
 		return new SAXSource(transformerFilter, null);
 	}
 
+	@Override
 	protected FeatureFilter createXMLFilter(XMLReader parent, Context context, ESBMessage message) throws TransformerConfigurationException {
 		TransformerFilter transformerFilter = new TransformerFilter(context, parent);
 		apply(message, transformerFilter.transformer);

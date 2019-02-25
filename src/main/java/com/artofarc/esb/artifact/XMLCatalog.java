@@ -43,7 +43,7 @@ public final class XMLCatalog {
 
 	public static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
 
-	public static void attachToFileSystem(GlobalContext globalContext) throws ValidationException, IOException {
+	public static void attachToFileSystem(GlobalContext globalContext) throws IOException {
 		FileSystem fileSystem = globalContext.getFileSystem();
 		Directory parent = fileSystem.makeDirectory(PATH.substring(1));
 		try {

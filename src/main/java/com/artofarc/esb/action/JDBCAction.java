@@ -137,7 +137,7 @@ public abstract class JDBCAction extends TerminalAction {
 		ps.setFetchSize(_fetchSize);
 	}
 
-	protected final static void extractResult(Statement statement, ESBMessage message) throws SQLException {
+	protected static void extractResult(Statement statement, ESBMessage message) throws SQLException {
 		JsonStructure result = null;
 		JsonArrayBuilder builder = Json.createArrayBuilder();
 		for (boolean moreResults = true;; moreResults = statement.getMoreResults()) {
@@ -169,7 +169,7 @@ public abstract class JDBCAction extends TerminalAction {
 		}
 	}
 
-	protected final static JsonObject createJson(ResultSet resultSet) throws SQLException {
+	protected static JsonObject createJson(ResultSet resultSet) throws SQLException {
 		ResultSetMetaData metaData = resultSet.getMetaData();
 		final int colSize = metaData.getColumnCount();
 		JsonObjectBuilder result = Json.createObjectBuilder();

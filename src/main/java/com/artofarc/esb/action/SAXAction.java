@@ -51,7 +51,6 @@ public abstract class SAXAction extends Action {
 		@Override
 		public void setFeature(String name, boolean value) {
 		}
-
 	}
 
 	static class XQJFilter extends FeatureFilter {
@@ -69,7 +68,6 @@ public abstract class SAXAction extends Action {
 				throw new SAXException(e);
 			}
 		}
-
 	}
 
 	public static StreamSource InputSourceToSource(InputSource inputSource) throws UnsupportedEncodingException {

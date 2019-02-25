@@ -106,9 +106,7 @@ public final class SchemaUtils {
 	}
 
 	private static void collectGrammars(SchemaArtifact schemaArtifact, ArrayList<Object> grammars) {
-		for (Object grammar : schemaArtifact.getGrammars().values()) {
-			grammars.add(grammar);
-		}
+		grammars.addAll(schemaArtifact.getGrammars().values());
 		for (String referenced : schemaArtifact.getReferenced()) {
 			SchemaArtifact artifact = schemaArtifact.getArtifact(referenced);
 			collectGrammars(artifact, grammars);

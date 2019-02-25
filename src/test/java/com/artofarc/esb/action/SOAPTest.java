@@ -81,12 +81,12 @@ public class SOAPTest extends AbstractESBTest {
       Endpoint endpoint = Endpoint.publish(url, new Echo());
       System.out.println("Service started @ " + url);
       //
-      Action action = new AssignAction("request", ".");
+      Action action = createAssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(createHttpOutboundAction((url)));
       action = action.setNextAction(new HttpInboundAction());
-      action = action.setNextAction(new AssignAction("response", "."));
+      action = action.setNextAction(createAssignAction("response", "."));
       action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
@@ -103,7 +103,7 @@ public class SOAPTest extends AbstractESBTest {
       Endpoint endpoint = Endpoint.publish(url, new Echo());
       System.out.println("Service started @ " + url);
       //
-      Action action = new AssignAction("request", ".");
+      Action action = createAssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
       MarkAction markAction = new MarkAction();
 		context.getExecutionStack().push(markAction);
@@ -111,7 +111,7 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(createHttpOutboundAction(url));
       action = action.setNextAction(new SpawnAction(null, false, false));
       action = action.setNextAction(new HttpInboundAction());
-      action = action.setNextAction(new AssignAction("response", "."));
+      action = action.setNextAction(createAssignAction("response", "."));
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBConstants.HttpMethod, "POST");
@@ -128,16 +128,16 @@ public class SOAPTest extends AbstractESBTest {
       Endpoint endpoint = Endpoint.publish(url, new Echo());
       System.out.println("Service started @ " + url);
       //
-      Action action = new AssignAction("request", ".");
+      Action action = createAssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
       MarkAction markAction = new MarkAction();
 		context.getExecutionStack().push(markAction);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new SpawnAction(null, false, false));
-      //action = action.setNextAction(new AssignAction("request", "."));
+      //action = action.setNextAction(createAssignAction("request", "."));
       action = action.setNextAction(createHttpOutboundAction(url));
       action = action.setNextAction(new HttpInboundAction());
-      //action = action.setNextAction(new AssignAction("response", "."));
+      //action = action.setNextAction(createAssignAction("response", "."));
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBConstants.HttpMethod, "POST");
@@ -154,16 +154,16 @@ public class SOAPTest extends AbstractESBTest {
       Endpoint endpoint = Endpoint.publish(url, new Echo());
       System.out.println("Service started @ " + url);
       //
-      Action action = new AssignAction("request", ".");
+      Action action = createAssignAction("request", ".");
       ConsumerPort consumerPort = new ConsumerPort(null);
       MarkAction markAction = new MarkAction();
 		context.getExecutionStack().push(markAction);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new SpawnAction(null, true, false));
-      //action = action.setNextAction(new AssignAction("request", "."));
+      //action = action.setNextAction(createAssignAction("request", "."));
       action = action.setNextAction(createHttpOutboundAction(url));
       action = action.setNextAction(new HttpInboundAction());
-      //action = action.setNextAction(new AssignAction("response", "."));
+      //action = action.setNextAction(createAssignAction("response", "."));
       //action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
@@ -268,7 +268,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = new UnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new AssignAction("request", "."));
+      action = action.setNextAction(createAssignAction("request", "."));
       XQueryArtifact xqueryArtifact = new XQueryArtifact(null, getGlobalContext().getFileSystem().getRoot(), null);
       String strContent = "declare variable $request as element() external; $request";
 		xqueryArtifact.setContent(strContent.getBytes());
@@ -286,7 +286,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = new UnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new AssignAction("request", "."));
+      action = action.setNextAction(createAssignAction("request", "."));
       Directory root = getGlobalContext().getFileSystem().getRoot();
       Directory queries = new Directory(null, root, "queries");
       Directory staticData = new Directory(null, root, "data");
@@ -310,7 +310,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = new UnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new AssignAction("request", "."));
+      action = action.setNextAction(createAssignAction("request", "."));
       Directory modules = new Directory(globalContext.getFileSystem(), globalContext.getFileSystem().getRoot(), "modules");
       Directory queries = new Directory(globalContext.getFileSystem(), globalContext.getFileSystem().getRoot(), "queries");
 		XQueryArtifact module = new XQueryArtifact(globalContext.getFileSystem(), modules, "helloworld.xqy");
@@ -336,7 +336,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = new UnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new AssignAction("request", "."));
+      action = action.setNextAction(createAssignAction("request", "."));
       Directory modules = new Directory(globalContext.getFileSystem(), globalContext.getFileSystem().getRoot(), "modules");
 		XQueryArtifact module = new XQueryArtifact(globalContext.getFileSystem(), modules, "helloworld.xqy");
       module.setContent("module namespace hello = 'http://helloworld'; declare function hello:helloworld() { 'hello world' };".getBytes());
@@ -361,7 +361,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = new UnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new AssignAction("request", "."));
+      action = action.setNextAction(createAssignAction("request", "."));
       XSDArtifact xsdArtifact = new XSDArtifact(null, globalContext.getFileSystem().getRoot(), "kdf.xsd");
       xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
       xsdArtifact.validateInternal(null);

@@ -34,7 +34,7 @@ public class BranchOnVariableAction extends Action {
 		_defaultAction = defaultAction;
 	}
 
-	public Map<String, Action> getBranchMap() {
+	public final Map<String, Action> getBranchMap() {
 		return _branchMap;
 	}
 

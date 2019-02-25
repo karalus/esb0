@@ -52,13 +52,13 @@ public final class ReflectionUtils {
 		return (T) root;
 	}
 
-	private static Method findMethod(Method[] methods, String methodName, List<Object> args) throws NoSuchMethodException {
-		for (Method method : methods) {
+	private static Method findMethod(Method[] methods, String methodName, List<Object> args) {
+		outer: for (Method method : methods) {
 			Class<?>[] parameterTypes = method.getParameterTypes();
 			if (parameterTypes.length == args.size() && isMatch(method.getName(), methodName, args.size())) {
 				for (int i = 0; i < parameterTypes.length; ++i) {
-					if (!parameterTypes[0].isInstance(args.get(i))) {
-						continue;
+					if (!parameterTypes[i].isInstance(args.get(i))) {
+						continue outer;
 					}
 				}
 				return method;
@@ -105,12 +105,12 @@ public final class ReflectionUtils {
 
 	@SuppressWarnings("unchecked")
 	private static <T> Constructor<T> findConstructor(Class<T> cls, List<Object> params) throws NoSuchMethodException {
-		for (Constructor<?> con : cls.getConstructors()) {
+		outer: for (Constructor<?> con : cls.getConstructors()) {
 			Class<?>[] parameterTypes = con.getParameterTypes();
 			if (parameterTypes.length == params.size()) {
 				for (int i = 0; i < parameterTypes.length; ++i) {
-					if (!parameterTypes[0].isInstance(params.get(0))) {
-						continue;
+					if (!parameterTypes[i].isInstance(params.get(i))) {
+						continue outer;
 					}
 				}
 				return (Constructor<T>) con;

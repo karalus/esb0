@@ -22,7 +22,6 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		timerService.setStartAction(markAction);
 		assertFalse(markAction.isExecuted());
 		timerService.init(context.getPoolContext().getGlobalContext());
-		timerService.enable(true);
 		Thread.sleep(100);
 		timerService.enable(false);
 		assertTrue(markAction.isExecuted());
@@ -43,8 +42,7 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		FileSystemWatchAction action = new FileSystemWatchAction(Arrays.asList(new String[] { inDir.getPath() }), 90l, null, new FileAction(outDir.getPath()));
 		timerService.setStartAction(action);
 		timerService.init(context.getPoolContext().getGlobalContext());
-		timerService.enable(true);
-		Thread.sleep(10);
+		Thread.sleep(200);
 		File outFile1 = new File(outDir, "test1");
 		File outFile2 = new File(outDir, "test2");
 		assertFalse(outFile1.exists());
@@ -53,7 +51,7 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		Thread.sleep(10);
 		File inFile2 = new File(inDir, "test2");
 		new FileOutputStream(inFile2).close();
-		Thread.sleep(1100);
+		Thread.sleep(1000);
 		assertTrue(outFile1.exists());
 		assertFalse(inFile1.exists());
 		outFile1.deleteOnExit();

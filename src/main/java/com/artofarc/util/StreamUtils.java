@@ -16,11 +16,7 @@
  */
 package com.artofarc.util;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.Writer;
+import java.io.*;
 
 public final class StreamUtils {
 
@@ -46,6 +42,14 @@ public final class StreamUtils {
 		ByteArrayOutputStream os = new ByteArrayOutputStream(MTU);
 		copy(is, os);
 		return os.toByteArray();
+	}
+
+	public static byte[] readFile(final File file) throws IOException {
+		final byte[] ba = new byte[(int) file.length()];
+		try (final DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
+			dis.readFully(ba);
+		}
+		return ba;
 	}
 
 }

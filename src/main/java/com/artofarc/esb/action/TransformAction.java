@@ -97,7 +97,7 @@ public class TransformAction extends Action {
 		}
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
 		if (_contextItem != null) {
-			bind(_contextItem, XQConstants.CONTEXT_ITEM, null, xqExpression, context, message);
+			bind(_contextItem, XQConstants.CONTEXT_ITEM, null, xqExpression, message);
 		} else {
 			switch (message.getBodyType()) {
 			case XQ_SEQUENCE:
@@ -119,7 +119,7 @@ public class TransformAction extends Action {
 			}
 		}
 		for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {
-			bind(entry.getKey().getLocalPart(), entry.getKey(), entry.getValue(), xqExpression, context, message);
+			bind(entry.getKey().getLocalPart(), entry.getKey(), entry.getValue(), xqExpression, message);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
 		XQResultSequence resultSequence = xqExpression.executeQuery();
@@ -142,7 +142,7 @@ public class TransformAction extends Action {
 		return new ExecutionContext(resultSequence, xqExpression);
 	}
 
-	private void bind(String bindName, QName qName, XQItemType type, XQPreparedExpression xqExpression, Context context, ESBMessage message) throws Exception {
+	private void bind(String bindName, QName qName, XQItemType type, XQPreparedExpression xqExpression, ESBMessage message) throws Exception {
 		Object value = resolve(message, bindName, true);
 		if (value != null) {
 			try {

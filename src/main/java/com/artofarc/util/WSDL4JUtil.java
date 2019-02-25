@@ -48,7 +48,7 @@ public final class WSDL4JUtil {
 		}
 	}
 
-	public static final WSDLReader createWSDLReader(final boolean doNotFollowXSDs) {
+	public static WSDLReader createWSDLReader(final boolean doNotFollowXSDs) {
 		final WSDLReader wsdlReader = wsdlFactory.newWSDLReader();
 		wsdlReader.setFeature("javax.wsdl.verbose", false);
 		if (doNotFollowXSDs) {
@@ -58,7 +58,7 @@ public final class WSDL4JUtil {
 		return wsdlReader;
 	}
 
-	public static final <E extends ExtensibilityElement> List<E> getExtensibilityElements(final ElementExtensible parent, final Class<E> cls) {
+	public static <E extends ExtensibilityElement> List<E> getExtensibilityElements(final ElementExtensible parent, final Class<E> cls) {
 		final List<E> result = new ArrayList<>();
 		for (Object o : parent.getExtensibilityElements()) {
 			if (cls.isInstance(o)) {
@@ -69,7 +69,7 @@ public final class WSDL4JUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static final <T extends ExtensibilityElement> T getExtensibilityElement(final ElementExtensible elementExtensible, final Class<?>... classes) {
+	public static <T extends ExtensibilityElement> T getExtensibilityElement(final ElementExtensible elementExtensible, final Class<?>... classes) {
 		for (Object extensibilityElement : elementExtensible.getExtensibilityElements()) {
 			for (Class<?> cls : classes) {
 				if (cls.isInstance(extensibilityElement)) {
@@ -81,7 +81,7 @@ public final class WSDL4JUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static final <T> T invokeExtensibilityElement(final ElementExtensible elementExtensible, final String methodName, final Class<?>... classes)
+	public static <T> T invokeExtensibilityElement(final ElementExtensible elementExtensible, final String methodName, final Class<?>... classes)
 			throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
 
 		ExtensibilityElement extensibilityElement = getExtensibilityElement(elementExtensible, classes);
@@ -91,7 +91,7 @@ public final class WSDL4JUtil {
 		return null;
 	}
 
-	public static final String getSoapActionURI(BindingOperation bindingOperation) {
+	public static String getSoapActionURI(BindingOperation bindingOperation) {
 		try {
 			return invokeExtensibilityElement(bindingOperation, "getSoapActionURI", SOAP12Operation.class, SOAPOperation.class);
 		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
@@ -99,7 +99,7 @@ public final class WSDL4JUtil {
 		}
 	}
 
-	public static final String getSoapBindingTransportURI(Binding binding) {
+	public static String getSoapBindingTransportURI(Binding binding) {
 		try {
 			return invokeExtensibilityElement(binding, "getTransportURI", SOAP12Binding.class, SOAPBinding.class);
 		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
@@ -108,7 +108,7 @@ public final class WSDL4JUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static final List<BindingOperation> getBindingOperations(Map<QName, Binding> allBindings, String transport) {
+	public static List<BindingOperation> getBindingOperations(Map<QName, Binding> allBindings, String transport) {
 		for (Map.Entry<QName, Binding> entry : allBindings.entrySet()) {
 			Binding binding = entry.getValue();
 			if (transport == null || transport.equals(getSoapBindingTransportURI(binding))) {
@@ -118,7 +118,7 @@ public final class WSDL4JUtil {
 		return Collections.emptyList();
 	}
 
-	public static final Map<String, String> getMapOperation2SoapActionURI(Map<QName, Binding> allBindings, String transport) {
+	public static Map<String, String> getMapOperation2SoapActionURI(Map<QName, Binding> allBindings, String transport) {
 		final Map<String, String> result = new HashMap<>();
 		for (BindingOperation bindingOperation : getBindingOperations(allBindings, transport)) {
 			String soapActionURI = WSDL4JUtil.getSoapActionURI(bindingOperation);
@@ -129,7 +129,7 @@ public final class WSDL4JUtil {
 		return result;
 	}
 
-	public static final boolean hasSOAP11Binding(Map<QName, Binding> allBindings) {
+	public static boolean hasSOAP11Binding(Map<QName, Binding> allBindings) {
 		for (Map.Entry<QName, Binding> entry : allBindings.entrySet()) {
 			Binding binding = entry.getValue();
 			if (getExtensibilityElement(binding, SOAPBinding.class) != null) {
@@ -139,7 +139,7 @@ public final class WSDL4JUtil {
 		return false;
 	}
 
-	public static final boolean hasSOAP12Binding(Map<QName, Binding> allBindings) {
+	public static boolean hasSOAP12Binding(Map<QName, Binding> allBindings) {
 		for (Map.Entry<QName, Binding> entry : allBindings.entrySet()) {
 			Binding binding = entry.getValue();
 			if (getExtensibilityElement(binding, SOAP12Binding.class) != null) {

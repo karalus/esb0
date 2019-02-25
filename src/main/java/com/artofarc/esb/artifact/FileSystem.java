@@ -137,14 +137,6 @@ public final class FileSystem {
 		}
 	}
 
-	public static byte[] readFile(final File file) throws IOException {
-		final byte[] ba = new byte[(int) file.length()];
-		try (final DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
-			dis.readFully(ba);
-		}
-		return ba;
-	}
-
 	private void readDir(Directory base, File dir, CRC32 crc) throws IOException {
 		for (File file : dir.listFiles()) {
 			String name = file.getName();
@@ -153,7 +145,7 @@ public final class FileSystem {
 			} else {
 				Artifact artifact = createArtifact(base, name);
 				if (artifact != null) {
-					artifact.setContent(readFile(file));
+					artifact.setContent(StreamUtils.readFile(file));
 					artifact.setModificationTime(file.lastModified());
 					crc.update(artifact.getContent());
 					artifact.setCrc(crc.getValue());

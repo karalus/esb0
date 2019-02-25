@@ -23,11 +23,11 @@ import java.util.Map.Entry;
 
 public final class Collections {
 
-	public static final <K, V> Map.Entry<K, V> createEntry(final K key, final V value) {
+	public static <K, V> Map.Entry<K, V> createEntry(final K key, final V value) {
 		return new AbstractMap.SimpleImmutableEntry<>(key, value);
 	}
 
-	public static final <K, V> Map<V, K> inverseMap(Map<K, V> map) {
+	public static <K, V> Map<V, K> inverseMap(Map<K, V> map) {
 		final Map<V, K> result = new HashMap<>();
 		for (final Entry<K, V> entry : map.entrySet()) {
 			if (result.put(entry.getValue(), entry.getKey()) != null) {

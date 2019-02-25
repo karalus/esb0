@@ -25,10 +25,6 @@ import com.artofarc.util.Collections;
 
 public class AssignAction extends TransformAction {
 
-	public AssignAction(String varName, String expression) {
-		this(varName, expression, null, java.util.Collections.<String> emptyList(), null);
-	}
-
 	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
 		this(java.util.Collections.singletonList(Collections.createEntry(varName, expression)), namespaces, bindNames, contextItem);
 	}

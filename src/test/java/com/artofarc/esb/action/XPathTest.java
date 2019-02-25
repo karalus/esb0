@@ -26,7 +26,7 @@ public class XPathTest extends AbstractESBTest {
    @Test
    public void testXQuery() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      Action action = new AssignAction("result", "test/text()");
+      Action action = createAssignAction("result", "test/text()");
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action.setNextAction(new DumpAction());

@@ -26,7 +26,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
 
 public class AssignHeadersAction extends AssignAction {
-	
+
 	private final boolean _clearAll;
 
 	public AssignHeadersAction(Collection<Entry<String, String>> assignments, Collection<Entry<String, String>> namespaces, List<String> bindNames, String contextItem, boolean clearAll) {

@@ -36,7 +36,6 @@ public class SAXValidationAction extends SAXAction {
 	}
 
 	class ValidatingXQJFilter extends XQJFilter {
-		
 		private final ValidatorHandler _validatorHandler = _schema.newValidatorHandler();
 
 		ValidatingXQJFilter(XQItem item) {
@@ -48,7 +47,6 @@ public class SAXValidationAction extends SAXAction {
 			_validatorHandler.setContentHandler(super.getContentHandler());
 			return _validatorHandler;
 		}
-
 	}
 
 	@Override
