@@ -133,11 +133,11 @@ public abstract class Action implements Cloneable {
 	// pipelining
 	protected boolean _pipelineStop, _pipelineStart = true;
 
-	public boolean isPipelineStop() {
+	protected boolean isPipelineStop() {
 		return _pipelineStop;
 	}
 
-	public final boolean isPipelineStart() {
+	protected final boolean isPipelineStart() {
 		return _pipelineStart;
 	}
 

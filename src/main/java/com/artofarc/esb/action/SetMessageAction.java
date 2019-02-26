@@ -43,19 +43,20 @@ public class SetMessageAction extends Action {
 		_pipelineStart = false;
 	}
 
-	public void addHeader(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+	public final void addHeader(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 		_headers.add(new Assignment(name, expr, javaType, method));
 	}
 
-	public void addVariable(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
-		_variables.add(new Assignment(name, expr, javaType, method));
-		if (!_pipelineStop && expr.contains("${body")) {
+	public final void addVariable(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+		Assignment variable = new Assignment(name, expr, javaType, method);
+		_variables.add(variable);
+		if (variable._needsBody) {
 			_pipelineStop = true;
 		}
 	}
 
 	@Override
-	public boolean isPipelineStop() {
+	protected boolean isPipelineStop() {
 		return _pipelineStop || _nextAction == null || _nextAction.isPipelineStop();
 	}
 
@@ -65,7 +66,9 @@ public class SetMessageAction extends Action {
 			message.getHeaders().clear();
 		}
 		for (Assignment variable : _variables) {
-			message.getVariables().put(variable._name, variable.convert(bindVariable(variable._expr, context, message)));
+			if (!variable._needsBody) {
+				message.getVariables().put(variable._name, variable.convert(bindVariable(variable._expr, context, message)));
+			}
 		}
 		for (Assignment header : _headers) {
 			message.putHeader(header._name, header.convert(bindVariable(header._expr, context, message)));
@@ -75,6 +78,11 @@ public class SetMessageAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+		for (Assignment variable : _variables) {
+			if (variable._needsBody) {
+				message.getVariables().put(variable._name, variable.convert(bindVariable(variable._expr, context, message)));
+			}
+		}
 		if (_body != null) {
 			Object body = _body.convert(bindVariable(_body._expr, context, message));
 			message.reset(null, body);
@@ -82,16 +90,18 @@ public class SetMessageAction extends Action {
 		}
 	}
 
-	private final class Assignment {
-		
-		private final String _name;
-		private final String _expr;
-		private Constructor<?> _con;
-		private Method _method;
+	final class Assignment {
 
-		private Assignment(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+		final String _name;
+		final String _expr;
+		final boolean _needsBody;
+		Constructor<?> _con;
+		Method _method;
+
+		Assignment(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 			_name = name;
 			_expr = expr;
+			_needsBody = expr.contains("${body");
 			if (javaType != null) {
 				Class<?> cls = Class.forName(javaType, true, _classLoader);
 				if (method != null) {
@@ -105,7 +115,7 @@ public class SetMessageAction extends Action {
 			}
 		}
 
-		public Object convert(String value) throws Exception {
+		Object convert(String value) throws Exception {
 			if (_con != null) {
 				return _expr.isEmpty() ? _con.newInstance() : _con.newInstance(value);
 			}
