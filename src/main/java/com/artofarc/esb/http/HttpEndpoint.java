@@ -16,22 +16,30 @@
  */
 package com.artofarc.esb.http;
 
-import java.net.MalformedURLException;
-import java.util.ArrayList;
 import java.util.List;
 
 public final class HttpEndpoint {
 
 	private final String _name;
-	private final List<HttpUrl> _endpoints = new ArrayList<>();
+	private final List<HttpUrl> _endpoints;
 	private final int _connectionTimeout;
 	private final int _retries;
 	private final Integer _checkAliveInterval;
 	private final Integer _keepAliveInterval;
 	private final long _modificationTime;
 
-	public HttpEndpoint(String name, int connectionTimeout, int retries, Integer checkAliveInterval, Integer keepAliveInterval, long modificationTime) {
-		_name = name;
+	public HttpEndpoint(String name, List<HttpUrl> endpoints, int connectionTimeout, int retries, Integer checkAliveInterval, Integer keepAliveInterval, long modificationTime) {
+		if (name != null) {
+			_name = name;
+		} else {
+			StringBuilder builder = new StringBuilder("\"");
+			for (HttpUrl httpUrl : endpoints) {
+				builder.append(httpUrl).append(',');
+			}
+			builder.setCharAt(builder.length() - 1, '"');
+			_name = builder.toString();
+		}
+		_endpoints = endpoints;
 		_connectionTimeout = connectionTimeout;
 		_retries = retries;
 		_checkAliveInterval = checkAliveInterval;
@@ -40,18 +48,7 @@ public final class HttpEndpoint {
 	}
 
 	public String getName() {
-		if (_name != null) return _name;
-		StringBuilder builder = new StringBuilder("\"");
-		for (HttpUrl httpUrl : _endpoints) {
-			builder.append(httpUrl).append(',');
-		}
-		builder.setCharAt(builder.length() - 1, '"');
-		return builder.toString();
-	}
-
-	public HttpEndpoint addUrl(String url, int weight, boolean active) throws MalformedURLException {
-		_endpoints.add(new HttpUrl(url, weight, active));
-		return this;
+		return _name;
 	}
 
 	public List<HttpUrl> getHttpUrls() {
@@ -80,7 +77,7 @@ public final class HttpEndpoint {
 
 	@Override
 	public int hashCode() {
-		return _endpoints.hashCode();
+		return _name.hashCode();
 	}
 
 	@Override
@@ -92,7 +89,7 @@ public final class HttpEndpoint {
 		if (getClass() != obj.getClass())
 			return false;
 		HttpEndpoint other = (HttpEndpoint) obj;
-		return _endpoints.equals(other._endpoints);
+		return _name.equals(other._name);
 	}
 
 }

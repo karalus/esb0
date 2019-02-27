@@ -239,8 +239,11 @@ public abstract class Action implements Cloneable {
 	protected final <T> T resolve(ESBMessage message, String name, boolean checkAmbiguity) throws ExecutionException {
 		T variable = message.getVariable(name);
 		if (variable != null) {
-			if (checkAmbiguity && message.getHeader(name) != null) {
-				throw new ExecutionException(this, "name could not unambiguously be resolved: " + name);
+			if (checkAmbiguity) {
+				T header = message.getHeader(name);
+				if (header != null && !variable.equals(header)) {
+					throw new ExecutionException(this, "name could not unambiguously be resolved: " + name);
+				}
 			}
 			return variable;
 		} else {

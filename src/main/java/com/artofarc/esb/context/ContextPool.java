@@ -110,6 +110,7 @@ public final class ContextPool implements AutoCloseable {
 			Context context = pool.take();
 			context.close();
 		}
+		poolSize.set(0);
 	}
 
 }

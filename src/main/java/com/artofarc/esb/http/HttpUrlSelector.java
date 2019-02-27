@@ -57,7 +57,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			inUse.decrementAndGet(_pos);
 		}
 	}
-	
+
 	private HttpEndpoint _httpEndpoint;
 
 	private final WorkerPool _workerPool;
@@ -157,7 +157,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		int pos = computeNextPos();
 		try {
 			return new HttpUrlConnectionWrapper(pos, connectTo(httpEndpoint.getHttpUrls().get(pos).getUrl(), method, spec, headers, chunkLength));
-		} catch (IOException e) {
+		} catch (ConnectException e) {
 			if (_httpEndpoint.getCheckAliveInterval() != null) {
 				setActive(pos, false);
 			}

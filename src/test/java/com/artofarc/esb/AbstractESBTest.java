@@ -3,6 +3,7 @@ package com.artofarc.esb;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.Collections;
 
 import org.junit.After;
 import org.junit.Before;
@@ -14,6 +15,7 @@ import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpEndpoint;
+import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.util.StreamUtils;
 
 public abstract class AbstractESBTest {
@@ -50,11 +52,11 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static HttpOutboundAction createHttpOutboundAction(String url) throws MalformedURLException {
-		return new HttpOutboundAction(new HttpEndpoint(null, 1000, 0, null, null, System.currentTimeMillis()).addUrl(url, 1, true), 60000, null);
+		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), 1000, 0, null, null, System.currentTimeMillis()), 60000, null);
 	}
 
 	protected static AssignAction createAssignAction(String varName, String expression) {
-		return new AssignAction(varName, expression, null, java.util.Collections.<String> emptyList(), null);
+		return new AssignAction(varName, expression, null, Collections.<String> emptyList(), null);
 	}
 
 }

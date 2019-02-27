@@ -1,3 +1,4 @@
+<%@page import="java.util.Map.Entry"%>
 <%@page import="com.artofarc.esb.context.PoolContext"%>
 <%@page import="com.artofarc.esb.context.GlobalContext"%>
 <%@page import="com.artofarc.esb.ConsumerPort"%>
@@ -6,6 +7,7 @@
 <%@page import="com.artofarc.esb.jms.JMSConsumer"%>
 <%@page import="com.artofarc.esb.context.WorkerPool"%>
 <%@page import="com.artofarc.esb.http.HttpEndpoint"%>
+<%@page import="com.artofarc.esb.http.HttpUrlSelector"%>
 <%@page import="com.artofarc.esb.artifact.*"%>
 <html>
 <body>
@@ -58,9 +60,9 @@
 <br>HttpEndpoints:
 <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Name</b></td><td align="center"><b>Addresses</b></td><td align="center"><b>Total in use</b></td></tr> 
 <%
-		for (HttpEndpoint httpEndpoint : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
+		for (Entry<HttpEndpoint, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
 		   %>
-		   <tr><td><%=httpEndpoint.getName()%></td><td><%=httpEndpoint.getHttpUrls()%></td><td><%=globalContext.getHttpEndpointRegistry().getHttpUrlSelector(httpEndpoint).getInUseTotal()%></td></tr>
+		   <tr><td><%=entry.getKey().getName()%></td><td><%=entry.getKey().getHttpUrls()%></td><td><%=entry.getValue().getInUseTotal()%></td></tr>
 		   <%
 		}
 %>

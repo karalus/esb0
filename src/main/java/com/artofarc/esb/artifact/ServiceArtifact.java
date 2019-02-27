@@ -31,6 +31,7 @@ import com.artofarc.esb.action.*;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpEndpoint;
+import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.service.*;
@@ -105,10 +106,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			switch (jaxbElement.getName().getLocalPart()) {
 			case "http": {
 				Http http = (Http) jaxbElement.getValue();
-				HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), http.getConnectionTimeout(), http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
+				List<HttpUrl> endpoints = new ArrayList<>();
 				for (Http.Url url : http.getUrl()) {
-					httpEndpoint.addUrl(url.getValue(), url.getWeight(), url.isActive());
+					endpoints.add(new HttpUrl(url.getValue(), url.getWeight(), url.isActive()));
 				}
+				HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getConnectionTimeout(), http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
 				//globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 				list.add(new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength()));
 				if (http.getWorkerPool() != null) {

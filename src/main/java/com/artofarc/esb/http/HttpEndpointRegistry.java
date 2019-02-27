@@ -20,30 +20,35 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.artofarc.esb.context.GlobalContext;
 
-public class HttpEndpointRegistry {
-	
+public final class HttpEndpointRegistry {
+
+	protected final static Logger logger = LoggerFactory.getLogger(HttpEndpointRegistry.class);
+
 	private final HashMap<HttpEndpoint, HttpUrlSelector> _map = new HashMap<>();
 	private final GlobalContext _globalContext;
-	
+
 	public HttpEndpointRegistry(GlobalContext globalContext) {
 		_globalContext = globalContext;
 	}
 
-	public Set<HttpEndpoint> getHttpEndpoints() {
-		return _map.keySet();
+	public Set<Entry<HttpEndpoint, HttpUrlSelector>> getHttpEndpoints() {
+		return _map.entrySet();
 	}
 
-	public synchronized void validate(HttpEndpoint httpEndpoint) {
-		HttpUrlSelector existing = _map.get(httpEndpoint);
-		if (existing != null) {
-			// is compatible?
-		}
-	}
-	
 	public synchronized HttpUrlSelector getHttpUrlSelector(HttpEndpoint httpEndpoint) {
 		HttpUrlSelector state = _map.get(httpEndpoint);
+		if (state != null && !state.getHttpEndpoint().getHttpUrls().equals(httpEndpoint.getHttpUrls())) {
+			// not compatible
+			logger.info("Removing state for HttpEndpoint " + httpEndpoint.getName() + ": " + state.getHttpEndpoint().getHttpUrls());
+			removeHttpUrlSelector(httpEndpoint, state);
+			_map.remove(httpEndpoint);
+			state = null;
+		}
 		if (state == null) {
 			state = new HttpUrlSelector(httpEndpoint, _globalContext.getDefaultWorkerPool());
 			_map.put(httpEndpoint, state);
@@ -57,10 +62,14 @@ public class HttpEndpointRegistry {
 		return state;
 	}
 
-	public void close() {
+	private void removeHttpUrlSelector(HttpEndpoint httpEndpoint, HttpUrlSelector state) {
+		state.stop();
+		_globalContext.unregisterMBean(",group=HttpEndpointState,name=" + httpEndpoint.getName());
+	}
+
+	public synchronized void close() {
 		for (Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
-			entry.getValue().stop();
-			_globalContext.unregisterMBean(",group=HttpEndpointState,name=" + entry.getKey().getName());
+			removeHttpUrlSelector(entry.getKey(), entry.getValue());
 		}
 	}
 

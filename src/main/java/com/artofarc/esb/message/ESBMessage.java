@@ -431,9 +431,9 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	private static String asXMLString(Exception e) {
-		String xml = "<exception><message><![CDATA[" + e.getMessage() + "]]></message>";
+		String xml = "<exception><message><![CDATA[" + e + "]]></message>";
 		if (e.getCause() != null) {
-			xml += "<cause><![CDATA[" + e.getCause().getMessage() + "]]></cause>";
+			xml += "<cause><![CDATA[" + e.getCause() + "]]></cause>";
 		}
 		xml += "</exception>";
 		return xml;
