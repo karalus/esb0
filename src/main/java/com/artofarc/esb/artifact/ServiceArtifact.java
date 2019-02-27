@@ -187,10 +187,10 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				} else {
 					setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, null, null, null);
 				}
-				for (com.artofarc.esb.service.SetMessage.Header header : setMessage.getHeader()) {
+				for (SetMessage.Header header : setMessage.getHeader()) {
 					setMessageAction.addHeader(header.getName(), header.getValue(), header.getJavaType(), header.getMethod());
 				}
-				for (com.artofarc.esb.service.SetMessage.Variable variable : setMessage.getVariable()) {
+				for (SetMessage.Variable variable : setMessage.getVariable()) {
 					setMessageAction.addVariable(variable.getName(), variable.getValue(), variable.getJavaType(), variable.getMethod());
 				}
 				list.add(setMessageAction);
@@ -199,10 +199,10 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "processJson": {
 				ProcessJson processJson = (ProcessJson) jaxbElement.getValue();
 				ProcessJsonAction processJsonAction = new ProcessJsonAction(processJson.getBody());
-				for (com.artofarc.esb.service.ProcessJson.Header header : processJson.getHeader()) {
+				for (ProcessJson.Header header : processJson.getHeader()) {
 					processJsonAction.addHeader(header.getName(), header.getValue());
 				}
-				for (com.artofarc.esb.service.ProcessJson.Variable variable : processJson.getVariable()) {
+				for (ProcessJson.Variable variable : processJson.getVariable()) {
 					processJsonAction.addVariable(variable.getName(), variable.getValue());
 				}
 				list.add(processJsonAction);
@@ -211,7 +211,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "assign": {
 				Assign assign = (Assign) jaxbElement.getValue();
 				List<Entry<String, String>> assignments = new ArrayList<>();
-				for (com.artofarc.esb.service.Assign.Assignment assignment : assign.getAssignment()) {
+				for (Assign.Assignment assignment : assign.getAssignment()) {
 					assignments.add(Collections.createEntry(assignment.getVariable(), assignment.getValue()));
 				}
 				list.add(new AssignAction(assignments, createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem()));
@@ -220,7 +220,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "assignHeaders": {
 				AssignHeaders assignHeaders = (AssignHeaders) jaxbElement.getValue();
 				ArrayList<Entry<String, String>> assignments = new ArrayList<>();
-				for (com.artofarc.esb.service.AssignHeaders.Assignment assignment : assignHeaders.getAssignment()) {
+				for (AssignHeaders.Assignment assignment : assignHeaders.getAssignment()) {
 					assignments.add(Collections.createEntry(assignment.getHeader(), assignment.getValue()));
 				}
 				list.add(new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()).entrySet(), assignHeaders.getBindName(), assignHeaders
@@ -346,7 +346,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					defaultAction = Action.linkList(transform(globalContext, branchOnVariable.getDefault().getAction(), errorHandler));
 				}
 				BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), defaultAction);
-				for (com.artofarc.esb.service.BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
+				for (BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
 					branchOnVariableAction.getBranchMap().put(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
 				}
 				list.add(branchOnVariableAction);
@@ -359,7 +359,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					defaultAction = Action.linkList(transform(globalContext, branchOnPath.getDefault().getAction(), errorHandler));
 				}
 				BranchOnPathAction branchOnPathAction = new BranchOnPathAction(branchOnPath.getBasePath(), defaultAction);
-				for (com.artofarc.esb.service.BranchOnPath.Branch branch : branchOnPath.getBranch()) {
+				for (BranchOnPath.Branch branch : branchOnPath.getBranch()) {
 					branchOnPathAction.getBranchMap().put(new BranchOnPathAction.PathTemplate(branch.getPathTemplate()), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
 				}
 				list.add(branchOnPathAction);

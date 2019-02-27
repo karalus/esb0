@@ -394,7 +394,7 @@
 						<element name="branch" minOccurs="0" maxOccurs="unbounded">
 							<complexType>
 								<sequence>
-									<element ref="tns:action"  maxOccurs="unbounded" />
+									<element ref="tns:action" minOccurs="0" maxOccurs="unbounded" />
 								</sequence>
 								<attribute name="value" type="string" use="required" />
 							</complexType>
@@ -402,7 +402,7 @@
 						<element name="default" minOccurs="0">
 							<complexType>
 								<sequence>
-									<element ref="tns:action"  maxOccurs="unbounded" />
+									<element ref="tns:action" maxOccurs="unbounded" />
 								</sequence>
 							</complexType>
 						</element>
@@ -428,7 +428,7 @@
 						<element name="default" minOccurs="0">
 							<complexType>
 								<sequence>
-									<element ref="tns:action"  maxOccurs="unbounded" />
+									<element ref="tns:action" maxOccurs="unbounded" />
 								</sequence>
 							</complexType>
 						</element>

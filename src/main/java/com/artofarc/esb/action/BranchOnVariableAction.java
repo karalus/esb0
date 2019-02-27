@@ -42,7 +42,7 @@ public class BranchOnVariableAction extends Action {
 	protected boolean isPipelineStop() {
 		boolean pipelineStop = _defaultAction != null ? _defaultAction.isPipelineStop() : _nextAction == null || _nextAction.isPipelineStop();
 		for (Action action : _branchMap.values()) {
-			if (pipelineStop |= action.isPipelineStop()) {
+			if (action != null && (pipelineStop |= action.isPipelineStop())) {
 				break;
 			}
 		}
@@ -55,10 +55,11 @@ public class BranchOnVariableAction extends Action {
 		Action action = null;
 		if (value != null) {
 			if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {
-				throw new ExecutionException(this, "Value for variable " + _varName + " is not an atomic type: " + value.getClass());
+				throw new ExecutionException(this, "Value for " + _varName + " is not an atomic type: " + value.getClass());
 			}
-			action = _branchMap.get(value.toString());
-			if (action == null) {
+			if (_branchMap.containsKey(value.toString())) {
+				action = _branchMap.get(value.toString());
+			} else {
 				action = _defaultAction;
 			}
 		}

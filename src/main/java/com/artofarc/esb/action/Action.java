@@ -73,14 +73,11 @@ public abstract class Action implements Cloneable {
 					pipeline.add(action);
 					resources.add(execContext);
 					nextAction = action.nextAction(execContext);
-					if (nextAction == null) {
-						nextAction = context.getExecutionStack().poll();
-					}
 					isPipeline |= action.isPipelineStart();
 					if (!isPipeline || action.isPipelineStop()) {
 						break;
 					}
-					action = nextAction;
+					action = nextAction != null ? nextAction : context.getExecutionStack().poll();
 				}
 				// process pipeline fragment
 				int secondLast = pipeline.size() - 2;
@@ -89,6 +86,9 @@ public abstract class Action implements Cloneable {
 					ExecutionContext exContext = resources.get(i);
 					action.execute(context, exContext, message, i == secondLast);
 					timeGauge.stopTimeMeasurement("Execute: " + action, true);
+				}
+				if (nextAction == null) {
+					nextAction = context.getExecutionStack().poll();
 				}
 			} catch (Exception e) {
 				logger.info("Exception while processing " + action, e);
@@ -190,12 +190,12 @@ public abstract class Action implements Cloneable {
 	}
 
 	public static Action linkList(List<Action> service) {
-		Action startAction;
 		Iterator<Action> iterator = service.iterator();
 		if (!iterator.hasNext()) {
-			throw new IllegalArgumentException("List must contain at least one Action");
+			return null;
 		}
-		Action action = startAction = iterator.next();
+		Action startAction = iterator.next();
+		Action action = startAction;
 		while (iterator.hasNext()) {
 			action = action.setNextAction(iterator.next());
 		}
