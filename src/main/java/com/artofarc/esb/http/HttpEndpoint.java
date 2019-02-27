@@ -92,4 +92,16 @@ public final class HttpEndpoint {
 		return _name.equals(other._name);
 	}
 
+	public boolean isCompatible(HttpEndpoint other) {
+		return _endpoints.equals(other._endpoints);
+	}
+
+	public boolean hasSameConfig(HttpEndpoint other) {
+		return _connectionTimeout == other._connectionTimeout && _retries == other._retries && isEqual(_checkAliveInterval, other._checkAliveInterval) && isEqual(_keepAliveInterval, other._keepAliveInterval);
+	}
+
+	private static boolean isEqual(Integer i, Integer j) {
+		return i == null && j == null || i != null && i.equals(j);
+	}
+
 }

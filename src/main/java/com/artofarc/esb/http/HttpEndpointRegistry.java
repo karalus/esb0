@@ -40,18 +40,33 @@ public final class HttpEndpointRegistry {
 		return _map.entrySet();
 	}
 
+	public synchronized HttpEndpoint validate(HttpEndpoint httpEndpoint) {
+		for (Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
+			if (entry.getKey().equals(httpEndpoint)) {
+				if (httpEndpoint.isCompatible(entry.getKey())) {
+					if (httpEndpoint.hasSameConfig(entry.getKey())) {
+						return entry.getKey();
+					}
+				} else {
+					logger.warn("Incompatible HttpEndpoint " + httpEndpoint.getName() + ". All services using it should be redeployed.");
+				}
+				return httpEndpoint;
+			}
+		}
+		// precache
+		_map.put(httpEndpoint, null);
+		return httpEndpoint;
+	}
+
 	public synchronized HttpUrlSelector getHttpUrlSelector(HttpEndpoint httpEndpoint) {
-		HttpUrlSelector state = _map.get(httpEndpoint);
-		if (state != null && !state.getHttpEndpoint().getHttpUrls().equals(httpEndpoint.getHttpUrls())) {
-			// not compatible
+		HttpUrlSelector state = _map.remove(httpEndpoint);
+		if (state != null && !state.getHttpEndpoint().isCompatible(httpEndpoint)) {
 			logger.info("Removing state for HttpEndpoint " + httpEndpoint.getName() + ": " + state.getHttpEndpoint().getHttpUrls());
 			removeHttpUrlSelector(httpEndpoint, state);
-			_map.remove(httpEndpoint);
 			state = null;
 		}
 		if (state == null) {
 			state = new HttpUrlSelector(httpEndpoint, _globalContext.getDefaultWorkerPool());
-			_map.put(httpEndpoint, state);
 			_globalContext.registerMBean(state, ",group=HttpEndpointState,name=" + httpEndpoint.getName());
 		} else {
 			// take non diversifying parameters from most recent version
@@ -59,6 +74,7 @@ public final class HttpEndpointRegistry {
 				state.setHttpEndpoint(httpEndpoint);
 			}
 		}
+		_map.put(httpEndpoint, state);
 		return state;
 	}
 
@@ -69,7 +85,9 @@ public final class HttpEndpointRegistry {
 
 	public synchronized void close() {
 		for (Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
-			removeHttpUrlSelector(entry.getKey(), entry.getValue());
+			if (entry.getValue() != null) {
+				removeHttpUrlSelector(entry.getKey(), entry.getValue());
+			}
 		}
 	}
 

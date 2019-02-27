@@ -40,7 +40,7 @@ public class ConfigServiceTest extends AbstractESBTest {
    public void testHTTPService() throws Exception {
       ServiceArtifact serviceArtifact = new ServiceArtifact(null, null, null);
       serviceArtifact.setContent(readFile("src/test/resources//HttpService4.xservice"));
-      serviceArtifact.validate(null);
+      serviceArtifact.validate(getGlobalContext());
       ConsumerPort consumerPort = serviceArtifact.getConsumerPort();
       
       String url = "http://localhost:1212/echo";

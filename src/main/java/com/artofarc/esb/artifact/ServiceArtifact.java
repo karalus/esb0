@@ -111,7 +111,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					endpoints.add(new HttpUrl(url.getValue(), url.getWeight(), url.isActive()));
 				}
 				HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getConnectionTimeout(), http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
-				//globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
+				httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 				list.add(new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength()));
 				if (http.getWorkerPool() != null) {
 					list.add(new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, false));
