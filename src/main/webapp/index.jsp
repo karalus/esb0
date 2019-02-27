@@ -61,12 +61,9 @@
 <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Name</b></td><td align="center"><b>Addresses</b></td><td align="center"><b>Total in use</b></td></tr> 
 <%
 		for (Entry<HttpEndpoint, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
-			if (entry.getValue() != null) {
-			   %>
-			   <tr><td><%=entry.getKey().getName()%></td><td><%=entry.getKey().getHttpUrls()%></td><td><%=entry.getValue().getInUseTotal()%></td></tr>
-			   <%
-				
-			}
+		   %>
+		   <tr><td><%=entry.getKey().getName()%></td><td><%=entry.getKey().getHttpUrls()%></td><td><%=entry.getValue() != null ? entry.getValue().getInUseTotal() : "N/A"%></td></tr>
+		   <%
 		}
 %>
 </table>
