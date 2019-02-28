@@ -5,7 +5,11 @@ Features:
 - Executes service flows defined in XML
 - Supports SOAP, JSON/REST and conversion between each
 - Supports efficient XML Pipelines based on XQJ (XQuery API for Java)
+- Service flows can make use of XPath, XQuery and XSLT interchangeably within one streaming pipeline
+- For accessing data inside of JSON we use [JSON Pointer](https://tools.ietf.org/html/rfc6901)
+- Java code can be invoked dynamically if necessary e.g. for special transformations
 - Supports HTTP, JMS, JDBC, Files and [Kafka](https://kafka.apache.org/)
+- Can map between synchronous and asynchronous messages exchange patterns
 - Supports GZIP and [Fast Infoset](https://en.wikipedia.org/wiki/Fast_Infoset) encoding/decoding and (partially) MTOM/XOP
 - Uses resource- and threadpools for effective resource utilization, thus supporting QoS per service.
 - Includes a HTTP loadbalancer component with health check for outbound HTTP traffic
@@ -15,11 +19,15 @@ Features:
 - Simple REST admin services to deploy and control service flows
 - JMX support, i.e. MBeans for remote monitoring & management
 
+### Fitness for production ###
+
+The version 1.2 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only 3s of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
+
 ### Design goals ###
 
-Most ESB products are very heavy suites which is counterproductive for the main purpose - to act as a fast and simple service gateway to control and monitor service usage within your enterprise.
+Most ESB products are very heavy suites which is counterproductive for their main purpose - to act as a fast and simple service gateway to control and monitor service usage within your enterprise.
 
-ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently about 50k of size!
+ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently about 64k of size!
 
 The minimal set of features is supported based on the VETRO pattern.
 
@@ -43,11 +51,20 @@ XML pipelining is an efficient means because it does not require to have a full 
 
 Currently ESB Zero uses well proven [Saxon](http://saxon.sourceforge.net/) but basically could be run with any [XQJ](http://xqj.net/) compliant product.
 
+Will this technology be superseded by Spring Boot + Camel (new JBoss Fusion concept) running inside of a Docker container?
+
+Using Camel with Spring Boot will run you a few EAI services well, but is not suitable for a scenario where >100 services need to be mediated while only needing endpoint virtualization and validation.
+Besides the memory footprint of ESB Zero running webservices inside docker is less than Spring Boot + Camel!
+
+Will this technology be superseded by Istio?
+
+Yes, when all of the services in your enterprise are micro services talking REST/Json! No monoliths, no legacy, no 3rd party stuff. I.e. that means a no for the medium future. While I'm a big fan of [Kubernetes](https://kubernetes.io/) I don't expect that everything will be µServices soon.
+
 ### How to build ###
 
 You need to have [Maven](http://maven.apache.org/) and [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html) installed.
 
-ESB Zero has been tested with Maven 3.5.2 and JDK7-u80.
+ESB Zero build has been tested with Maven 3.5.2 plus JDK7-u80 and JDK8.
 
 Java 7 should be used for building in order to support both Java 7 and Java 8 at runtime.
 
@@ -72,7 +89,7 @@ Test if the admin UI is accessible: http://localhost:8080/esb0/admin
 
 ### Working with the sources ###
 
-The GIT repository contains Eclipse project files for working with Eclipse 3.7.2.
+The GIT repository contains old Eclipse project files for working with Eclipse 3.7.2.
 
 Any other IDE will also do since there is nothing special about it:
 1) Either you use a maven project import wizard
@@ -85,8 +102,9 @@ It is written in Java 7 and implements a servlet based on 3.0.1 API.
 
 - For WSDL parsing [WSDL4J](https://sourceforge.net/projects/wsdl4j/) is used.
 - For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/9.8/)
-- For conversion between XML and JSON [MOXy](http://www.eclipse.org/eclipselink/documentation/2.5/moxy/json002.htm) is used.
+- For conversion between XML and JSON [MOXy](http://www.eclipse.org/eclipselink/documentation/2.6/moxy/json002.htm) is used.
 - FastInfoset support is implemented using "com.sun.xml.fastinfoset".
+- Logging is done with [SLF4J](https://www.slf4j.org/). Optionally combined with [Logback](https://logback.qos.ch/) it gives the best performance.
 
 Optional
 - For using Kafka you need the [Kafka Java Client](https://cwiki.apache.org/confluence/display/KAFKA/Clients)
