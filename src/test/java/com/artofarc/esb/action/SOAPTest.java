@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import javax.jms.Message;
 import javax.jws.WebService;
 import javax.jws.soap.SOAPBinding;
+import javax.wsdl.BindingOperation;
 import javax.xml.soap.SOAPConstants;
 import javax.xml.ws.Endpoint;
 
@@ -33,6 +34,7 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.Collections;
+import com.artofarc.util.WSDL4JUtil;
 
 
 public class SOAPTest extends AbstractESBTest {
@@ -409,7 +411,8 @@ public class SOAPTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
-      Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), wsdlArtifact.getAllBindings(), null, null);
+      List<BindingOperation> bindingOperations = WSDL4JUtil.getBindingOperations(wsdlArtifact.getAllBindings(), null, null);
+      Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), bindingOperations, null, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       SetMessageAction setMessageAction = new SetMessageAction(false, null, null, null, null);

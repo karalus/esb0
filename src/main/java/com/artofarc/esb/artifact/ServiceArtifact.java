@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
 
 import com.artofarc.esb.ConsumerPort;
@@ -37,6 +38,7 @@ import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Collections;
+import com.artofarc.util.WSDL4JUtil;
 
 public class ServiceArtifact extends AbstractServiceArtifact {
 
@@ -273,8 +275,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				WSDLArtifact wsdlArtifact = loadArtifact(unwrapSOAP11.getWsdlURI());
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getSchema(),
-						wsdlArtifact.getAllBindings(), unwrapSOAP11.getTransport(), wsdlArtifact.getURI());
+				List<BindingOperation> bindingOperations = WSDL4JUtil.getBindingOperations(wsdlArtifact.getAllBindings(), unwrapSOAP11.getBinding(), unwrapSOAP11.getTransport());
+				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getSchema(), bindingOperations, wsdlArtifact.getURI(), unwrapSOAP11.isGetWsdl());
 				list.add(unwrapSOAP11Action);
 				break;
 			}
@@ -287,8 +289,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				WSDLArtifact wsdlArtifact = loadArtifact(preSOAP11Http.getWsdlURI());
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				PreSOAPHttpAction preSOAP11HttpAction = new PreSOAPHttpAction(preSOAP11Http.isSoap12(), preSOAP11Http.isHeader(), preSOAP11Http.isSinglePart(),
-						wsdlArtifact.getSchema(), wsdlArtifact.getAllBindings(), preSOAP11Http.getTransport());
+				List<BindingOperation> bindingOperations = WSDL4JUtil.getBindingOperations(wsdlArtifact.getAllBindings(), preSOAP11Http.getBinding(), preSOAP11Http.getTransport());
+				PreSOAPHttpAction preSOAP11HttpAction = new PreSOAPHttpAction(preSOAP11Http.isSoap12(), preSOAP11Http.isHeader(), preSOAP11Http.isSinglePart(), wsdlArtifact.getSchema(), bindingOperations);
 				list.add(preSOAP11HttpAction);
 				break;
 			}

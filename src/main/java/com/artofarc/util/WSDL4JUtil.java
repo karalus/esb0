@@ -108,19 +108,21 @@ public final class WSDL4JUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static List<BindingOperation> getBindingOperations(Map<QName, Binding> allBindings, String transport) {
+	public static List<BindingOperation> getBindingOperations(Map<QName, Binding> allBindings, String bindingName, String transport) {
 		for (Map.Entry<QName, Binding> entry : allBindings.entrySet()) {
-			Binding binding = entry.getValue();
-			if (transport == null || transport.equals(getSoapBindingTransportURI(binding))) {
-				return (List<BindingOperation>) binding.getBindingOperations();
+			if (bindingName == null || bindingName.equals(entry.getKey().getLocalPart())) {
+				Binding binding = entry.getValue();
+				if (transport == null || transport.equals(getSoapBindingTransportURI(binding))) {
+					return (List<BindingOperation>) binding.getBindingOperations();
+				}
 			}
 		}
 		return Collections.emptyList();
 	}
 
-	public static Map<String, String> getMapOperation2SoapActionURI(Map<QName, Binding> allBindings, String transport) {
+	public static Map<String, String> getMapOperation2SoapActionURI(List<BindingOperation> bindingOperations) {
 		final Map<String, String> result = new HashMap<>();
-		for (BindingOperation bindingOperation : getBindingOperations(allBindings, transport)) {
+		for (BindingOperation bindingOperation : bindingOperations) {
 			String soapActionURI = WSDL4JUtil.getSoapActionURI(bindingOperation);
 			if (soapActionURI != null) {
 				result.put(bindingOperation.getName(), soapActionURI);

@@ -6,8 +6,10 @@ import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.Directory;
 import com.artofarc.esb.artifact.XMLArtifact;
+import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.artifact.XSLTArtifact;
+import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -172,6 +174,18 @@ public class TransformerTest extends AbstractESBTest {
 				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact1.getTemplates()),
 				new DumpAction());
 		message.putVariable("param1", 42);
+		consumerPort.process(context, message);
+	}
+
+	@Test
+	public void testTransformXQuery() throws Exception {
+		XQueryArtifact xQueryArtifact = new XQueryArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "transform1.xqy");
+		xQueryArtifact.setContent(readFile("src/test/resources/transform1.xqy"));
+		xQueryArtifact.validateInternal(getGlobalContext());
+		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(new UnwrapSOAPAction(false, true), new TransformAction(new XQuerySource(xQueryArtifact.getContent()), null), new DumpAction());
 		consumerPort.process(context, message);
 	}
 

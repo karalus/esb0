@@ -318,7 +318,9 @@
 			<complexContent>
 				<extension base="tns:SOAPAction">
 					<attribute name="wsdlURI" type="anyURI" use="required" />
+					<attribute name="binding" type="tns:string1" />
 					<attribute name="transport" type="anyURI" />
+					<attribute name="getWsdl" type="boolean" default="true" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -338,6 +340,7 @@
 				<extension base="tns:SOAPAction">
                     <attribute name="header" type="boolean" default="false" />
 					<attribute name="wsdlURI" type="anyURI" use="required" />
+					<attribute name="binding" type="tns:string1" />
 					<attribute name="transport" type="anyURI" />
 				</extension>
 			</complexContent>

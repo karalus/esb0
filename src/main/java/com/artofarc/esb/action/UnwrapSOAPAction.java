@@ -21,9 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
-import javax.xml.namespace.QName;
 import javax.xml.validation.Schema;
 
 import com.artofarc.esb.context.Context;
@@ -44,6 +42,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	private final Map<String, String> _mapAction2Operation;
 	private final HashSet<String> _operations;
 	private final String _wsdlUrl;
+	private final boolean _getWsdl;
 	private final Schema _schema;
 
 	/**
@@ -51,7 +50,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	 *
 	 * @see <a href="https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/">WSDL styles/</a>
 	 */
-	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, String wsdlUrl, Schema schema) {
+	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl, Schema schema) {
 		super("declare namespace soapenv=\"" + (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
 				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
 				+ (singlePart && bindingOperations != null ? "local-name($b), " : "") + "if ($h) then $h else <soapenv:Header/>, $b)",
@@ -68,21 +67,22 @@ public class UnwrapSOAPAction extends TransformAction {
 			_operations = null;
 		}
 		_wsdlUrl = wsdlUrl;
+		_getWsdl = getWsdl;
 		_schema = schema;
 	}
 
-	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, Map<QName, Binding> allBindings, String transport, String wsdlUrl) {
-		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(allBindings, transport)), WSDL4JUtil.getBindingOperations(allBindings, transport), wsdlUrl, schema);
+	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl) {
+		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(bindingOperations)), bindingOperations, wsdlUrl, getWsdl, schema);
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart) {
-		this(soap12, singlePart, java.util.Collections.<String, String> emptyMap(), null, null, null);
+		this(soap12, singlePart, java.util.Collections.<String, String> emptyMap(), null, null, false, null);
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if ("GET".equals(message.getVariable(HttpMethod))) {
-			if (_wsdlUrl != null && "wsdl".equals(message.getVariable(QueryString))) {
+			if (_getWsdl && "wsdl".equals(message.getVariable(QueryString))) {
 				message.getVariables().put(redirect, message.<String> getVariable(ContextPath) + DeployServlet.SERVLET_PATH + _wsdlUrl);
 				return null;
 			} else if (!_soap12) {

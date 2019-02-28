@@ -16,11 +16,11 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.wsdl.Binding;
-import javax.xml.namespace.QName;
+import javax.wsdl.BindingOperation;
 import javax.xml.validation.Schema;
 
 import com.artofarc.esb.context.Context;
@@ -36,10 +36,10 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 	private final Map<String, String> _mapOperation2SoapActionURI;
 	private final Schema _schema;
 
-	public PreSOAPHttpAction(boolean soap12, boolean header, boolean singlePart, Schema schema, Map<QName, Binding> allBindings, String transport) {
+	public PreSOAPHttpAction(boolean soap12, boolean header, boolean singlePart, Schema schema, List<BindingOperation> bindingOperations) {
 		super(soap12, header, singlePart);
 		_schema = schema;
-		_mapOperation2SoapActionURI = WSDL4JUtil.getMapOperation2SoapActionURI(allBindings, transport);
+		_mapOperation2SoapActionURI = WSDL4JUtil.getMapOperation2SoapActionURI(bindingOperations);
 	}
 
 	@Override
