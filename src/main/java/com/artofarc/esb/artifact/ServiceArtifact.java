@@ -72,7 +72,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		Service service = unmarshal();
-		// parse
 		for (ActionPipeline actionPipeline : service.getActionPipeline()) {
 			_actionPipelines.put(actionPipeline.getName(), transform(globalContext, actionPipeline.getAction(), actionPipeline.getErrorHandler()));
 		}

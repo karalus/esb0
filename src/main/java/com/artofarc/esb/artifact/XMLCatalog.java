@@ -46,6 +46,10 @@ public final class XMLCatalog {
 	public static void attachToFileSystem(GlobalContext globalContext) throws IOException {
 		FileSystem fileSystem = globalContext.getFileSystem();
 		Directory parent = fileSystem.makeDirectory(PATH.substring(1));
+		{
+			XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "xml.xsd");
+			xsdArtifact.setContent(StreamUtils.copy(StreamUtils.getResourceAsStream("xml.xsd")));
+		}
 		try {
 			XPath xPath = XPathFactory.newInstance().newXPath();
 			Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
@@ -60,10 +64,6 @@ public final class XMLCatalog {
 			}
 			xPath.reset();
 			{
-				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "xml.xsd");
-				xsdArtifact.setContent(StreamUtils.copy(StreamUtils.getResourceAsStream("xml.xsd")));
-			}
-			{
 				Attr attr = evaluate(xPath, exp, StreamUtils.getResourceAsStream("soap12.xsd"));
 				attr.setValue("strict");
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "soap12.xsd");
@@ -76,7 +76,7 @@ public final class XMLCatalog {
 
 	public static String alignSystemId(String systemId) {
 		if (systemId != null && systemId.contains("//")) {
-			// Must not download anything but search locally (XML catalog)
+			// Must not download anything but search locally in XML catalog
 			systemId = systemId.substring(systemId.lastIndexOf('/') + 1);
 		}
 		return systemId;

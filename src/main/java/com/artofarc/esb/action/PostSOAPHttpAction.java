@@ -35,12 +35,7 @@ public class PostSOAPHttpAction extends UnwrapSOAPAction {
 		switch (httpResponseCode) {
 		case HttpURLConnection.HTTP_OK:
 		case HttpURLConnection.HTTP_ACCEPTED:
-			return super.prepare(context, message, inPipeline);
 		case HttpURLConnection.HTTP_INTERNAL_ERROR:
-		case HttpURLConnection.HTTP_NOT_FOUND:
-			// TODO!
-			// setNextAction(getErrorHandler());
-			// operation="SOAP-ENV:Fault"
 			return super.prepare(context, message, inPipeline);
 		default:
 			throw new ExecutionException(this, "HTTP Response Code not covered by SOAP protocol, was " + httpResponseCode);

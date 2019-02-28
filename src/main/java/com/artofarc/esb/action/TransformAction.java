@@ -174,7 +174,7 @@ public class TransformAction extends Action {
 
 	@Override
 	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (nextActionIsPipelineStop) {
+		if (nextActionIsPipelineStop && execContext != null) {
 			XQResultSequence resultSequence = execContext.getResource();
 			if (resultSequence.next()) {
 				if (_contextItem == null) {
@@ -195,27 +195,24 @@ public class TransformAction extends Action {
 
 	@Override
 	protected final void close(ExecutionContext execContext) throws Exception {
-		XQResultSequence resultSequence = execContext.getResource();
-		if (resultSequence.next() && _contextItem == null) {
-			logger.debug("XQResultSequence not fully consumed");
-			if (logger.isDebugEnabled()) {
-				resultSequence.writeItem(System.err, null);
+		if (execContext != null) {
+			XQResultSequence resultSequence = execContext.getResource();
+			if (resultSequence.next() && _contextItem == null) {
+				logger.debug("XQResultSequence not fully consumed");
+				if (logger.isDebugEnabled()) {
+					resultSequence.writeItem(System.err, null);
+				}
 			}
-		}
-		resultSequence.close();
-		XQPreparedExpression xqExpression = execContext.getResource2();
-		// unbind (large) documents so that they can be garbage collected
-		xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
-		for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {
-			if (entry.getValue() == null || entry.getValue().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
-				xqExpression.bindString(entry.getKey(), "", null);
+			resultSequence.close();
+			XQPreparedExpression xqExpression = execContext.getResource2();
+			// unbind (large) documents so that they can be garbage collected
+			xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
+			for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {
+				if (entry.getValue() == null || entry.getValue().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
+					xqExpression.bindString(entry.getKey(), "", null);
+				}
 			}
 		}
 	}
-
-//	@Override
-//	public String toString() {
-//		return getClass().getSimpleName() + " [_xquery=" + _xquery + ", _varNames=" + _varNames + ", _bindNames=" + _bindNames + ", _contextItem=" + _contextItem + "]";
-//	}
 
 }

@@ -36,6 +36,9 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
            xmlns:tns="http://schemas.xmlsoap.org/soap/envelope/"
            targetNamespace="http://schemas.xmlsoap.org/soap/envelope/" >
 
+  <xs:import namespace="http://www.w3.org/XML/1998/namespace" 
+             schemaLocation="http://www.w3.org/2001/xml.xsd"/>
+
      
   <!-- Envelope, header and body -->
   <xs:element name="Envelope" type="tns:Envelope" />
@@ -104,7 +107,16 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
 	</xs:annotation>
     <xs:sequence>
       <xs:element name="faultcode" type="xs:QName" />
-      <xs:element name="faultstring" type="xs:string" />
+      <!-- https://stackoverflow.com/questions/4203640/is-xmllang-allowed-on-element-declared-in-schema-as-xsstring -->
+      <xs:element name="faultstring" >
+        <xs:complexType>
+          <xs:simpleContent>
+	        <xs:extension base="xs:string" >
+	          <xs:attribute ref="xml:lang" />
+	        </xs:extension>
+          </xs:simpleContent>
+        </xs:complexType>
+      </xs:element>
       <xs:element name="faultactor" type="xs:anyURI" minOccurs="0" />
       <xs:element name="detail" type="tns:detail" minOccurs="0" />      
     </xs:sequence>
