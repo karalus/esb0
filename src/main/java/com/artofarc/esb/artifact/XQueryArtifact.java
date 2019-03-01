@@ -66,4 +66,12 @@ public class XQueryArtifact extends XMLArtifact {
 		validateXQuerySource(this, new XQuerySource(getContent()));
 	}
 
+	@Override
+	protected void clearContent() {
+		// keep modules in cache
+		if (!getExt(getName()).equals("xqm")) {
+			super.clearContent();
+		}
+	}
+
 }
