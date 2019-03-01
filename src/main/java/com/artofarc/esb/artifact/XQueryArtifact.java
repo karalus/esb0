@@ -24,6 +24,7 @@ import javax.xml.xquery.XQSequenceType;
 import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.resource.XQDataSourceFactory;
 
 public class XQueryArtifact extends XMLArtifact {
@@ -37,27 +38,32 @@ public class XQueryArtifact extends XMLArtifact {
 		return initClone(new XQueryArtifact(fileSystem, parent, getName()));
 	}
 
-	@Override
-	public void validateInternal(GlobalContext globalContext) throws XQException {
+	static void validateXQuerySource(Artifact owner, XQuerySource xQuerySource) throws XQException {
 		// Needs an individual XQDataSourceFactory to track the use of modules
-		XQConnection connection = new XQDataSourceFactory(getURIResolver()).createXQDataSource().getConnection();
+		XQConnection connection = new XQDataSourceFactory(owner.getURIResolver()).createXQDataSource().getConnection();
 		try {
-			XQStaticContext staticContext = XQDataSourceFactory.getStaticContext(connection, getParent().getURI());
+			XQStaticContext staticContext = connection.getStaticContext();
 			staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
-			logger.info("Parsing XQuery: " + getURI());
-			XQPreparedExpression preparedExpression = connection.prepareExpression(getContentAsStream(), staticContext);
+			connection.setStaticContext(staticContext);
+			logger.info("Parsing XQuery in: " + owner.getURI());
+			XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(connection, owner.getParent().getURI());
 			for (QName qName : preparedExpression.getAllExternalVariables()) {
 				logger.info("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
 			}
 			logger.info("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
 			preparedExpression.close();
 			// set modules to validated 
-			for (String referenced : getReferenced()) {
-				getArtifact(referenced).setValidated(true);
+			for (String referenced : owner.getReferenced()) {
+				owner.getArtifact(referenced).setValidated(true);
 			}
 		} finally {
 			connection.close();
 		}
+	}
+
+	@Override
+	public void validateInternal(GlobalContext globalContext) throws XQException {
+		validateXQuerySource(this, new XQuerySource(getContent()));
 	}
 
 }

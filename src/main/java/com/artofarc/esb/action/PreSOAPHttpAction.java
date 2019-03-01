@@ -45,7 +45,7 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		ExecutionContext executionContext = super.prepare(context, message, inPipeline);
-		String soapAction = _mapOperation2SoapActionURI.get(message.<String>getVariable(ESBConstants.SOAP_OPERATION));
+		String soapAction = _mapOperation2SoapActionURI.get(message.<String> getVariable(ESBConstants.SOAP_OPERATION));
 		if (_soap12) {
 			if (soapAction != null && soapAction.length() > 0) {
 				Entry<String, String> contentType = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);

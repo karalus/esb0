@@ -33,19 +33,6 @@ public class XMLArtifact extends Artifact {
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 	}
 
-	protected final ArtifactURIResolver getURIResolver() {
-		return new ArtifactURIResolver() {
-			@Override
-			public Artifact resolveArtifact(String path) {
-				Artifact artifact = getArtifact(path);
-				if (artifact != null) {
-					addReference(artifact);
-				}
-				return artifact;
-			}
-		};
-	}
-
 	@Override
 	protected void clearContent() {
 		for (String referencedBy : getReferencedBy()) {
