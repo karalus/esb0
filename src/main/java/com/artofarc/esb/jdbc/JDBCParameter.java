@@ -19,6 +19,7 @@ package com.artofarc.esb.jdbc;
 import java.lang.reflect.Field;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -93,6 +94,10 @@ public final class JDBCParameter {
 			if (value instanceof XMLGregorianCalendar) {
 				XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
 				return (T) new Timestamp(calendar.toGregorianCalendar().getTimeInMillis());
+			}
+			if (value instanceof Calendar) {
+				Calendar calendar = (Calendar) value;
+				return (T) new Timestamp(calendar.getTimeInMillis());
 			}
 			if (value instanceof Long) {
 				return (T) new Timestamp((Long) value);

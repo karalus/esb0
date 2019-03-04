@@ -72,6 +72,7 @@ public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
 	public final void processInternal(Context context, ESBMessage message) throws Exception {
 		_startAction.process(context, message);
 		if (context.getExecutionStack().size() > 0) {
+			context.getExecutionStack().clear();
 			throw new IllegalStateException("ExecutionStack not empty");
 		}
 	}

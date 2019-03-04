@@ -33,7 +33,7 @@ public class ResumeAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String correlationID = resolve(message, _correlationID, true);
+		Object correlationID = resolve(message, _correlationID, true);
 		if (correlationID == null) {
 			throw new ExecutionException(this, "name could not be resolved: " + _correlationID);
 		}

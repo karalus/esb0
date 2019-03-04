@@ -33,6 +33,7 @@ import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.util.ReflectionUtils;
 
 public class SpawnAction extends Action {
 
@@ -136,7 +137,7 @@ public class SpawnAction extends Action {
 		try {
 			return future.get(message.getTimeleft(60000L).longValue(), TimeUnit.MILLISECONDS);
 		} catch (ExecutionException e) {
-			throw (Exception) e.getCause();
+			throw ReflectionUtils.convert(e.getCause(), Exception.class);
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("Async join", false);
 		}

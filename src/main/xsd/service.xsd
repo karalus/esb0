@@ -140,7 +140,7 @@
 	</element>
 	<element name="jdbcParameter">
 		<complexType>
-			<attribute name="pos" type="int" use="required" />
+			<attribute name="pos" type="int" />
 			<attribute name="body" type="boolean" default="false"/>
 			<attribute name="variable" type="Name" />
 			<attribute name="type" type="Name" />
@@ -403,6 +403,13 @@
 							</complexType>
 						</element>
 						<element name="default" minOccurs="0">
+							<complexType>
+								<sequence>
+									<element ref="tns:action" maxOccurs="unbounded" />
+								</sequence>
+							</complexType>
+						</element>
+						<element name="null" minOccurs="0">
 							<complexType>
 								<sequence>
 									<element ref="tns:action" maxOccurs="unbounded" />

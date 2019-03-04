@@ -27,11 +27,12 @@ public class BranchOnVariableAction extends Action {
 
 	private final String _varName;
 	private final Map<String, Action> _branchMap = new HashMap<>();
-	private final Action _defaultAction;
+	private final Action _defaultAction, _nullAction;
 
-	public BranchOnVariableAction(String varName, Action defaultAction) {
+	public BranchOnVariableAction(String varName, Action defaultAction, Action nullAction) {
 		_varName = varName;
 		_defaultAction = defaultAction;
+		_nullAction = nullAction;
 	}
 
 	public final Map<String, Action> getBranchMap() {
@@ -40,7 +41,13 @@ public class BranchOnVariableAction extends Action {
 
 	@Override
 	protected boolean isPipelineStop() {
-		boolean pipelineStop = _defaultAction != null ? _defaultAction.isPipelineStop() : _nextAction == null || _nextAction.isPipelineStop();
+		boolean pipelineStop = _nextAction == null || _nextAction.isPipelineStop();
+		if (_defaultAction != null) {
+			pipelineStop |= _defaultAction.isPipelineStop();
+		}
+		if (_nullAction != null) {
+			pipelineStop |= _nullAction.isPipelineStop();
+		}
 		for (Action action : _branchMap.values()) {
 			if (action != null && (pipelineStop |= action.isPipelineStop())) {
 				break;
@@ -52,7 +59,7 @@ public class BranchOnVariableAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		Object value = resolve(message, _varName, true);
-		Action action = null;
+		Action action = _nullAction;
 		if (value != null) {
 			if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {
 				throw new ExecutionException(this, "Value for " + _varName + " is not an atomic type: " + value.getClass());

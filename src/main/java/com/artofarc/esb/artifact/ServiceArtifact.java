@@ -142,7 +142,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					properties.put(property.getKey(), property.getValue());
 				}
 				KafkaConsumeAction kafkaConsumeAction = new KafkaConsumeAction(properties, consumeKafka.getTopic(), consumeKafka.getTimeout(),
-						resolveWorkerPool(consumeKafka.getWorkerPool()), Action.linkList(transform(globalContext, consumeKafka.getAction(), errorHandler)));
+						resolveWorkerPool(consumeKafka.getWorkerPool()), Action.linkList(transform(globalContext, consumeKafka.getAction(), null)));
 				list.add(kafkaConsumeAction);
 				break;
 			}
@@ -154,7 +154,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "fileSystemWatch": {
 				FileSystemWatch fileSystemWatch = (FileSystemWatch) jaxbElement.getValue();
 				FileSystemWatchAction fileSystemWatchAction = new FileSystemWatchAction(fileSystemWatch.getDir(), fileSystemWatch.getTimeout(),
-						resolveWorkerPool(fileSystemWatch.getWorkerPool()), Action.linkList(transform(globalContext, fileSystemWatch.getAction(), errorHandler)));
+						resolveWorkerPool(fileSystemWatch.getWorkerPool()), Action.linkList(transform(globalContext, fileSystemWatch.getAction(), null)));
 				list.add(fileSystemWatchAction);
 				break;
 			}
@@ -328,7 +328,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "conditional": {
 				Conditional conditional = (Conditional) jaxbElement.getValue();
 				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(), conditional.getBindName(), conditional.getContextItem());
-				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), errorHandler)));
+				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), null)));
 				list.add(conditionalAction);
 				break;
 			}
@@ -348,11 +348,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				BranchOnVariable branchOnVariable = (BranchOnVariable) jaxbElement.getValue();
 				Action defaultAction = null;
 				if (branchOnVariable.getDefault() != null) {
-					defaultAction = Action.linkList(transform(globalContext, branchOnVariable.getDefault().getAction(), errorHandler));
+					defaultAction = Action.linkList(transform(globalContext, branchOnVariable.getDefault().getAction(), null));
 				}
-				BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), defaultAction);
+				Action nullAction = null;
+				if (branchOnVariable.getNull() != null) {
+					nullAction = Action.linkList(transform(globalContext, branchOnVariable.getNull().getAction(), null));
+				}
+				BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), defaultAction, nullAction);
 				for (BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
-					branchOnVariableAction.getBranchMap().put(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
+					branchOnVariableAction.getBranchMap().put(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), null)));
 				}
 				list.add(branchOnVariableAction);
 				break;
@@ -361,11 +365,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				BranchOnPath branchOnPath = (BranchOnPath) jaxbElement.getValue();
 				Action defaultAction = null;
 				if (branchOnPath.getDefault() != null) {
-					defaultAction = Action.linkList(transform(globalContext, branchOnPath.getDefault().getAction(), errorHandler));
+					defaultAction = Action.linkList(transform(globalContext, branchOnPath.getDefault().getAction(), null));
 				}
 				BranchOnPathAction branchOnPathAction = new BranchOnPathAction(branchOnPath.getBasePath(), defaultAction);
 				for (BranchOnPath.Branch branch : branchOnPath.getBranch()) {
-					branchOnPathAction.getBranchMap().put(new BranchOnPathAction.PathTemplate(branch.getPathTemplate()), Action.linkList(transform(globalContext, branch.getAction(), errorHandler)));
+					branchOnPathAction.getBranchMap().put(new BranchOnPathAction.PathTemplate(branch.getPathTemplate()), Action.linkList(transform(globalContext, branch.getAction(), null)));
 				}
 				list.add(branchOnPathAction);
 				break;
@@ -398,9 +402,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				throw new ValidationException(this, "actionPipeline not found: " + errorHandler);
 			}
 			Action errorHandlerPipeline = Action.linkList(actionPipeline);
-			for (Action action : list) {
-				action.setErrorHandler(errorHandlerPipeline);
-			}
+			list.get(0).setErrorHandler(errorHandlerPipeline);
 		}
 		return list;
 	}
@@ -425,9 +427,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	}
 
 	private List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) {
-		List<JDBCParameter> params = new ArrayList<>();
-		for (JdbcParameter jdbcParameter : jdbcParameters) {
-			params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.getVariable(), jdbcParameter.getTruncate()));
+		List<JDBCParameter> params = new ArrayList<>(jdbcParameters.size());
+		for (int i = 0; i < jdbcParameters.size();) {
+			JdbcParameter jdbcParameter = jdbcParameters.get(i++);
+			int pos = jdbcParameter.getPos() != null ? jdbcParameter.getPos() : i;
+			params.add(new JDBCParameter(pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.getVariable(), jdbcParameter.getTruncate()));
 		}
 		return params;
 	}

@@ -20,8 +20,10 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ReflectionUtils;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -115,14 +117,18 @@ public class SetMessageAction extends Action {
 			}
 		}
 
-		Object convert(String value) throws Exception {
-			if (_con != null) {
-				return _expr.isEmpty() ? _con.newInstance() : _con.newInstance(value);
+		Object convert(Object value) throws Exception {
+			try {
+				if (_con != null) {
+					return _expr.isEmpty() ? _con.newInstance() : _con.newInstance(value);
+				}
+				if (_method != null) {
+					return _expr.isEmpty() ? _method.invoke(null) : _method.invoke(null, value);
+				}
+				return value;
+			} catch (InvocationTargetException e) {
+				throw ReflectionUtils.convert(e.getCause(), Exception.class);
 			}
-			if (_method != null) {
-				return _expr.isEmpty() ? _method.invoke(null) : _method.invoke(null, value);
-			}
-			return value;
 		}
 	}
 

@@ -23,7 +23,7 @@ import com.artofarc.esb.message.ESBMessage;
 public class ThrowExceptionAction extends TerminalAction {
 
 	private final String _message;
-	
+
 	public ThrowExceptionAction(String message) {
 		_message = message;
 	}
@@ -31,7 +31,7 @@ public class ThrowExceptionAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, resource, message, nextActionIsPipelineStop);
-		throw new ExecutionException(this, bindVariable(_message, context, message));
+		throw new ExecutionException(this, (String) bindVariable(_message, context, message));
 	}
 
 }

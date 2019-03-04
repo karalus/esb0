@@ -36,8 +36,6 @@ public abstract class Action implements Cloneable {
 	protected final static Logger logger = LoggerFactory.getLogger(Action.class);
 
 	protected Action _nextAction;
-
-	// TODO: clone!
 	protected Action _errorHandler;
 
 	public final Action setNextAction(Action nextAction) {
@@ -55,20 +53,25 @@ public abstract class Action implements Cloneable {
 	public final void process(Context context, ESBMessage message) throws Exception {
 		List<Action> pipeline = new ArrayList<>();
 		List<ExecutionContext> resources = new ArrayList<>();
+		ArrayDeque<Action> stackErrorHandler = new ArrayDeque<>();
+		ArrayDeque<Integer> stackPosErrorHandler = new ArrayDeque<>();
+		if (getErrorHandler() != null) {
+			stackErrorHandler.push(getErrorHandler());
+			stackPosErrorHandler.push(context.getExecutionStack().size());
+		}
 		TimeGauge timeGauge = new TimeGauge(logger, 250L, false);
 		timeGauge.startTimeMeasurement();
-		ArrayDeque<Integer> stackPosErrorHandler = new ArrayDeque<>();
-		stackPosErrorHandler.push(context.getExecutionStack().size());
 		for (Action nextAction = this; nextAction != null;) {
 			boolean isPipeline = false;
 			Action action = nextAction;
 			boolean closeSilently = false;
 			try {
 				while (action != null) {
-					ExecutionContext execContext = action.prepare(context, message, isPipeline);
 					if (action.getErrorHandler() != null) {
+						stackErrorHandler.push(action.getErrorHandler());
 						stackPosErrorHandler.push(context.getExecutionStack().size());
 					}
+					ExecutionContext execContext = action.prepare(context, message, isPipeline);
 					timeGauge.stopTimeMeasurement("Parent: %s, prepare (isPipeline=%b): %s", true, this, isPipeline, action);
 					pipeline.add(action);
 					resources.add(execContext);
@@ -94,12 +97,14 @@ public abstract class Action implements Cloneable {
 				logger.info("Exception while processing " + action, e);
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
-				nextAction = action.getErrorHandler();
-				if (nextAction == null) {
-					int stackPos = stackPosErrorHandler.peek();
+				nextAction = stackErrorHandler.poll();
+				if (nextAction != null) {
+					// unwind to last stack pos
+					int stackPos = stackPosErrorHandler.pop();
 					while (context.getExecutionStack().size() > stackPos) {
-						nextAction = context.getExecutionStack().pop();
+						context.getExecutionStack().pop();
 					}
+				} else {
 					nextAction = context.getExecutionStack().poll();
 				}
 				if (nextAction != null) {
@@ -116,6 +121,7 @@ public abstract class Action implements Cloneable {
 						action.close(exContext);
 						if (action.getErrorHandler() != null) {
 							stackPosErrorHandler.pop();
+							stackErrorHandler.pop();
 						}
 					} catch (Exception e) {
 						if (!closeSilently)
@@ -202,11 +208,12 @@ public abstract class Action implements Cloneable {
 		return startAction;
 	}
 
-	protected final String bindVariable(String exp, Context context, ESBMessage message) throws Exception {
+	protected final Object bindVariable(String exp, Context context, ESBMessage message) throws Exception {
 		StringBuilder builder = new StringBuilder();
 		for (int pos = 0;;) {
 			int i = exp.indexOf("${", pos);
 			if (i < 0) {
+				if (pos == 0) return exp;
 				builder.append(exp.substring(pos));
 				break;
 			}
@@ -216,7 +223,7 @@ public abstract class Action implements Cloneable {
 			String path = exp.substring(i + 2, j);
 			int k = path.indexOf('.');
 			String name = k < 0 ? path : path.substring(0, k);
-			Object value = "body".equals(name) ? message.getBodyAsString(context) : resolve(message, name, true);
+			Object value = "body".equals(name) ? (k < 0 ? message.getBodyAsString(context) : message.getBody()) : resolve(message, name, true);
 			if (value == null) {
 				value = System.getProperty(name);
 			}
@@ -230,8 +237,11 @@ public abstract class Action implements Cloneable {
 				value = method.invoke(value);
 				k = l;
 			}
+			if (++j == exp.length() && pos == 0 && i == 0) {
+				return value;						
+			}
 			builder.append(value);
-			pos = j + 1;
+			pos = j;
 		}
 		return builder.toString();
 	}

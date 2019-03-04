@@ -37,7 +37,7 @@ public final class AsyncProcessingPool implements Runnable {
 		public long expriry;
 	}
 
-	private final Map<String, AsyncContext> _asyncContexts = new ConcurrentHashMap<>();
+	private final Map<Object, AsyncContext> _asyncContexts = new ConcurrentHashMap<>();
 	private final WorkerPool _workerPool;
 
 	private ScheduledFuture<?> _scheduledFuture;
@@ -62,21 +62,21 @@ public final class AsyncProcessingPool implements Runnable {
 		}
 	}
 
-	public void putAsyncContext(String correlationID, AsyncContext asyncContext) {
+	public void putAsyncContext(Object correlationID, AsyncContext asyncContext) {
 		if (_asyncContexts.put(correlationID, asyncContext) != null) {
 			throw new IllegalArgumentException("correlationID already used: " + correlationID);
 		}
 		start();
 	}
 
-	public AsyncContext removeAsyncContext(String correlationID) {
+	public AsyncContext removeAsyncContext(Object correlationID) {
 		return _asyncContexts.remove(correlationID);
 	}
 
 	@Override
 	public void run() {
-		for (Iterator<Map.Entry<String, AsyncContext>> iter = _asyncContexts.entrySet().iterator(); iter.hasNext();) {
-			Map.Entry<String, AsyncContext> entry = iter.next();
+		for (Iterator<Map.Entry<Object, AsyncContext>> iter = _asyncContexts.entrySet().iterator(); iter.hasNext();) {
+			Map.Entry<Object, AsyncContext> entry = iter.next();
 			AsyncContext asyncContext = entry.getValue();
 			if (asyncContext.expriry < System.currentTimeMillis()) {
 				iter.remove();

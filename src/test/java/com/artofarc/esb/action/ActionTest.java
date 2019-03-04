@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.util.Calendar;
 
 import org.junit.After;
 import org.junit.Before;
@@ -93,7 +94,7 @@ public class ActionTest {
       MarkAction action1 = new MarkAction();
       MarkAction action2 = new MarkAction();
       MarkAction action3 = new MarkAction();
-      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("var", action2);
+      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("var", action2, null);
       branchOnVariableAction.getBranchMap().put("ok", action1);
       branchOnVariableAction.setNextAction(action3);
       branchOnVariableAction.process(context, message);
@@ -124,12 +125,18 @@ public class ActionTest {
 		action.addHeader("now", "", "java.lang.System", "currentTimeMillis");
 		action.addHeader("id", "${_id.toString}", null, null);
 		action.addVariable("_id", "", "java.util.UUID", "randomUUID");
+		action.addVariable("calendar", "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime");
+		action.addVariable("timeInMillis", "${calendar.getTimeInMillis}", null, null);
    	action.setNextAction(new DumpAction());
    	action.process(context, message);
    	assertEquals(42, message.getHeader("int"));
    	assertEquals(true, message.getHeader("bool"));
    	assertTrue(message.getHeader("now") instanceof Long);
    	assertTrue(message.getHeader("id") instanceof String);
+   	Object calendar = message.getVariable("calendar");
+		assertTrue("Type is: " + calendar.getClass(), calendar instanceof Calendar);
+   	Object timeInMillis = message.getVariable("timeInMillis");
+		assertTrue("Type is: " + timeInMillis.getClass(), timeInMillis instanceof Long);
    }
 
    @Test
