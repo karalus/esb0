@@ -36,7 +36,7 @@ public final class Closer implements AutoCloseable {
 	public Closer(ExecutorService executorService) {
 		_executorService = executorService;
 	}
-	
+
 	public static void closeQuietly(AutoCloseable closeable) {
 		try {
 			closeable.close();
@@ -73,11 +73,13 @@ public final class Closer implements AutoCloseable {
 
 	@Override
 	public void close() throws InterruptedException, ExecutionException {
-		for (Iterator<Future<?>> iter = _futures.iterator(); iter.hasNext();) {
-			iter.next().get();
-			iter.remove();
+		if (_futures.size() > 0) {
+			for (Iterator<Future<?>> iter = _futures.iterator(); iter.hasNext();) {
+				iter.next().get();
+				iter.remove();
+			}
+			logger.info("Closed all closables async");
 		}
-		logger.info("Closed all closables");
 	}
 
 }

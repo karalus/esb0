@@ -164,7 +164,11 @@ public class DeployServlet extends HttpServlet {
 				JMSConsumer jmsConsumer = service.getConsumerPort();
 				JMSConsumer oldConsumer = globalContext.bindJmsConsumer(jmsConsumer);
 				if (oldConsumer != null) {
-					closer.closeAsync(oldConsumer);
+					try {
+						oldConsumer.close();
+					} catch (Exception e) {
+						// ignore
+					}
 				}
 				try {
 					jmsConsumer.init(globalContext);

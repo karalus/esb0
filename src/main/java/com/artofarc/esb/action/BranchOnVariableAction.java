@@ -48,9 +48,11 @@ public class BranchOnVariableAction extends Action {
 		if (_nullAction != null) {
 			pipelineStop |= _nullAction.isPipelineStop();
 		}
-		for (Action action : _branchMap.values()) {
-			if (action != null && (pipelineStop |= action.isPipelineStop())) {
-				break;
+		if (!pipelineStop) {
+			for (Action action : _branchMap.values()) {
+				if (action != null && (pipelineStop |= action.isPipelineStop())) {
+					break;
+				}
 			}
 		}
 		return pipelineStop;
