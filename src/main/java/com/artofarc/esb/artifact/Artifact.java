@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.ReflectionUtils;
+import com.artofarc.util.StreamUtils;
 
 public abstract class Artifact {
 
@@ -142,9 +144,19 @@ public abstract class Artifact {
 	}
 
 	public final InputStream getContentAsStream() {
-		if (_content != null) {
-			return new ByteArrayInputStream(_content);
+		return _content != null ? new ByteArrayInputStream(_content) : getFileInputStream();
+	}
+
+	protected final byte[] getContentAsBytes() throws IOException {
+		if (_content == null) {
+			try (InputStream contentAsStream = getFileInputStream()) {
+				_content = StreamUtils.copy(contentAsStream);
+			}
 		}
+		return _content;
+	}
+
+	private FileInputStream getFileInputStream() {
 		try {
 			return new FileInputStream(new File(_fileSystem.getAnchorDir(), getURI()));
 		} catch (FileNotFoundException e) {
