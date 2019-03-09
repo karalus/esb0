@@ -169,8 +169,8 @@ public final class FileSystem {
 		case "wsdl":
 			return new WSDLArtifact(this, parent, name);
 		case "xq":
-		case "xqm":
 		case "xqy":
+		case XQueryArtifact.FILE_EXTENSION_XQUERY_MODULE:
 			return new XQueryArtifact(this, parent, name);
 		case "xsl":
 		case "xslt":
@@ -228,7 +228,8 @@ public final class FileSystem {
 		for (Iterator<Artifact> iterator = directory.getArtifacts().values().iterator(); iterator.hasNext();) {
 			Artifact artifact = iterator.next();
 			if (artifact instanceof Directory) {
-				if (tidyOut((Directory) artifact, visited)) {
+				Directory child = (Directory) artifact;
+				if (!XMLCatalog.isXMLCatalog(child) && tidyOut(child, visited)) {
 					logger.info("Remove: " + artifact.getURI());
 					iterator.remove();
 					_changes.put(artifact.getURI(), ChangeType.DELETE);

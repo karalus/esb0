@@ -18,6 +18,7 @@ package com.artofarc.util;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.xml.XMLConstants;
@@ -40,7 +41,7 @@ public final class SchemaUtils {
 		try {
 			if (schemaArtifact.getGrammars().size() > 0) {
 				ArrayList<Object> grammars = new ArrayList<>();
-				collectGrammars(schemaArtifact, grammars);
+				collectGrammars(schemaArtifact, new HashSet<SchemaArtifact>(), grammars);
 				return createXMLSchema(factory, ReflectionUtils.toArray(grammars));
 			}
 			factory.setResourceResolver(schemaArtifact);
@@ -105,11 +106,14 @@ public final class SchemaUtils {
 		return (Schema) schema;
 	}
 
-	private static void collectGrammars(SchemaArtifact schemaArtifact, ArrayList<Object> grammars) {
+	private static void collectGrammars(SchemaArtifact schemaArtifact, HashSet<SchemaArtifact> visited, ArrayList<Object> grammars) {
 		grammars.addAll(schemaArtifact.getGrammars().values());
+		visited.add(schemaArtifact);
 		for (String referenced : schemaArtifact.getReferenced()) {
 			SchemaArtifact artifact = schemaArtifact.getArtifact(referenced);
-			collectGrammars(artifact, grammars);
+			if (!visited.contains(artifact)) {
+				collectGrammars(artifact, visited, grammars);
+			}
 		}
 	}
 

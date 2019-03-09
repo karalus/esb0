@@ -74,6 +74,10 @@ public final class XMLCatalog {
 		}
 	}
 
+	public static boolean isXMLCatalog(Directory directory) {
+		return directory.getURI().equals(PATH);
+	}
+
 	public static String alignSystemId(String systemId) {
 		if (systemId != null && systemId.contains("//")) {
 			// Must not download anything but search locally in XML catalog

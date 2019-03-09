@@ -195,6 +195,7 @@ public abstract class Artifact {
 			try {
 				validateInternal(globalContext);
 			} catch (Exception e) {
+				setValidated(false);
 				throw ReflectionUtils.convert(e, ValidationException.class, this);
 			}
 			setValidated(true);

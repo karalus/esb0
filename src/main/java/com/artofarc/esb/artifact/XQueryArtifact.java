@@ -29,6 +29,8 @@ import com.artofarc.esb.resource.XQDataSourceFactory;
 
 public class XQueryArtifact extends XMLArtifact {
 
+	final static String FILE_EXTENSION_XQUERY_MODULE = "xqm";
+
 	public XQueryArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
 	}
@@ -69,7 +71,7 @@ public class XQueryArtifact extends XMLArtifact {
 	@Override
 	protected void clearContent() {
 		// keep modules in cache
-		if (!getExt(getName()).equals("xqm")) {
+		if (!getExt(getName()).equals(FILE_EXTENSION_XQUERY_MODULE)) {
 			super.clearContent();
 		}
 	}
