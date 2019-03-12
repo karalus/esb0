@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
@@ -34,6 +35,7 @@ import com.artofarc.esb.context.PoolContext;
 public final class ESBServletContextListener implements ServletContextListener, Runnable {
 
 	public static final String VERSION = "esb0.version";
+	public static final String BUILD_TIME = "esb0.build.time";
 	public static final String POOL_CONTEXT = "WebContainerPoolContext";
 
 	private GlobalContext globalContext;
@@ -60,8 +62,9 @@ public final class ESBServletContextListener implements ServletContextListener, 
 
 	@Override
 	public void contextInitialized(ServletContextEvent contextEvent) {
+		ServletContext servletContext = contextEvent.getServletContext();
 		Properties properties = new Properties();
-		InputStream inputStream = contextEvent.getServletContext().getResourceAsStream("/META-INF/maven/com.artofarc.eai/esb0/pom.properties");
+		InputStream inputStream = servletContext.getResourceAsStream("/META-INF/MANIFEST.MF");
 		if (inputStream != null) {
 			try {
 				properties.load(inputStream);
@@ -70,10 +73,11 @@ public final class ESBServletContextListener implements ServletContextListener, 
 				// ignore
 			}
 		}
-		contextEvent.getServletContext().setAttribute(VERSION, properties.getProperty("version", "0.0"));
+		servletContext.setAttribute(VERSION, properties.getProperty("Implementation-Version", "0.0"));
+		servletContext.setAttribute(BUILD_TIME, properties.getProperty("Build-Time", ""));
 		String rootDirEnv = System.getenv("ESB_ROOT_DIR");
 		File rootDir = rootDirEnv != null ? new File(rootDirEnv) : new File(System.getProperty("user.home"), "esb_root");
-		contextEvent.getServletContext().setAttribute(POOL_CONTEXT, createGlobalAndDefaultPoolContext(rootDir));
+		servletContext.setAttribute(POOL_CONTEXT, createGlobalAndDefaultPoolContext(rootDir));
 	}
 
 	@Override

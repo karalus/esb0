@@ -11,7 +11,7 @@
 <%@page import="com.artofarc.esb.artifact.*"%>
 <html>
 <body>
-<h2>ESB Zero - A lightweight service gateway (v<%=application.getAttribute(ESBServletContextListener.VERSION)%>)</h2>
+<h2>ESB Zero - A lightweight service gateway (Version <%=application.getAttribute(ESBServletContextListener.VERSION)%> build time <%=application.getAttribute(ESBServletContextListener.BUILD_TIME)%>)</h2>
 <%
 	GlobalContext globalContext = ((PoolContext) application.getAttribute(ESBServletContextListener.POOL_CONTEXT)).getGlobalContext();
 	if (request.getPathInfo() == null) {
