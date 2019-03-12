@@ -1,8 +1,6 @@
 package com.artofarc.esb.action;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,7 +59,7 @@ public class FileSystemTest extends AbstractESBTest {
          message.getVariables().put(ESBConstants.HttpMethod, "POST");
          message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
          message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
-         message.getVariables().put(ESBConstants.hasFault, false);
+         message.getVariables().put("hasFault", false);
          try {
             service.processInternal(new Context(poolContext), message);
          } catch (IOException e) {

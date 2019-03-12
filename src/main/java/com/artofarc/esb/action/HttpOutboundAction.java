@@ -51,7 +51,9 @@ public class HttpOutboundAction extends Action {
 			appendHttpUrl += message.getVariable(QueryString);
 		}
 		Entry<String, String> contentType = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
-		contentType.setValue(contentType.getValue() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+		if (contentType != null) {
+			contentType.setValue(contentType.getValue() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+		}
 		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);
 		HttpURLConnection conn = wrapper.getHttpURLConnection();  
 		message.getVariables().put(HttpURLOutbound, conn.getURL().toString());
@@ -59,7 +61,9 @@ public class HttpOutboundAction extends Action {
 		if (inPipeline) {
 			message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
 		} else {
-			message.writeTo(conn.getOutputStream(), context);
+			if (!message.isEmpty()) {
+				message.writeTo(conn.getOutputStream(), context);
+			}
 		}
 		return new ExecutionContext(wrapper);
 	}

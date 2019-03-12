@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.action;
 
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
@@ -31,12 +32,13 @@ public class DumpAction extends TerminalAction {
 		System.out.println("Variables:");
 		System.out.println(message.getVariables());
 		if (message.getBodyType() != BodyType.INVALID) {
-			if (message.getBodyType() == BodyType.EXCEPTION) {
-				message.reset(BodyType.STRING, message.getBody().toString());
-			}
 			System.out.println("Body:");
-			message.writeRawTo(System.out, context);
-			System.out.println();
+			if (message.getBodyType() == BodyType.EXCEPTION) {
+				message.<Exception> getBody().printStackTrace(System.out);
+			} else {
+				message.writeRawTo(System.out, context);
+				System.out.println();
+			}
 			System.out.flush();
 		}
 	}

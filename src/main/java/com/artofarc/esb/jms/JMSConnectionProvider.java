@@ -87,7 +87,7 @@ public final class JMSConnectionProvider {
 
 		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
 		private final String _jndiConnectionFactory;
-		private volatile Connection _connection;
+		private Connection _connection;
 		private ScheduledExecutorService _scheduledExecutorService;
 
 		private JMSConnectionGuard(String jndiConnectionFactory, Connection connection) throws JMSException {
@@ -95,19 +95,19 @@ public final class JMSConnectionProvider {
 			setConnection(connection);
 		}
 
-		public Connection getConnection() {
+		synchronized Connection getConnection() {
 			if (_connection == null) {
 				throw new IllegalStateException(_jndiConnectionFactory + " is currently invalid");
 			}
 			return _connection;
 		}
 
-		public void setConnection(Connection connection) throws JMSException {
+		private void setConnection(Connection connection) throws JMSException {
 			_connection = connection;
 			connection.setExceptionListener(this);
 		}
 
-		public synchronized void addJMSConsumer(JMSConsumer jmsConsumer) {
+		synchronized void addJMSConsumer(JMSConsumer jmsConsumer) {
 			_jmsConsumers.put(jmsConsumer, null);
 		}
 
@@ -135,7 +135,7 @@ public final class JMSConnectionProvider {
 				// save current state
 				entry.setValue(jmsConsumer.isEnabled());
 				try {
-					logger.info("Closing JMSConsumer");
+					logger.info("Closing JMSConsumer for " + jmsConsumer.getKey());
 					jmsConsumer.close();
 				} catch (Exception e) {
 					// ignore

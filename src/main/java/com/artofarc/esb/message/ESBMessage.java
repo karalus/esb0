@@ -464,6 +464,19 @@ public final class ESBMessage implements Cloneable {
 		return _bodyType == BodyType.INPUT_STREAM || _bodyType == BodyType.READER;
 	}
 
+	public boolean isEmpty() {
+		switch (_bodyType) {
+		case INVALID:
+			return true;
+		case STRING:
+			return ((String) _body).isEmpty();
+		case BYTES:
+			return ((byte[]) _body).length == 0;
+		default:
+			return false;
+		}
+	}
+
 	public Result getBodyAsSinkResult(Context context) throws Exception {
 		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
 			if (_bodyType == BodyType.OUTPUT_STREAM) {

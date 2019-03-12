@@ -50,8 +50,6 @@ public interface ESBConstants {
 
 	String SOAP_HEADER = "header";
 
-	String hasFault = "hasFault";
-
 	String redirect = "redirect";
 
 	String JMSMessageID = "JMSMessageID";
@@ -61,7 +59,7 @@ public interface ESBConstants {
 	String JMSReplyTo = "JMSReplyTo";
 
 	String JMSOrigin = "JMSOrigin";
-	
+
 	String Charset = "Charset";
 
 }

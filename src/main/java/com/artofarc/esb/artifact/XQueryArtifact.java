@@ -50,9 +50,9 @@ public class XQueryArtifact extends XMLArtifact {
 			logger.info("Parsing XQuery in: " + owner.getURI());
 			XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(connection, owner.getParent().getURI());
 			for (QName qName : preparedExpression.getAllExternalVariables()) {
-				logger.info("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
+				logger.debug("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
 			}
-			logger.info("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
+			logger.debug("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
 			preparedExpression.close();
 			// set modules to validated 
 			for (String referenced : owner.getReferenced()) {

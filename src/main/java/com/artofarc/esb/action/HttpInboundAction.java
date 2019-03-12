@@ -50,7 +50,9 @@ public class HttpInboundAction extends Action {
 			message.getHeaders().put(entry.getKey(), value);
 		}
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
+		if (contentType != null) {
+			message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
+		}
 		InputStream inputStream = conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST ? conn.getInputStream() : conn.getErrorStream();
 		message.reset(BodyType.INPUT_STREAM, inputStream);
 		return new ExecutionContext(inputStream, wrapper);

@@ -35,7 +35,7 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.servlet.GenericHttpListener;
 
 public class HttpServletResponseAction extends Action {
-	
+
 	private final boolean _supportCompression, _multipartResponse;
 	private final Integer _bufferSize;
 
@@ -64,7 +64,8 @@ public class HttpServletResponseAction extends Action {
 			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 			if (httpResponseCode == null) {
-				Boolean hasFault = message.getVariable(ESBConstants.hasFault);
+				// Deprecated. Remove in version 2.0
+				Boolean hasFault = message.getVariable("hasFault");
 				httpResponseCode = hasFault != null && hasFault ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : HttpServletResponse.SC_OK;
 			}
 			response.setStatus(httpResponseCode.intValue());
@@ -72,6 +73,7 @@ public class HttpServletResponseAction extends Action {
 			if (acceptCharset != null) {
 				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset, ""));
 			}
+			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
 			if (_supportCompression) checkCompression(message);
 			checkFastInfoSet(message);
 			if (_multipartResponse) {
