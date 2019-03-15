@@ -54,8 +54,6 @@ public class XSDArtifact extends SchemaArtifact {
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
 		initSchema(getStreamSource());
-		setValidated(true);
-		validateReferenced(globalContext);
 	}
 
 	@Override

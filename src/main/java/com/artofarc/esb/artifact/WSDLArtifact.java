@@ -98,8 +98,6 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		}
 		initSchema(sources.toArray(new Source[sources.size()]));
 		schemas.clear();
-		// refs are now set
-		validateReferenced(globalContext);
 	}
 
 	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws TransformerException {

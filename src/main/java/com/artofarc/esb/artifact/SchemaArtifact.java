@@ -33,6 +33,7 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.SchemaUtils;
 
 
@@ -75,6 +76,15 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 			SchemaFactory factory = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
 			factory.setResourceResolver(this);
 			_schema = factory.newSchema(schemas);
+		}
+	}
+
+	@Override
+	protected void postValidate(GlobalContext globalContext) throws ValidationException {
+		// refs have been set by resolvers
+		for (String artifactUri : getReferenced()) {
+			SchemaArtifact schemaArtifact = getArtifact(artifactUri);
+			schemaArtifact.validate(globalContext);
 		}
 	}
 

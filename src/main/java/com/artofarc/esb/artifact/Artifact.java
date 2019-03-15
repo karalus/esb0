@@ -190,23 +190,28 @@ public abstract class Artifact {
 
 	protected abstract void validateInternal(GlobalContext globalContext) throws Exception;
 
-	public final synchronized void validate(GlobalContext globalContext) throws ValidationException {
-		if (!isValidated()) {
-			try {
-				validateInternal(globalContext);
-			} catch (Exception e) {
-				setValidated(false);
-				throw ReflectionUtils.convert(e, ValidationException.class, this);
-			}
-			setValidated(true);
-			logger.info("Validated: " + getURI());
-		}
+	protected void postValidate(GlobalContext globalContext) throws ValidationException {
 	}
 
-	protected final void validateReferenced(GlobalContext globalContext) throws ValidationException {
-		for (String artifactUri : getReferenced()) {
-			Artifact artifact = getArtifact(artifactUri);
-			artifact.validate(globalContext);
+	public final void validate(GlobalContext globalContext) throws ValidationException {
+		synchronized (this) {
+			if (isValidated()) {
+				return;
+			} else {
+				try {
+					validateInternal(globalContext);
+				} catch (Exception e) {
+					throw ReflectionUtils.convert(e, ValidationException.class, this);
+				}
+				setValidated(true);
+				logger.info("Validated: " + getURI());
+			}
+		}
+		try {
+			postValidate(globalContext);
+		} catch (ValidationException e) {
+			setValidated(false);
+			throw e;
 		}
 	}
 
