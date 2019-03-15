@@ -190,7 +190,7 @@ public abstract class Artifact {
 
 	protected abstract void validateInternal(GlobalContext globalContext) throws Exception;
 
-	protected void postValidate(GlobalContext globalContext) throws ValidationException {
+	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {
 	}
 
 	public final void validate(GlobalContext globalContext) throws ValidationException {
@@ -207,12 +207,7 @@ public abstract class Artifact {
 				logger.info("Validated: " + getURI());
 			}
 		}
-		try {
-			postValidate(globalContext);
-		} catch (ValidationException e) {
-			setValidated(false);
-			throw e;
-		}
+		postValidateInternal(globalContext);
 	}
 
 	@Override

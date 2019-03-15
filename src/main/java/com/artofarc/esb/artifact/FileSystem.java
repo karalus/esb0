@@ -17,6 +17,7 @@
 package com.artofarc.esb.artifact;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StreamUtils;
 
 import java.io.*;
@@ -289,10 +290,7 @@ public final class FileSystem {
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
 				} catch (ExecutionException e) {
-					if (e.getCause() instanceof ValidationException) {
-						throw (ValidationException) e.getCause();
-					}
-					throw new RuntimeException(e);
+					throw ReflectionUtils.convert(e.getCause(), ValidationException.class);
 				} 
 			}
 			dehydrateArtifacts(_root);

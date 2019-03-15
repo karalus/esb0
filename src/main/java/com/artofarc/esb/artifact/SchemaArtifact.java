@@ -80,7 +80,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	}
 
 	@Override
-	protected void postValidate(GlobalContext globalContext) throws ValidationException {
+	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {
 		// refs have been set by resolvers
 		for (String artifactUri : getReferenced()) {
 			SchemaArtifact schemaArtifact = getArtifact(artifactUri);

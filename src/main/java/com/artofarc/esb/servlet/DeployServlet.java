@@ -106,8 +106,8 @@ public class DeployServlet extends HttpServlet {
 				if (globalContext.lockFileSystem()) {
 					try {
 						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createUpdate(globalContext, filePart.getInputStream());
-						FileSystem newFileSystem = changeSet.getFileSystem();
 						deployChangeSet(globalContext, changeSet);
+						FileSystem newFileSystem = changeSet.getFileSystem();
 						globalContext.setFileSystem(newFileSystem);
 						newFileSystem.writeBackChanges();
 					} catch (ValidationException e) {

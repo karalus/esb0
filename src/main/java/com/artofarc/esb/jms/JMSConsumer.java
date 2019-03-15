@@ -31,16 +31,16 @@ import javax.jms.TextMessage;
 import javax.jms.Topic;
 import javax.naming.NamingException;
 
-import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
+import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
-public final class JMSConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
+public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final String _workerPool;
 	private final String _jndiConnectionFactory;
@@ -108,7 +108,11 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	}
 
 	public void init(GlobalContext globalContext) throws Exception {
-		PoolContext poolContext = globalContext.getWorkerPool(_workerPool).getPoolContext();
+		WorkerPool workerPool = globalContext.getWorkerPool(_workerPool);
+		if (workerPool.getScheduledExecutorService() == null) {
+			throw new IllegalStateException("No scheduled threads in WorkerPool " + _workerPool);
+		}
+		PoolContext poolContext = workerPool.getPoolContext();
 		for (int i = 0; i < _jmsWorker.length; ++i) {
 			_jmsWorker[i] = new JMSWorker(new Context(poolContext));
 			_jmsWorker[i].open();
