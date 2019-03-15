@@ -21,8 +21,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TimerTask;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.jms.Connection;
@@ -88,11 +87,12 @@ public final class JMSConnectionProvider {
 		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
 		private final String _jndiConnectionFactory;
 		private Connection _connection;
-		private ScheduledExecutorService _scheduledExecutorService;
+		private ScheduledFuture<?> _future;
 
 		private JMSConnectionGuard(String jndiConnectionFactory, Connection connection) throws JMSException {
 			_jndiConnectionFactory = jndiConnectionFactory;
-			setConnection(connection);
+			_connection = connection;
+			_connection.setExceptionListener(this);
 		}
 
 		synchronized Connection getConnection() {
@@ -100,11 +100,6 @@ public final class JMSConnectionProvider {
 				throw new IllegalStateException(_jndiConnectionFactory + " is currently invalid");
 			}
 			return _connection;
-		}
-
-		private void setConnection(Connection connection) throws JMSException {
-			_connection = connection;
-			connection.setExceptionListener(this);
 		}
 
 		synchronized void addJMSConsumer(JMSConsumer jmsConsumer) {
@@ -143,8 +138,7 @@ public final class JMSConnectionProvider {
 			}
 			// start reconnect thread
 			logger.info(_jndiConnectionFactory + ": start reconnect thread");
-			_scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-			_scheduledExecutorService.scheduleAtFixedRate(this, 10, 20, TimeUnit.SECONDS);
+			_future = _poolContext.getWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
 		}
 
 		@Override
@@ -152,17 +146,19 @@ public final class JMSConnectionProvider {
 			try {
 				logger.info("Trying to reconnect " + _jndiConnectionFactory);
 				ConnectionFactory qcf = _poolContext.getGlobalContext().lookup(_jndiConnectionFactory);
-				setConnection(qcf.createConnection());
+				_connection = qcf.createConnection();
 				for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
 					JMSConsumer jmsConsumer = entry.getKey();
 					jmsConsumer.open();
 					// restore last state
 					jmsConsumer.enable(entry.getValue());
 				}
+				_connection.setExceptionListener(this);
 				logger.info("Reconnected  " + _jndiConnectionFactory);
-				_scheduledExecutorService.shutdown();
-				_scheduledExecutorService = null;
+				_future.cancel(false);
+				_future = null;
 			} catch (Exception e) {
+				_connection = null;
 				logger.error(_jndiConnectionFactory + " reconnect failed: " + e);
 			}
 		}
