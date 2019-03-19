@@ -256,6 +256,7 @@
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" use="required" />
 					<attribute name="type" type="tns:string1" />
+					<attribute name="jsonIncludeRoot" type="boolean" default="true" />
 					<attribute name="validate" type="boolean" default="true" />
 					<attribute name="formattedOutput" type="boolean" default="false" />
 				</extension>
@@ -280,6 +281,8 @@
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" use="required" />
 					<attribute name="type" type="tns:string1" />
+					<attribute name="jsonIncludeRoot" type="boolean" default="true" />
+					<attribute name="xmlElement" type="tns:string1" />
 					<attribute name="validate" type="boolean" default="true" />
 					<attribute name="formattedOutput" type="boolean" default="false" />
 				</extension>

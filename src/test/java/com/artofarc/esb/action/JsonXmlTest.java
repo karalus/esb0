@@ -12,8 +12,6 @@ import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XSDArtifact;
-import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -26,9 +24,9 @@ public class JsonXmlTest extends AbstractESBTest {
 
 	@Before
 	public void createContext() throws Exception {
-		context = new Context(new GlobalContext(null).getDefaultWorkerPool().getPoolContext());
-      fileSystem = new FileSystem(new File("src/test/resources/example/"));
-      fileSystem.parseDirectory(context.getPoolContext().getGlobalContext());
+		createContext(new File("src/test/resources/example/"));
+      fileSystem = getGlobalContext().getFileSystem();
+      fileSystem.parseDirectory(getGlobalContext());
       XSDArtifact xsd = fileSystem.getArtifact("de.aoa.ei.foundation.v1.xsd");
       jaxbContext = xsd.getJAXBContext();
       urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "");
@@ -42,7 +40,7 @@ public class JsonXmlTest extends AbstractESBTest {
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; (*/v1:messageHeader)"));
-		action = action.setNextAction(new XML2JsonAction(jaxbContext, null, new HashMap<String, String>(), null, true));
+		action = action.setNextAction(new XML2JsonAction(jaxbContext, null, true, new HashMap<String, String>(), null, true));
 		action = action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
 	}
@@ -51,7 +49,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	public void testXML2Json() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/MessageHeader.xml"));
 		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
-		Action action = new XML2JsonAction(jaxbContext, null, new HashMap<String, String>(), null, true);
+		Action action = new XML2JsonAction(jaxbContext, null, true, new HashMap<String, String>(), null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new DumpAction());
@@ -62,7 +60,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	public void testJson2XML() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "{\"messageHeader\":{\"senderFQN\":\"usingPort1\",\"messageId\":\"M-bc5fd683-334f-4709-8c15-943c32baea89\",\"processInstanceId\":\"P-96181ac5-41f4-4ce5-bc95-111fe253c11d\"}}");
 		//message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
-		Action action = new Json2XMLAction(jaxbContext, null, urisToPrefixes, null, true);
+		Action action = new Json2XMLAction(jaxbContext, null, true, null, urisToPrefixes, null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new DumpAction());
@@ -73,10 +71,10 @@ public class JsonXmlTest extends AbstractESBTest {
 	public void testXML2Json2XML() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/MessageHeader.xml"));
 		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
-		Action action = new XML2JsonAction(jaxbContext, null, new HashMap<String, String>(), null, true);
+		Action action = new XML2JsonAction(jaxbContext, null, true, new HashMap<String, String>(), null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
-		action = action.setNextAction(new Json2XMLAction(jaxbContext, null, urisToPrefixes, null, true));
+		action = action.setNextAction(new Json2XMLAction(jaxbContext, null, true, null, urisToPrefixes, null, true));
 		action = action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
 	}
@@ -89,7 +87,7 @@ public class JsonXmlTest extends AbstractESBTest {
 		HashMap<String, String> urisToPrefixes = new HashMap<String, String>();
 		urisToPrefixes.put("http://aoa.de/xsd/demo/v1/", "");
 		urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "ei1");
-		Action action = new XML2JsonAction(xsd.getJAXBContext(), null, urisToPrefixes, null, true);
+		Action action = new XML2JsonAction(xsd.getJAXBContext(), null, true, urisToPrefixes, null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new DumpAction());
@@ -104,7 +102,7 @@ public class JsonXmlTest extends AbstractESBTest {
 		urisToPrefixes.clear();
 		urisToPrefixes.put("http://aoa.de/xsd/demo/v1/", "");
 		urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "ei1");
-		Action action = new Json2XMLAction(xsd.getJAXBContext(), null, urisToPrefixes, null, true);
+		Action action = new Json2XMLAction(xsd.getJAXBContext(), null, true, null, urisToPrefixes, null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new DumpAction());

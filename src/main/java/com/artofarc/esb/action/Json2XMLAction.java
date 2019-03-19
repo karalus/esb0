@@ -23,11 +23,9 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
-import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 
 import org.eclipse.persistence.dynamic.DynamicEntity;
-import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.jaxb.UnmarshallerProperties;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.oxm.MediaType;
@@ -39,15 +37,19 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.StringWriter;
 
-public class Json2XMLAction extends TerminalAction {
+public class Json2XMLAction extends Action {
 
 	private final DynamicJAXBContext _jaxbContext;
-	private final Class<?> _type;
+	private final Class<DynamicEntity> _type;
+	private final Boolean _jsonIncludeRoot;
 	private final Map<String, String> _urisToPrefixes;
 	private final Schema _schema;
-	private final boolean _formattedOutput;
+	private final Boolean _formattedOutput;
+	private final QName _xmlElement;
 
-	public Json2XMLAction(DynamicJAXBContext jaxbContext, String type, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
+	@SuppressWarnings("unchecked")
+	public Json2XMLAction(DynamicJAXBContext jaxbContext, String type, boolean jsonIncludeRoot, String xmlElement, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
+		_pipelineStop = true;
 		_jaxbContext = jaxbContext;
 		if (type != null) {
 			QName qName = QName.valueOf(type);
@@ -55,10 +57,12 @@ public class Json2XMLAction extends TerminalAction {
 			if (object == null) {
 				throw new IllegalArgumentException("Type not found: " + type);
 			}
-			_type = object.getClass();
+			_type = (Class<DynamicEntity>) object.getClass();
 		} else {
 			_type = null;
 		}
+		_xmlElement = xmlElement != null ? QName.valueOf(xmlElement) : null;
+		_jsonIncludeRoot = jsonIncludeRoot;
 		_urisToPrefixes = urisToPrefixes;
 		_schema = schema;
 		_formattedOutput = formattedOutput;
@@ -71,39 +75,39 @@ public class Json2XMLAction extends TerminalAction {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
-		return super.prepare(context, message, inPipeline);
+		return null;
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, execContext, message, nextActionIsPipelineStop);
 		context.getTimeGauge().startTimeMeasurement();
-
 		Unmarshaller jsonUnmarshaller = _jaxbContext.createUnmarshaller();
 		jsonUnmarshaller.setProperty(UnmarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
+		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_INCLUDE_ROOT, _jsonIncludeRoot);
 		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
-		jsonUnmarshaller.setProperty(JAXBContextProperties.JSON_ATTRIBUTE_PREFIX, "@");
+		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_ATTRIBUTE_PREFIX, "@");
+		Object root;
 		try {
-			Source source = message.getBodyAsSource(context);
-			execContext = new ExecutionContext(_type != null ? jsonUnmarshaller.unmarshal(source, _type) : jsonUnmarshaller.unmarshal(source));
+			if (_type != null) {
+				JAXBElement<DynamicEntity> jaxbElement = jsonUnmarshaller.unmarshal(message.getBodyAsSource(context), _type);
+				if (_xmlElement != null) {
+					root = new JAXBElement<DynamicEntity>(_xmlElement, _type, jaxbElement.getValue());
+				} else {
+					root = jaxbElement;
+				}
+			} else {
+				root = jsonUnmarshaller.unmarshal(message.getBodyAsSource(context));
+			}
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("Unmarshal JSON--> Java", true);
 		}
-		JAXBElement<DynamicEntity> root = execContext.getResource();
-
-		// resolve header properties
-		// String senderFQN = root.getValue().get("senderFQN");
-		// root.getValue().set("replyContext", senderFQN);
-
 		Marshaller marshaller = _jaxbContext.createMarshaller();
 		if (_type != null) {
 			marshaller.setProperty(Marshaller.JAXB_FRAGMENT, true);
 		} else {
 			marshaller.setSchema(_schema);
 		}
-		if (_formattedOutput) {
-			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-		}
+		marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, _formattedOutput);
 		try {
 			if (nextActionIsPipelineStop) {
 				marshaller.marshal(root, message.getBodyAsSinkResult(context));

@@ -23,7 +23,6 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 import javax.xml.validation.Schema;
 
-import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.oxm.MediaType;
@@ -39,11 +38,13 @@ public class XML2JsonAction extends Action {
 
 	private final DynamicJAXBContext _jaxbContext;
 	private final Class<?> _type;
+	private final Boolean _jsonIncludeRoot;
 	private final Map<String, String> _urisToPrefixes;
 	private final Schema _schema;
-	private final boolean _formattedOutput;
+	private final Boolean _formattedOutput;
 
-	public XML2JsonAction(DynamicJAXBContext jaxbContext, String type, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
+	public XML2JsonAction(DynamicJAXBContext jaxbContext, String type, boolean jsonIncludeRoot, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
+		_pipelineStop = true;
 		_jaxbContext = jaxbContext;
 		if (type != null) {
 			QName qName = QName.valueOf(type);
@@ -55,6 +56,7 @@ public class XML2JsonAction extends Action {
 		} else {
 			_type = null;
 		}
+		_jsonIncludeRoot = jsonIncludeRoot;
 		_urisToPrefixes = urisToPrefixes;
 		_schema = schema;
 		_formattedOutput = formattedOutput;
@@ -68,30 +70,30 @@ public class XML2JsonAction extends Action {
 		}
 		message.getHeaders().clear();
 		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
-		context.getTimeGauge().startTimeMeasurement();
-		Unmarshaller unmarshaller = _jaxbContext.createUnmarshaller();
-		try {
-			if (_type != null) {
-				return new ExecutionContext(unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context), _type));
-			} else {
-				unmarshaller.setSchema(_schema);
-				return new ExecutionContext(unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context)));
-			}
-		} finally {
-			context.getTimeGauge().stopTimeMeasurement("Unmarshal XML--> Java", true);
-		}
+		return null;
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+		context.getTimeGauge().startTimeMeasurement();
+		Unmarshaller unmarshaller = _jaxbContext.createUnmarshaller();
+		Object root;
+		try {
+			if (_type != null) {
+				root = unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context), _type);
+			} else {
+				unmarshaller.setSchema(_schema);
+				root = unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context));
+			}
+		} finally {
+			context.getTimeGauge().stopTimeMeasurement("Unmarshal XML--> Java", true);
+		}
 		Marshaller jsonMarshaller = _jaxbContext.createMarshaller();
 		jsonMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
+		jsonMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, _jsonIncludeRoot);
 		jsonMarshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
-		jsonMarshaller.setProperty(JAXBContextProperties.JSON_ATTRIBUTE_PREFIX, "@");
-		if (_formattedOutput) {
-			jsonMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-		}
-		Object root = execContext.getResource();
+		jsonMarshaller.setProperty(MarshallerProperties.JSON_ATTRIBUTE_PREFIX, "@");
+		jsonMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, _formattedOutput);
 		if (message.isSink()) {
 			jsonMarshaller.marshal(root, message.getBodyAsSinkResult(context));
 		} else {
