@@ -17,6 +17,8 @@
 package com.artofarc.esb.http;
 
 import java.util.List;
+import java.util.ListIterator;
+
 
 public final class HttpEndpoint {
 
@@ -84,20 +86,26 @@ public final class HttpEndpoint {
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
+		if (!(obj instanceof HttpEndpoint))
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		HttpEndpoint other = (HttpEndpoint) obj;
-		return _name.equals(other._name);
+		return _name.equals(((HttpEndpoint) obj)._name);
 	}
 
 	public boolean isCompatible(HttpEndpoint other) {
-		return _endpoints.equals(other._endpoints);
+		ListIterator<HttpUrl> i1 = _endpoints.listIterator();
+		ListIterator<HttpUrl> i2 = other._endpoints.listIterator();
+		while (i1.hasNext() && i2.hasNext()) {
+			HttpUrl o1 = i1.next();
+			HttpUrl o2 = i2.next();
+			if (!o1.isCompatible(o2))
+				return false;
+		}
+		return !(i1.hasNext() || i2.hasNext());
 	}
 
 	public boolean hasSameConfig(HttpEndpoint other) {
-		return _connectionTimeout == other._connectionTimeout && _retries == other._retries && isEqual(_checkAliveInterval, other._checkAliveInterval) && isEqual(_keepAliveInterval, other._keepAliveInterval);
+		return _endpoints.equals(other._endpoints) && _connectionTimeout == other._connectionTimeout && _retries == other._retries
+				&& isEqual(_checkAliveInterval, other._checkAliveInterval) && isEqual(_keepAliveInterval, other._keepAliveInterval);
 	}
 
 	private static boolean isEqual(Integer i, Integer j) {

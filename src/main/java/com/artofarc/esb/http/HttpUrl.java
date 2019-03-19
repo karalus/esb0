@@ -25,11 +25,13 @@ public final class HttpUrl {
 	private final boolean _active;
 	private final String _host;
 	private final int _port;
+	private final String _path;
 
 	public HttpUrl(String url, int weight, boolean active) throws java.net.MalformedURLException {
 		_url = new URL(url);
 		_host = _url.getHost();
 		_port = _url.getPort() < 0 ? _url.getDefaultPort() : _url.getPort();
+		_path = _url.getPath();
 		_weight = weight;
 		_active = active;
 	}
@@ -46,21 +48,23 @@ public final class HttpUrl {
 		return _active;
 	}
 
+	public boolean isCompatible(HttpUrl other) {
+		return _port == other._port && _host.equals(other._host);
+	}
+
 	@Override
 	public int hashCode() {
-		return _host.hashCode() + _port;
+		return _host.hashCode() + _port ^ _path.hashCode();
 	}
 
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
+		if (!(obj instanceof HttpUrl))
 			return false;
 		HttpUrl other = (HttpUrl) obj;
-		return _port == other._port && _host.equals(other._host);
+		return _port == other._port && _host.equals(other._host) && _path.equals(other._path);
 	}
 
 	@Override
