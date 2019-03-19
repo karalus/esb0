@@ -21,12 +21,12 @@ import java.io.Reader;
 import java.net.URI;
 import java.util.HashMap;
 
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
+import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.EntityResolver;
@@ -45,7 +45,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	protected HashMap<String, Object> _grammars = cacheXSGrammars ? new HashMap<String, Object>() : null;
 	protected Schema _schema;
-	protected JAXBContext _jaxbContext;
+	protected DynamicJAXBContext _jaxbContext;
 
 	protected SchemaArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -67,7 +67,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 		return _schema;
 	}
 
-	public abstract JAXBContext getJAXBContext() throws JAXBException;
+	public abstract DynamicJAXBContext getJAXBContext() throws JAXBException;
 
 	protected final void initSchema(Source... schemas) throws SAXException {
 		if (cacheXSGrammars) {

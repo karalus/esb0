@@ -47,8 +47,9 @@ public class HttpOutboundAction extends Action {
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
 		String appendHttpUrl = message.getVariable(appendHttpUrlPath);
-		if (message.getVariable(QueryString) != null) {
-			appendHttpUrl += message.getVariable(QueryString);
+		String queryString = message.getVariable(QueryString);
+		if (queryString != null && queryString.length() > 0) {
+			appendHttpUrl += "?" + queryString;
 		}
 		Entry<String, String> contentType = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null) {

@@ -18,14 +18,14 @@ package com.artofarc.esb.action;
 
 import java.util.Map;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.namespace.QName;
 import javax.xml.validation.Schema;
 
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
+import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.oxm.MediaType;
 
 import com.artofarc.esb.context.Context;
@@ -37,13 +37,24 @@ import com.artofarc.util.StringWriter;
 
 public class XML2JsonAction extends Action {
 
-	private final JAXBContext _jaxbContext;
+	private final DynamicJAXBContext _jaxbContext;
+	private final Class<?> _type;
 	private final Map<String, String> _urisToPrefixes;
 	private final Schema _schema;
 	private final boolean _formattedOutput;
 
-	public XML2JsonAction(JAXBContext jaxbContext, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
+	public XML2JsonAction(DynamicJAXBContext jaxbContext, String type, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
 		_jaxbContext = jaxbContext;
+		if (type != null) {
+			QName qName = QName.valueOf(type);
+			Object object = _jaxbContext.createByQualifiedName(qName.getNamespaceURI(), qName.getLocalPart(), true);
+			if (object == null) {
+				throw new IllegalArgumentException("Type not found: " + type);
+			}
+			_type = object.getClass();
+		} else {
+			_type = null;
+		}
 		_urisToPrefixes = urisToPrefixes;
 		_schema = schema;
 		_formattedOutput = formattedOutput;
@@ -59,9 +70,13 @@ public class XML2JsonAction extends Action {
 		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 		context.getTimeGauge().startTimeMeasurement();
 		Unmarshaller unmarshaller = _jaxbContext.createUnmarshaller();
-		unmarshaller.setSchema(_schema);
 		try {
-			return new ExecutionContext(unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context)));
+			if (_type != null) {
+				return new ExecutionContext(unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context), _type));
+			} else {
+				unmarshaller.setSchema(_schema);
+				return new ExecutionContext(unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context)));
+			}
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("Unmarshal XML--> Java", true);
 		}
@@ -69,16 +84,6 @@ public class XML2JsonAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		Object root = execContext.getResource();
-
-		// TOREVIEW: synchronized?
-		if (_urisToPrefixes.isEmpty()) {
-			if (root instanceof JAXBElement) {
-				JAXBElement<?> jaxbElement = (JAXBElement<?>) root;
-				_urisToPrefixes.put(jaxbElement.getName().getNamespaceURI(), "");
-			}
-		}
-
 		Marshaller jsonMarshaller = _jaxbContext.createMarshaller();
 		jsonMarshaller.setProperty(MarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
 		jsonMarshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
@@ -86,6 +91,7 @@ public class XML2JsonAction extends Action {
 		if (_formattedOutput) {
 			jsonMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 		}
+		Object root = execContext.getResource();
 		if (message.isSink()) {
 			jsonMarshaller.marshal(root, message.getBodyAsSinkResult(context));
 		} else {

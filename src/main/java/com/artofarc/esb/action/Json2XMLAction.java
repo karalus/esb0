@@ -18,16 +18,18 @@ package com.artofarc.esb.action;
 
 import java.util.Map;
 
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.namespace.QName;
+import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 
 import org.eclipse.persistence.dynamic.DynamicEntity;
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.jaxb.UnmarshallerProperties;
+import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.oxm.MediaType;
 
 import com.artofarc.esb.context.Context;
@@ -39,13 +41,24 @@ import com.artofarc.util.StringWriter;
 
 public class Json2XMLAction extends TerminalAction {
 
-	private final JAXBContext _jaxbContext;
+	private final DynamicJAXBContext _jaxbContext;
+	private final Class<?> _type;
 	private final Map<String, String> _urisToPrefixes;
 	private final Schema _schema;
 	private final boolean _formattedOutput;
 
-	public Json2XMLAction(JAXBContext jaxbContext, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
+	public Json2XMLAction(DynamicJAXBContext jaxbContext, String type, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
 		_jaxbContext = jaxbContext;
+		if (type != null) {
+			QName qName = QName.valueOf(type);
+			Object object = _jaxbContext.createByQualifiedName(qName.getNamespaceURI(), qName.getLocalPart(), true);
+			if (object == null) {
+				throw new IllegalArgumentException("Type not found: " + type);
+			}
+			_type = object.getClass();
+		} else {
+			_type = null;
+		}
 		_urisToPrefixes = urisToPrefixes;
 		_schema = schema;
 		_formattedOutput = formattedOutput;
@@ -71,7 +84,8 @@ public class Json2XMLAction extends TerminalAction {
 		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
 		jsonUnmarshaller.setProperty(JAXBContextProperties.JSON_ATTRIBUTE_PREFIX, "@");
 		try {
-			execContext = new ExecutionContext(jsonUnmarshaller.unmarshal(message.getBodyAsSource(context)));
+			Source source = message.getBodyAsSource(context);
+			execContext = new ExecutionContext(_type != null ? jsonUnmarshaller.unmarshal(source, _type) : jsonUnmarshaller.unmarshal(source));
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("Unmarshal JSON--> Java", true);
 		}
@@ -82,7 +96,11 @@ public class Json2XMLAction extends TerminalAction {
 		// root.getValue().set("replyContext", senderFQN);
 
 		Marshaller marshaller = _jaxbContext.createMarshaller();
-		marshaller.setSchema(_schema);
+		if (_type != null) {
+			marshaller.setProperty(Marshaller.JAXB_FRAGMENT, true);
+		} else {
+			marshaller.setSchema(_schema);
+		}
 		if (_formattedOutput) {
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 		}

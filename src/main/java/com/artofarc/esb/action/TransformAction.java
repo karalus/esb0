@@ -111,7 +111,8 @@ public class TransformAction extends Action {
 				xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
 				break;
 			case INVALID:
-				// Nothing to bind
+				// Nothing to bind, but we need a context item
+				xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 				break;
 			default:
 				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);

@@ -586,17 +586,16 @@ public final class ESBMessage implements Cloneable {
 		case READER:
 			StreamUtils.copy((Reader) _body, init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncoding()), null));
 			break;
-		case XQ_ITEM:
-			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(os, getSinkProperties());
-			break;
 		case XQ_SEQUENCE:
 			XQSequence xqSequence = (XQSequence) _body;
 			if (xqSequence.next()) {
-				xqSequence.writeItem(os, getSinkProperties());
+				init(BodyType.XQ_ITEM, xqSequence.getItem(), null);
 			} else {
 				throw new IllegalStateException("Message already consumed");
 			}
+		case XQ_ITEM:
+			XQItem xqItem = (XQItem) _body;
+			xqItem.writeItem(os, getSinkProperties());
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");

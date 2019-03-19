@@ -40,16 +40,21 @@ public class BranchOnPathAction extends Action {
 		_defaultAction = defaultAction;
 	}
 
-	public Map<PathTemplate, Action> getBranchMap() {
+	public final Map<PathTemplate, Action> getBranchMap() {
 		return _branchMap;
 	}
 
 	@Override
 	protected boolean isPipelineStop() {
-		boolean pipelineStop = _defaultAction != null ? _defaultAction.isPipelineStop() : _nextAction == null || _nextAction.isPipelineStop();
-		for (Action action : _branchMap.values()) {
-			if (pipelineStop |= action.isPipelineStop()) {
-				break;
+		boolean pipelineStop = _nextAction == null || _nextAction.isPipelineStop();
+		if (_defaultAction != null) {
+			pipelineStop |= _defaultAction.isPipelineStop();
+		}
+		if (!pipelineStop) {
+			for (Action action : _branchMap.values()) {
+				if (pipelineStop |= action.isPipelineStop()) {
+					break;
+				}
 			}
 		}
 		return pipelineStop;
@@ -83,19 +88,21 @@ public class BranchOnPathAction extends Action {
 				message.getVariables().put(key, value);
 			}
 		}
+		if (_nextAction != null) {
+			context.getExecutionStack().push(_nextAction);
+		}
 		return new ExecutionContext(action);
 	}
 
 	@Override
 	protected Action nextAction(ExecutionContext execContext) {
-		Action action = execContext.getResource();
-		return action != null ? action : super.nextAction(execContext);
+		return execContext.getResource();
 	}
 
 	public static final class PathTemplate implements Comparable<PathTemplate> {
-		
+
 		private final ArrayList<String> _list = new ArrayList<>();
-		
+
 		public PathTemplate(String pathTemplate) {
 			int pos = 0;
 			boolean cBopen = false;
@@ -120,7 +127,7 @@ public class BranchOnPathAction extends Action {
 				_list.add(pathTemplate.substring(pos));
 			}
 		}
-		
+
 		public Map<String, String> match(String path) {
 			final Map<String, String> result = new HashMap<>();
 			int pos = 0;
@@ -154,7 +161,7 @@ public class BranchOnPathAction extends Action {
 			}
 			return pos < path.length() ? null : result;
 		}
-		
+
 		private String getRawTemplate() {
 			StringBuilder builder = new StringBuilder();
 			for (int i = 0; i < _list.size(); i += 2) {
@@ -187,5 +194,5 @@ public class BranchOnPathAction extends Action {
 		}
 
 	}
-	
+
 }

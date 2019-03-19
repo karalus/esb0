@@ -28,7 +28,6 @@ import javax.wsdl.Import;
 import javax.wsdl.Types;
 import javax.wsdl.extensions.schema.Schema;
 import javax.wsdl.xml.WSDLLocator;
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.namespace.QName;
 import javax.xml.transform.Source;
@@ -36,6 +35,7 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 
+import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
@@ -115,7 +115,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	public JAXBContext getJAXBContext() throws JAXBException {
+	public DynamicJAXBContext getJAXBContext() throws JAXBException {
 		if (_jaxbContext == null && _lastSchemaElement != null) {
 			// TODO: This just works when the WSDL contains the one schema with the elements used in messages
 			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(_lastSchemaElement, this, null, null);

@@ -255,6 +255,7 @@
 						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" use="required" />
+					<attribute name="type" type="tns:string1" />
 					<attribute name="validate" type="boolean" default="true" />
 					<attribute name="formattedOutput" type="boolean" default="false" />
 				</extension>
@@ -278,6 +279,7 @@
 						</element>
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" use="required" />
+					<attribute name="type" type="tns:string1" />
 					<attribute name="validate" type="boolean" default="true" />
 					<attribute name="formattedOutput" type="boolean" default="false" />
 				</extension>

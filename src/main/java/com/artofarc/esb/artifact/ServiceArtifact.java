@@ -235,8 +235,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
-				list.add(new XML2JsonAction(schemaArtifact.getJAXBContext(), Collections.inverseMap(createNsDecls(xml2Json.getNsDecl())),
-						xml2Json.isValidate() ? schemaArtifact.getSchema() : null, xml2Json.isFormattedOutput()));
+				list.add(new XML2JsonAction(schemaArtifact.getJAXBContext(), xml2Json.getType(), xml2Json.getNsDecl().isEmpty() ? null : Collections
+						.inverseMap(createNsDecls(xml2Json.getNsDecl())), xml2Json.isValidate() ? schemaArtifact.getSchema() : null, xml2Json.isFormattedOutput()));
 				break;
 			}
 			case "json2xml": {
@@ -244,8 +244,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
-				list.add(new Json2XMLAction(schemaArtifact.getJAXBContext(), Collections.inverseMap(createNsDecls(json2Xml.getNsDecl())),
-						json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()));
+				list.add(new Json2XMLAction(schemaArtifact.getJAXBContext(), json2Xml.getType(), json2Xml.getNsDecl().isEmpty() ? null : Collections
+						.inverseMap(createNsDecls(json2Xml.getNsDecl())), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()));
 				break;
 			}
 			case "transform": {

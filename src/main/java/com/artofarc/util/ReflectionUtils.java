@@ -139,7 +139,7 @@ public final class ReflectionUtils {
 					Constructor<T> con = findConstructor(cls, list);
 					result = con.newInstance(list.toArray());
 				} catch (ReflectiveOperationException e) {
-					throw new RuntimeException(e);
+					throw convert(t, RuntimeException.class);
 				}
 			}
 		}

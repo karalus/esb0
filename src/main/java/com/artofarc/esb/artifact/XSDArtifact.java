@@ -16,10 +16,10 @@
  */
 package com.artofarc.esb.artifact;
 
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.transform.stream.StreamSource;
 
+import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 
 import com.artofarc.esb.context.GlobalContext;
@@ -44,7 +44,7 @@ public class XSDArtifact extends SchemaArtifact {
 	}
 
 	@Override
-	public JAXBContext getJAXBContext() throws JAXBException {
+	public DynamicJAXBContext getJAXBContext() throws JAXBException {
 		if (_jaxbContext == null) {
 			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getStreamSource(), this, null, null);
 		}
