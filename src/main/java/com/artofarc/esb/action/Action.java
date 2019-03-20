@@ -17,8 +17,8 @@
 package com.artofarc.esb.action;
 
 import java.lang.reflect.Method;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 
@@ -53,12 +53,8 @@ public abstract class Action implements Cloneable {
 	public final void process(Context context, ESBMessage message) throws Exception {
 		List<Action> pipeline = new ArrayList<>();
 		List<ExecutionContext> resources = new ArrayList<>();
-		ArrayDeque<Action> stackErrorHandler = new ArrayDeque<>();
-		ArrayDeque<Integer> stackPosErrorHandler = new ArrayDeque<>();
-		if (getErrorHandler() != null) {
-			stackErrorHandler.push(getErrorHandler());
-			stackPosErrorHandler.push(context.getExecutionStack().size());
-		}
+		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
+		context.pushStackPos();
 		TimeGauge timeGauge = new TimeGauge(logger, 250L, false);
 		timeGauge.startTimeMeasurement();
 		for (Action nextAction = this; nextAction != null;) {
@@ -69,7 +65,7 @@ public abstract class Action implements Cloneable {
 				while (action != null) {
 					if (action.getErrorHandler() != null) {
 						stackErrorHandler.push(action.getErrorHandler());
-						stackPosErrorHandler.push(context.getExecutionStack().size());
+						context.pushStackPos();
 					}
 					ExecutionContext execContext = action.prepare(context, message, isPipeline);
 					timeGauge.stopTimeMeasurement("Parent: %s, prepare (isPipeline=%b): %s", true, this, isPipeline, action);
@@ -97,21 +93,23 @@ public abstract class Action implements Cloneable {
 				logger.info("Exception while processing " + action, e);
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
+				context.unwindStack();
 				nextAction = stackErrorHandler.poll();
 				if (nextAction != null) {
-					// unwind to last stack pos
-					int stackPos = stackPosErrorHandler.pop();
-					while (context.getExecutionStack().size() > stackPos) {
-						context.getExecutionStack().pop();
-					}
-				} else {
-					nextAction = context.getExecutionStack().poll();
-				}
-				if (nextAction != null) {
 					nextAction.process(context, message);
-					break;
 				} else {
-					throw e;
+					if (getErrorHandler() != null) {
+						nextAction = getErrorHandler();
+					} else {
+						nextAction = context.getExecutionStack().poll();
+					}
+					if (nextAction != null) {
+						nextAction.process(context, message);
+						context.pushStackPos();
+						break;
+					} else {
+						throw e;
+					}
 				}
 			} finally {
 				for (int i = 0; i < pipeline.size(); ++i) {
@@ -120,7 +118,7 @@ public abstract class Action implements Cloneable {
 					try {
 						action.close(exContext);
 						if (action.getErrorHandler() != null) {
-							stackPosErrorHandler.pop();
+							context.getStackPos().pop();
 							stackErrorHandler.pop();
 						}
 					} catch (Exception e) {
@@ -133,6 +131,7 @@ public abstract class Action implements Cloneable {
 			pipeline.clear();
 			resources.clear();
 		}
+		context.getStackPos().poll();
 		timeGauge.stopTimeMeasurement("Finished process: " + getClass(), false);
 	}
 

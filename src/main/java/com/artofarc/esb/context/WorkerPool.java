@@ -42,7 +42,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 
 	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
 		_poolContext = new PoolContext(globalContext, name);
-		_contextPool = new ContextPool(minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L, true);
+		_contextPool = new ContextPool(_poolContext, minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L, true);
 		if (maxThreads > 0 || scheduledThreads > 0) {
 			_threadFactory = new WorkerPoolThreadFactory(name != null ? name : "default", priority);
 		} else {
@@ -85,7 +85,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	}
 
 	public Context getContext() throws Exception {
-		return _contextPool.getContext(_poolContext);
+		return _contextPool.getContext();
 	}
 
 	public void releaseContext(Context context) {

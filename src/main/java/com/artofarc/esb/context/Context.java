@@ -65,6 +65,8 @@ public final class Context extends AbstractContext {
 	private final HashMap<XQuerySource, XQPreparedExpression> _mapXQ = new HashMap<>();
 	private final TimeGauge _timeGauge = new TimeGauge(logger);
 	private final Deque<Action> _executionStack = new ArrayDeque<>();
+	private final ArrayDeque<Action> _stackErrorHandler = new ArrayDeque<>();
+	private final ArrayDeque<Integer> _stackPos = new ArrayDeque<>();
 
 	public Context(PoolContext poolContext) throws ParserConfigurationException, TransformerConfigurationException, XQException {
 		_poolContext = poolContext;
@@ -79,6 +81,25 @@ public final class Context extends AbstractContext {
 
 	public Deque<Action> getExecutionStack() {
 		return _executionStack;
+	}
+
+	public Deque<Action> getStackErrorHandler() {
+		return _stackErrorHandler;
+	}
+
+	public void pushStackPos() {
+		_stackPos.push(_executionStack.size());
+	}
+
+	public void unwindStack() {
+		int stackPos = _stackPos.pop();
+		while (_executionStack.size() > stackPos) {
+			_executionStack.pop();
+		}
+	}
+
+	public Deque<Integer> getStackPos() {
+		return _stackPos;
 	}
 
 	public TimeGauge getTimeGauge() {

@@ -130,8 +130,8 @@ public final class JMSConnectionProvider {
 				// save current state
 				entry.setValue(jmsConsumer.isEnabled());
 				try {
-					logger.info("Closing JMSConsumer for " + jmsConsumer.getKey());
-					jmsConsumer.close();
+					logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey());
+					jmsConsumer.suspend();
 				} catch (Exception e) {
 					// ignore
 				}
@@ -149,7 +149,7 @@ public final class JMSConnectionProvider {
 				_connection = qcf.createConnection();
 				for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
 					JMSConsumer jmsConsumer = entry.getKey();
-					jmsConsumer.open();
+					jmsConsumer.resume();
 					// restore last state
 					jmsConsumer.enable(entry.getValue());
 				}

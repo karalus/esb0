@@ -43,6 +43,7 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 		_fixedDelay = fixedDelay;
 	}
 
+	@Override
 	public void init(GlobalContext globalContext) {
 		_workerPool = globalContext.getWorkerPool(_workerPoolName);
 		if (super.isEnabled()) {

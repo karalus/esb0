@@ -17,7 +17,10 @@
 package com.artofarc.util;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -36,6 +39,15 @@ public final class Collections {
 			}
 		}
 		return result;
+	}
+
+	public static <T> List<T> newList(Collection<T> coll, boolean move) {
+		if (move) {
+			ArrayList<T> list = new ArrayList<>(coll);
+			coll.clear();
+			return list;
+		}
+		return java.util.Collections.emptyList();
 	}
 
 }

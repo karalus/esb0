@@ -27,10 +27,12 @@ public final class ContextPool implements AutoCloseable {
 	private final int maxPoolSize;
 	private final long keepAliveMillis;
 	private final boolean isBlocking;
-	
+	private final PoolContext _poolContext;
+
 	private volatile long lastAccess;
 
-	public ContextPool(int minPool, int maxPool, long keepAlive, boolean blocking) {
+	public ContextPool(PoolContext poolContext, int minPool, int maxPool, long keepAlive, boolean blocking) {
+		_poolContext = poolContext;
 		minPoolSize = minPool;
 		maxPoolSize = maxPool;
 		keepAliveMillis = keepAlive;
@@ -58,7 +60,7 @@ public final class ContextPool implements AutoCloseable {
 		return keepAliveMillis;
 	}
 
-	public Context getContext(PoolContext poolContext) throws Exception {
+	public Context getContext() throws Exception {
 		Context context = pool.poll();
 		if (context == null) {
 			int newPoolSize = poolSize.incrementAndGet();
@@ -69,7 +71,7 @@ public final class ContextPool implements AutoCloseable {
 				}
 			} else {
 				try {
-					context = new Context(poolContext);
+					context = new Context(_poolContext);
 				} catch (Exception e) {
 					poolSize.decrementAndGet();
 					throw e;

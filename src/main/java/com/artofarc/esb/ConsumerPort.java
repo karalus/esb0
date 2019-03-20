@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.ESBMessage;
 
 public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
@@ -65,6 +66,9 @@ public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
 		return _startAction = Action.linkList(service);
 	}
 
+	public void init(GlobalContext globalContext) throws Exception {
+	}
+
 	public void process(Context context, ESBMessage message) throws Exception {
 		processInternal(context, message);
 	}
@@ -74,6 +78,11 @@ public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
 		if (context.getExecutionStack().size() > 0) {
 			context.getExecutionStack().clear();
 			throw new IllegalStateException("ExecutionStack not empty");
+		}
+		if (context.getStackErrorHandler().size() > 0 || context.getStackPos().size() > 0) {
+			context.getStackErrorHandler().clear();
+			context.getStackPos().clear();
+			throw new IllegalStateException("StackErrorHandler not empty");
 		}
 	}
 

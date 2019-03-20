@@ -30,17 +30,16 @@ import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.PoolContext;
 
 public final class ESBServletContextListener implements ServletContextListener, Runnable {
 
 	public static final String VERSION = "esb0.version";
 	public static final String BUILD_TIME = "esb0.build.time";
-	public static final String POOL_CONTEXT = "WebContainerPoolContext";
+	public static final String CONTEXT = "esb0.context";
 
 	private GlobalContext globalContext;
 
-	public PoolContext createGlobalAndDefaultPoolContext(File rootDir) {
+	public GlobalContext createGlobalAndDefaultPoolContext(File rootDir) {
 		if (!rootDir.exists() || !rootDir.isDirectory()) {
 			throw new RuntimeException("No directory " + rootDir);
 		}
@@ -57,7 +56,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 			throw new RuntimeException("Could not validate artifact " + e.getArtifact(), e.getCause());
 		}
 		globalContext.getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
-		return globalContext.getDefaultWorkerPool().getPoolContext();
+		return globalContext;
 	}
 
 	@Override
@@ -77,16 +76,12 @@ public final class ESBServletContextListener implements ServletContextListener, 
 		servletContext.setAttribute(BUILD_TIME, properties.getProperty("Build-Time", ""));
 		String rootDirEnv = System.getenv("ESB_ROOT_DIR");
 		File rootDir = rootDirEnv != null ? new File(rootDirEnv) : new File(System.getProperty("user.home"), "esb_root");
-		servletContext.setAttribute(POOL_CONTEXT, createGlobalAndDefaultPoolContext(rootDir));
+		servletContext.setAttribute(CONTEXT, createGlobalAndDefaultPoolContext(rootDir));
 	}
 
 	@Override
 	public void contextDestroyed(ServletContextEvent contextEvent) {
-		PoolContext poolContext = (PoolContext) contextEvent.getServletContext().getAttribute(POOL_CONTEXT);
-		if (poolContext != null) {
-			poolContext.close();
-			globalContext.close();
-		}
+		globalContext.close();
 	}
 
 	@Override
@@ -98,7 +93,6 @@ public final class ESBServletContextListener implements ServletContextListener, 
 				consumerPort.getContextPool().shrinkPool();
 			}
 		}
-
 	}
 
 }

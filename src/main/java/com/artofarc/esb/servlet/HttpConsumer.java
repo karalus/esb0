@@ -22,18 +22,24 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.action.HttpServletResponseAction;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ContextPool;
+import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.message.ESBMessage;
 
 public final class HttpConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.HttpConsumerMXBean {
 
 	private final String _bindPath;
-	private final ContextPool _contextPool;
+	private final int _minPool, _maxPool;
+	private final long _keepAlive;
 	private final HttpServletResponseAction _terminalAction;
+	private ContextPool _contextPool;
 
 	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive, boolean supportCompression, boolean multipartResponse, Integer bufferSize) {
 		super(uri);
 		_bindPath = bindPath;
-		_contextPool = new ContextPool(minPool, maxPool, keepAlive, false);
+		_minPool = minPool;
+		_maxPool = maxPool;
+		_keepAlive = keepAlive;
 		_terminalAction = new HttpServletResponseAction(supportCompression, multipartResponse, bufferSize);
 	}
 
@@ -43,6 +49,12 @@ public final class HttpConsumer extends ConsumerPort implements AutoCloseable, c
 
 	public ContextPool getContextPool() {
 		return _contextPool;
+	}
+
+	@Override
+	public void init(GlobalContext globalContext) {
+		PoolContext poolContext = globalContext.getDefaultWorkerPool().getPoolContext();
+		_contextPool = new ContextPool(poolContext, _minPool, _maxPool, _keepAlive, false);
 	}
 
 	@Override
@@ -77,17 +89,17 @@ public final class HttpConsumer extends ConsumerPort implements AutoCloseable, c
 
 	@Override
 	public int getMinPoolSize() {
-		return _contextPool.getMinPoolSize();
+		return _minPool;
 	}
 
 	@Override
 	public int getMaxPoolSize() {
-		return _contextPool.getMaxPoolSize();
+		return _maxPool;
 	}
 
 	@Override
 	public long getKeepAliveMillis() {
-		return _contextPool.getKeepAliveMillis();
+		return _keepAlive;
 	}
 
 }

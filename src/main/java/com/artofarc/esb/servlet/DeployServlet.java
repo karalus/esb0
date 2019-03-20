@@ -40,7 +40,6 @@ import com.artofarc.esb.artifact.ServiceArtifact;
 import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.artifact.WorkerPoolArtifact;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConsumer;
@@ -56,8 +55,7 @@ public class DeployServlet extends HttpServlet {
 	public static final String SERVLET_PATH = "/admin/deploy";
 
 	private GlobalContext getGlobalContext() {
-		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
-		return poolContext.getGlobalContext();
+		return (GlobalContext) getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
 	}
 	
 	@Override
@@ -155,6 +153,7 @@ public class DeployServlet extends HttpServlet {
 			switch (service.getProtocol()) {
 			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();
+				httpConsumer.init(globalContext);
 				HttpConsumer oldHttpConsumer = globalContext.bindHttpService(httpConsumer.getBindPath(), httpConsumer);
 				if (oldHttpConsumer != null) {
 					closer.closeAsync(oldHttpConsumer);

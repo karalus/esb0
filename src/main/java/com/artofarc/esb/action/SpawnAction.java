@@ -19,10 +19,8 @@ package com.artofarc.esb.action;
 import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +31,7 @@ import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.util.Collections;
 import com.artofarc.util.ReflectionUtils;
 
 public class SpawnAction extends Action {
@@ -55,10 +54,9 @@ public class SpawnAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if (_nextAction == null) {
-			throw new com.artofarc.esb.action.ExecutionException(this, "nextAction not set");
+			throw new ExecutionException(this, "nextAction not set");
 		}
-		Collection<Action> executionStack = new ArrayList<>(context.getExecutionStack());
-		context.getExecutionStack().clear();
+		Collection<Action> executionStack = Collections.newList(context.getExecutionStack(), true);
 		if (_usePipe) {
 			PipedOutputStream pos = new PipedOutputStream();
 			ESBMessage clone = message.clone();
@@ -97,14 +95,14 @@ public class SpawnAction extends Action {
 					message.getBodyAsByteArray(context);
 				}
 			}
-			future = submit(context, message, execContext.<Collection<Action>>getResource());
+			future = submit(context, message, execContext.<Collection<Action>> getResource());
 		}
 		if (_join) {
 			join(context, message, future);
 		}
 	}
 
-	private Future<ESBMessage> submit(Context context, final ESBMessage message, Collection<Action> executionStack) throws RejectedExecutionException {
+	private Future<ESBMessage> submit(Context context, ESBMessage message, Collection<Action> executionStack) throws RejectedExecutionException {
 		String workerPool = message.getVariable(ESBConstants.WorkerPool, _workerPool);
 		return submit(context, message, workerPool, _nextAction, executionStack, _join);
 	}
@@ -112,6 +110,8 @@ public class SpawnAction extends Action {
 	public static Future<ESBMessage> submit(Context context, final ESBMessage message, String workerPoolName, final Action action, final Collection<Action> executionStack, boolean join) throws RejectedExecutionException {
 		context.getTimeGauge().startTimeMeasurement();
 		final WorkerPool workerPool = context.getPoolContext().getGlobalContext().getWorkerPool(workerPoolName);
+		final Collection<Action> stackErrorHandler = Collections.newList(context.getStackErrorHandler(), !join);
+		final Collection<Integer> stackPos = Collections.newList(context.getStackPos(), !join);
 		try {
 			return workerPool.getExecutorService().submit(new Callable<ESBMessage>() {
 
@@ -120,6 +120,8 @@ public class SpawnAction extends Action {
 					final Context workerContext = workerPool.getContext();
 					// hand over execution stack
 					workerContext.getExecutionStack().addAll(executionStack);
+					workerContext.getStackErrorHandler().addAll(stackErrorHandler);
+					workerContext.getStackPos().addAll(stackPos);
 					try {
 						action.process(workerContext, message);
 						return message;
@@ -136,7 +138,7 @@ public class SpawnAction extends Action {
 	public static ESBMessage join(Context context, ESBMessage message, Future<ESBMessage> future) throws Exception {
 		try {
 			return future.get(message.getTimeleft(60000L).longValue(), TimeUnit.MILLISECONDS);
-		} catch (ExecutionException e) {
+		} catch (java.util.concurrent.ExecutionException e) {
 			throw ReflectionUtils.convert(e.getCause(), Exception.class);
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("Async join", false);

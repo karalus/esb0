@@ -35,7 +35,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.PoolContext;
+import com.artofarc.esb.context.GlobalContext;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -54,12 +54,12 @@ public class GenericHttpListener extends HttpServlet {
 	protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		// process input
 		final String pathInfo = request.getRequestURI().substring(request.getContextPath().length());
-		PoolContext poolContext = (PoolContext) getServletContext().getAttribute(ESBServletContextListener.POOL_CONTEXT);
-		HttpConsumer consumerPort = poolContext.getGlobalContext().getHttpService(pathInfo);
+		GlobalContext globalContext = (GlobalContext) getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
+		HttpConsumer consumerPort = globalContext.getHttpService(pathInfo);
 		if (consumerPort != null) {
 			if (consumerPort.isEnabled()) {
 				try {
-					Context context = consumerPort.getContextPool().getContext(poolContext);
+					Context context = consumerPort.getContextPool().getContext();
 					if (context != null) {
 						try {
 							consumerPort.process(context, createESBMessage(request, pathInfo, consumerPort));

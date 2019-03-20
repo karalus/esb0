@@ -115,7 +115,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 				list.add(new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength()));
 				if (http.getWorkerPool() != null) {
-					list.add(new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, false));
+					list.add(new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, http.isJoin()));
 				}
 				list.add(new HttpInboundAction());
 				break;
@@ -161,7 +161,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "jdbcProcedure": {
 				JdbcProcedure jdbcProcedure = (JdbcProcedure) jaxbElement.getValue();
 				if (jdbcProcedure.getWorkerPool() != null) {
-					list.add(new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, false));
+					list.add(new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, jdbcProcedure.isJoin()));
 				}
 				list.add(new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
 						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getFetchSize(), jdbcProcedure.getTimeout()));
@@ -170,7 +170,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "jdbc": {
 				Jdbc jdbc = (Jdbc) jaxbElement.getValue();
 				if (jdbc.getWorkerPool() != null) {
-					list.add(new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, false));
+					list.add(new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()));
 				}
 				list.add(new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getFetchSize(), jdbc.getTimeout()));
 				break;
@@ -334,7 +334,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "spawn": {
 				Spawn spawn = (Spawn) jaxbElement.getValue();
-				list.add(new SpawnAction(resolveWorkerPool(spawn.getWorkerPool()), spawn.isUsePipe(), false));
+				list.add(new SpawnAction(resolveWorkerPool(spawn.getWorkerPool()), spawn.isUsePipe(), spawn.isJoin()));
 				break;
 			}
 			case "fork": {

@@ -13,7 +13,7 @@
 <body>
 <h2>ESB Zero - A lightweight service gateway (Version <%=application.getAttribute(ESBServletContextListener.VERSION)%> build time <%=application.getAttribute(ESBServletContextListener.BUILD_TIME)%>)</h2>
 <%
-	GlobalContext globalContext = ((PoolContext) application.getAttribute(ESBServletContextListener.POOL_CONTEXT)).getGlobalContext();
+	GlobalContext globalContext = (GlobalContext) application.getAttribute(ESBServletContextListener.CONTEXT);
 	if (request.getPathInfo() == null) {
 %>
 <br>HttpServices:

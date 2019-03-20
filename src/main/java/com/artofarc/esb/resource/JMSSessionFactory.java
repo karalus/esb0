@@ -22,21 +22,20 @@ import javax.jms.Session;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.jms.JMSConnectionProvider;
 import com.artofarc.esb.jms.JMSSession;
 
 public class JMSSessionFactory extends ResourceFactory<JMSSession, String, Boolean> {
 
-	private final PoolContext _poolContext;
-	
+	private final Context _context;
+
 	public JMSSessionFactory(Context context) {
-		_poolContext = context.getPoolContext();
+		_context = context;
 	}
 
 	@Override
 	protected JMSSession createResource(String jndiConnectionFactory, Boolean transacted) throws NamingException, JMSException {
-		JMSConnectionProvider jmsConnectionProvider = _poolContext.getJMSConnectionProvider();
+		JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getJMSConnectionProvider();
 		Connection connection = jmsConnectionProvider.getConnection(jndiConnectionFactory);
 		jmsConnectionProvider.registerJMSSessionFactory(this);
 		Session session = connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE);

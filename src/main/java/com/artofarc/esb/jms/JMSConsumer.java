@@ -33,7 +33,6 @@ import javax.naming.NamingException;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -107,25 +106,25 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 		return _jmsWorker.length;
 	}
 
+	@Override
 	public void init(GlobalContext globalContext) throws Exception {
 		WorkerPool workerPool = globalContext.getWorkerPool(_workerPool);
 		if (workerPool.getScheduledExecutorService() == null) {
 			throw new IllegalStateException("No scheduled threads in WorkerPool " + _workerPool);
 		}
-		PoolContext poolContext = workerPool.getPoolContext();
 		for (int i = 0; i < _jmsWorker.length; ++i) {
-			_jmsWorker[i] = new JMSWorker(new Context(poolContext));
-			_jmsWorker[i].open();
+			_jmsWorker[i] = new JMSWorker(workerPool);
+			_jmsWorker[i].init();
 			if (super.isEnabled()) {
 				_jmsWorker[i].startListening();
 			}
 		}
-		poolContext.getJMSConnectionProvider().registerJMSConsumer(_jndiConnectionFactory, this);
+		workerPool.getPoolContext().getJMSConnectionProvider().registerJMSConsumer(_jndiConnectionFactory, this);
 	}
 
-	public void open() throws Exception {
+	void resume() throws Exception {
 		for (JMSWorker jmsWorker : _jmsWorker) {
-			jmsWorker.open();
+			jmsWorker.init();
 		}
 	}
 
@@ -145,10 +144,40 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 		}
 	}
 
+	void suspend() throws Exception {
+		for (JMSWorker jmsWorker : _jmsWorker) {
+			jmsWorker.close();
+		}
+	}
+
 	@Override
 	public void close() throws Exception {
 		for (JMSWorker jmsWorker : _jmsWorker) {
 			jmsWorker.close();
+			jmsWorker._session.close();
+		}
+	}
+
+	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws JMSException {
+		if (message instanceof BytesMessage) {
+			BytesMessage bytesMessage = (BytesMessage) message;
+			byte[] ba = new byte[(int) bytesMessage.getBodyLength()];
+			bytesMessage.readBytes(ba);
+			esbMessage.reset(BodyType.BYTES, ba, message.getStringProperty(ESBConstants.Charset));
+		} else if (message instanceof TextMessage) {
+			TextMessage textMessage = (TextMessage) message;
+			esbMessage.reset(BodyType.STRING, textMessage.getText());
+		} else {
+			esbMessage.reset(BodyType.INVALID, null);
+		}
+		message.clearBody();
+		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
+		esbMessage.putVariable(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
+		esbMessage.putVariable(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
+		for (@SuppressWarnings("unchecked")
+		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
+			String propertyName = propertyNames.nextElement();
+			esbMessage.getHeaders().put(propertyName, message.getObjectProperty(propertyName));
 		}
 	}
 
@@ -158,11 +187,11 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 		private Session _session;
 		private volatile MessageConsumer _messageConsumer;
 
-		JMSWorker(Context context) {
-			_context = context;
+		JMSWorker(WorkerPool workerPool) throws Exception {
+			_context = new Context(workerPool.getPoolContext());
 		}
 
-		void open() throws Exception {
+		void init() throws Exception {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
 			_session = jmsSessionFactory.getResource(_jndiConnectionFactory, true).getSession();
 			if (_destination == null) {
@@ -221,29 +250,6 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 			}
 		}
 
-	}
-
-	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws JMSException {
-		if (message instanceof BytesMessage) {
-			BytesMessage bytesMessage = (BytesMessage) message;
-			byte[] ba = new byte[(int) bytesMessage.getBodyLength()];
-			bytesMessage.readBytes(ba);
-			esbMessage.reset(BodyType.BYTES, ba, message.getStringProperty(ESBConstants.Charset));
-		} else if (message instanceof TextMessage) {
-			TextMessage textMessage = (TextMessage) message;
-			esbMessage.reset(BodyType.STRING, textMessage.getText());
-		} else {
-			esbMessage.reset(BodyType.INVALID, null);
-		}
-		message.clearBody();
-		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
-		esbMessage.putVariable(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
-		esbMessage.putVariable(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
-		for (@SuppressWarnings("unchecked")
-		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
-			String propertyName = propertyNames.nextElement();
-			esbMessage.getHeaders().put(propertyName, message.getObjectProperty(propertyName));
-		}
 	}
 
 }
