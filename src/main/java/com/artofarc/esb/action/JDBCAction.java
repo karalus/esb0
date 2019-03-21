@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -221,6 +222,12 @@ public abstract class JDBCAction extends TerminalAction {
 					Blob blob = resultSet.getBlob(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
+					}
+					break;
+				case Types.CLOB:
+					Clob clob = resultSet.getClob(i);
+					if (checkNotNull(resultSet, row)) {
+						row.add(clob.getSubString(1, (int) clob.length()));
 					}
 					break;
 				case Types.VARBINARY:
