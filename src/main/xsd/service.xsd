@@ -650,6 +650,7 @@
 								use="required" />
 							<attribute name="messageSelector" type="string" />
 							<attribute name="workerCount" type="int" default="1" />
+							<attribute name="pollInterval" type="int" default="0" />
 						</complexType>
 					</element>
 					<element name="timerBinding">

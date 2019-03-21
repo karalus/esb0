@@ -55,8 +55,7 @@ public final class JMSConnectionProvider {
 	public synchronized Connection getConnection(String jndiConnectionFactory) throws NamingException, JMSException {
 		JMSConnectionGuard connectionGuard = _pool.get(jndiConnectionFactory);
 		if (connectionGuard == null) {
-			ConnectionFactory qcf = _poolContext.getGlobalContext().lookup(jndiConnectionFactory);
-			connectionGuard = new JMSConnectionGuard(jndiConnectionFactory, qcf.createConnection());
+			connectionGuard = new JMSConnectionGuard(jndiConnectionFactory);
 			_pool.put(jndiConnectionFactory, connectionGuard);
 		}
 		return connectionGuard.getConnection();
@@ -89,10 +88,22 @@ public final class JMSConnectionProvider {
 		private Connection _connection;
 		private ScheduledFuture<?> _future;
 
-		private JMSConnectionGuard(String jndiConnectionFactory, Connection connection) throws JMSException {
+		private JMSConnectionGuard(String jndiConnectionFactory) throws NamingException, JMSException {
 			_jndiConnectionFactory = jndiConnectionFactory;
-			_connection = connection;
+			_connection = createConnection();
 			_connection.setExceptionListener(this);
+		}
+
+		private Connection createConnection() throws NamingException, JMSException {
+			ConnectionFactory qcf = _poolContext.getGlobalContext().lookup(_jndiConnectionFactory);
+			Connection connection = qcf.createConnection();
+			try {
+				connection.start();
+			} catch (JMSException e) {
+				connection.close();
+				throw e;
+			}
+			return connection;
 		}
 
 		synchronized Connection getConnection() {
@@ -130,8 +141,8 @@ public final class JMSConnectionProvider {
 				// save current state
 				entry.setValue(jmsConsumer.isEnabled());
 				try {
-					logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey());
-					jmsConsumer.suspend();
+					logger.info("Closing JMSConsumer for " + jmsConsumer.getKey());
+					jmsConsumer.close();
 				} catch (Exception e) {
 					// ignore
 				}
@@ -145,11 +156,10 @@ public final class JMSConnectionProvider {
 		public synchronized void run() {
 			try {
 				logger.info("Trying to reconnect " + _jndiConnectionFactory);
-				ConnectionFactory qcf = _poolContext.getGlobalContext().lookup(_jndiConnectionFactory);
-				_connection = qcf.createConnection();
+				_connection = createConnection();
 				for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
 					JMSConsumer jmsConsumer = entry.getKey();
-					jmsConsumer.resume();
+					jmsConsumer.open();
 					// restore last state
 					jmsConsumer.enable(entry.getValue());
 				}
@@ -162,7 +172,6 @@ public final class JMSConnectionProvider {
 				logger.error(_jndiConnectionFactory + " reconnect failed: " + e);
 			}
 		}
-
 	}
 
 }

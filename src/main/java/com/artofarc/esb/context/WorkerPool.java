@@ -93,7 +93,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	}
 
 	public void addThread(Thread thread, String info) {
-		if (_scheduledExecutorService != null && _threads.put(thread, info) == null) {
+		if (_scheduledExecutorService != null && thread.getThreadGroup() != _threadFactory && _threads.put(thread, info) == null) {
 			PoolContext.logger.info("adding thread " + thread.getName() + " for " + info);
 		}
 	}

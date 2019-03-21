@@ -378,7 +378,7 @@ public class SOAPTest extends AbstractESBTest {
    }
    
    public void testJMSConsumer() throws Exception {
-      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, "ConnectionFactory", "dynamicQueues/test1", null, null, null, 1);
+      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, "ConnectionFactory", "dynamicQueues/test1", null, null, null, 1, 0L);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
       jmsConsumer.init(getGlobalContext());

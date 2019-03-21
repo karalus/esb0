@@ -18,6 +18,7 @@ package com.artofarc.esb.jms;
 
 import java.util.Enumeration;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 import javax.jms.BytesMessage;
 import javax.jms.Destination;
@@ -31,6 +32,7 @@ import javax.jms.TextMessage;
 import javax.jms.Topic;
 import javax.naming.NamingException;
 
+import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
@@ -39,7 +41,7 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
-public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
+public final class JMSConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final String _workerPool;
 	private final String _jndiConnectionFactory;
@@ -48,9 +50,10 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 	private final String _queueName;
 	private final String _topicName;
 	private final JMSWorker[] _jmsWorker;
+	private final long _pollInterval;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, String jndiConnectionFactory, String jndiDestination, String queueName,
-			String topicName, String messageSelector, int workerCount) throws NamingException, JMSException {
+			String topicName, String messageSelector, int workerCount, long pollInterval) throws NamingException, JMSException {
 
 		super(uri);
 		_workerPool = workerPool;
@@ -70,6 +73,7 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 			_topicName = topicName;
 		}
 		_jmsWorker = new JMSWorker[workerCount];
+		_pollInterval = pollInterval; 
 	}
 
 	private static String bindProperties(String exp, Map<?, ?> props) {
@@ -113,18 +117,17 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 			throw new IllegalStateException("No scheduled threads in WorkerPool " + _workerPool);
 		}
 		for (int i = 0; i < _jmsWorker.length; ++i) {
-			_jmsWorker[i] = new JMSWorker(workerPool);
-			_jmsWorker[i].init();
-			if (super.isEnabled()) {
-				_jmsWorker[i].startListening();
-			}
+			(_jmsWorker[i] = _pollInterval > 0L ? new JMSPollingWorker(workerPool) : new JMSWorker(workerPool)).open();
+		}
+		if (super.isEnabled()) {
+			enable(true);
 		}
 		workerPool.getPoolContext().getJMSConnectionProvider().registerJMSConsumer(_jndiConnectionFactory, this);
 	}
 
-	void resume() throws Exception {
+	void open() throws Exception {
 		for (JMSWorker jmsWorker : _jmsWorker) {
-			jmsWorker.init();
+			jmsWorker.open();
 		}
 	}
 
@@ -135,18 +138,21 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 
 	@Override
 	public void enable(boolean enable) throws JMSException {
-		for (JMSWorker jmsWorker : _jmsWorker) {
+		for (int i = 0; i < _jmsWorker.length;) {
+			JMSWorker jmsWorker = _jmsWorker[i++];
 			if (enable) {
 				jmsWorker.startListening();
+				if (_pollInterval > 0L && i < _jmsWorker.length) {
+					// distribute evenly over poll interval
+					try {
+						Thread.sleep(_pollInterval / _jmsWorker.length);
+					} catch (InterruptedException e) {
+						// ignore
+					}
+				}
 			} else {
 				jmsWorker.stopListening();
 			}
-		}
-	}
-
-	void suspend() throws Exception {
-		for (JMSWorker jmsWorker : _jmsWorker) {
-			jmsWorker.close();
 		}
 	}
 
@@ -154,7 +160,6 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 	public void close() throws Exception {
 		for (JMSWorker jmsWorker : _jmsWorker) {
 			jmsWorker.close();
-			jmsWorker._session.close();
 		}
 	}
 
@@ -181,17 +186,18 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 		}
 	}
 
-	final class JMSWorker implements MessageListener {
-
-		private final Context _context;
-		private Session _session;
-		private volatile MessageConsumer _messageConsumer;
+	class JMSWorker implements MessageListener {
+		final WorkerPool _workerPool;
+		final Context _context;
+		Session _session;
+		volatile MessageConsumer _messageConsumer;
 
 		JMSWorker(WorkerPool workerPool) throws Exception {
+			_workerPool = workerPool;
 			_context = new Context(workerPool.getPoolContext());
 		}
 
-		void init() throws Exception {
+		final void open() throws Exception {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
 			_session = jmsSessionFactory.getResource(_jndiConnectionFactory, true).getSession();
 			if (_destination == null) {
@@ -222,7 +228,7 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 			}
 		}
 
-		void close() throws Exception {
+		final void close() throws Exception {
 			stopListening();
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
 			jmsSessionFactory.close(_jndiConnectionFactory);
@@ -230,7 +236,8 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 
 		@Override
 		public void onMessage(Message message) {
-			_context.getPoolContext().getWorkerPool().addThread(Thread.currentThread(), getDestinationName());
+			// monitor threads not started by us but by the JMS provider 
+			_workerPool.addThread(Thread.currentThread(), getDestinationName());
 			ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
 			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
 			try {
@@ -249,7 +256,48 @@ public final class JMSConsumer extends com.artofarc.esb.ConsumerPort implements 
 				}
 			}
 		}
+	}
 
+	// https://stackoverflow.com/questions/22040361/too-much-selects-when-using-oracle-aq-and-spring-jms
+	class JMSPollingWorker extends JMSWorker implements Runnable {
+		volatile Future<?> _poller;
+
+		JMSPollingWorker(WorkerPool workerPool) throws Exception {
+			super(workerPool);
+		}
+
+		void startListening() throws JMSException {
+			if (_messageConsumer == null) {
+				_messageConsumer = _session.createConsumer(_destination, _messageSelector);
+				_poller = _workerPool.getExecutorService().submit(this);
+			}
+		}
+
+		void stopListening() {
+			if (_poller != null) {
+				_poller.cancel(true);
+				_poller = null;
+				super.stopListening();
+			}
+		}
+
+		@Override
+		public void run() {
+			try {
+				for (;;) {
+					Message message = _messageConsumer.receiveNoWait();
+					if (message != null) {
+						onMessage(message);
+					} else {
+						Thread.sleep(_pollInterval);
+					}
+				}
+			} catch (JMSException e) {
+				throw new RuntimeException(e);
+			} catch (InterruptedException e) {
+				// stopListening
+			}
+		}
 	}
 
 }

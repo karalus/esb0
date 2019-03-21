@@ -86,7 +86,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		case JMS:
 			final Service.JmsBinding jmsBinding = service.getJmsBinding();
 			_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getWorkerPool(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
-					jmsBinding.getTopicName(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount());
+					jmsBinding.getTopicName(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval());
 			break;
 		case TIMER:
 			final Service.TimerBinding timerBinding = service.getTimerBinding();
