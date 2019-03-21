@@ -37,8 +37,8 @@ public class JDBCProcedureAction extends JDBCAction {
 
 	private final List<JDBCParameter> _outParams;
 
-	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int fetchSize, int timeout) throws NamingException {
-		super(globalContext, dsName, sql, inParams, fetchSize, timeout);
+	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout) throws NamingException {
+		super(globalContext, dsName, sql, inParams, maxRows, timeout);
 		_outParams = outParams;
 	}
 

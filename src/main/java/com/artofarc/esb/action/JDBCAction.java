@@ -19,28 +19,12 @@ package com.artofarc.esb.action;
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.math.BigDecimal;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLXML;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.Date;
+import java.sql.*;
+import static java.sql.Types.*;
 import java.util.GregorianCalendar;
 import java.util.List;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonStructure;
-import javax.json.JsonWriter;
+import javax.json.*;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 import javax.xml.bind.DatatypeConverter;
@@ -60,14 +44,14 @@ public abstract class JDBCAction extends TerminalAction {
 	private final DataSource _dataSource;
 	protected final String _sql;
 	private final List<JDBCParameter> _params;
-	private final int _fetchSize;
+	private final int _maxRows;
 	private final Integer _timeout;
 
-	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int fetchSize, int timeout) throws NamingException {
+	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout) throws NamingException {
 		_dataSource = globalContext.lookup(dsName);
 		_sql = sql;
 		_params = params;
-		_fetchSize = fetchSize;
+		_maxRows = maxRows;
 		_timeout = timeout;
 	}
 
@@ -79,13 +63,13 @@ public abstract class JDBCAction extends TerminalAction {
 				if (param.isBody()) {
 					Connection connection = _dataSource.getConnection();
 					switch (param.getType()) {
-					case Types.SQLXML:
+					case SQLXML:
 						SQLXML xmlObject = connection.createSQLXML();
 						message.reset(BodyType.RESULT, xmlObject.setResult(SAXResult.class));
 						execContext = new ExecutionContext(xmlObject);
 						break;
-					case Types.CLOB:
-					case Types.BLOB:
+					case CLOB:
+					case BLOB:
 						execContext = super.prepare(context, message, true);
 						break;
 					default:
@@ -110,17 +94,17 @@ public abstract class JDBCAction extends TerminalAction {
 		for (JDBCParameter param : _params) {
 			if (param.isBody()) {
 				switch (param.getType()) {
-				case Types.SQLXML:
+				case SQLXML:
 					ps.setSQLXML(param.getPos(), execContext.<SQLXML>getResource());
 					break;
-				case Types.CLOB:
+				case CLOB:
 					if (param.getTruncate() == null) {
 						ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
 					} else {
 						ps.setCharacterStream(param.getPos(), new StringReader(param.<String> alignValue(message.getBodyAsString(context))));
 					}
 					break;
-				case Types.BLOB:
+				case BLOB:
 					if (param.getTruncate() == null) {
 						ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
 					} else {
@@ -135,7 +119,7 @@ public abstract class JDBCAction extends TerminalAction {
 			}
 		}
 		ps.setQueryTimeout(message.getTimeleft(_timeout).intValue() / 1000);
-		ps.setFetchSize(_fetchSize);
+		ps.setMaxRows(_maxRows);
 	}
 
 	protected static void extractResult(Statement statement, ESBMessage message) throws SQLException {
@@ -186,52 +170,52 @@ public abstract class JDBCAction extends TerminalAction {
 			JsonArrayBuilder row = Json.createArrayBuilder();
 			for (int i = 1; i <= colSize; ++i) {
 				switch (metaData.getColumnType(i)) {
-				case Types.SMALLINT:
-				case Types.INTEGER:
+				case SMALLINT:
+				case INTEGER:
 					int integer = resultSet.getInt(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(integer);
 					}
 					break;
-				case Types.BIT:
+				case BIT:
 					boolean bool = resultSet.getBoolean(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(bool);
 					}
 					break;
-				case Types.NUMERIC:
-				case Types.DECIMAL:
+				case NUMERIC:
+				case DECIMAL:
 					BigDecimal bigDecimal = resultSet.getBigDecimal(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(bigDecimal);
 					}
 					break;
-				case Types.TIMESTAMP:
+				case TIMESTAMP:
 					Timestamp timestamp = resultSet.getTimestamp(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(DatatypeConverter.printDateTime(convert(timestamp)));
 					}
 					break;
-				case Types.DATE:
-					java.sql.Date date = resultSet.getDate(i);
+				case DATE:
+					Date date = resultSet.getDate(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(DatatypeConverter.printDate(convert(date)));
 					}
 					break;
-				case Types.BLOB:
+				case BLOB:
 					Blob blob = resultSet.getBlob(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
 					}
 					break;
-				case Types.CLOB:
+				case CLOB:
 					Clob clob = resultSet.getClob(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(clob.getSubString(1, (int) clob.length()));
 					}
 					break;
-				case Types.VARBINARY:
-				case Types.LONGVARBINARY:
+				case VARBINARY:
+				case LONGVARBINARY:
 					byte[] bytes = resultSet.getBytes(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(DatatypeConverter.printBase64Binary(bytes));
@@ -260,7 +244,7 @@ public abstract class JDBCAction extends TerminalAction {
 		}
 	}
 
-	private static GregorianCalendar convert(Date date) {
+	private static GregorianCalendar convert(java.util.Date date) {
 		GregorianCalendar gc = new GregorianCalendar();
 		gc.setTime(date);
 		return gc;

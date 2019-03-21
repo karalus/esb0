@@ -164,7 +164,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					list.add(new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, jdbcProcedure.isJoin()));
 				}
 				list.add(new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
-						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getFetchSize(), jdbcProcedure.getTimeout()));
+						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout()));
 				break;
 			}
 			case "jdbc": {
@@ -172,7 +172,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				if (jdbc.getWorkerPool() != null) {
 					list.add(new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()));
 				}
-				list.add(new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getFetchSize(), jdbc.getTimeout()));
+				list.add(new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getMaxRows(), jdbc.getTimeout()));
 				break;
 			}
 			case "setMessage": {

@@ -157,7 +157,7 @@
 				<attribute name="dataSource" type="string" use="required" />
 				<attribute name="workerPool" type="anyURI" />
 				<attribute name="join" type="boolean" default="true" />
-				<attribute name="fetchSize" type="int" default="0" />
+				<attribute name="maxRows" type="int" default="0" />
 				<attribute name="timeout" type="int" default="60000" />
 			</extension>
 		</complexContent>
