@@ -125,7 +125,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		workerPool.getPoolContext().getJMSConnectionProvider().registerJMSConsumer(_jndiConnectionFactory, this);
 	}
 
-	void open() throws Exception {
+	void resume() throws Exception {
 		for (JMSWorker jmsWorker : _jmsWorker) {
 			jmsWorker.open();
 		}
@@ -156,10 +156,17 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		}
 	}
 
+	void suspend() throws Exception {
+		for (JMSWorker jmsWorker : _jmsWorker) {
+			jmsWorker.close();
+		}
+	}
+
 	@Override
 	public void close() throws Exception {
 		for (JMSWorker jmsWorker : _jmsWorker) {
 			jmsWorker.close();
+			jmsWorker._context.close();
 		}
 	}
 

@@ -99,24 +99,25 @@ public class TransformAction extends Action {
 		if (_contextItem != null) {
 			bind(_contextItem, XQConstants.CONTEXT_ITEM, null, xqExpression, message);
 		} else {
-			switch (message.getBodyType()) {
-			case XQ_SEQUENCE:
-				XQSequence sequence = message.getBody();
-				if (!sequence.next()) {
-					throw new ExecutionException(this, "body not passed through");
-				}
-				xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
-				break;
-			case XQ_ITEM:
-				xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
-				break;
-			case INVALID:
+			if (message.isEmpty()) {
 				// Nothing to bind, but we need a context item
 				xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
-				break;
-			default:
-				xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
-				break;
+			} else {
+				switch (message.getBodyType()) {
+				case XQ_SEQUENCE:
+					XQSequence sequence = message.getBody();
+					if (!sequence.next()) {
+						throw new ExecutionException(this, "body not passed through");
+					}
+					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
+					break;
+				case XQ_ITEM:
+					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
+					break;
+				default:
+					xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
+					break;
+				}
 			}
 		}
 		for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {
