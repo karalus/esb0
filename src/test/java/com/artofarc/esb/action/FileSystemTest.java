@@ -1,6 +1,8 @@
 package com.artofarc.esb.action;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,8 +39,7 @@ public class FileSystemTest extends AbstractESBTest {
    
   @Test
    public void testStartup() {
-		try (PoolContext poolContext = new ESBServletContextListener().createGlobalAndDefaultPoolContext(new File("src/test/resources"));
-				GlobalContext globalContext = poolContext.getGlobalContext()) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createGlobalAndDefaultPoolContext(new File("src/test/resources"))) {
          ConsumerPort service = globalContext.getInternalService("/HttpService4.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/demo1");
@@ -48,8 +49,7 @@ public class FileSystemTest extends AbstractESBTest {
    
    @Test
    public void testRealService() throws Exception {
-		try (PoolContext poolContext = new ESBServletContextListener().createGlobalAndDefaultPoolContext(new File("src/test/resources"));
-				GlobalContext globalContext = poolContext.getGlobalContext()) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createGlobalAndDefaultPoolContext(new File("src/test/resources"))) {
          ConsumerPort service = globalContext.getInternalService("/example/ExampleService.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/exampleUsingport");
@@ -61,7 +61,8 @@ public class FileSystemTest extends AbstractESBTest {
          message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
          message.getVariables().put("hasFault", false);
          try {
-            service.processInternal(new Context(poolContext), message);
+            PoolContext poolContext = globalContext.getDefaultWorkerPool().getPoolContext();
+				service.processInternal(new Context(poolContext ), message);
          } catch (IOException e) {
 		      // ignore
          }

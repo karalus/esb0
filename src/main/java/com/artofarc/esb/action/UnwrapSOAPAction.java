@@ -72,7 +72,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl) {
-		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(bindingOperations)), bindingOperations, wsdlUrl, getWsdl, schema);
+		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(bindingOperations), false), bindingOperations, wsdlUrl, getWsdl, schema);
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart) {

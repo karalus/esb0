@@ -30,11 +30,13 @@ public final class Collections {
 		return new AbstractMap.SimpleImmutableEntry<>(key, value);
 	}
 
-	public static <K, V> Map<V, K> inverseMap(Map<K, V> map) {
-		final Map<V, K> result = new HashMap<>();
-		for (final Entry<K, V> entry : map.entrySet()) {
+	public static <K, V> Map<V, K> inverseMap(Map<K, V> map, boolean unique) {
+		Map<V, K> result = new HashMap<>();
+		for (Entry<K, V> entry : map.entrySet()) {
 			if (result.put(entry.getValue(), entry.getKey()) != null) {
-				// throw new IllegalArgumentException("Values are not unique");
+				if (unique) {
+					throw new IllegalArgumentException("Value is not unique: " + entry.getValue());
+				} 
 				return java.util.Collections.emptyMap();
 			}
 		}
