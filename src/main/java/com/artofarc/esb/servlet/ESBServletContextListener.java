@@ -36,6 +36,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 	public static final String VERSION = "esb0.version";
 	public static final String BUILD_TIME = "esb0.build.time";
 	public static final String CONTEXT = "esb0.context";
+	public static final String ROOT_DIR = "esb0.root.dir";
 
 	private GlobalContext globalContext;
 
@@ -74,7 +75,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 		}
 		servletContext.setAttribute(VERSION, properties.getProperty("Implementation-Version", "0.0"));
 		servletContext.setAttribute(BUILD_TIME, properties.getProperty("Build-Time", ""));
-		String rootDirEnv = System.getenv("ESB_ROOT_DIR");
+		String rootDirEnv = System.getProperty(ROOT_DIR, System.getenv("ESB_ROOT_DIR"));
 		File rootDir = rootDirEnv != null ? new File(rootDirEnv) : new File(System.getProperty("user.home"), "esb_root");
 		servletContext.setAttribute(CONTEXT, createGlobalAndDefaultPoolContext(rootDir));
 	}

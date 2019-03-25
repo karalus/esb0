@@ -91,7 +91,7 @@ public class Json2XMLAction extends Action {
 			if (_type != null) {
 				JAXBElement<DynamicEntity> jaxbElement = jsonUnmarshaller.unmarshal(message.getBodyAsSource(context), _type);
 				if (_xmlElement != null) {
-					root = new JAXBElement<DynamicEntity>(_xmlElement, _type, jaxbElement.getValue());
+					root = new JAXBElement<>(_xmlElement, _type, jaxbElement.getValue());
 				} else {
 					root = jaxbElement;
 				}
