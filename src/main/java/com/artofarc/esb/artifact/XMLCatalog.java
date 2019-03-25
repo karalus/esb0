@@ -34,7 +34,6 @@ import org.w3c.dom.Attr;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
-import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.StreamUtils;
 
 public final class XMLCatalog {
@@ -43,8 +42,7 @@ public final class XMLCatalog {
 
 	public static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
 
-	public static void attachToFileSystem(GlobalContext globalContext) throws IOException {
-		FileSystem fileSystem = globalContext.getFileSystem();
+	public static void attachToFileSystem(FileSystem fileSystem) throws IOException {
 		Directory parent = fileSystem.makeDirectory(PATH.substring(1));
 		{
 			XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "xml.xsd");

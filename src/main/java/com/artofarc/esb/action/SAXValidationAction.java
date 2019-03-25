@@ -50,13 +50,13 @@ public class SAXValidationAction extends SAXAction {
 	}
 
 	@Override
-	protected SAXSource createSAXSource(XQItem item, Context context, ESBMessage message) {
+	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) {
 		message.setSchema(_schema);
 		return new SAXSource(new ValidatingXQJFilter(item), null);
 	}
 
 	@Override
-	protected FeatureFilter createXMLFilter(XMLReader parent, Context context, ESBMessage message) {
+	protected FeatureFilter createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
 		message.setSchema(_schema);
 		FeatureFilter xmlFilter = new FeatureFilter(parent);
 		xmlFilter.setContentHandler(_schema.newValidatorHandler());

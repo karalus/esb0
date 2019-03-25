@@ -70,7 +70,7 @@ public abstract class SAXAction extends Action {
 		}
 	}
 
-	public static StreamSource InputSourceToSource(InputSource inputSource) throws UnsupportedEncodingException {
+	public static StreamSource inputSourceToSource(InputSource inputSource) throws UnsupportedEncodingException {
 		StreamSource streamSource = new StreamSource(inputSource.getSystemId());
 		streamSource.setPublicId(inputSource.getPublicId());
 		if (inputSource.getByteStream() != null) {
@@ -85,17 +85,17 @@ public abstract class SAXAction extends Action {
 		return streamSource;
 	}
 
-	protected abstract SAXSource createSAXSource(XQItem item, Context context, ESBMessage message) throws Exception;
+	protected abstract SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception;
 
-	protected abstract FeatureFilter createXMLFilter(XMLReader parent, Context context, ESBMessage message) throws Exception;
+	protected abstract FeatureFilter createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception;
 
-	private SAXSource createSAXSource(Source source, Context context, ESBMessage message) throws Exception {
+	private SAXSource createSAXSource(Context context, ESBMessage message, Source source) throws Exception {
 		XMLReader parent = null;
 		if (source instanceof SAXSource) {
 			SAXSource saxSource = (SAXSource) source;
 			parent = saxSource.getXMLReader();
 		}
-		FeatureFilter xmlFilter = createXMLFilter(parent, context, message);
+		FeatureFilter xmlFilter = createXMLFilter(context, message, parent);
 		InputSource inputSource = SAXSource.sourceToInputSource(source);
 		if (inputSource == null) {
 			throw new IllegalStateException("Message is invalid");			
@@ -112,13 +112,13 @@ public abstract class SAXAction extends Action {
 			if (!sequence.next()) {
 				throw new ExecutionException(this, "body not passed through");
 			}
-			source = createSAXSource(sequence.getItem(), context, message);
+			source = createSAXSource(context, message, sequence.getItem());
 			break;
 		case XQ_ITEM:
-			source = createSAXSource(message.<XQItem> getBody(), context, message);
+			source = createSAXSource(context, message, message.<XQItem> getBody());
 			break;
 		default:
-			source = createSAXSource(message.getBodyAsSource(context), context, message);
+			source = createSAXSource(context, message, message.getBodyAsSource(context));
 			break;
 		}
 		message.reset(BodyType.SOURCE, source);

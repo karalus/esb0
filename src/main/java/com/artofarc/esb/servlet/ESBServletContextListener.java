@@ -48,7 +48,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 		FileSystem fileSystem = new FileSystem(rootDir);
 		globalContext.setFileSystem(fileSystem);
 		try {
-			XMLCatalog.attachToFileSystem(globalContext);
+			XMLCatalog.attachToFileSystem(fileSystem);
 			FileSystem.ChangeSet changeSet = fileSystem.parseDirectory(globalContext);
 			DeployServlet.deployChangeSet(globalContext, changeSet);
 		} catch (IOException e) {

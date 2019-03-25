@@ -56,8 +56,12 @@ public final class FileSystem {
 		return _root;
 	}
 
-	protected File getAnchorDir() {
-		return _anchorDir;
+	protected InputStream reloadInputStream(String uri) {
+		try {
+			return new FileInputStream(new File(_anchorDir, uri));
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException("FileSystem corrupted", e);
+		}
 	}
 
 	public <A extends Artifact> A getArtifact(String uri) {
@@ -302,9 +306,9 @@ public final class FileSystem {
 		}
 	}
 
-	public ChangeSet createUpdate(GlobalContext globalContext, InputStream InputStream) throws IOException, ValidationException {
+	public ChangeSet createUpdate(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {
 		FileSystem clone = new FileSystem(this);
-		boolean tidyOut = clone.mergeZIP(InputStream);
+		boolean tidyOut = clone.mergeZIP(inputStream);
 		ChangeSet changeSet = validateChanges(globalContext, clone);
 		if (tidyOut) clone.tidyOut();
 		return changeSet;
@@ -337,9 +341,9 @@ public final class FileSystem {
 		return services;
 	}
 	
-	private boolean mergeZIP(InputStream InputStream) throws IOException {
+	private boolean mergeZIP(InputStream inputStream) throws IOException {
 		boolean tidyOut = false;
-		try (JarInputStream zis = new JarInputStream(InputStream)) {
+		try (JarInputStream zis = new JarInputStream(inputStream)) {
 			Manifest manifest = zis.getManifest();
 			if (manifest != null) {
 				tidyOut = Boolean.parseBoolean(manifest.getMainAttributes().getValue("tidyOut"));

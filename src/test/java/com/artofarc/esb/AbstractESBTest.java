@@ -30,7 +30,7 @@ public abstract class AbstractESBTest {
 	protected void createContext(File dir) throws Exception {
 		GlobalContext globalContext = new GlobalContext(null);
 		globalContext.setFileSystem(new FileSystem(dir));
-		XMLCatalog.attachToFileSystem(globalContext);
+		XMLCatalog.attachToFileSystem(globalContext.getFileSystem());
 		context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());
 	}
 

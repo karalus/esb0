@@ -17,8 +17,6 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -144,24 +142,16 @@ public abstract class Artifact {
 	}
 
 	public final InputStream getContentAsStream() {
-		return _content != null ? new ByteArrayInputStream(_content) : getFileInputStream();
+		return _content != null ? new ByteArrayInputStream(_content) : _fileSystem.reloadInputStream(getURI());
 	}
 
 	protected final byte[] getContentAsBytes() throws IOException {
 		if (_content == null) {
-			try (InputStream contentAsStream = getFileInputStream()) {
+			try (InputStream contentAsStream = _fileSystem.reloadInputStream(getURI())) {
 				_content = StreamUtils.copy(contentAsStream);
 			}
 		}
 		return _content;
-	}
-
-	private FileInputStream getFileInputStream() {
-		try {
-			return new FileInputStream(new File(_fileSystem.getAnchorDir(), getURI()));
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException("FileSystem corrupted", e);
-		}
 	}
 
 	public String getContentType() {

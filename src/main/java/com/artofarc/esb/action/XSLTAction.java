@@ -44,10 +44,10 @@ public class XSLTAction extends SAXAction {
 	}
 
 	class TransformerFilter extends FeatureFilter {
-		private final TransformerHandler transformerHandler;
-		private final Transformer transformer;
+		final TransformerHandler transformerHandler;
+		final Transformer transformer;
 
-		TransformerFilter(Context context, XMLReader parent) throws TransformerConfigurationException {
+		TransformerFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerConfigurationException {
 			if (parent != null) {
 				super.setParent(parent);
 				transformerHandler = Context.getSAXTransformerFactory().newTransformerHandler(_templates);
@@ -57,24 +57,29 @@ public class XSLTAction extends SAXAction {
 				transformer = _templates.newTransformer();
 			}
 			transformer.setURIResolver(context.getPoolContext().getGlobalContext().getUriResolver());
+			for (Entry<String, Object> variable : message.getVariables().entrySet()) {
+				transformer.setParameter(variable.getKey(), variable.getValue());
+			}
+			transformer.setOutputProperties(message.getSinkProperties());
 		}
 
 		@Override
 		public void setParent(XMLReader parent) {
 			if (parent == null ^ getParent() == null) {
-				throw new IllegalStateException("having a parent cannot be changed after construction");
+				throw new IllegalArgumentException("having a parent cannot be changed after construction");
 			}
+			super.setParent(parent);
 		}
 
 		@Override
-		public void parse(InputSource source) throws IOException, SAXException {
+		public void parse(InputSource source) throws SAXException, IOException {
 			if (transformerHandler != null) {
 				transformerHandler.setResult(new SAXResult(getContentHandler()));
 				getParent().setContentHandler(transformerHandler);
 				getParent().parse(source);
 			} else {
 				try {
-					transformer.transform(InputSourceToSource(source), new SAXResult(getContentHandler()));
+					transformer.transform(inputSourceToSource(source), new SAXResult(getContentHandler()));
 				} catch (TransformerException e) {
 					throw new SAXException(e);
 				}
@@ -82,25 +87,15 @@ public class XSLTAction extends SAXAction {
 		}
 	}
 
-	private void apply(ESBMessage message, Transformer transformer) {
-		for (Entry<String, Object> variable : message.getVariables().entrySet()) {
-			transformer.setParameter(variable.getKey(), variable.getValue());
-		}
-		transformer.setOutputProperties(message.getSinkProperties());
-	}
-
 	@Override
-	protected SAXSource createSAXSource(XQItem item, Context context, ESBMessage message) throws TransformerConfigurationException {
-		TransformerFilter transformerFilter = new TransformerFilter(context, new XQJFilter(item));
-		apply(message, transformerFilter.transformer);
+	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws TransformerConfigurationException {
+		TransformerFilter transformerFilter = new TransformerFilter(context, message, new XQJFilter(item));
 		return new SAXSource(transformerFilter, null);
 	}
 
 	@Override
-	protected FeatureFilter createXMLFilter(XMLReader parent, Context context, ESBMessage message) throws TransformerConfigurationException {
-		TransformerFilter transformerFilter = new TransformerFilter(context, parent);
-		apply(message, transformerFilter.transformer);
-		return transformerFilter;
+	protected FeatureFilter createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerConfigurationException {
+		return new TransformerFilter(context, message, parent);
 	}
 
 }
