@@ -11,6 +11,7 @@ import org.junit.Before;
 import com.artofarc.esb.action.AssignAction;
 import com.artofarc.esb.action.HttpOutboundAction;
 import com.artofarc.esb.artifact.FileSystem;
+import com.artofarc.esb.artifact.FileSystemDir;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
@@ -29,7 +30,7 @@ public abstract class AbstractESBTest {
 
 	protected void createContext(File dir) throws Exception {
 		GlobalContext globalContext = new GlobalContext(null);
-		globalContext.setFileSystem(new FileSystem(dir));
+		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem());
 		XMLCatalog.attachToFileSystem(globalContext.getFileSystem());
 		context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());
 	}
