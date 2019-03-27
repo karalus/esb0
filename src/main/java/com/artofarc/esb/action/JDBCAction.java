@@ -206,12 +206,14 @@ public abstract class JDBCAction extends TerminalAction {
 					Blob blob = resultSet.getBlob(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
+						blob.free();
 					}
 					break;
 				case CLOB:
 					Clob clob = resultSet.getClob(i);
 					if (checkNotNull(resultSet, row)) {
 						row.add(clob.getSubString(1, (int) clob.length()));
+						clob.free();
 					}
 					break;
 				case VARBINARY:

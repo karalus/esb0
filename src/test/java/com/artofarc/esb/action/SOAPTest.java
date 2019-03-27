@@ -405,7 +405,7 @@ public class SOAPTest extends AbstractESBTest {
       assertTrue(dir.exists());
       createContext(dir);
       FileSystem fileSystem = getGlobalContext().getFileSystem();
-      fileSystem.parseDirectory(getGlobalContext()).getServiceArtifacts();
+      fileSystem.init(getGlobalContext()).getServiceArtifacts();
       WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");
 
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
@@ -435,7 +435,7 @@ public class SOAPTest extends AbstractESBTest {
       assertTrue(dir.exists());
       createContext(dir);
       FileSystem fileSystem = getGlobalContext().getFileSystem();
-      fileSystem.parseDirectory(getGlobalContext()).getServiceArtifacts();
+      fileSystem.init(getGlobalContext()).getServiceArtifacts();
       WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");
 
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));

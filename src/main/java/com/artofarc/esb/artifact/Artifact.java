@@ -18,7 +18,6 @@ package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.ReflectionUtils;
-import com.artofarc.util.StreamUtils;
 
 public abstract class Artifact {
 
@@ -142,14 +140,12 @@ public abstract class Artifact {
 	}
 
 	public final InputStream getContentAsStream() {
-		return _content != null ? new ByteArrayInputStream(_content) : _fileSystem.reloadInputStream(getURI());
+		return _content != null ? new ByteArrayInputStream(_content) : _fileSystem.createInputStream(getURI());
 	}
 
-	protected final byte[] getContentAsBytes() throws IOException {
+	protected final byte[] getContentAsBytes() throws Exception {
 		if (_content == null) {
-			try (InputStream contentAsStream = _fileSystem.reloadInputStream(getURI())) {
-				_content = StreamUtils.copy(contentAsStream);
-			}
+			_content = _fileSystem.reloadContent(getURI());
 		}
 		return _content;
 	}

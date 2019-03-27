@@ -27,6 +27,8 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
 import com.artofarc.esb.artifact.FileSystem;
+import com.artofarc.esb.artifact.FileSystemDB;
+import com.artofarc.esb.artifact.FileSystemDir;
 import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.GlobalContext;
@@ -36,25 +38,31 @@ public final class ESBServletContextListener implements ServletContextListener, 
 	public static final String VERSION = "esb0.version";
 	public static final String BUILD_TIME = "esb0.build.time";
 	public static final String CONTEXT = "esb0.context";
-	public static final String ROOT_DIR = "esb0.root.dir";
+	public static final String ROOT = "esb0.root";
 
 	private GlobalContext globalContext;
 
-	public GlobalContext createGlobalAndDefaultPoolContext(File rootDir) {
-		if (!rootDir.exists() || !rootDir.isDirectory()) {
-			throw new RuntimeException("No directory " + rootDir);
-		}
+	public GlobalContext createContext(String root) {
 		globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer());
-		FileSystem fileSystem = new FileSystem(rootDir);
-		globalContext.setFileSystem(fileSystem);
 		try {
+			FileSystem fileSystem;
+			if (root != null && root.contains("jdbc")) {
+				fileSystem = new FileSystemDB(globalContext.<javax.sql.DataSource> lookup(root));
+			} else {
+				File rootDir = root != null ? new File(root) : new File(System.getProperty("user.home"), "esb_root");
+				if (!rootDir.exists() || !rootDir.isDirectory()) {
+					throw new IOException("No directory " + rootDir);
+				}
+				fileSystem = new FileSystemDir(rootDir);
+			}
+			globalContext.setFileSystem(fileSystem);
 			XMLCatalog.attachToFileSystem(fileSystem);
-			FileSystem.ChangeSet changeSet = fileSystem.parseDirectory(globalContext);
+			FileSystem.ChangeSet changeSet = fileSystem.init(globalContext);
 			DeployServlet.deployChangeSet(globalContext, changeSet);
-		} catch (IOException e) {
-			throw new RuntimeException("Could not read services", e);
 		} catch (ValidationException e) {
 			throw new RuntimeException("Could not validate artifact " + e.getArtifact(), e.getCause());
+		} catch (Exception e) {
+			throw new RuntimeException("Could not read services", e);
 		}
 		globalContext.getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
 		return globalContext;
@@ -75,9 +83,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 		}
 		servletContext.setAttribute(VERSION, properties.getProperty("Implementation-Version", "0.0"));
 		servletContext.setAttribute(BUILD_TIME, properties.getProperty("Build-Time", ""));
-		String rootDirEnv = System.getProperty(ROOT_DIR, System.getenv("ESB_ROOT_DIR"));
-		File rootDir = rootDirEnv != null ? new File(rootDirEnv) : new File(System.getProperty("user.home"), "esb_root");
-		servletContext.setAttribute(CONTEXT, createGlobalAndDefaultPoolContext(rootDir));
+		servletContext.setAttribute(CONTEXT, createContext(System.getProperty(ROOT, System.getenv("ESB_ROOT_DIR"))));
 	}
 
 	@Override

@@ -26,7 +26,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	public void createContext() throws Exception {
 		createContext(new File("src/test/resources/example/"));
       fileSystem = getGlobalContext().getFileSystem();
-      fileSystem.parseDirectory(getGlobalContext());
+      fileSystem.init(getGlobalContext());
       XSDArtifact xsd = fileSystem.getArtifact("de.aoa.ei.foundation.v1.xsd");
       jaxbContext = xsd.getJAXBContext();
       urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "");

@@ -20,9 +20,10 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StreamUtils;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -34,42 +35,49 @@ import java.util.zip.ZipEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class FileSystem {
+public class FileSystem {
 
 	protected final static Logger logger = LoggerFactory.getLogger(FileSystem.class);
 
-	private final File _anchorDir;
-	private final Directory _root;
-	private final Map<String, ChangeType> _changes = new LinkedHashMap<>();
+	protected final Directory _root;
+	protected final Map<String, ChangeType> _changes = new LinkedHashMap<>();
 
-	public FileSystem(FileSystem fileSystem) {
-		_anchorDir = fileSystem._anchorDir;
-		_root = fileSystem._root.clone(this, null);
-	}
-
-	public FileSystem(File anchorDir) {
-		_anchorDir = anchorDir;
+	public FileSystem() {
 		_root = new Directory(this, null, "");
 	}
 
-	public Directory getRoot() {
+	protected FileSystem(FileSystem fileSystem) {
+		_root = fileSystem._root.clone(this, null);
+	}
+
+	public FileSystem copy() {
+		return new FileSystem(this);
+	}
+
+	public final Directory getRoot() {
 		return _root;
 	}
 
-	protected InputStream reloadInputStream(String uri) {
+	protected InputStream createInputStream(String uri) {
 		try {
-			return new FileInputStream(new File(_anchorDir, uri));
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException("FileSystem corrupted", e);
+			return new ByteArrayInputStream(reloadContent(uri));
+		} catch (Exception e) {
+			throw ReflectionUtils.convert(e, RuntimeException.class);
 		}
 	}
 
-	public <A extends Artifact> A getArtifact(String uri) {
+	protected byte[] reloadContent(String uri) throws Exception {
+		try (InputStream contentAsStream = createInputStream(uri)) {
+			return StreamUtils.copy(contentAsStream);
+		}
+	}
+
+	public final <A extends Artifact> A getArtifact(String uri) {
 		return getArtifact(_root, uri);
 	}
 
 	@SuppressWarnings("unchecked")
-	protected <A extends Artifact> A getArtifact(Directory current, String uri) {
+	protected final <A extends Artifact> A getArtifact(Directory current, String uri) {
 		if (uri == null) return (A) current;
 		int i = 0, j;
 		while ((j = uri.indexOf('/', i)) >= 0) {
@@ -99,14 +107,15 @@ public final class FileSystem {
 		return (A) (name.isEmpty() ? current : current.getArtifacts().get(name));
 	}
 
-	public ChangeSet parseDirectory(GlobalContext globalContext) throws IOException, ValidationException {
-		readDir(_root, _anchorDir, new CRC32());
-		ChangeSet services = new ChangeSet();
-		validateServices(globalContext, _root, services);
-		return services;
+	public final ChangeSet init(GlobalContext globalContext) throws ValidationException, Exception {
+		parse(new CRC32());
+		return validateServices(globalContext);
 	}
 
-	private void dehydrateArtifacts(Directory base) {
+	protected void parse(CRC32 crc) throws Exception {
+	}
+
+	protected final void dehydrateArtifacts(Directory base) {
 		for (Artifact artifact : base.getArtifacts().values()) {
 			if (artifact instanceof Directory) {
 				dehydrateArtifacts((Directory) artifact);
@@ -116,6 +125,13 @@ public final class FileSystem {
 				}
 			}
 		}
+	}
+
+	private ChangeSet validateServices(GlobalContext globalContext) throws ValidationException {
+		_changes.clear();
+		ChangeSet services = new ChangeSet();
+		validateServices(globalContext, _root, services);
+		return services;
 	}
 
 	private static void validateServices(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
@@ -142,25 +158,7 @@ public final class FileSystem {
 		}
 	}
 
-	private void readDir(Directory base, File dir, CRC32 crc) throws IOException {
-		for (File file : dir.listFiles()) {
-			String name = file.getName();
-			if (file.isDirectory()) {
-				readDir(new Directory(this, base, name), file, crc);
-			} else {
-				Artifact artifact = createArtifact(base, name);
-				if (artifact != null) {
-					artifact.setContent(StreamUtils.readFile(file));
-					artifact.setModificationTime(file.lastModified());
-					crc.update(artifact.getContent());
-					artifact.setCrc(crc.getValue());
-					crc.reset();
-				}
-			}
-		}
-	}
-
-	private Artifact createArtifact(Directory parent, String name) {
+	protected final Artifact createArtifact(Directory parent, String name) {
 		// Mac OSX
 		if (name.startsWith("._"))
 			return null;
@@ -192,7 +190,7 @@ public final class FileSystem {
 		}
 	}
 
-	protected Directory makeDirectory(String path) {
+	protected final Directory makeDirectory(String path) {
 		Directory result = _root;
 		String[] split = path.split("/");
 		for (String name : split) {
@@ -223,7 +221,7 @@ public final class FileSystem {
 		return deleted;
 	}
 
-	public boolean tidyOut() {
+	public final boolean tidyOut() {
 		HashSet<String> visited = new HashSet<>();
 		collectFolders(visited, _root);
 		return tidyOut(_root, visited);
@@ -278,7 +276,7 @@ public final class FileSystem {
 
 	protected enum ChangeType { CREATE, UPDATE, DELETE }
 
-	public class ChangeSet {
+	public final class ChangeSet {
 		private final ArrayList<Future<ServiceArtifact>> futures = new ArrayList<>();
 		private final ArrayList<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
 
@@ -306,19 +304,19 @@ public final class FileSystem {
 		}
 	}
 
-	public ChangeSet createUpdate(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {
-		FileSystem clone = new FileSystem(this);
-		boolean tidyOut = clone.mergeZIP(inputStream);
-		ChangeSet changeSet = validateChanges(globalContext, clone);
-		if (tidyOut) clone.tidyOut();
+	public final ChangeSet createUpdate(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {
+		FileSystem copy = copy();
+		boolean tidyOut = copy.mergeZIP(inputStream);
+		ChangeSet changeSet = validateChanges(globalContext, copy);
+		if (tidyOut) copy.tidyOut();
 		return changeSet;
 	}
 
-	protected ChangeSet validateChanges(GlobalContext globalContext, FileSystem changedFileSystem) throws ValidationException {
+	private ChangeSet validateChanges(GlobalContext globalContext, FileSystem changedFileSystem) throws ValidationException {
 		ChangeSet services = changedFileSystem.new ChangeSet();
 		HashSet<String> visited = new HashSet<>();
 		// find affected
-		for (Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
+		for (Map.Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
 			if (entry.getValue() == ChangeType.UPDATE) {
 				collectUpwardDependencies(visited, entry.getKey());
 			}
@@ -333,7 +331,7 @@ public final class FileSystem {
 			Artifact artifact = changedFileSystem.getArtifact(original);
 			validateServices(globalContext, artifact, services);
 		}
-		for (Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
+		for (Map.Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
 			if (entry.getValue() == ChangeType.CREATE) {
 				validateServices(globalContext, changedFileSystem.getArtifact(entry.getKey()), services);
 			}
@@ -394,23 +392,6 @@ public final class FileSystem {
 	}
 
 	public void writeBackChanges() throws IOException {
-		for (Entry<String, ChangeType> entry : _changes.entrySet()) {
-			File file = new File(_anchorDir, entry.getKey());
-			if (entry.getValue() == ChangeType.DELETE) {
-				file.delete();
-			} else {
-				Artifact artifact = getArtifact(entry.getKey());
-				if (artifact instanceof Directory) {
-					file.mkdir();
-				} else {
-					FileOutputStream fos = new FileOutputStream(file);
-					fos.write(artifact.getContent());
-					fos.close();
-				}
-			}			
-		}
-		_changes.clear();
-		dehydrateArtifacts(_root);
 	}
 
 }

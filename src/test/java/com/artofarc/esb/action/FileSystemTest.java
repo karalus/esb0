@@ -14,6 +14,7 @@ import org.junit.Test;
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.FileSystem;
+import com.artofarc.esb.artifact.FileSystemDir;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
@@ -30,16 +31,16 @@ public class FileSystemTest extends AbstractESBTest {
    public void testFileSystem() throws Exception {
       File dir = new File("src/test/resources");
       assertTrue(dir.exists());
-      FileSystem fileSystem = new FileSystem(dir);
-      fileSystem.parseDirectory(context.getPoolContext().getGlobalContext());
-      FileSystem clone = new FileSystem(fileSystem);
+      FileSystem fileSystem = new FileSystemDir(dir);
+      fileSystem.init(context.getPoolContext().getGlobalContext());
+      FileSystem clone = fileSystem.copy();
       assertFalse(fileSystem.getRoot() == clone.getRoot());
       assertFalse(fileSystem.tidyOut());
    }
    
   @Test
    public void testStartup() {
-		try (GlobalContext globalContext = new ESBServletContextListener().createGlobalAndDefaultPoolContext(new File("src/test/resources"))) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources")) {
          ConsumerPort service = globalContext.getInternalService("/HttpService4.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/demo1");
@@ -49,7 +50,7 @@ public class FileSystemTest extends AbstractESBTest {
    
    @Test
    public void testRealService() throws Exception {
-		try (GlobalContext globalContext = new ESBServletContextListener().createGlobalAndDefaultPoolContext(new File("src/test/resources"))) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources")) {
          ConsumerPort service = globalContext.getInternalService("/example/ExampleService.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/exampleUsingport");
