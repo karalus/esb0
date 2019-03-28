@@ -648,6 +648,7 @@
 							<attribute name="workerPool" type="anyURI" />
 							<attribute name="jndiConnectionFactory" type="anyURI"
 								use="required" />
+							<attribute name="subscription" type="tns:string1" />
 							<attribute name="messageSelector" type="string" />
 							<attribute name="workerCount" type="int" default="1" />
 							<attribute name="pollInterval" type="int" default="0" />
@@ -656,6 +657,7 @@
 					<element name="timerBinding">
 						<complexType>
 							<attribute name="workerPool" type="anyURI" />
+							<attribute name="timeUnit" type="string" default="seconds"/>
 							<attribute name="initialDelay" type="int" default="60" />
 							<attribute name="period" type="int" default="300" />
 							<attribute name="fixedDelay" type="boolean" default="false" />
