@@ -65,7 +65,7 @@ public class KafkaConsumeAction extends TerminalAction {
 			logger.debug("Kafka Consumer Record(topic=" + record.topic() + ", partition=" + record.partition() + ", offset=" + record.offset() + ")");
 			for(;;) {
 				try {
-					futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action>emptyList(), true), record);
+					futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), true), record);
 					break;
 				} catch (RejectedExecutionException e) {
 					logger.warn("Could not spawn to worker pool " + _workerPool);

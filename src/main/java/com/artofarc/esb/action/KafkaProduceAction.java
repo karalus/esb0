@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.Future;
 
@@ -32,10 +33,14 @@ import com.artofarc.esb.resource.KafkaProducerFactory;
 public class KafkaProduceAction extends TerminalAction {
 
 	private final String _topic;
+	private final Integer _partition;
+	private final boolean _binary;
 	private final Producer<?, ?> _producer;
 
-	public KafkaProduceAction(GlobalContext globalContext, Properties properties, String topic) throws Exception {
+	public KafkaProduceAction(GlobalContext globalContext, Properties properties, String topic, Integer partition, boolean binary) throws Exception {
 		_topic = topic;
+		_partition = partition;
+		_binary = binary;
 		KafkaProducerFactory kafkaProducerFactory = globalContext.getResourceFactory(KafkaProducerFactory.class);
 		_producer = kafkaProducerFactory.getResource(properties);
 	}
@@ -44,7 +49,11 @@ public class KafkaProduceAction extends TerminalAction {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 		@SuppressWarnings("rawtypes")
-		final ProducerRecord record = new ProducerRecord<>(_topic, message.getVariable("record.key"), message.getBodyAsString(context));
+		ProducerRecord record = new ProducerRecord<>(_topic, _partition, message.getVariable("record.key"), _binary ? message.getBodyAsByteArray(context) : message.getBodyAsString(context));
+		for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
+			String value = entry.getValue().toString();
+			record.headers().add(entry.getKey(), value.getBytes(ESBMessage.CHARSET_DEFAULT));
+		}
 		context.getTimeGauge().startTimeMeasurement();
 		@SuppressWarnings("unchecked")
 		Future<RecordMetadata> future = _producer.send(record);

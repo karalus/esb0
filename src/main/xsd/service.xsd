@@ -84,7 +84,7 @@
 					<attribute name="deliveryMode" type="int" default="2" />
 					<attribute name="priority" type="int" default="4" />
 					<attribute name="timeToLive" type="long" default="0" />
-					<attribute name="receiveFromTempQueue" type="boolean" default="false" />					
+					<attribute name="receiveFromTempQueue" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -97,6 +97,8 @@
 						<element ref="tns:property" maxOccurs="unbounded"/>
 					</sequence>
 					<attribute name="topic" type="Name" use="required" />
+					<attribute name="partition" type="int" />
+					<attribute name="binary" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>

@@ -132,7 +132,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (Property property : produceKafka.getProperty()) {
 					properties.put(property.getKey(), property.getValue());
 				}
-				list.add(new KafkaProduceAction(globalContext, properties, produceKafka.getTopic()));
+				list.add(new KafkaProduceAction(globalContext, properties, produceKafka.getTopic(), produceKafka.getPartition(), produceKafka.isBinary()));
 				break;
 			}
 			case "consumeKafka": {
