@@ -20,16 +20,7 @@ import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-import javax.jms.BytesMessage;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
-import javax.jms.Queue;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
+import javax.jms.*;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.ConsumerPort;
@@ -37,23 +28,24 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
 public final class JMSConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final String _workerPool;
 	private final String _jndiConnectionFactory;
-	private final String _messageSelector;
 	private Destination _destination;
 	private final String _queueName;
 	private final String _topicName;
+	private final String _subscription;
+	private final String _messageSelector;
 	private final JMSWorker[] _jmsWorker;
 	private final long _pollInterval;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, String jndiConnectionFactory, String jndiDestination, String queueName,
-			String topicName, String messageSelector, int workerCount, long pollInterval) throws NamingException, JMSException {
+			String topicName, String subscription, String messageSelector, int workerCount, long pollInterval) throws NamingException, JMSException {
 
 		super(uri);
 		_workerPool = workerPool;
@@ -72,6 +64,11 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			_queueName = queueName;
 			_topicName = topicName;
 		}
+		if (subscription != null) {
+			if (_topicName == null) throw new IllegalArgumentException("Subscription only allowed for topics: " + getKey());
+			if (workerCount != 1) throw new IllegalArgumentException("Subscriptions can only have one worker: " + getKey());
+		}
+		_subscription = subscription;
 		_jmsWorker = new JMSWorker[workerCount];
 		_pollInterval = pollInterval; 
 	}
@@ -103,7 +100,10 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	}
 
 	public String getKey() {
-		return _jndiConnectionFactory + '|' + getDestinationName() + '|' + _messageSelector;
+		String key = _jndiConnectionFactory + '|' + getDestinationName();
+		if (_subscription != null) key += '|' + _subscription;
+		if (_messageSelector != null) key += '|' + _messageSelector;
+		return key;
 	}
 
 	public int getWorkerCount() {
@@ -114,7 +114,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	public void init(GlobalContext globalContext) throws Exception {
 		WorkerPool workerPool = globalContext.getWorkerPool(_workerPool);
 		if (workerPool.getScheduledExecutorService() == null) {
-			throw new IllegalStateException("No scheduled threads in WorkerPool " + _workerPool);
+			throw new java.lang.IllegalStateException("No scheduled threads in WorkerPool " + _workerPool);
 		}
 		for (int i = 0; i < _jmsWorker.length; ++i) {
 			(_jmsWorker[i] = _pollInterval > 0L ? new JMSPollingWorker(workerPool) : new JMSWorker(workerPool)).open();
@@ -212,9 +212,19 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			}
 		}
 
+		final void initMessageConsumer() throws JMSException {
+			if (_messageConsumer == null) {
+				if (_subscription != null) {
+					_messageConsumer = _session.createDurableSubscriber((Topic) _destination, _subscription, _messageSelector, false);
+				} else {
+					_messageConsumer = _session.createConsumer(_destination, _messageSelector);
+				}
+			}
+		}
+
 		void startListening() throws JMSException {
 			if (_messageConsumer == null) {
-				_messageConsumer = _session.createConsumer(_destination, _messageSelector);
+				initMessageConsumer();
 				try {
 					_messageConsumer.setMessageListener(this);
 				} catch (JMSException e) {
@@ -249,18 +259,14 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
 			try {
 				fillESBMessage(esbMessage, message);
+				try {
+					processInternal(_context, esbMessage);
+					_session.commit();
+				} catch (Exception ex) {
+					_session.rollback();
+				}
 			} catch (JMSException e) {
 				throw new RuntimeException(e);
-			}
-			try {
-				processInternal(_context, esbMessage);
-				_session.commit();
-			} catch (Exception ex) {
-				try {
-					_session.rollback();
-				} catch (JMSException e) {
-					throw new RuntimeException(e);
-				}
 			}
 		}
 	}
@@ -275,7 +281,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 		void startListening() throws JMSException {
 			if (_messageConsumer == null) {
-				_messageConsumer = _session.createConsumer(_destination, _messageSelector);
+				initMessageConsumer();
 				_poller = _workerPool.getExecutorService().submit(this);
 			}
 		}

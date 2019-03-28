@@ -28,6 +28,7 @@ import com.artofarc.esb.message.ESBMessage;
 public final class TimerService extends ConsumerPort implements AutoCloseable, Runnable, com.artofarc.esb.mbean.TimerServiceMXBean {
 
 	private final String _workerPoolName;
+	private final TimeUnit _timeUnit;
 	private final int _initialDelay, _period;
 	private final boolean _fixedDelay;
 
@@ -35,9 +36,10 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 
 	private volatile ScheduledFuture<?> _future;
 
-	public TimerService(String uri, String workerPool, int initialDelay, int period, boolean fixedDelay) {
+	public TimerService(String uri, String workerPool, String timeUnit, int initialDelay, int period, boolean fixedDelay) {
 		super(uri);
 		_workerPoolName = workerPool;
+		_timeUnit = TimeUnit.valueOf(timeUnit.toUpperCase());
 		_initialDelay = initialDelay;
 		_period = period;
 		_fixedDelay = fixedDelay;
@@ -61,9 +63,9 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 		if (enable) {
 			if (_future == null) {
 				if (_fixedDelay) {
-					_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _initialDelay, _period, TimeUnit.SECONDS);
+					_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _initialDelay, _period, _timeUnit);
 				} else {
-					_future = _workerPool.getScheduledExecutorService().scheduleAtFixedRate(this, _initialDelay, _period, TimeUnit.SECONDS);
+					_future = _workerPool.getScheduledExecutorService().scheduleAtFixedRate(this, _initialDelay, _period, _timeUnit);
 				}
 			}
 		} else {
@@ -71,8 +73,8 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 		}
 	}
 
-	public Long getDelay() {
-		return _future != null ? _future.getDelay(TimeUnit.SECONDS) : null;
+	public final Long getDelay() {
+		return _future != null ? _future.getDelay(_timeUnit) : null;
 	}
 
 	@Override

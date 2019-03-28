@@ -107,7 +107,7 @@ public class FileSystem {
 		return (A) (name.isEmpty() ? current : current.getArtifacts().get(name));
 	}
 
-	public final ChangeSet init(GlobalContext globalContext) throws ValidationException, Exception {
+	public final ChangeSet init(GlobalContext globalContext) throws Exception {
 		parse(new CRC32());
 		return validateServices(globalContext);
 	}

@@ -17,7 +17,7 @@ public class FileSystemWatchTest extends AbstractESBTest {
 
 	@Test
 	public void testTimerService() throws Exception {
-		TimerService timerService = new TimerService(null, null, 0, 100, false);
+		TimerService timerService = new TimerService(null, null, "seconds", 0, 100, false);
 		MarkAction markAction = new MarkAction();
 		timerService.setStartAction(markAction);
 		assertFalse(markAction.isExecuted());
@@ -38,7 +38,7 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		File outDir = new File(dir, "out");
 		outDir.mkdir();
 		outDir.deleteOnExit();
-		TimerService timerService = new TimerService(null, null, 0, 1, false);
+		TimerService timerService = new TimerService(null, null, "seconds", 0, 1, false);
 		FileSystemWatchAction action = new FileSystemWatchAction(Arrays.asList(new String[] { inDir.getPath() }), 90l, null, new FileAction(outDir.getPath()));
 		timerService.setStartAction(action);
 		timerService.init(context.getPoolContext().getGlobalContext());

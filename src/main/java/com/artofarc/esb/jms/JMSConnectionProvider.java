@@ -39,7 +39,8 @@ import com.artofarc.esb.resource.JMSSessionFactory;
 public final class JMSConnectionProvider {
 
 	protected final static Logger logger = LoggerFactory.getLogger(JMSConnectionProvider.class);
-
+	protected final static String instanceId = System.getProperty("esb0.jms.instanceId");
+	
 	private final HashMap<String, JMSConnectionGuard> _pool = new HashMap<>();
 	private final PoolContext _poolContext;
 	private final HashSet<JMSSessionFactory> _jmsSessionFactories = new HashSet<>();
@@ -55,7 +56,8 @@ public final class JMSConnectionProvider {
 	public synchronized Connection getConnection(String jndiConnectionFactory) throws NamingException, JMSException {
 		JMSConnectionGuard connectionGuard = _pool.get(jndiConnectionFactory);
 		if (connectionGuard == null) {
-			connectionGuard = new JMSConnectionGuard(jndiConnectionFactory);
+			String clientID = instanceId != null ? instanceId + _poolContext.getWorkerPool().getName() : null;
+			connectionGuard = new JMSConnectionGuard(jndiConnectionFactory, clientID);
 			_pool.put(jndiConnectionFactory, connectionGuard);
 		}
 		return connectionGuard.getConnection();
@@ -85,11 +87,13 @@ public final class JMSConnectionProvider {
 
 		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
 		private final String _jndiConnectionFactory;
+		private final String _clientID; 
 		private Connection _connection;
 		private ScheduledFuture<?> _future;
 
-		private JMSConnectionGuard(String jndiConnectionFactory) throws NamingException, JMSException {
+		private JMSConnectionGuard(String jndiConnectionFactory, String clientID) throws NamingException, JMSException {
 			_jndiConnectionFactory = jndiConnectionFactory;
+			_clientID = clientID;
 			_connection = createConnection();
 			_connection.setExceptionListener(this);
 		}
@@ -97,6 +101,9 @@ public final class JMSConnectionProvider {
 		private Connection createConnection() throws NamingException, JMSException {
 			ConnectionFactory qcf = _poolContext.getGlobalContext().lookup(_jndiConnectionFactory);
 			Connection connection = qcf.createConnection();
+			if (_clientID != null) {
+				connection.setClientID(_clientID);
+			}
 			try {
 				connection.start();
 			} catch (JMSException e) {

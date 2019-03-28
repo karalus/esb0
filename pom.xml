@@ -200,6 +200,7 @@
 				</executions>
 				<configuration>
 					<generateEpisode>false</generateEpisode>
+					<locale>en</locale>
 					<sources>
                     	<source>src/main/xsd/service.xsd</source>
                 	</sources>

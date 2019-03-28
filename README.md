@@ -31,7 +31,7 @@ ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sou
 
 The minimal set of features is supported based on the VETRO pattern. All basic EAI components that are needed are built-in with the exemption of stateful components (e.g. [resquencer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Resequencer.html)). As the ESB Zero does not maintain state on its own, it can be easily scaled up and runs very stable.
 
-Having no built-in state does not necessarily mean that you need more tools or products. You can build many patterns with ESB Zero and a MOM and/or DB. For instance the mentioned resequencer can be realised with two ESB Zero service flows and a DB table in the middle (First flow puts messages into the table along with sequence nr and timestamp and the second flow polls the table for messages arrived before a given period of time in the correct order and forwards the messages to the next endpoint).
+Having no built-in state does not necessarily mean that you need more tools or products. You can build many patterns with ESB Zero and a MOM and/or DB. For instance the mentioned resequencer can be realized with two ESB Zero service flows and a DB table in the middle (First flow puts messages into the table along with sequence nr and timestamp and the second flow polls the table for messages arrived before a given period of time in the correct order and forwards the messages to the next endpoint).
 This general concept puts the burden of persistent state (not losing or corrupting it) on the MOM/DB.
 
 ESB Zero is not meant to be used for complex EAI scenarios (Orchestration, COTS Components, ETL, complex logic, ...). For this end better use another tool.
@@ -84,6 +84,7 @@ It has been tested with Tomcat 7, 8 and 8.5, Wildfly, Jetty 9.0.0. and JBoss EAP
 ESB Zero needs one directory to retrieve service flows and other artifacts from and persist to.
 Per default it is expected to have a folder named "esb_root" in the user home folder (of the user running the servlet container).
 Either create an empty directory with name "esb_root" there or set environment variable ESB_ROOT_DIR to an existing folder of your choice.
+In a cluster setup it is also possible to use a DB(via JNDI DataSource) for storing/retrieving service artifacts if you cannot go for a cluster file system.
 
 Note: This folder can be empty but it must exist!
 
