@@ -119,7 +119,7 @@
 	       }
 	   %>
 	   </table>
-	   <object data="<%=request.getContextPath() + request.getServletPath() + "/deploy" + a.getURI()%>" type="text/plain" width="1600" style="height: 800px"></object>
+	   <embed src="<%=request.getContextPath() + request.getServletPath() + "/deploy" + a.getURI()%>" type="<%=a.getContentType()%>" width="1600" height="800"></embed>
 	   <%
    }
 %>
