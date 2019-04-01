@@ -20,9 +20,9 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public final class Collections {
 
@@ -32,7 +32,7 @@ public final class Collections {
 
 	public static <K, V> Map<V, K> inverseMap(Map<K, V> map, boolean unique) {
 		Map<V, K> result = new HashMap<>();
-		for (Entry<K, V> entry : map.entrySet()) {
+		for (Map.Entry<K, V> entry : map.entrySet()) {
 			if (result.put(entry.getValue(), entry.getKey()) != null) {
 				if (unique) {
 					throw new IllegalArgumentException("Value is not unique: " + entry.getValue());
@@ -50,6 +50,16 @@ public final class Collections {
 			return list;
 		}
 		return java.util.Collections.emptyList();
+	}
+
+	public static <T> T[] toArray(Collection<T> list) {
+		Iterator<T> iter = list.iterator();
+		if (!iter.hasNext()) {
+			throw new IllegalArgumentException("Collection must not be empty");
+		}
+		@SuppressWarnings("unchecked")
+		T[] array = (T[]) java.lang.reflect.Array.newInstance(iter.next().getClass(), list.size());
+		return list.toArray(array);
 	}
 
 }

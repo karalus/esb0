@@ -16,7 +16,6 @@
  */
 package com.artofarc.util;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -117,11 +116,6 @@ public final class ReflectionUtils {
 			}
 		}
 		throw new NoSuchMethodException();
-	}
-
-	public static Object[] toArray(List<Object> list) {
-		Object[] array = (Object[]) Array.newInstance(list.get(0).getClass(), list.size());
-		return list.toArray(array);
 	}
 
 	public static <T extends Throwable> T convert(Throwable t, Class<T> cls, Object... params) {

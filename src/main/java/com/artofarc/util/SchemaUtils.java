@@ -17,9 +17,10 @@
 package com.artofarc.util;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
@@ -40,9 +41,9 @@ public final class SchemaUtils {
 		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 		try {
 			if (schemaArtifact.getGrammars().size() > 0) {
-				ArrayList<Object> grammars = new ArrayList<>();
+				Map<String, Object> grammars = new LinkedHashMap<>();
 				collectGrammars(schemaArtifact, new HashSet<SchemaArtifact>(), grammars);
-				return createXMLSchema(factory, ReflectionUtils.toArray(grammars));
+				return createXMLSchema(factory, Collections.toArray(grammars.values()));
 			}
 			factory.setResourceResolver(schemaArtifact);
 			Schema schema = factory.newSchema(schemas);
@@ -106,8 +107,12 @@ public final class SchemaUtils {
 		return (Schema) schema;
 	}
 
-	private static void collectGrammars(SchemaArtifact schemaArtifact, HashSet<SchemaArtifact> visited, ArrayList<Object> grammars) {
-		grammars.addAll(schemaArtifact.getGrammars().values());
+	private static void collectGrammars(SchemaArtifact schemaArtifact, HashSet<SchemaArtifact> visited, Map<String, Object> grammars) {
+		for (Map.Entry<String, Object> entry : schemaArtifact.getGrammars().entrySet()) {
+			if (!grammars.containsKey(entry.getKey())) {
+				grammars.put(entry.getKey(), entry.getValue());
+			}
+		}
 		visited.add(schemaArtifact);
 		for (String referenced : schemaArtifact.getReferenced()) {
 			SchemaArtifact artifact = schemaArtifact.getArtifact(referenced);
