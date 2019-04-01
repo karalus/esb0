@@ -277,29 +277,40 @@ public class FileSystem {
 	protected enum ChangeType { CREATE, UPDATE, DELETE }
 
 	public final class ChangeSet {
-		private final ArrayList<Future<ServiceArtifact>> futures = new ArrayList<>();
-		private final ArrayList<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
+		private final List<Future<ServiceArtifact>> futures = new ArrayList<>();
+		private final List<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
 
 		public FileSystem getFileSystem() {
 			return FileSystem.this;
 		}
 
-		public ArrayList<ServiceArtifact> getServiceArtifacts() throws ValidationException {
-			ArrayList<ServiceArtifact> serviceArtifacts = new ArrayList<>();
+		public List<ServiceArtifact> getServiceArtifacts() throws ValidationException {
+			List<ServiceArtifact> serviceArtifacts = new ArrayList<>();
+			List<ValidationException> exceptions = new ArrayList<>();
 			for (Future<ServiceArtifact> future : futures) {
 				try {
 					serviceArtifacts.add(future.get());
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
 				} catch (ExecutionException e) {
-					throw ReflectionUtils.convert(e.getCause(), ValidationException.class);
+					if (e.getCause() instanceof ValidationException) {
+						exceptions.add((ValidationException) e.getCause());
+					} else {
+						throw ReflectionUtils.convert(e.getCause(), RuntimeException.class);
+					}
 				} 
+			}
+			if (exceptions.size() > 0) {
+				for (ValidationException exception : exceptions) {
+					logger.error(exception.getArtifact().getURI(), exception);
+				}
+				throw exceptions.get(0);
 			}
 			dehydrateArtifacts(_root);
 			return serviceArtifacts;
 		}
 
-		public ArrayList<WorkerPoolArtifact> getWorkerPoolArtifacts() {
+		public List<WorkerPoolArtifact> getWorkerPoolArtifacts() {
 			return workerPoolArtifacts;
 		}
 	}

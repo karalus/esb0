@@ -18,7 +18,7 @@ package com.artofarc.esb.servlet;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.util.List;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
@@ -137,7 +137,7 @@ public class DeployServlet extends HttpServlet {
 	}
 
 	public static void deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet updateSet) throws ValidationException {
-		ArrayList<ServiceArtifact> serviceArtifacts = updateSet.getServiceArtifacts();
+		List<ServiceArtifact> serviceArtifacts = updateSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
 		for (WorkerPoolArtifact workerPoolArtifact : updateSet.getWorkerPoolArtifacts()) {
 			String name = WorkerPoolArtifact.stripExt(workerPoolArtifact.getURI());
