@@ -29,6 +29,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
+
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
@@ -36,10 +37,11 @@ import com.artofarc.esb.servlet.GenericHttpListener;
 
 public class HttpServletResponseAction extends Action {
 
-	private final boolean _supportCompression, _multipartResponse;
+	private final boolean _supportCompression;
+	private final String _multipartResponse;
 	private final Integer _bufferSize;
 
-	public HttpServletResponseAction(boolean supportCompression, boolean multipartResponse, Integer bufferSize) {
+	public HttpServletResponseAction(boolean supportCompression, String multipartResponse, Integer bufferSize) {
 		_pipelineStop = true;
 		_supportCompression = supportCompression;
 		_multipartResponse = multipartResponse;
@@ -76,7 +78,7 @@ public class HttpServletResponseAction extends Action {
 			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
 			if (_supportCompression) checkCompression(message);
 			checkFastInfoSet(message);
-			if (_multipartResponse) {
+			if (_multipartResponse != null) {
 				if (inPipeline) {
 					ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
 					message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -129,9 +131,8 @@ public class HttpServletResponseAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		AsyncContext asyncContext = execContext.getResource();
 		message.closeBody();
-		if (_multipartResponse) {
-			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-			MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"');
+		if (_multipartResponse != null) {
+			MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + _multipartResponse + '"');
 			ByteArrayOutputStream bos = execContext.getResource2();
 			if (bos == null) {
 				bos = new ByteArrayOutputStream(ESBMessage.MTU);
@@ -139,7 +140,12 @@ public class HttpServletResponseAction extends Action {
 				message.closeBody();
 			}
 			InternetHeaders headers = new InternetHeaders();
-			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+			Entry<String, String> contentTypeEntry = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
+			String contentType = contentTypeEntry.getValue();
+			if (!_multipartResponse.equals(contentType)) {
+				contentType = _multipartResponse + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + contentType;
+			}
+			contentTypeEntry.setValue(contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
 			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
 				headers.setHeader(entry.getKey(), entry.getValue().toString());
 			}

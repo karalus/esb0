@@ -89,7 +89,7 @@ public class UnwrapSOAPAction extends TransformAction {
 				throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));
 			}
 		}
-		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		String contentType = message.getContentType();
 		if (contentType == null || !contentType.startsWith(_soap12 ? HTTP_HEADER_CONTENT_TYPE_FI_SOAP12 : HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) && !contentType.startsWith(_soap12 ? SOAP_1_2_CONTENT_TYPE : SOAP_1_1_CONTENT_TYPE)) {
 			String error = "Unexpected Content-Type: " + contentType;
 			if (message.getBodyType() != BodyType.INVALID) {

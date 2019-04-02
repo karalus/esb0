@@ -60,6 +60,7 @@ import org.xml.sax.InputSource;
 
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
+
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
@@ -229,7 +230,16 @@ public final class ESBMessage implements Cloneable {
 	private boolean isSinkEncodingdifferent() {
 		return _sinkEncoding != null && _sinkEncoding != getCharset();
 	}
-	
+
+	public String getContentType() {
+		String header = getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (header != null) {
+			String type = getValueFromHttpHeader(header, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
+			return type != null ? type : header;
+		}
+		return null;
+	}
+
 	public Number getTimeleft(Number def) {
 		return getVariable(ESBConstants.timeleft, def);
 	}

@@ -631,7 +631,7 @@
 							<simpleContent>
 								<extension base="anyURI">
 									<attribute name="supportCompression" type="boolean" default="false" />
-									<attribute name="multipartResponse" type="boolean" default="false" />
+									<attribute name="multipartResponse" type="tns:string1" />
 									<attribute name="bufferSize" type="int" />
 									<attribute name="minPool" type="int" default="1" />
 									<attribute name="maxPool" type="int" default="20" />

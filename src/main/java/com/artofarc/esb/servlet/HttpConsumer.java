@@ -34,7 +34,7 @@ public final class HttpConsumer extends ConsumerPort implements AutoCloseable, c
 	private final HttpServletResponseAction _terminalAction;
 	private ContextPool _contextPool;
 
-	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive, boolean supportCompression, boolean multipartResponse, Integer bufferSize) {
+	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive, boolean supportCompression, String multipartResponse, Integer bufferSize) {
 		super(uri);
 		_bindPath = bindPath;
 		_minPool = minPool;
