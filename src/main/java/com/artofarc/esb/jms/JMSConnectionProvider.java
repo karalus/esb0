@@ -88,7 +88,7 @@ public final class JMSConnectionProvider {
 		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
 		private final String _jndiConnectionFactory;
 		private final String _clientID; 
-		private Connection _connection;
+		private volatile Connection _connection;
 		private ScheduledFuture<?> _future;
 
 		private JMSConnectionGuard(String jndiConnectionFactory, String clientID) throws NamingException, JMSException {
@@ -113,7 +113,7 @@ public final class JMSConnectionProvider {
 			return connection;
 		}
 
-		synchronized Connection getConnection() {
+		Connection getConnection() {
 			if (_connection == null) {
 				throw new IllegalStateException(_jndiConnectionFactory + " is currently invalid");
 			}
