@@ -89,20 +89,23 @@ public class UnwrapSOAPAction extends TransformAction {
 				throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));
 			}
 		}
-		String contentType = message.getContentType();
-		if (contentType == null || !contentType.startsWith(_soap12 ? HTTP_HEADER_CONTENT_TYPE_FI_SOAP12 : HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) && !contentType.startsWith(_soap12 ? SOAP_1_2_CONTENT_TYPE : SOAP_1_1_CONTENT_TYPE)) {
-			String error = "Unexpected Content-Type: " + contentType;
+		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		String type = parseContentType(contentType);
+		if (type == null || !type.startsWith(_soap12 ? HTTP_HEADER_CONTENT_TYPE_FI_SOAP12 : HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) && !type.startsWith(_soap12 ? SOAP_1_2_CONTENT_TYPE : SOAP_1_1_CONTENT_TYPE)) {
+			String error = "Unexpected Content-Type: " + type;
 			if (message.getBodyType() != BodyType.INVALID) {
 				error += "\n" + message.getBodyAsString(context);
 			}
 			throw new ExecutionException(this, error);
 		}
-		String soapAction = _soap12 ? getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION) : message.<String> getHeader(HTTP_HEADER_SOAP_ACTION);
+		String soapAction = message.getHeader(HTTP_HEADER_SOAP_ACTION);
+		if (soapAction == null && _soap12) {
+			soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
+		}
 		ExecutionContext execContext = super.prepare(context, message, inPipeline);
 		if (soapAction != null) {
 			// soapAction is always embedded in quotes
-			soapAction = soapAction.substring(1, soapAction.length() - 1);
-			String operation = _mapAction2Operation.get(soapAction);
+			String operation = _mapAction2Operation.get(removeQuotes(soapAction));
 			if (operation != null) {
 				message.getVariables().put(SOAP_OPERATION, operation);
 			}

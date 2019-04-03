@@ -37,6 +37,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import static com.artofarc.esb.http.HttpConstants.*;
+
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import static com.artofarc.esb.message.ESBConstants.*;
@@ -116,10 +117,8 @@ public class GenericHttpListener extends HttpServlet {
 	private static void parseAttachments(String contentType, ESBMessage message) throws IOException, MessagingException {
 		if (contentType != null && contentType.startsWith("multipart/")) {
 			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getUncompressedInputStream(), contentType));
-			String start = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START);
-			if (start != null) {
-				start = start.substring(1, start.length() - 1);
-			}
+			String start = removeQuotes(getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START));
+			message.putHeader(HTTP_HEADER_SOAP_ACTION, getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION));
 			for (int i = 0; i < mmp.getCount(); i++) {
 				MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
 				if (start == null && i == 0 || start != null && start.equals(bodyPart.getContentID())) {

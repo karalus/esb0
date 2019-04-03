@@ -231,15 +231,6 @@ public final class ESBMessage implements Cloneable {
 		return _sinkEncoding != null && _sinkEncoding != getCharset();
 	}
 
-	public String getContentType() {
-		String header = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (header != null) {
-			String type = getValueFromHttpHeader(header, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
-			return type != null ? type : header;
-		}
-		return null;
-	}
-
 	public Number getTimeleft(Number def) {
 		return getVariable(ESBConstants.timeleft, def);
 	}

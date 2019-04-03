@@ -62,6 +62,20 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 		return null;
 	}
 
+	public static String removeQuotes(String s) {
+		return s != null && s.charAt(0) == '"' ? s.substring(1, s.length() - 1) : s;
+	}
+
+	public static String parseContentType(String contentType) {
+		if (contentType != null) {
+			String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
+			if (type != null) {
+				contentType = removeQuotes(type);
+			}
+		}
+		return contentType;
+	}
+
 	public static boolean isFastInfoset(String contentType) {
 		return contentType != null && (contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
 	}
