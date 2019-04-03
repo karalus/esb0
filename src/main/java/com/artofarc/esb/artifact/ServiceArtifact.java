@@ -305,7 +305,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				SchemaArtifact schemaArtifact = loadArtifact(validate.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
-				list.add(new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet()));
+				list.add(new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem()));
 				break;
 			}
 			case "actionPipelineRef": {

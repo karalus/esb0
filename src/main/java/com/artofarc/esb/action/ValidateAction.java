@@ -31,8 +31,8 @@ public class ValidateAction extends AssignAction {
 
 	private final Schema _schema;
 
-	public ValidateAction(Schema schema, String expression, Collection<Map.Entry<String, String>> namespaces) {
-		super(null, expression, namespaces, Collections.<String> emptyList(), null);
+	public ValidateAction(Schema schema, String expression, Collection<Map.Entry<String, String>> namespaces, String contextItem) {
+		super(null, expression, namespaces, Collections.<String> emptyList(), contextItem);
 		_schema = schema;
 	}
 

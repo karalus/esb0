@@ -80,7 +80,7 @@ public class TransformerTest extends AbstractESBTest {
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(new UnwrapSOAPAction(false, true), new TransformAction(
 				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact.getTemplates()),
-				new ValidateAction(xsdArtifact.getSchema(), ".", null), new DumpAction());
+				createValidateAction(xsdArtifact), new DumpAction());
 		message.putVariable("param1", 42);
 		consumerPort.process(context, message);
 	}
@@ -124,7 +124,7 @@ public class TransformerTest extends AbstractESBTest {
 		xsdArtifact.validateInternal(null);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(new UnwrapSOAPAction(false, true), new TransformAction(
-				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new ValidateAction(xsdArtifact.getSchema(), ".", null),
+				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), createValidateAction(xsdArtifact),
 				new TerminalAction() {});
 		byte[] file = readFile("src/test/resources/SOAPRequest.xml");
 		TimeGauge timeGauge = new TimeGauge(Action.logger);

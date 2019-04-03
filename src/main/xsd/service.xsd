@@ -467,6 +467,7 @@
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" use="required" />
 					<attribute name="expression" type="string" default="." />
+					<attribute name="contextItem" type="Name" />
 				</extension>
 			</complexContent>
 		</complexType>

@@ -10,8 +10,10 @@ import org.junit.Before;
 
 import com.artofarc.esb.action.AssignAction;
 import com.artofarc.esb.action.HttpOutboundAction;
+import com.artofarc.esb.action.ValidateAction;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystemDir;
+import com.artofarc.esb.artifact.SchemaArtifact;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
@@ -58,6 +60,10 @@ public abstract class AbstractESBTest {
 
 	protected static AssignAction createAssignAction(String varName, String expression) {
 		return new AssignAction(varName, expression, null, Collections.<String> emptyList(), null);
+	}
+
+	protected static ValidateAction createValidateAction(SchemaArtifact schemaArtifact) {
+		return new ValidateAction(schemaArtifact.getSchema(), ".", null, null);
 	}
 
 }

@@ -238,10 +238,10 @@ public class SOAPTest extends AbstractESBTest {
       XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
       xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
       xsdArtifact.validateInternal(getGlobalContext());
-      action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), ".", null));
-      action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), ".", null));
-      action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), ".", null));
-      action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), ".", null));
+      action = action.setNextAction(createValidateAction(xsdArtifact));
+      action = action.setNextAction(createValidateAction(xsdArtifact));
+      action = action.setNextAction(createValidateAction(xsdArtifact));
+      action = action.setNextAction(createValidateAction(xsdArtifact));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }
@@ -258,7 +258,7 @@ public class SOAPTest extends AbstractESBTest {
       xsdArtifact.validateInternal(getGlobalContext());
       List<Entry<String, String>> result = new ArrayList<>();
       result.add(Collections.createEntry("v1", "http://aoa.de/ei/foundation/v1"));
-      action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), "v1:messageHeader", result));
+      action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), "v1:messageHeader", result, null));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }
@@ -442,7 +442,7 @@ public class SOAPTest extends AbstractESBTest {
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
       message.getHeaders().put(HttpConstants.HTTP_HEADER_ACCEPT, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11);
-      Action action = new ValidateAction(wsdlArtifact.getSchema(), ".", null);
+      Action action = createValidateAction(wsdlArtifact);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
 		List<Entry<String, String>> assignments = java.util.Collections.singletonList(Collections.createEntry(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"));
