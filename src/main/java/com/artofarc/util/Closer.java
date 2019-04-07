@@ -16,11 +16,16 @@
  */
 package com.artofarc.util;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +37,7 @@ public final class Closer implements AutoCloseable {
 	private final ArrayList<AutoCloseable> _closeables = new ArrayList<>();
 	private final ArrayList<Future<?>> _futures = new ArrayList<>();
 	private final ExecutorService _executorService;
-	
+
 	public Closer(ExecutorService executorService) {
 		_executorService = executorService;
 	}
@@ -43,6 +48,41 @@ public final class Closer implements AutoCloseable {
 			logger.debug("Closed " + closeable);
 		} catch (Exception e) {
 			logger.warn("Possible resource leak: Exception while closing " + closeable);
+		}
+	}
+
+	public static AutoCloseable createAutoCloseable(final Object obj) throws NoSuchMethodException {
+		final Method method = obj.getClass().getMethod("close");
+		return new AutoCloseable() {
+
+			@Override
+			public void close() throws Exception {
+				try {
+					method.invoke(obj);
+				} catch (InvocationTargetException e) {
+					throw ReflectionUtils.convert(e.getCause(), Exception.class);
+				}
+			}
+		};
+	}
+
+	public boolean closeWithTimeout(final AutoCloseable closeable, long timeout) throws Exception {
+		Future<Boolean> future = _executorService.submit(new Callable<Boolean>() {
+
+			@Override
+			public Boolean call() throws Exception {
+				closeable.close();
+				return true;
+			}
+		});
+		try {
+			return future.get(timeout, TimeUnit.MILLISECONDS);
+		} catch (TimeoutException e) {
+			logger.warn("Could not close within timeout of " + timeout);
+			future.cancel(true);
+			return false;
+		} catch (ExecutionException e) {
+			throw ReflectionUtils.convert(e.getCause(), Exception.class);
 		}
 	}
 

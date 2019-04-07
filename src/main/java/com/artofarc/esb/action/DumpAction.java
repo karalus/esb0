@@ -16,6 +16,15 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.PrintStream;
+import java.util.Iterator;
+import java.util.Map;
+
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Node;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -28,9 +37,9 @@ public class DumpAction extends TerminalAction {
 	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, resource, message, nextActionIsPipelineStop);
 		System.out.println("Headers:");
-		System.out.println(message.getHeaders());
+		dumpMap(context, message.getHeaders(), System.out);
 		System.out.println("Variables:");
-		System.out.println(message.getVariables());
+		dumpMap(context, message.getVariables(), System.out);
 		if (message.getBodyType() != BodyType.INVALID) {
 			System.out.println("Body:");
 			if (message.getBodyType() == BodyType.EXCEPTION) {
@@ -43,6 +52,23 @@ public class DumpAction extends TerminalAction {
 			}
 			System.out.flush();
 		}
+	}
+
+	public static void dumpMap(Context context, Map<String, Object> map, PrintStream ps) throws TransformerException {
+		ps.print('{');
+		for (Iterator<Map.Entry<String, Object>> iter = map.entrySet().iterator(); iter.hasNext();) {
+			Map.Entry<String, Object> entry = iter.next();
+			ps.print(entry.getKey() + "=");
+			if (entry.getValue() instanceof Node) {
+				context.getIdenticalTransformer().transform(new DOMSource((Node) entry.getValue()), new StreamResult(ps));
+			} else {
+				ps.print(entry.getValue());
+			}
+			if (iter.hasNext()) {
+				ps.print(", ");
+			}
+		}
+		ps.println('}');
 	}
 
 }

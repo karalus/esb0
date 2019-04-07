@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.resource.JMSSessionFactory;
+import com.artofarc.util.Closer;
 
 public final class JMSConnectionProvider {
 
@@ -130,8 +131,12 @@ public final class JMSConnectionProvider {
 			// For Oracle AQ the connection must be closed first
 			try {
 				logger.info("Closing Connection");
-				_connection.close();
-			} catch (JMSException e) {
+				Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
+				// Oracle AQ sometimes waits forever in close()
+				if (!closer.closeWithTimeout(Closer.createAutoCloseable(_connection), 1000L)) {
+					logger.warn("Possible resource leak: Could not close connection regularly within given time");
+				}
+			} catch (Exception e) {
 				// ignore
 			}
 			_connection = null;
