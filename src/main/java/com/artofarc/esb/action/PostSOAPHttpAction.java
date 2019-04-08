@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.action;
 
+import static com.artofarc.esb.message.ESBConstants.SOAP_OPERATION;
+
 import java.net.HttpURLConnection;
 
 import com.artofarc.esb.context.Context;
@@ -40,6 +42,11 @@ public class PostSOAPHttpAction extends UnwrapSOAPAction {
 		default:
 			throw new ExecutionException(this, "HTTP Response Code not covered by SOAP protocol, was " + httpResponseCode);
 		}
+	}
+
+	@Override
+	protected String determineOperation(ESBMessage message) {
+		return message.getVariable(SOAP_OPERATION);
 	}
 
 }

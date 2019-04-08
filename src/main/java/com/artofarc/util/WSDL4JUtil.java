@@ -25,12 +25,17 @@ import java.util.Map;
 
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
+import javax.wsdl.Message;
+import javax.wsdl.Part;
 import javax.wsdl.WSDLException;
 import javax.wsdl.extensions.ElementExtensible;
 import javax.wsdl.extensions.ExtensibilityElement;
+import javax.wsdl.extensions.mime.MIMEMultipartRelated;
 import javax.wsdl.extensions.soap.SOAPBinding;
+import javax.wsdl.extensions.soap.SOAPBody;
 import javax.wsdl.extensions.soap.SOAPOperation;
 import javax.wsdl.extensions.soap12.SOAP12Binding;
+import javax.wsdl.extensions.soap12.SOAP12Body;
 import javax.wsdl.extensions.soap12.SOAP12Operation;
 import javax.wsdl.factory.WSDLFactory;
 import javax.wsdl.xml.WSDLReader;
@@ -149,6 +154,27 @@ public final class WSDL4JUtil {
 			}
 		}
 		return false;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static QName getInputElementQName(BindingOperation bindingOperation, boolean soap12) {
+		ElementExtensible bindingInput = bindingOperation.getBindingInput();
+		// According to http://www.ws-i.org/Profiles/AttachmentsProfile-1.0-2004-08-24.html		
+		MIMEMultipartRelated mmr = getExtensibilityElement(bindingInput, MIMEMultipartRelated.class);
+		if (mmr != null) {
+			bindingInput = (ElementExtensible) mmr.getMIMEParts().get(0);
+		}
+		List<String> parts;
+		if (soap12) {
+			SOAP12Body body = getExtensibilityElement(bindingInput, SOAP12Body.class);
+			parts = body.getParts();
+		} else {
+			SOAPBody body = getExtensibilityElement(bindingInput, SOAPBody.class);
+			parts = body.getParts();
+		}
+		Message message = bindingOperation.getOperation().getInput().getMessage();
+		Part part = parts == null || parts.isEmpty() ? (Part) message.getParts().values().iterator().next() : message.getPart(parts.get(0));
+		return part.getElementName();
 	}
 
 }

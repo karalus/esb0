@@ -9,7 +9,9 @@ import org.junit.After;
 import org.junit.Before;
 
 import com.artofarc.esb.action.AssignAction;
+import com.artofarc.esb.action.ExecutionException;
 import com.artofarc.esb.action.HttpOutboundAction;
+import com.artofarc.esb.action.UnwrapSOAPAction;
 import com.artofarc.esb.action.ValidateAction;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystemDir;
@@ -19,6 +21,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
+import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.StreamUtils;
 
 public abstract class AbstractESBTest {
@@ -66,4 +69,18 @@ public abstract class AbstractESBTest {
 		return new ValidateAction(schemaArtifact.getSchema(), ".", null, null);
 	}
 
+	protected static UnwrapSOAPAction createUnwrapSOAPAction(boolean soap12, boolean singlePart) {
+		return new UnwrapSOAPAction(soap12, singlePart) {
+
+			@Override
+			protected String determineOperation(ESBMessage message) throws ExecutionException {
+				if (_operations == null) {
+					return null;
+				}
+				return super.determineOperation(message);
+			}
+			
+		};
+	}
+	
 }

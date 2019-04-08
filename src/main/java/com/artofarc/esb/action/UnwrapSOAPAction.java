@@ -17,11 +17,12 @@
 package com.artofarc.esb.action;
 
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.wsdl.BindingOperation;
+import javax.xml.namespace.QName;
 import javax.xml.validation.Schema;
 
 import com.artofarc.esb.context.Context;
@@ -38,9 +39,9 @@ import com.artofarc.util.WSDL4JUtil;
 
 public class UnwrapSOAPAction extends TransformAction {
 
-	private final boolean _soap12;
-	private final Map<String, String> _mapAction2Operation;
-	private final HashSet<String> _operations;
+	protected final boolean _soap12;
+	protected final Map<String, String> _mapAction2Operation;
+	protected final Map<String, QName> _operations;
 	private final String _wsdlUrl;
 	private final boolean _getWsdl;
 	private final Schema _schema;
@@ -59,9 +60,9 @@ public class UnwrapSOAPAction extends TransformAction {
 		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;
 		if (bindingOperations != null) {
-			_operations = new HashSet<>();
+			_operations = new HashMap<>();
 			for (BindingOperation bindingOperation : bindingOperations) {
-				_operations.add(bindingOperation.getName());
+				_operations.put(bindingOperation.getName(), WSDL4JUtil.getInputElementQName(bindingOperation, soap12));
 			}
 		} else {
 			_operations = null;
@@ -98,30 +99,42 @@ public class UnwrapSOAPAction extends TransformAction {
 			}
 			throw new ExecutionException(this, error);
 		}
-		String soapAction = message.getHeader(HTTP_HEADER_SOAP_ACTION);
-		if (soapAction == null && _soap12) {
-			soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
-		}
 		ExecutionContext execContext = super.prepare(context, message, inPipeline);
-		if (soapAction != null) {
-			// soapAction is always embedded in quotes
-			String operation = _mapAction2Operation.get(removeQuotes(soapAction));
-			if (operation != null) {
-				message.getVariables().put(SOAP_OPERATION, operation);
-			}
-		}
-		String operation = message.getVariable(SOAP_OPERATION);
-		if (_operations != null && !_operations.contains(operation)) {
-			if (_operations.size() == 1) {
-				message.getVariables().put(SOAP_OPERATION, _operations.iterator().next());
-			} else {
-				throw new ExecutionException(this, "Operation not found in WSDL: " + operation);
-			}
-		}
+		message.putVariable(SOAP_OPERATION, determineOperation(message));
 		if (_schema != null) {
 			message.setSchema(_schema);
 		}
 		return execContext;
+	}
+
+	protected String determineOperation(ESBMessage message) throws ExecutionException {
+		String soapAction = message.getHeader(HTTP_HEADER_SOAP_ACTION);
+		if (soapAction == null && _soap12) {
+			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+			soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
+		}
+		if (soapAction != null) {
+			// soapAction is always embedded in quotes
+			String operation = _mapAction2Operation.get(removeQuotes(soapAction));
+			if (operation != null) {
+				return operation;
+			}
+		}
+		String inputElementName = message.getVariable(SOAP_OPERATION);
+		if (_operations.containsKey(inputElementName)) {
+			return inputElementName;
+		} else {
+			if (_operations.size() == 1) {
+				return _operations.keySet().iterator().next();
+			} else {
+				for (Map.Entry<String, QName> entry : _operations.entrySet()) {
+					if (entry.getValue() != null && inputElementName.equals(entry.getValue().getLocalPart())) {
+						return entry.getKey();
+					}
+				}
+			}
+		}
+		throw new ExecutionException(this, "Operation not found in WSDL: " + inputElementName);
 	}
 
 	@Override

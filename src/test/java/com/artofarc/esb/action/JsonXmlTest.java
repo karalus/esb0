@@ -36,7 +36,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	public void testXML2JsonInPipeline() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/SOAPRequest.xml"));
 		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
-		Action action = new UnwrapSOAPAction(false, false);
+		Action action = createUnwrapSOAPAction(false, false);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; (*/v1:messageHeader)"));

@@ -131,6 +131,7 @@ public final class JMSConnectionProvider {
 			// For Oracle AQ the connection must be closed first
 			try {
 				logger.info("Closing Connection");
+				_connection.setExceptionListener(null);
 				Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
 				// Oracle AQ sometimes waits forever in close()
 				if (!closer.closeWithTimeout(Closer.createAutoCloseable(_connection), 1000L)) {
