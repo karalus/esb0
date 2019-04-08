@@ -13,6 +13,11 @@
 <body>
 <h2>ESB Zero - A lightweight service gateway (Version <%=application.getAttribute(ESBServletContextListener.VERSION)%> build time <%=application.getAttribute(ESBServletContextListener.BUILD_TIME)%>)</h2>
 <%
+	if (!FileSystem.environment.equals("default")) {
+%>
+	<h3>Environment: <%=FileSystem.environment%></h3>
+<%
+	}
 	GlobalContext globalContext = (GlobalContext) application.getAttribute(ESBServletContextListener.CONTEXT);
 	if (request.getPathInfo() == null) {
 %>
@@ -119,7 +124,7 @@
 	       }
 	   %>
 	   </table>
-	   <embed src="<%=request.getContextPath() + request.getServletPath() + "/deploy" + a.getURI()%>" type="<%=a.getContentType()%>" width="1600" height="800"></embed>
+	   <embed src="<%=request.getContextPath() + request.getServletPath() + "/deploy" + a.getURI()%>" type="<%=a.getContentType()%>" width="1600" height="800">
 	   <%
    }
 %>

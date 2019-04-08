@@ -28,7 +28,6 @@ import javax.sql.DataSource;
 
 public class FileSystemDB extends FileSystem {
 
-	private final String environment = System.getProperty("esb0.environment", "default");
 	private final DataSource _dataSource;
 
 	public FileSystemDB(DataSource dataSource) {

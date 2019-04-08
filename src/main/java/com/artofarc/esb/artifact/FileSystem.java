@@ -39,6 +39,8 @@ public class FileSystem {
 
 	protected final static Logger logger = LoggerFactory.getLogger(FileSystem.class);
 
+	public final static String environment = System.getProperty("esb0.environment", "default");
+
 	protected final Directory _root;
 	protected final Map<String, ChangeType> _changes = new LinkedHashMap<>();
 
