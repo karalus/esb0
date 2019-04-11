@@ -59,7 +59,7 @@ public class UnwrapSOAPAction extends TransformAction {
 		
 		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;
-		if (bindingOperations != null) {
+		if (singlePart && bindingOperations != null) {
 			_operations = new HashMap<>();
 			for (BindingOperation bindingOperation : bindingOperations) {
 				_operations.put(bindingOperation.getName(), WSDL4JUtil.getInputElementQName(bindingOperation, soap12));
@@ -120,21 +120,24 @@ public class UnwrapSOAPAction extends TransformAction {
 				return operation;
 			}
 		}
-		String inputElementName = message.getVariable(SOAP_OPERATION);
-		if (_operations.containsKey(inputElementName)) {
-			return inputElementName;
-		} else {
-			if (_operations.size() == 1) {
-				return _operations.keySet().iterator().next();
+		if (_operations != null) {
+			String inputElementName = message.getVariable(SOAP_OPERATION);
+			if (_operations.containsKey(inputElementName)) {
+				return inputElementName;
 			} else {
-				for (Map.Entry<String, QName> entry : _operations.entrySet()) {
-					if (entry.getValue() != null && inputElementName.equals(entry.getValue().getLocalPart())) {
-						return entry.getKey();
+				if (_operations.size() == 1) {
+					return _operations.keySet().iterator().next();
+				} else {
+					for (Map.Entry<String, QName> entry : _operations.entrySet()) {
+						if (entry.getValue() != null && inputElementName.equals(entry.getValue().getLocalPart())) {
+							return entry.getKey();
+						}
 					}
 				}
 			}
+			throw new ExecutionException(this, "Operation not found in WSDL. Input element: " + inputElementName);
 		}
-		throw new ExecutionException(this, "Operation not found in WSDL: " + inputElementName);
+		throw new ExecutionException(this, "Operation not found in WSDL. SOAP action: " + soapAction);
 	}
 
 	@Override

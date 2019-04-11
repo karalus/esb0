@@ -21,6 +21,7 @@ import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StreamUtils;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -211,7 +212,7 @@ public class FileSystem {
 
 	private boolean deleteArtifact(Artifact artifact) {
 		boolean deleted = false;
-		if (artifact != null && artifact.getReferencedBy().isEmpty()) {
+		if (artifact.getReferencedBy().isEmpty()) {
 			for (String referenced : artifact.getReferenced()) {
 				Artifact referencedArtifact = getArtifact(referenced);
 				if (!referencedArtifact.getReferencedBy().remove(artifact.getURI())) {
@@ -364,6 +365,9 @@ public class FileSystem {
 					while (tokenizer.hasMoreTokens()) {
 						String uri = tokenizer.nextToken();
 						Artifact artifact = getArtifact(uri);
+						if (artifact == null) {
+							throw new FileNotFoundException(uri);
+						}
 						if (!deleteArtifact(artifact)) {
 							throw new IllegalArgumentException("Could not delete " + uri);
 						}
