@@ -42,6 +42,8 @@ public interface ESBConstants {
 
 	String initialTimestamp = "initialTimestamp";
 
+	String initialTimestampOrigin = "initialTimestampOrigin";
+
 	String timeleft = "timeleft";
 
 	String timeleftOrigin = "timeleftOrigin";
@@ -57,6 +59,8 @@ public interface ESBConstants {
 	String JMSCorrelationID = "JMSCorrelationID";
 
 	String JMSReplyTo = "JMSReplyTo";
+
+	String JMSTimestamp = "JMSTimestamp";
 
 	String JMSOrigin = "JMSOrigin";
 

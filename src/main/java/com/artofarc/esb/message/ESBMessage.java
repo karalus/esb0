@@ -641,8 +641,14 @@ public final class ESBMessage implements Cloneable {
 		} else {
 			clone = new ESBMessage(BodyType.INVALID, null);
 		}
-		clone.getHeaders().putAll(_headers);
-		clone.getVariables().putAll(_variables);
+		clone._headers.putAll(_headers);
+		for (Entry<String, Object> entry : _variables.entrySet()) {
+			if (entry.getKey() == ESBConstants.initialTimestamp) {
+				clone._variables.put(ESBConstants.initialTimestampOrigin, entry.getValue());
+			} else {
+				clone._variables.put(entry.getKey(), entry.getValue());
+			}
+		}
 		return clone;
 	}
 

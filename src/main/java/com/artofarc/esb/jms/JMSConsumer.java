@@ -186,6 +186,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
 		esbMessage.putVariable(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
 		esbMessage.putVariable(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
+		esbMessage.putVariable(ESBConstants.JMSTimestamp, message.getJMSTimestamp());
 		for (@SuppressWarnings("unchecked")
 		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
 			String propertyName = propertyNames.nextElement();
