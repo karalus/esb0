@@ -20,8 +20,8 @@ public final class StringWriter extends java.io.Writer {
 
 	private final StringBuilder builder;
 
-	public StringWriter(int initialSize) {
-		builder = new StringBuilder(initialSize);
+	public StringWriter() {
+		builder = new StringBuilder(StreamUtils.MTU);
 	}
 
 	@Override

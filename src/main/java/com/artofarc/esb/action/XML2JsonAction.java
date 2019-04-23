@@ -97,7 +97,7 @@ public class XML2JsonAction extends Action {
 		if (message.isSink()) {
 			jsonMarshaller.marshal(root, message.getBodyAsSinkResult(context));
 		} else {
-			StringWriter sw = new StringWriter(ESBMessage.MTU);
+			StringWriter sw = new StringWriter();
 			jsonMarshaller.marshal(root, sw);
 			message.reset(BodyType.READER, sw.getStringReader());
 		}

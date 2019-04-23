@@ -142,7 +142,7 @@ public abstract class JDBCAction extends TerminalAction {
 			result = jsonArray;
 		}
 		if (result != null) {
-			StringWriter sw = new StringWriter(ESBMessage.MTU);
+			StringWriter sw = new StringWriter();
 			JsonWriter jsonWriter = Json.createWriter(sw);
 			jsonWriter.write(result);
 			jsonWriter.close();

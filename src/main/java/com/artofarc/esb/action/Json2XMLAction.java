@@ -112,7 +112,7 @@ public class Json2XMLAction extends Action {
 			if (nextActionIsPipelineStop) {
 				marshaller.marshal(root, message.getBodyAsSinkResult(context));
 			} else {
-				StringWriter sw = new StringWriter(ESBMessage.MTU);
+				StringWriter sw = new StringWriter();
 				marshaller.marshal(root, sw);
 				message.reset(BodyType.READER, sw.getStringReader());
 			}

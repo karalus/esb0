@@ -295,7 +295,7 @@ public final class ESBMessage implements Cloneable {
 		ByteArrayOutputStream bos;
 		switch (_bodyType) {
 		case DOM:
-			writeRawTo(bos = new ByteArrayOutputStream(MTU), context);
+			writeRawTo(bos = new ByteArrayOutputStream(), context);
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
 			break;
@@ -310,7 +310,7 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(bos = new ByteArrayOutputStream(MTU), getSinkProperties());
+			xqItem.writeItem(bos = new ByteArrayOutputStream(), getSinkProperties());
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
 			break;
@@ -327,7 +327,7 @@ public final class ESBMessage implements Cloneable {
 		StringWriter sw;
 		switch (_bodyType) {
 		case DOM:
-			transform(context.getIdenticalTransformer(), new StreamResult(sw = new StringWriter(MTU)));
+			transform(context.getIdenticalTransformer(), new StreamResult(sw = new StringWriter()));
 			str = sw.toString();
 			break;
 		case STRING:
@@ -340,11 +340,11 @@ public final class ESBMessage implements Cloneable {
 			return getBodyAsString(context);
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(sw = new StringWriter(MTU), getSinkProperties());
+			xqItem.writeItem(sw = new StringWriter(), getSinkProperties());
 			str = sw.toString();
 			break;
 		case READER:
-			StreamUtils.copy((Reader) _body, sw = new StringWriter(MTU));
+			StreamUtils.copy((Reader) _body, sw = new StringWriter());
 			str = sw.toString();
 			break;
 		case EXCEPTION:
@@ -363,7 +363,7 @@ public final class ESBMessage implements Cloneable {
 		case INPUT_STREAM:
 			return getUncompressedInputStream();
 		case XQ_ITEM:
-			ByteArrayOutputStream bos = new ByteArrayOutputStream(MTU);
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(bos, getSinkProperties());
 			return init(BodyType.INPUT_STREAM, bos.getByteArrayInputStream(), _sinkEncoding);
@@ -379,7 +379,7 @@ public final class ESBMessage implements Cloneable {
 		case INPUT_STREAM:
 			return init(BodyType.READER, getInputStreamReader(), null);
 		case XQ_ITEM:
-			StringWriter sw = new StringWriter(MTU);
+			StringWriter sw = new StringWriter();
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(sw, getSinkProperties());
 			return sw.getStringReader();

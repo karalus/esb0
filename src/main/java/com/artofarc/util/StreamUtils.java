@@ -39,7 +39,7 @@ public final class StreamUtils {
 	}
 
 	public static byte[] copy(InputStream is) throws IOException {
-		ByteArrayOutputStream os = new ByteArrayOutputStream(MTU);
+		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		copy(is, os);
 		return os.toByteArray();
 	}

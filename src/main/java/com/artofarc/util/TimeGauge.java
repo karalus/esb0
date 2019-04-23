@@ -25,7 +25,7 @@ public final class TimeGauge implements AutoCloseable {
 	private final Logger _logger; 
 	private final boolean _debug;
 	private final long _threshold;
-	private final Stack<Long> timeMeasurement = new Stack<>();
+	private final Stack<Long> _measuredPoints = new Stack<>();
 
 	public TimeGauge(Logger logger, long threshold, boolean debug) {
 		_logger = logger;
@@ -46,29 +46,29 @@ public final class TimeGauge implements AutoCloseable {
 	}
 	
 	public void startTimeMeasurement() {
-		timeMeasurement.push(System.currentTimeMillis());
+		_measuredPoints.push(System.nanoTime());
 	}
 
 	public void stopTimeMeasurement() {
-		timeMeasurement.pop();
+		_measuredPoints.pop();
 	}
 
 	public void stopTimeMeasurement(String text, boolean restart, Object... args) {
-		final long endTS = System.currentTimeMillis();
-		final long startTS = timeMeasurement.pop();
-		final long diff = endTS - startTS;
+		final long endTS = System.nanoTime();
+		final long startTS = _measuredPoints.pop();
+		final long diff = (endTS - startTS) / 1000000L;
 		if (diff >= _threshold && isLogEnabled()) {
 			if (args.length > 0) text = String.format(text, args);
 			log(String.format(text, args) + " took " + diff / 1000. + "s");
 		}
 		if (restart) {
-			timeMeasurement.push(endTS);
+			_measuredPoints.push(endTS);
 		}
 	}
 
 	@Override
 	public void close() {
-		timeMeasurement.clear();
+		_measuredPoints.clear();
 	}
 
 	public AutoCloseable createTimer(final String message) {

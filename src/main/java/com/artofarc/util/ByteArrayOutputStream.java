@@ -20,8 +20,8 @@ import java.io.ByteArrayInputStream;
 
 public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 
-	public ByteArrayOutputStream(int size) {
-		super(size);
+	public ByteArrayOutputStream() {
+		super(StreamUtils.MTU);
 	}
 
 	public ByteArrayInputStream getByteArrayInputStream() {
