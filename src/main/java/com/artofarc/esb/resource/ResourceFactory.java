@@ -38,8 +38,11 @@ public abstract class ResourceFactory<R extends AutoCloseable, D, P> implements 
 		return getResource(descriptor, null);
 	}
 
-	public synchronized final void close(D descriptor) throws Exception {
-		R resource = _pool.remove(descriptor);
+	public final void close(D descriptor) throws Exception {
+		R resource;
+		synchronized (this) {
+			resource = _pool.remove(descriptor);
+		}
 		if (resource != null) {
 			resource.close();
 		}

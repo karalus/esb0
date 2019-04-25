@@ -214,7 +214,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		}
 
 		final void initMessageConsumer() throws JMSException {
-			if (_messageConsumer == null) {
+			if (_messageConsumer == null && _session != null) {
 				if (_subscription != null) {
 					_messageConsumer = _session.createDurableSubscriber((Topic) _destination, _subscription, _messageSelector, false);
 				} else {
@@ -248,6 +248,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 		final void close() throws Exception {
 			stopListening();
+			_session = null;
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
 			jmsSessionFactory.close(_jndiConnectionFactory);
 		}

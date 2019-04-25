@@ -41,6 +41,7 @@ public final class JMSConnectionProvider {
 
 	protected final static Logger logger = LoggerFactory.getLogger(JMSConnectionProvider.class);
 	protected final static String instanceId = System.getProperty("esb0.jms.instanceId");
+	protected final static long closeWithTimeout = Long.parseLong(System.getProperty("esb0.jms.closeWithTimeout", "1000"));
 	
 	private final HashMap<String, JMSConnectionGuard> _pool = new HashMap<>();
 	private final PoolContext _poolContext;
@@ -130,12 +131,16 @@ public final class JMSConnectionProvider {
 			logger.warn(_jndiConnectionFactory + ": Connection will be closed caused by: " + jmsException);
 			// For Oracle AQ the connection must be closed first
 			try {
-				logger.info("Closing Connection");
+				logger.info("Closing Connection for " + _jndiConnectionFactory);
 				_connection.setExceptionListener(null);
-				Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
-				// Oracle AQ sometimes waits forever in close()
-				if (!closer.closeWithTimeout(Closer.createAutoCloseable(_connection), 1000L)) {
-					logger.warn("Possible resource leak: Could not close connection regularly within given time");
+				if (closeWithTimeout > 0) {
+					Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
+					// Oracle AQ sometimes waits forever in close()
+					if (!closer.closeWithTimeout(Closer.createAutoCloseable(_connection), closeWithTimeout)) {
+						logger.warn("Possible resource leak: Could not close connection regularly within given time for " + _jndiConnectionFactory);
+					}
+				} else {
+					_connection.close();
 				}
 			} catch (Exception e) {
 				// ignore
@@ -161,7 +166,7 @@ public final class JMSConnectionProvider {
 				}
 			}
 			// start reconnect thread
-			logger.info(_jndiConnectionFactory + ": start reconnect thread");
+			logger.info("Start reconnect thread for " + _jndiConnectionFactory);
 			_future = _poolContext.getWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
 		}
 

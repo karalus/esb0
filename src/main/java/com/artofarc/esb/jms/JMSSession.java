@@ -25,17 +25,22 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TemporaryQueue;
 
+import com.artofarc.esb.context.PoolContext;
+import com.artofarc.util.Closer;
+
 /**
  * Cache producers because it is expensive to create them.
  */
 public final class JMSSession implements AutoCloseable {
 
+	private final PoolContext _poolContext;
 	private final Session _session;
 	private final HashMap<Destination, MessageProducer> _producers = new HashMap<>();
 	private TemporaryQueue _temporaryQueue;
 	private MessageConsumer _consumer;
 
-	public JMSSession(Session session) {
+	public JMSSession(PoolContext poolContext, Session session) {
+		_poolContext = poolContext;
 		_session = session;
 	}
 	
@@ -65,13 +70,21 @@ public final class JMSSession implements AutoCloseable {
 	}
 
 	@Override
-	public void close() throws JMSException {
+	public void close() throws Exception {
 		if (_consumer != null) {
 			_consumer.close();
 			_temporaryQueue.delete();
 		}
 		_producers.clear();
-		_session.close();
+		if (JMSConnectionProvider.closeWithTimeout > 0) {
+			Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
+			// Oracle AQ sometimes waits forever in close()
+			if (!closer.closeWithTimeout(Closer.createAutoCloseable(_session), JMSConnectionProvider.closeWithTimeout)) {
+				JMSConnectionProvider.logger.warn("Possible resource leak: Could not close connection regularly within given time");
+			}
+		} else {
+			_session.close();
+		}
 	}
 	
 }

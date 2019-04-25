@@ -97,7 +97,7 @@ public final class ContextPool implements AutoCloseable {
 						overflow = poolSize.decrementAndGet() - minPoolSize;
 						context.close();
 					} else {
-						Context.logger.info("Context not given back to pool, yet");
+						Context.logger.info("Context not yet given back to pool for " + _poolContext);
 						break;
 					}
 				}
