@@ -159,11 +159,7 @@ public abstract class Artifact {
 	}
 
 	protected final <A extends Artifact> A loadArtifact(String uri) throws FileNotFoundException {
-		A artifact = _fileSystem.getArtifact(getParent(), uri);
-		if (artifact == null) {
-			throw new FileNotFoundException(uri);
-		}
-		return artifact;
+		return _fileSystem.loadArtifact(getParent(), uri);
 	}
 
 	protected final void addReference(Artifact artifact) {

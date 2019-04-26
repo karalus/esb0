@@ -110,6 +110,14 @@ public class FileSystem {
 		return (A) (name.isEmpty() ? current : current.getArtifacts().get(name));
 	}
 
+	protected final <A extends Artifact> A loadArtifact(Directory current, String uri) throws FileNotFoundException {
+		A artifact = getArtifact(current, uri);
+		if (artifact == null) {
+			throw new FileNotFoundException(uri);
+		}
+		return artifact;
+	}
+
 	public final ChangeSet init(GlobalContext globalContext) throws Exception {
 		parse(new CRC32());
 		return validateServices(globalContext);
@@ -281,6 +289,7 @@ public class FileSystem {
 
 	public final class ChangeSet {
 		private final List<Future<ServiceArtifact>> futures = new ArrayList<>();
+		private final List<ServiceArtifact> deletedServiceArtifacts = new ArrayList<>();
 		private final List<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
 
 		public FileSystem getFileSystem() {
@@ -313,6 +322,10 @@ public class FileSystem {
 			return serviceArtifacts;
 		}
 
+		public List<ServiceArtifact> getDeletedServiceArtifacts() {
+			return deletedServiceArtifacts;
+		}
+
 		public List<WorkerPoolArtifact> getWorkerPoolArtifacts() {
 			return workerPoolArtifacts;
 		}
@@ -327,7 +340,7 @@ public class FileSystem {
 	}
 
 	private ChangeSet validateChanges(GlobalContext globalContext, FileSystem changedFileSystem) throws ValidationException {
-		ChangeSet services = changedFileSystem.new ChangeSet();
+		ChangeSet changeSet = changedFileSystem.new ChangeSet();
 		HashSet<String> visited = new HashSet<>();
 		// find affected
 		for (Map.Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
@@ -343,14 +356,22 @@ public class FileSystem {
 		// validate
 		for (String original : visited) {
 			Artifact artifact = changedFileSystem.getArtifact(original);
-			validateServices(globalContext, artifact, services);
+			validateServices(globalContext, artifact, changeSet);
 		}
 		for (Map.Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
+			Artifact artifact = changedFileSystem.getArtifact(entry.getKey());
 			if (entry.getValue() == ChangeType.CREATE) {
-				validateServices(globalContext, changedFileSystem.getArtifact(entry.getKey()), services);
+				validateServices(globalContext, artifact, changeSet);
+			} else if (entry.getValue() == ChangeType.DELETE) {
+				if (!deleteArtifact(artifact)) {
+					throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
+				}
+				if (artifact instanceof ServiceArtifact) {
+					changeSet.deletedServiceArtifacts.add((ServiceArtifact) artifact);
+				}
 			}
 		}
-		return services;
+		return changeSet;
 	}
 	
 	private boolean mergeZIP(InputStream inputStream) throws IOException {
@@ -364,14 +385,7 @@ public class FileSystem {
 					StringTokenizer tokenizer = new StringTokenizer(delete, ", ");
 					while (tokenizer.hasMoreTokens()) {
 						String uri = tokenizer.nextToken();
-						Artifact artifact = getArtifact(uri);
-						if (artifact == null) {
-							throw new FileNotFoundException(uri);
-						}
-						if (!deleteArtifact(artifact)) {
-							throw new IllegalArgumentException("Could not delete " + uri);
-						}
-						_changes.put(artifact.getURI(), ChangeType.DELETE);
+						_changes.put(loadArtifact(_root, uri).getURI(), ChangeType.DELETE);
 					}
 				}
 			}

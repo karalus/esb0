@@ -136,10 +136,36 @@ public class DeployServlet extends HttpServlet {
 		resp.sendRedirect(req.getContextPath() + "/admin");
 	}
 
-	public static void deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet updateSet) throws ValidationException {
-		List<ServiceArtifact> serviceArtifacts = updateSet.getServiceArtifacts();
+	public static void deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet changeSet) throws ValidationException {
+		List<ServiceArtifact> serviceArtifacts = changeSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
-		for (WorkerPoolArtifact workerPoolArtifact : updateSet.getWorkerPoolArtifacts()) {
+		for (ServiceArtifact service : changeSet.getDeletedServiceArtifacts()) {
+			switch (service.getProtocol()) {
+			case HTTP:
+				HttpConsumer httpConsumer = service.getConsumerPort();
+				globalContext.unbindHttpService(httpConsumer.getBindPath());
+				closer.closeAsync(httpConsumer);
+				break;
+			case JMS:
+				JMSConsumer jmsConsumer = service.getConsumerPort();
+				globalContext.unbindJmsConsumer(jmsConsumer);
+				try {
+					jmsConsumer.close();
+				} catch (Exception e) {
+					// ignore
+				}
+				break;
+			case TIMER:
+				TimerService timerService = service.getConsumerPort();
+				globalContext.unbindTimerService(timerService);
+				closer.closeAsync(timerService);
+				break;
+			default:
+				globalContext.unbindService(service.getConsumerPort());
+				break;
+			}
+		}
+		for (WorkerPoolArtifact workerPoolArtifact : changeSet.getWorkerPoolArtifacts()) {
 			String name = WorkerPoolArtifact.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
 			WorkerPool workerPool = new WorkerPool(globalContext, name, wpDef.getMinThreads(), wpDef.getMaxThreads(), wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut());

@@ -18,6 +18,8 @@ package com.artofarc.esb;
 
 import java.util.List;
 
+import javax.management.ObjectName;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +45,10 @@ public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
 
 	public final String getUri() {
 		return _uri;
+	}
+
+	public final String getMBeanPostfix() {
+		return ",consumerType=" + getClass().getSimpleName() + ",uri=" + ObjectName.quote(getUri());
 	}
 
 	public boolean isEnabled() {

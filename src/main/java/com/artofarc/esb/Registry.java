@@ -118,11 +118,15 @@ public class Registry extends AbstractContext {
 
 	public void bindService(ConsumerPort consumerPort) {
 		ConsumerPort old = _services.put(consumerPort.getUri(), consumerPort);
-		String postfix = ",consumerType=" + consumerPort.getClass().getSimpleName() + ",uri=" + ObjectName.quote(consumerPort.getUri());
+		String postfix = consumerPort.getMBeanPostfix();
 		if (old != null) {
 			unregisterMBean(postfix);
 		}
 		registerMBean(consumerPort, postfix);
+	}
+
+	public void unbindService(ConsumerPort consumerPort) {
+		unregisterMBean(_services.remove(consumerPort.getUri()).getMBeanPostfix());
 	}
 
 	public HttpConsumer bindHttpService(String path, HttpConsumer consumerPort) {
@@ -135,6 +139,10 @@ public class Registry extends AbstractContext {
 		return httpService;
 	}
 
+	public void unbindHttpService(String path) {
+		unbindService(_httpServices.remove(path));
+	}
+
 	public JMSConsumer bindJmsConsumer(JMSConsumer jmsConsumer) {
 		JMSConsumer oldJmsConsumer = _jmsConsumer.get(jmsConsumer.getKey());
 		if (oldJmsConsumer != null && !oldJmsConsumer.getUri().equals(jmsConsumer.getUri())) {
@@ -145,10 +153,18 @@ public class Registry extends AbstractContext {
 		return oldJmsConsumer;
 	}
 
+	public void unbindJmsConsumer(JMSConsumer jmsConsumer) {
+		unbindService(_jmsConsumer.remove(jmsConsumer.getKey()));
+	}
+
 	public TimerService bindTimerService(TimerService timerService) {
 		TimerService oldTimerService = _timerServices.put(timerService.getUri(), timerService);
 		bindService(timerService);
 		return oldTimerService;
+	}
+
+	public void unbindTimerService(TimerService timerService) {
+		unbindService(_timerServices.remove(timerService.getUri()));
 	}
 
 	public void stopIngress() {
