@@ -238,6 +238,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		void stopListening() {
 			if (_messageConsumer != null) {
 				try {
+					_messageConsumer.setMessageListener(null);
 					_messageConsumer.close();
 				} catch (JMSException e) {
 					// ignore

@@ -41,7 +41,7 @@ public final class JMSConnectionProvider {
 
 	protected final static Logger logger = LoggerFactory.getLogger(JMSConnectionProvider.class);
 	protected final static String instanceId = System.getProperty("esb0.jms.instanceId");
-	protected final static long closeWithTimeout = Long.parseLong(System.getProperty("esb0.jms.closeWithTimeout", "1000"));
+	protected final static long closeWithTimeout = Long.parseLong(System.getProperty("esb0.jms.closeWithTimeout", "0"));
 	
 	private final HashMap<String, JMSConnectionGuard> _pool = new HashMap<>();
 	private final PoolContext _poolContext;
@@ -129,10 +129,32 @@ public final class JMSConnectionProvider {
 		@Override
 		public synchronized void onException(JMSException jmsException) {
 			logger.warn(_jndiConnectionFactory + ": Connection will be closed caused by: " + jmsException);
-			// For Oracle AQ the connection must be closed first
+			try {
+				_connection.setExceptionListener(null);
+			} catch (JMSException e) {
+				// ignore
+			}
+			for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
+				JMSConsumer jmsConsumer = entry.getKey();
+				// save current state
+				entry.setValue(jmsConsumer.isEnabled());
+				try {
+					logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey());
+					jmsConsumer.suspend();
+				} catch (Exception e) {
+					// ignore
+				}
+			}
+			for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
+				try {
+					logger.info("Closing JMSSessionFactory");
+					jmsSessionFactory.close(_jndiConnectionFactory);
+				} catch (Exception e) {
+					// ignore
+				}
+			}
 			try {
 				logger.info("Closing Connection for " + _jndiConnectionFactory);
-				_connection.setExceptionListener(null);
 				if (closeWithTimeout > 0) {
 					Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
 					// Oracle AQ sometimes waits forever in close()
@@ -146,25 +168,6 @@ public final class JMSConnectionProvider {
 				// ignore
 			}
 			_connection = null;
-			for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
-				try {
-					logger.info("Closing JMSSessionFactory");
-					jmsSessionFactory.close(_jndiConnectionFactory);
-				} catch (Exception e) {
-					// ignore
-				}
-			}
-			for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
-				JMSConsumer jmsConsumer = entry.getKey();
-				// save current state
-				entry.setValue(jmsConsumer.isEnabled());
-				try {
-					logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey());
-					jmsConsumer.suspend();
-				} catch (Exception e) {
-					// ignore
-				}
-			}
 			// start reconnect thread
 			logger.info("Start reconnect thread for " + _jndiConnectionFactory);
 			_future = _poolContext.getWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
