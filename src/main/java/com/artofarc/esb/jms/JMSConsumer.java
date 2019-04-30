@@ -31,6 +31,7 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
+import com.artofarc.util.Closer;
 
 public final class JMSConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
@@ -238,9 +239,14 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		void stopListening() {
 			if (_messageConsumer != null) {
 				try {
-					_messageConsumer.setMessageListener(null);
-					_messageConsumer.close();
-				} catch (JMSException e) {
+					if (JMSConnectionProvider.closeWithTimeout > 0) {
+						Closer closer = new Closer(_workerPool.getExecutorService());
+						// Oracle AQ sometimes waits forever in close()
+						closer.closeWithTimeout(_messageConsumer, JMSConnectionProvider.closeWithTimeout, getKey());
+					} else {
+						_messageConsumer.close();
+					}
+				} catch (Exception e) {
 					// ignore
 				}
 				_messageConsumer = null;

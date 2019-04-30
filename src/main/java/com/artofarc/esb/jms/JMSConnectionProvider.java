@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TimerTask;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -78,7 +79,7 @@ public final class JMSConnectionProvider {
 		for (JMSConnectionGuard connectionGuard : _pool.values()) {
 			try {
 				connectionGuard.getConnection().close();
-			} catch (Exception e) {
+			} catch (JMSException e) {
 				// ignore
 			}
 		}
@@ -115,9 +116,9 @@ public final class JMSConnectionProvider {
 			return connection;
 		}
 
-		Connection getConnection() {
+		Connection getConnection() throws JMSException {
 			if (_connection == null) {
-				throw new IllegalStateException(_jndiConnectionFactory + " is currently invalid");
+				throw new JMSException("Currently cannot connect using " + _jndiConnectionFactory);
 			}
 			return _connection;
 		}
@@ -158,9 +159,7 @@ public final class JMSConnectionProvider {
 				if (closeWithTimeout > 0) {
 					Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
 					// Oracle AQ sometimes waits forever in close()
-					if (!closer.closeWithTimeout(Closer.createAutoCloseable(_connection), closeWithTimeout)) {
-						logger.warn("Possible resource leak: Could not close connection regularly within given time for " + _jndiConnectionFactory);
-					}
+					closer.closeWithTimeout(_connection, closeWithTimeout, _jndiConnectionFactory);
 				} else {
 					_connection.close();
 				}
@@ -170,7 +169,11 @@ public final class JMSConnectionProvider {
 			_connection = null;
 			// start reconnect thread
 			logger.info("Start reconnect thread for " + _jndiConnectionFactory);
-			_future = _poolContext.getWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
+			ScheduledExecutorService scheduledExecutorService = _poolContext.getWorkerPool().getScheduledExecutorService();
+			if (scheduledExecutorService == null) {
+				scheduledExecutorService = _poolContext.getGlobalContext().getDefaultWorkerPool().getScheduledExecutorService();
+			}
+			_future = scheduledExecutorService.scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
 		}
 
 		@Override

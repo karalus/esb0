@@ -51,34 +51,24 @@ public final class Closer implements AutoCloseable {
 		}
 	}
 
-	public static AutoCloseable createAutoCloseable(final Object obj) throws NoSuchMethodException {
+	public boolean closeWithTimeout(final Object obj, long timeout, String context) throws Exception {
 		final Method method = obj.getClass().getMethod("close");
-		return new AutoCloseable() {
+		Future<Boolean> future = _executorService.submit(new Callable<Boolean>() {
 
 			@Override
-			public void close() throws Exception {
+			public Boolean call() throws Exception {
 				try {
 					method.invoke(obj);
 				} catch (InvocationTargetException e) {
 					throw ReflectionUtils.convert(e.getCause(), Exception.class);
 				}
-			}
-		};
-	}
-
-	public boolean closeWithTimeout(final AutoCloseable closeable, long timeout) throws Exception {
-		Future<Boolean> future = _executorService.submit(new Callable<Boolean>() {
-
-			@Override
-			public Boolean call() throws Exception {
-				closeable.close();
 				return true;
 			}
 		});
 		try {
 			return future.get(timeout, TimeUnit.MILLISECONDS);
 		} catch (TimeoutException e) {
-			logger.warn("Could not close within timeout of " + timeout);
+			logger.warn("Possible resource leak: Could not close " + obj.getClass().getSimpleName() + " for " + context + " regularly within timeout of " + timeout + "ms");
 			future.cancel(true);
 			return false;
 		} catch (ExecutionException e) {
