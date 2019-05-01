@@ -114,16 +114,14 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	@Override
 	public void init(GlobalContext globalContext) throws Exception {
 		WorkerPool workerPool = globalContext.getWorkerPool(_workerPool);
-		if (workerPool.getScheduledExecutorService() == null) {
-			throw new java.lang.IllegalStateException("No scheduled threads in WorkerPool " + _workerPool);
-		}
 		for (int i = 0; i < _jmsWorker.length; ++i) {
-			(_jmsWorker[i] = _pollInterval > 0L ? new JMSPollingWorker(workerPool) : new JMSWorker(workerPool)).open();
+			_jmsWorker[i] = _pollInterval > 0L ? new JMSPollingWorker(workerPool) : new JMSWorker(workerPool);
 		}
+		workerPool.getPoolContext().getJMSConnectionProvider().registerJMSConsumer(_jndiConnectionFactory, this, super.isEnabled());
+		resume();
 		if (super.isEnabled()) {
 			enable(true);
 		}
-		workerPool.getPoolContext().getJMSConnectionProvider().registerJMSConsumer(_jndiConnectionFactory, this);
 	}
 
 	void resume() throws Exception {
@@ -210,12 +208,16 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
 			_session = jmsSessionFactory.getResource(_jndiConnectionFactory, true).getSession();
 			if (_destination == null) {
-				_destination = _queueName != null ? _session.createQueue(_queueName) : _session.createTopic(_topicName);
+				try {
+					_destination = _queueName != null ? _session.createQueue(_queueName) : _session.createTopic(_topicName);
+				} catch (JMSException e) {
+					throw new InvalidDestinationException(e.getMessage());
+				}
 			}
 		}
 
 		final void initMessageConsumer() throws JMSException {
-			if (_messageConsumer == null && _session != null) {
+			if (_messageConsumer == null && _session != null && _destination != null) {
 				if (_subscription != null) {
 					_messageConsumer = _session.createDurableSubscriber((Topic) _destination, _subscription, _messageSelector, false);
 				} else {
@@ -225,8 +227,8 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		}
 
 		void startListening() throws JMSException {
-			if (_messageConsumer == null) {
-				initMessageConsumer();
+			initMessageConsumer();
+			if (_messageConsumer != null) {
 				try {
 					_messageConsumer.setMessageListener(this);
 				} catch (JMSException e) {
@@ -289,8 +291,8 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		}
 
 		void startListening() throws JMSException {
-			if (_messageConsumer == null) {
-				initMessageConsumer();
+			initMessageConsumer();
+			if (_messageConsumer != null) {
 				_poller = _workerPool.getExecutorService().submit(this);
 			}
 		}
