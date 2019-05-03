@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.ExceptionListener;
-import javax.jms.InvalidDestinationException;
 import javax.jms.JMSException;
 import javax.naming.NamingException;
 
@@ -56,6 +55,10 @@ public final class JMSConnectionProvider {
 
 	public Set<String> getJMSSessionFactories() {
 		return _pool.keySet();
+	}
+
+	public synchronized ExceptionListener getExceptionListener(String jndiConnectionFactory) {
+		return getJMSConnectionGuard(jndiConnectionFactory);
 	}
 
 	private JMSConnectionGuard getJMSConnectionGuard(String jndiConnectionFactory) {
@@ -91,7 +94,7 @@ public final class JMSConnectionProvider {
 		_pool.clear();
 	}
 
-	private final class JMSConnectionGuard extends TimerTask implements ExceptionListener {
+	final class JMSConnectionGuard extends TimerTask implements ExceptionListener {
 
 		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
 		private final String _jndiConnectionFactory;
@@ -167,34 +170,36 @@ public final class JMSConnectionProvider {
 
 		@Override
 		public synchronized void onException(JMSException jmsException) {
-			logger.warn("Connection will be closed for " + _jndiConnectionFactory, jmsException);
-			try {
-				_connection.setExceptionListener(null);
-				_connection.stop();
-			} catch (JMSException e) {
-				// ignore
-			}
-			for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
-				JMSConsumer jmsConsumer = entry.getKey();
-				// save current state
-				entry.setValue(jmsConsumer.isEnabled());
+			if (_connection != null) {
+				logger.warn("Connection will be closed for " + _jndiConnectionFactory, jmsException);
 				try {
-					logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey());
-					jmsConsumer.suspend();
-				} catch (Exception e) {
+					_connection.setExceptionListener(null);
+					_connection.stop();
+				} catch (JMSException e) {
 					// ignore
 				}
-			}
-			for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
-				try {
-					logger.info("Closing JMSSessionFactory");
-					jmsSessionFactory.close(_jndiConnectionFactory);
-				} catch (Exception e) {
-					// ignore
+				for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
+					JMSConsumer jmsConsumer = entry.getKey();
+					// save current state
+					entry.setValue(jmsConsumer.isEnabled());
+					try {
+						logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey());
+						jmsConsumer.suspend();
+					} catch (Exception e) {
+						// ignore
+					}
 				}
+				for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
+					try {
+						logger.info("Closing JMSSessionFactory");
+						jmsSessionFactory.close(_jndiConnectionFactory);
+					} catch (Exception e) {
+						// ignore
+					}
+				}
+				closeConnection();
+				startReconnectThread();
 			}
-			closeConnection();
-			startReconnectThread();
 		}
 
 		@Override
@@ -208,7 +213,7 @@ public final class JMSConnectionProvider {
 						jmsConsumer.resume();
 						// restore last state
 						jmsConsumer.enable(entry.getValue());
-					} catch (InvalidDestinationException e) {
+					} catch (Exception e) {
 						logger.error("Failed to resume " + jmsConsumer.getKey(), e);
 					}
 				}

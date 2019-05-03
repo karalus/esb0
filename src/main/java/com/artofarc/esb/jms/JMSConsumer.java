@@ -196,7 +196,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	class JMSWorker implements MessageListener {
 		final WorkerPool _workerPool;
 		final Context _context;
-		Session _session;
+		volatile Session _session;
 		volatile MessageConsumer _messageConsumer;
 
 		JMSWorker(WorkerPool workerPool) throws Exception {
@@ -273,7 +273,8 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 				try {
 					processInternal(_context, esbMessage);
 					_session.commit();
-				} catch (Exception ex) {
+				} catch (Exception e) {
+					logger.info("Rolling back for " + getKey(), e);
 					_session.rollback();
 				}
 			} catch (JMSException e) {
@@ -318,7 +319,8 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 					}
 				}
 			} catch (JMSException e) {
-				throw new RuntimeException(e);
+				// TODO: Test if this needs to be done in an extra thread
+				_workerPool.getPoolContext().getJMSConnectionProvider().getExceptionListener(_jndiConnectionFactory).onException(e);
 			} catch (InterruptedException e) {
 				// stopListening
 			}
