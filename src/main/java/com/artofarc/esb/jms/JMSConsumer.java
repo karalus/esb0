@@ -309,17 +309,16 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		@Override
 		public void run() {
 			try {
-				for (long last = System.currentTimeMillis();;) {
+				for (long last = System.nanoTime();;) {
 					Message message = _messageConsumer.receiveNoWait();
 					if (message != null) {
 						onMessage(message);
 					} else {
-						Thread.sleep(_pollInterval - (System.currentTimeMillis() - last) % _pollInterval);
-						last = System.currentTimeMillis();
+						Thread.sleep(_pollInterval - (System.nanoTime() - last) / 1000000L % _pollInterval);
+						last = System.nanoTime();
 					}
 				}
 			} catch (JMSException e) {
-				// TODO: Test if this needs to be done in an extra thread
 				_workerPool.getPoolContext().getJMSConnectionProvider().getExceptionListener(_jndiConnectionFactory).onException(e);
 			} catch (InterruptedException e) {
 				// stopListening
