@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.io.IOException;
+
 import javax.xml.bind.JAXBException;
 import javax.xml.transform.stream.StreamSource;
 
@@ -44,9 +46,9 @@ public class XSDArtifact extends SchemaArtifact {
 	}
 
 	@Override
-	public DynamicJAXBContext getJAXBContext() throws JAXBException {
+	public DynamicJAXBContext getJAXBContext() throws JAXBException, IOException {
 		if (_jaxbContext == null) {
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getStreamSource(), this, null, null);
+			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getStreamSource(), this, null, getDynamicJAXBContextProperties());
 		}
 		return _jaxbContext;
 	}

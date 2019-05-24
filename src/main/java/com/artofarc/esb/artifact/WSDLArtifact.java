@@ -17,6 +17,7 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -115,10 +116,10 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	public DynamicJAXBContext getJAXBContext() throws JAXBException {
+	public DynamicJAXBContext getJAXBContext() throws JAXBException, IOException {
 		if (_jaxbContext == null && _lastSchemaElement != null) {
 			// TODO: This just works when the WSDL contains the one schema with the elements used in messages
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(_lastSchemaElement, this, null, null);
+			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(_lastSchemaElement, this, null, getDynamicJAXBContextProperties());
 			_lastSchemaElement = null;
 		}
 		return _jaxbContext;

@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URI;
@@ -23,10 +25,12 @@ import java.util.HashMap;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
+import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.EntityResolver;
@@ -41,7 +45,17 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	public static final String FILE_SCHEMA = "file://";
 
-	private final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
+	private static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
+	private static final String JAXB_BINDINGS = System.getProperty("esb0.moxy.jaxb.bindings");
+
+	protected static HashMap<String, Object> getDynamicJAXBContextProperties() throws IOException {
+		if (JAXB_BINDINGS != null) {
+			HashMap<String, Object> properties = new HashMap<>();
+			properties.put(DynamicJAXBContextFactory.EXTERNAL_BINDINGS_KEY, new StreamSource(new FileInputStream(JAXB_BINDINGS), JAXB_BINDINGS));
+			return properties;
+		}
+		return null;
+	}
 
 	protected HashMap<String, Object> _grammars = cacheXSGrammars ? new HashMap<String, Object>() : null;
 	protected Schema _schema;
@@ -67,7 +81,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 		return _schema;
 	}
 
-	public abstract DynamicJAXBContext getJAXBContext() throws JAXBException;
+	public abstract DynamicJAXBContext getJAXBContext() throws JAXBException, IOException;
 
 	protected final void initSchema(Source... schemas) throws SAXException {
 		if (cacheXSGrammars) {
