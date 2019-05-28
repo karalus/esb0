@@ -66,8 +66,13 @@ public final class JMSConnectionProvider {
 		if (connectionGuard == null) {
 			connectionGuard = new JMSConnectionGuard(jndiConnectionFactory);
 			_pool.put(jndiConnectionFactory, connectionGuard);
+			_poolContext.getGlobalContext().registerMBean(connectionGuard, getObjectName(jndiConnectionFactory));
 		}
 		return connectionGuard;
+	}
+
+	private String getObjectName(String jndiConnectionFactory) {
+		return ",group=JMSConnectionGuard,name=\"" + jndiConnectionFactory + "\",WorkerPool=" + _poolContext.getWorkerPool().getName();
 	}
 
 	public synchronized Connection getConnection(String jndiConnectionFactory) throws NamingException, JMSException {
@@ -84,9 +89,10 @@ public final class JMSConnectionProvider {
 	}
 
 	public synchronized void close() {
-		for (JMSConnectionGuard connectionGuard : _pool.values()) {
+		for (Entry<String, JMSConnectionGuard> entry : _pool.entrySet()) {
 			try {
-				connectionGuard.getConnection().close();
+				_poolContext.getGlobalContext().unregisterMBean(getObjectName(entry.getKey()));
+				entry.getValue().getConnection().close();
 			} catch (NamingException | JMSException e) {
 				// ignore
 			}
@@ -94,7 +100,7 @@ public final class JMSConnectionProvider {
 		_pool.clear();
 	}
 
-	final class JMSConnectionGuard extends TimerTask implements ExceptionListener {
+	final class JMSConnectionGuard extends TimerTask implements ExceptionListener, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
 
 		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
 		private final String _jndiConnectionFactory;
@@ -227,6 +233,10 @@ public final class JMSConnectionProvider {
 				}
 				logger.error("Reconnect failed for " + _jndiConnectionFactory, e);
 			}
+		}
+
+		public boolean isConnected() {
+			return _connection != null;
 		}
 	}
 

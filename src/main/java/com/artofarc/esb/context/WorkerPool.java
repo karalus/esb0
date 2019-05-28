@@ -230,7 +230,6 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		}
 	}
 
-	@Override
 	public int getContextCount() {
 		return _contextPool.getPoolSize();
 	}
