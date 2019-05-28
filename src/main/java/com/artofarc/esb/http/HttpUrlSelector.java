@@ -146,23 +146,23 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
-		return connectTo(httpEndpoint, method, spec, headers, chunkLength, httpEndpoint.getRetries());
+	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String spec, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
+		return connectTo(httpEndpoint, timeout, method, spec, headers, chunkLength, httpEndpoint.getRetries());
 	}
 
-	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, String method, String spec, Set<Entry<String, Object>> headers, Integer chunkLength, int retryCount) throws IOException {
+	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String spec, Set<Entry<String, Object>> headers, Integer chunkLength, int retryCount) throws IOException {
 		if (activeCount == 0) {
 			throw new ConnectException("No active url");
 		}
 		int pos = computeNextPos();
 		try {
-			return new HttpUrlConnectionWrapper(pos, connectTo(httpEndpoint.getHttpUrls().get(pos).getUrl(), method, spec, headers, chunkLength));
+			return new HttpUrlConnectionWrapper(pos, connectTo(httpEndpoint.getHttpUrls().get(pos).getUrl(), timeout, method, spec, headers, chunkLength));
 		} catch (ConnectException e) {
 			if (_httpEndpoint.getCheckAliveInterval() != null) {
 				setActive(pos, false);
 			}
 			if (retryCount > 0) {
-				return connectTo(httpEndpoint, method, spec, headers, chunkLength, --retryCount);
+				return connectTo(httpEndpoint, timeout, method, spec, headers, chunkLength, --retryCount);
 			}
 			throw e;
 		}
@@ -182,12 +182,13 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	private HttpURLConnection connectTo(URL url, String method, String spec, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
+	private HttpURLConnection connectTo(URL url, int timeout, String method, String spec, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
 		if (spec != null) {
 			url = new URL(url, spec);
 		}
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setConnectTimeout(_httpEndpoint.getConnectionTimeout());
+		conn.setReadTimeout(timeout);
 		// For "PATCH" refer to https://stackoverflow.com/questions/25163131/httpurlconnection-invalid-http-method-patch
 		conn.setRequestMethod(method);
 		conn.setDoOutput(true);

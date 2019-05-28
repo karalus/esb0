@@ -112,8 +112,8 @@ public abstract class Action implements Cloneable {
 					}
 				}
 			} finally {
-				for (int i = 0; i < pipeline.size(); ++i) {
-					action = pipeline.get(i);
+				for (int i = pipeline.size(); i > 0;) {
+					action = pipeline.get(--i);
 					ExecutionContext exContext = resources.get(i);
 					try {
 						action.close(exContext);

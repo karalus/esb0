@@ -55,10 +55,10 @@ public class HttpOutboundAction extends Action {
 		if (contentType != null) {
 			contentType.setValue(contentType.getValue() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
 		}
-		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);
+		int timeout = message.getTimeleft(_readTimeout).intValue();
+		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);
 		HttpURLConnection conn = wrapper.getHttpURLConnection();  
 		message.getVariables().put(HttpURLOutbound, conn.getURL().toString());
-		conn.setReadTimeout(message.getTimeleft(_readTimeout).intValue());
 		if (inPipeline) {
 			message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
 		} else {
