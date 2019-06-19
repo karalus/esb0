@@ -218,13 +218,13 @@ public class FileSystem {
 		return result;
 	}
 
-	private boolean deleteArtifact(Artifact artifact) {
+	private static boolean deleteArtifact(Artifact artifact) {
 		boolean deleted = false;
 		if (artifact.getReferencedBy().isEmpty()) {
 			for (String referenced : artifact.getReferenced()) {
-				Artifact referencedArtifact = getArtifact(referenced);
+				Artifact referencedArtifact = artifact.getArtifact(referenced);
 				if (!referencedArtifact.getReferencedBy().remove(artifact.getURI())) {
-					throw new IllegalStateException("References not consistent");
+					throw new IllegalStateException("References not consistent for " + artifact.getURI());
 				}
 			}
 			deleted = artifact == artifact.getParent().getArtifacts().remove(artifact.getName());
