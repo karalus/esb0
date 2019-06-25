@@ -18,12 +18,7 @@ package com.artofarc.esb.jms;
 
 import java.util.HashMap;
 
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
-import javax.jms.TemporaryQueue;
+import javax.jms.*;
 
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.util.Closer;
@@ -45,9 +40,33 @@ public final class JMSSession implements AutoCloseable {
 		_jndiConnectionFactory = jndiConnectionFactory;
 		_session = session;
 	}
-	
+
 	public Session getSession() {
 		return _session;
+	}
+
+	public Queue createQueue(String queueName) throws JMSException {
+		for (Destination destination : _producers.keySet()) {
+			if (destination instanceof Queue) {
+				Queue queue = (Queue) destination;
+				if (queue.getQueueName().equals(queueName)) {
+					return queue;
+				}
+			}
+		}
+		return _session.createQueue(queueName);
+	}
+
+	public Topic createTopic(String topicName) throws JMSException {
+		for (Destination destination : _producers.keySet()) {
+			if (destination instanceof Topic) {
+				Topic topic = (Topic) destination;
+				if (topic.getTopicName().equals(topicName)) {
+					return topic;
+				}
+			}
+		}
+		return _session.createTopic(topicName);
 	}
 
 	public MessageProducer createProducer(Destination destination) throws JMSException {
@@ -58,7 +77,7 @@ public final class JMSSession implements AutoCloseable {
 		}
 		return producer;
 	}
-	
+
 	public TemporaryQueue getTemporaryQueue() throws JMSException {
 		if (_temporaryQueue == null) {
 			_temporaryQueue = _session.createTemporaryQueue();
@@ -66,7 +85,7 @@ public final class JMSSession implements AutoCloseable {
 		}
 		return _temporaryQueue;
 	}
-	
+
 	public MessageConsumer getConsumerForTemporaryQueue() {
 		return _consumer;
 	}
@@ -86,5 +105,5 @@ public final class JMSSession implements AutoCloseable {
 			_session.close();
 		}
 	}
-	
+
 }
