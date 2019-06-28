@@ -26,14 +26,16 @@ import com.artofarc.esb.context.GlobalContext;
 public class XSLTArtifact extends XMLArtifact {
 
 	private Templates _templates;
-	
+
 	public XSLTArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
 	}
 
 	@Override
 	protected XSLTArtifact clone(FileSystem fileSystem, Directory parent) {
-		return initClone(new XSLTArtifact(fileSystem, parent, getName()));
+		XSLTArtifact clone = initClone(new XSLTArtifact(fileSystem, parent, getName()));
+		clone._templates = _templates;
+		return clone;
 	}
 
 	public final Templates getTemplates() {
