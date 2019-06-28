@@ -64,8 +64,8 @@ public class XQueryArtifact extends XMLArtifact {
 	}
 
 	@Override
-	public void validateInternal(GlobalContext globalContext) throws XQException {
-		validateXQuerySource(this, new XQuerySource(getContent()));
+	public void validateInternal(GlobalContext globalContext) throws Exception {
+		validateXQuerySource(this, new XQuerySource(getContentAsBytes()));
 	}
 
 	@Override
