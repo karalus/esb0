@@ -43,11 +43,13 @@ public class HttpInboundAction extends Action {
 		message.getVariables().put(ESBConstants.HttpResponseCode, conn.getResponseCode());
 		message.getHeaders().clear();
 		for (Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
-			Object value = entry.getValue();
-			if (entry.getValue().size() == 1) {
-				value = entry.getValue().get(0);
+			if (entry.getKey() != null) {
+				Object value = entry.getValue();
+				if (entry.getValue().size() == 1) {
+					value = entry.getValue().get(0);
+				}
+				message.getHeaders().put(entry.getKey(), value);
 			}
-			message.getHeaders().put(entry.getKey(), value);
 		}
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null) {
