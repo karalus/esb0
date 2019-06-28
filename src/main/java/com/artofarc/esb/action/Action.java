@@ -50,6 +50,9 @@ public abstract class Action implements Cloneable {
 		_errorHandler = errorHandler;
 	}
 
+	/**
+	 * The ESB0 execution engine. TODO: Increase comprehensibility.
+	 */
 	public final void process(Context context, ESBMessage message) throws Exception {
 		List<Action> pipeline = new ArrayList<>();
 		List<ExecutionContext> resources = new ArrayList<>();
@@ -97,6 +100,7 @@ public abstract class Action implements Cloneable {
 				nextAction = stackErrorHandler.poll();
 				if (nextAction != null) {
 					nextAction.process(context, message);
+					nextAction = null;
 				} else {
 					if (getErrorHandler() != null) {
 						nextAction = getErrorHandler();
