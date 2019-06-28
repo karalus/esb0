@@ -31,6 +31,9 @@ public class JarArtifact extends Artifact {
 
 	private HashMap<String, byte[]> _entries = new HashMap<>();
 
+	// track whether the JAR is used 
+	boolean _used;
+
 	public JarArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
 	}
@@ -48,7 +51,7 @@ public class JarArtifact extends Artifact {
 	}
 
 	@Override
-	public void validateInternal(GlobalContext globalContext) throws IOException {
+	protected void validateInternal(GlobalContext globalContext) throws IOException {
 		try (ZipInputStream zis = new ZipInputStream(getContentAsStream())) {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
@@ -64,6 +67,7 @@ public class JarArtifact extends Artifact {
 	}
 
 	public final byte[] getEntry(String filename) throws IOException {
+		_used = true;
 		if (!CACHE_JARS_UNZIPPED) {
 			try (ZipInputStream zis = new ZipInputStream(getContentAsStream())) {
 				ZipEntry entry;
