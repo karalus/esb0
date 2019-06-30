@@ -124,7 +124,12 @@ public class ProcessJsonAction extends Action {
 					break;
 				case ARRAY:
 					JsonArray jsonArray = (JsonArray) result;
-					result = jsonArray.get(Integer.parseInt(fragment));
+					try {
+						int index = Integer.parseInt(fragment);
+						result = jsonArray.size() > index ? jsonArray.get(index) : null;
+					} catch (NumberFormatException e) {
+						result = null;
+					}
 					break;
 				default:
 					result = null;
