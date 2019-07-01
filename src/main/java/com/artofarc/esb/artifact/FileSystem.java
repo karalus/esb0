@@ -218,15 +218,10 @@ public class FileSystem {
 		return result;
 	}
 
-	private static boolean deleteArtifact(Artifact artifact) {
+	public static boolean deleteArtifact(Artifact artifact) {
 		boolean deleted = false;
 		if (artifact.getReferencedBy().isEmpty()) {
-			for (String referenced : artifact.getReferenced()) {
-				Artifact referencedArtifact = artifact.getArtifact(referenced);
-				if (!referencedArtifact.getReferencedBy().remove(artifact.getURI())) {
-					throw new IllegalStateException("References not consistent for " + artifact.getURI());
-				}
-			}
+			artifact.detachFromReferenced();
 			deleted = artifact == artifact.getParent().getArtifacts().remove(artifact.getName());
 		}
 		return deleted;
@@ -235,15 +230,29 @@ public class FileSystem {
 	public final boolean tidyOut() {
 		HashSet<String> visited = new HashSet<>();
 		collectFolders(visited, _root);
-		return tidyOut(_root, visited);
+		detachOrphans(_root, visited);
+		return deleteOrphans(_root, visited);
 	}
 
-	private boolean tidyOut(Directory directory, HashSet<String> visited) {
+	private static void detachOrphans(Directory directory, HashSet<String> visited) {
+		for (Artifact artifact : directory.getArtifacts().values()) {
+			if (artifact instanceof Directory) {
+				Directory child = (Directory) artifact;
+				if (!XMLCatalog.isXMLCatalog(child)) {
+					detachOrphans(child, visited);
+				}
+			} else if (!visited.contains(artifact.getURI())) {
+				artifact.detachFromReferenced();
+			}
+		}
+	}
+
+	private boolean deleteOrphans(Directory directory, HashSet<String> visited) {
 		for (Iterator<Artifact> iterator = directory.getArtifacts().values().iterator(); iterator.hasNext();) {
 			Artifact artifact = iterator.next();
 			if (artifact instanceof Directory) {
 				Directory child = (Directory) artifact;
-				if (!XMLCatalog.isXMLCatalog(child) && tidyOut(child, visited)) {
+				if (!XMLCatalog.isXMLCatalog(child) && deleteOrphans(child, visited)) {
 					logger.info("Remove: " + artifact.getURI());
 					iterator.remove();
 					_changes.put(artifact.getURI(), ChangeType.DELETE);
@@ -395,12 +404,12 @@ public class FileSystem {
 					int i = entry.getName().lastIndexOf('/');
 					Directory dir = i < 0 ? _root : makeDirectory(entry.getName().substring(0, i));
 					String name = i < 0 ? entry.getName() : entry.getName().substring(i + 1);
-					Artifact old = getArtifact(entry.getName());
 					Artifact artifact = createArtifact(dir, name);
 					if (artifact != null) {
 						artifact.setContent(StreamUtils.copy(zis));
 						artifact.setModificationTime(entry.getTime());
 						artifact.setCrc(entry.getCrc());
+						Artifact old = getArtifact(entry.getName());
 						if (old != null) {
 							if (old.isEqual(artifact)) {
 								// Undo

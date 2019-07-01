@@ -170,6 +170,15 @@ public abstract class Artifact {
 		}
 	}
 
+	protected final void detachFromReferenced() {
+		for (String referenced : getReferenced()) {
+			Artifact referencedArtifact = getArtifact(referenced);
+			if (!referencedArtifact.getReferencedBy().remove(getURI())) {
+				throw new IllegalStateException("References not consistent for " + getURI());
+			}
+		}
+	}
+
 	protected abstract void validateInternal(GlobalContext globalContext) throws Exception;
 
 	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {
