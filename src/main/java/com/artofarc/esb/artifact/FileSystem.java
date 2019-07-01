@@ -404,12 +404,12 @@ public class FileSystem {
 					int i = entry.getName().lastIndexOf('/');
 					Directory dir = i < 0 ? _root : makeDirectory(entry.getName().substring(0, i));
 					String name = i < 0 ? entry.getName() : entry.getName().substring(i + 1);
+					Artifact old = getArtifact(entry.getName());
 					Artifact artifact = createArtifact(dir, name);
 					if (artifact != null) {
 						artifact.setContent(StreamUtils.copy(zis));
 						artifact.setModificationTime(entry.getTime());
 						artifact.setCrc(entry.getCrc());
-						Artifact old = getArtifact(entry.getName());
 						if (old != null) {
 							if (old.isEqual(artifact)) {
 								// Undo
