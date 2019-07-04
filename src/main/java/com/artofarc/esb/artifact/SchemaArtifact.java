@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.xml.bind.JAXBException;
@@ -95,8 +96,9 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	@Override
 	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {
-		// refs have been set by resolvers
-		for (String artifactUri : getReferenced()) {
+		// refs have been set by resolvers, some refs can be added later because the way newSchema() works (depth first)
+		// so make a copy of references for thread safety
+		for (String artifactUri : new ArrayList<>(getReferenced())) {
 			SchemaArtifact schemaArtifact = getArtifact(artifactUri);
 			schemaArtifact.validate(globalContext);
 		}
