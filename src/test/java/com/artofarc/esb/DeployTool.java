@@ -22,13 +22,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
+import javax.json.Json;
+import javax.json.JsonArray;
 import javax.mail.MessagingException;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.xml.bind.DatatypeConverter;
 
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.util.StreamUtils;
 
 public class DeployTool {
@@ -82,7 +87,33 @@ public class DeployTool {
 		return deploy(new URL(server + "/deploy"), mimeMultipart);
 	}
 
+	public static List<String> listFiles(String server, String path) throws IOException {
+		URL url = new URL(server + "/deploy" + path);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("GET");
+		conn.setReadTimeout(30000);
+		if (conn.getResponseCode() ==  HttpURLConnection.HTTP_OK) {
+			try (InputStream inputStream = conn.getInputStream()) {
+				String contentType = conn.getHeaderField(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+				if (HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON.equals(contentType)) {
+					List<String> result = new ArrayList<>();
+					JsonArray jsonArray = Json.createReader(inputStream).readArray();
+					for (int i = 0; i < jsonArray.size(); ++i) {
+						result.add(jsonArray.getString(i));
+					}
+					return result;
+				} else {
+					StreamUtils.copy(inputStream, System.err);
+					throw new IOException("No JSON received: " + contentType);
+				}
+			}
+		} else {
+			throw new IOException("ESB0 error: " + conn.getResponseMessage());
+		}
+	}
+
 	public static void main(String... args) throws Exception {
+		System.out.println(listFiles(args[0] + "/admin", "/consumer"));
 		DeployTool deployTool = new DeployTool(args[1], args[2]);
 		Boolean status;
 		try (FileInputStream inputStream = new FileInputStream(args[3])) {
