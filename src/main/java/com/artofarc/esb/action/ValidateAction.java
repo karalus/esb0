@@ -41,12 +41,12 @@ public class ValidateAction extends AssignAction {
 		if (!resultSequence.next()) {
 			throw new ExecutionException(this, "Expression had no result");
 		}
-		try (AutoCloseable timer = context.getTimeGauge().createTimer("validator.validate")) {
+		try {
 			resultSequence.writeItemToSAX(_schema.newValidatorHandler());
-			message.setSchema(_schema);
 		} catch (XQException e) {
 			throw new ExecutionException(this, "Validation failed", e.getCause());
 		}
+		message.setSchema(_schema);
 	}
 
 }

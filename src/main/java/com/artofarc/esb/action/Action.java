@@ -38,6 +38,9 @@ public abstract class Action implements Cloneable {
 	protected Action _nextAction;
 	protected Action _errorHandler;
 
+	private Object _serviceArtifact;
+	private int _posInServiceArtifact;
+
 	public final Action setNextAction(Action nextAction) {
 		return _nextAction = nextAction;
 	}
@@ -48,6 +51,31 @@ public abstract class Action implements Cloneable {
 
 	public final void setErrorHandler(Action errorHandler) {
 		_errorHandler = errorHandler;
+	}
+
+	public final Object getServiceArtifact() {
+		return _serviceArtifact;
+	}
+
+	public final void setServiceArtifact(Object serviceArtifact) {
+		_serviceArtifact = serviceArtifact;
+	}
+
+	public final int getPosInServiceArtifact() {
+		return _posInServiceArtifact;
+	}
+
+	public final void setPosInServiceArtifact(int posInServiceArtifact) {
+		_posInServiceArtifact = posInServiceArtifact;
+	}
+
+	@Override
+	public final String toString() {
+		String s = getClass().getSimpleName();
+		if (_serviceArtifact != null) {
+			s += " in ServiceArtifact " + _serviceArtifact + "@" + _posInServiceArtifact;
+		}
+		return s;
 	}
 
 	/**
@@ -71,7 +99,7 @@ public abstract class Action implements Cloneable {
 						context.pushStackPos();
 					}
 					ExecutionContext execContext = action.prepare(context, message, isPipeline);
-					timeGauge.stopTimeMeasurement("Parent: %s, prepare (isPipeline=%b): %s", true, this, isPipeline, action);
+					timeGauge.stopTimeMeasurement("Prepare (isPipeline=%b): %s", true, isPipeline, action);
 					pipeline.add(action);
 					resources.add(execContext);
 					nextAction = action.nextAction(execContext);
@@ -136,7 +164,7 @@ public abstract class Action implements Cloneable {
 			resources.clear();
 		}
 		context.getStackPos().poll();
-		timeGauge.stopTimeMeasurement("Finished process: " + getClass(), false);
+		timeGauge.stopTimeMeasurement("Finished process: " + _serviceArtifact, false);
 	}
 
 	// pipelining

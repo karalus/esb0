@@ -94,7 +94,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 
 	public void addThread(Thread thread, String info) {
 		if (_scheduledExecutorService != null && thread.getThreadGroup() != _threadFactory && _threads.put(thread, info) == null) {
-			PoolContext.logger.info("adding thread " + thread.getName() + " for " + info);
+			PoolContext.logger.debug("adding thread " + thread.getName() + " for " + info);
 		}
 	}
 
@@ -225,7 +225,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 			Thread thread = entry.getKey();
 			if (!thread.isAlive()) {
 				_threads.remove(thread);
-				PoolContext.logger.info("removing Thread " + thread.getName() + " for " + entry.getValue());
+				PoolContext.logger.debug("removing Thread " + thread.getName() + " for " + entry.getValue());
 			}
 		}
 	}

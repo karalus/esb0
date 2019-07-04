@@ -16,16 +16,11 @@
  */
 package com.artofarc.esb.action;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 public class ExecutionException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 
 	private final Action _action;
-
-	private final LinkedHashMap<String, Object> _errorContext = new LinkedHashMap<>();
 
 	public ExecutionException(Action action, String message, Throwable cause) {
 		super(message, cause);
@@ -42,12 +37,10 @@ public class ExecutionException extends Exception {
 		_action = action;
 	}
 
-	public Action getAction() {
-		return _action;
-	}
-
-	public Map<String, Object> getErrorContext() {
-		return _errorContext;
+	@Override
+	public String getMessage() {
+		String message = super.getMessage();
+		return _action != null ? message != null ? _action + ": " + message : _action.toString() : message;
 	}
 
 }
