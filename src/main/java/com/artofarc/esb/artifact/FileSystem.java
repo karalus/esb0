@@ -30,7 +30,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
-import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 
 import org.slf4j.Logger;
@@ -119,11 +118,14 @@ public class FileSystem {
 	}
 
 	public final ChangeSet init(GlobalContext globalContext) throws Exception {
-		parse(new CRC32());
-		return validateServices(globalContext);
+		parse();
+		_changes.clear();
+		ChangeSet changeSet = new ChangeSet();
+		validateServices(globalContext, _root, changeSet);
+		return changeSet;
 	}
 
-	protected void parse(CRC32 crc) throws Exception {
+	public void parse() throws Exception {
 	}
 
 	protected final void dehydrateArtifacts(Directory base) {
@@ -136,13 +138,6 @@ public class FileSystem {
 				}
 			}
 		}
-	}
-
-	private ChangeSet validateServices(GlobalContext globalContext) throws ValidationException {
-		_changes.clear();
-		ChangeSet services = new ChangeSet();
-		validateServices(globalContext, _root, services);
-		return services;
 	}
 
 	private static void validateServices(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {

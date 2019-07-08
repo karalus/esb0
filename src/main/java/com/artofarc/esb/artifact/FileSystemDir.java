@@ -55,8 +55,8 @@ public class FileSystemDir extends FileSystem {
 	}
 
 	@Override
-	protected void parse(CRC32 crc) throws IOException {
-		readDir(_root, _anchorDir, crc);
+	public void parse() throws IOException {
+		readDir(_root, _anchorDir, new CRC32());
 	}
 
 	private void readDir(Directory base, File dir, CRC32 crc) throws IOException {
