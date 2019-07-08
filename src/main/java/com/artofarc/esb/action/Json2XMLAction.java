@@ -41,14 +41,14 @@ public class Json2XMLAction extends Action {
 
 	private final DynamicJAXBContext _jaxbContext;
 	private final Class<DynamicEntity> _type;
-	private final Boolean _jsonIncludeRoot;
+	private final Boolean _jsonIncludeRoot, _caseInsensitive;
 	private final Map<String, String> _urisToPrefixes;
 	private final Schema _schema;
 	private final Boolean _formattedOutput;
 	private final QName _xmlElement;
 
 	@SuppressWarnings("unchecked")
-	public Json2XMLAction(DynamicJAXBContext jaxbContext, String type, boolean jsonIncludeRoot, String xmlElement, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
+	public Json2XMLAction(DynamicJAXBContext jaxbContext, String type, boolean jsonIncludeRoot, boolean caseInsensitive, String xmlElement, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
 		_pipelineStop = true;
 		_jaxbContext = jaxbContext;
 		if (type != null) {
@@ -63,6 +63,7 @@ public class Json2XMLAction extends Action {
 		}
 		_xmlElement = xmlElement != null ? QName.valueOf(xmlElement) : null;
 		_jsonIncludeRoot = jsonIncludeRoot;
+		_caseInsensitive = caseInsensitive;
 		_urisToPrefixes = urisToPrefixes;
 		_schema = schema;
 		_formattedOutput = formattedOutput;
@@ -84,6 +85,7 @@ public class Json2XMLAction extends Action {
 		Unmarshaller jsonUnmarshaller = _jaxbContext.createUnmarshaller();
 		jsonUnmarshaller.setProperty(UnmarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
 		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_INCLUDE_ROOT, _jsonIncludeRoot);
+		jsonUnmarshaller.setProperty(UnmarshallerProperties.UNMARSHALLING_CASE_INSENSITIVE, _caseInsensitive);
 		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
 		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_ATTRIBUTE_PREFIX, "@");
 		Object root;
