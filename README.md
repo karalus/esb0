@@ -70,16 +70,16 @@ Even in a Kubernetes environment where endpoint virtualization and load balancin
 
 You need to have [Maven](http://maven.apache.org/) and [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html) installed.
 
-ESB Zero build has been tested with Maven 3.5.2 plus JDK7-u80 and JDK8.
+ESB Zero build has been tested with Maven 3.5.2 and JDK8.
 
-Java 7 should be used for building in order to support both Java 7 and Java 8 at runtime.
+From version 1.4 on Java 8 is required at runtime.
 
 "mvn package" will build a WAR file "esb0.war"
 
 ### How to deploy ###
 
 ESB Zero requires a Java Servlet Container conforming to the servlet 3.0 API. 
-It has been tested with Tomcat 7, 8 and 8.5, Wildfly, Jetty 9.0.0. and JBoss EAP 7.1.
+It has been tested with Tomcat 8 and 8.5, Wildfly, Jetty 9.0.0. and JBoss EAP 7.1.
 
 ESB Zero needs one directory to retrieve service flows and other artifacts from and persist to.
 Per default it is expected to have a folder named "esb_root" in the user home folder (of the user running the servlet container).
@@ -109,10 +109,11 @@ It is written in Java 7 and implements a servlet based on 3.0.1 API.
 
 - For WSDL parsing [WSDL4J](https://sourceforge.net/projects/wsdl4j/) is used.
 - For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/9.8/)
-- For conversion between XML and JSON [MOXy](http://www.eclipse.org/eclipselink/documentation/2.6/moxy/json002.htm) is used.
+- For conversion between XML and JSON [MOXy](http://www.eclipse.org/eclipselink/documentation/2.7/moxy/json002.htm) is used.
 - FastInfoset support is implemented using "com.sun.xml.fastinfoset".
 - Logging is done with [SLF4J](https://www.slf4j.org/). Optionally combined with [Logback](https://logback.qos.ch/) it gives the best performance.
 
 Optional
 - For using Kafka you need the [Kafka Java Client](https://cwiki.apache.org/confluence/display/KAFKA/Clients)
 - For using ActiveMQ as JMS provider you need to include it into your Servlet Container
+- For using Oracle AQ as JMS provider refer to [aq-jndi](https://github.com/karalus/aq-jndi)
