@@ -31,6 +31,8 @@ public interface WorkerPoolMXBean {
 
 	int getCorePoolSize();
 
+	int getLargestPoolSize();
+
 	long getCompletedTaskCount();
 
 	int getQueueSize();

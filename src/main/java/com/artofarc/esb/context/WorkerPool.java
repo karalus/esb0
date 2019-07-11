@@ -131,6 +131,10 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		return _executorService != null ? _executorService.getCorePoolSize() : -1;
 	}
 
+	public int getLargestPoolSize() {
+		return _executorService != null ? _executorService.getLargestPoolSize() : -1;
+	}
+
 	public long getCompletedTaskCount() {
 		return _executorService != null ? _executorService.getCompletedTaskCount() : -1;
 	}
