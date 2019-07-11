@@ -78,6 +78,14 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 		return old;
 	}
 
+	@Override
+	protected void invalidate() {
+		if (cacheXSGrammars) {
+			_grammars.clear();
+		}
+		super.invalidate();
+	}
+
 	public final Schema getSchema() {
 		return _schema;
 	}

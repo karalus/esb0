@@ -102,13 +102,7 @@ public abstract class Artifact {
 	}
 
 	public final void setValidated(boolean validated) {
-		if (!(_validated = validated)) {
-			for (Iterator<String> iterator = _referenced.iterator(); iterator.hasNext();) {
-				Artifact artifact = getArtifact(iterator.next());
-				artifact.getReferencedBy().remove(getURI());
-				iterator.remove();
-			}
-		}
+		_validated = validated;
 	}
 
 	public final byte[] getContent() {
@@ -182,6 +176,15 @@ public abstract class Artifact {
 	protected abstract void validateInternal(GlobalContext globalContext) throws Exception;
 
 	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {
+	}
+
+	protected void invalidate() {
+		_validated = false;
+		for (Iterator<String> iterator = _referenced.iterator(); iterator.hasNext();) {
+			Artifact artifact = getArtifact(iterator.next());
+			artifact.getReferencedBy().remove(getURI());
+			iterator.remove();
+		}
 	}
 
 	public final void validate(GlobalContext globalContext) throws ValidationException {

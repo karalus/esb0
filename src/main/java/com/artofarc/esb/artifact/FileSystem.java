@@ -355,7 +355,7 @@ public class FileSystem {
 		// invalidate
 		for (String original : visited) {
 			Artifact artifact = changedFileSystem.getArtifact(original);
-			artifact.setValidated(false);
+			artifact.invalidate();
 		}
 		// validate
 		for (String original : visited) {
