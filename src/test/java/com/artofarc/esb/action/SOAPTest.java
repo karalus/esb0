@@ -22,6 +22,7 @@ import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.Directory;
 import com.artofarc.esb.artifact.FileSystem;
+import com.artofarc.esb.artifact.FileSystemDir;
 import com.artofarc.esb.artifact.WSDLArtifact;
 import com.artofarc.esb.artifact.XMLArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
@@ -29,6 +30,7 @@ import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpConstants;
+import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -378,7 +380,8 @@ public class SOAPTest extends AbstractESBTest {
    }
    
    public void testJMSConsumer() throws Exception {
-      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, "ConnectionFactory", "dynamicQueues/test1", null, null, null, null, 1, 0L);
+   	JMSConnectionData jmsConnectionData = new JMSConnectionData("ConnectionFactory", null, null);
+      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData, "dynamicQueues/test1", null, null, null, null, 1, 0L);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
       jmsConsumer.init(getGlobalContext());
@@ -386,7 +389,7 @@ public class SOAPTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest1.xml"));
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       
-      JMSAction jmsAction = new JMSAction(getGlobalContext(), "ConnectionFactory", "dynamicQueues/test1", null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 100, false);
+      JMSAction jmsAction = new JMSAction(getGlobalContext(), jmsConnectionData, "dynamicQueues/test1", null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 100, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(jmsAction);
       consumerPort.process(context, message);
@@ -447,6 +450,27 @@ public class SOAPTest extends AbstractESBTest {
       consumerPort.setStartAction(action);
 		List<Entry<String, String>> assignments = java.util.Collections.singletonList(Collections.createEntry(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"));
 		action = action.setNextAction(new AssignHeadersAction(assignments, null, java.util.Collections.<String>emptyList(), null, true));
+      action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+   }
+   
+   @Test
+   public void testInsertReplyContext() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+      message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      Action action = createUnwrapSOAPAction(false, true);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+		GlobalContext globalContext = getGlobalContext();
+		XQueryArtifact module = new XQueryArtifact(globalContext.getFileSystem(), globalContext.getFileSystem().getRoot(), "service-utils.xqm");
+		module.setContent(readFile("src/test/resources/service-utils.xqm"));
+
+      action = action.setNextAction(new TransformAction(new XQuerySource("import module namespace fn-svi='http://aoa.de/esb/service-utils' at '/service-utils.xqm'; fn-svi:copyAndInsertReplyContext(., 'SGFsbG8gV2VsdCE=')"), "/"));
+      action = action.setNextAction(new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; ./*[1]"));
+      XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
+      xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
+      xsdArtifact.validateInternal(globalContext);
+      action = action.setNextAction(createValidateAction(xsdArtifact));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }

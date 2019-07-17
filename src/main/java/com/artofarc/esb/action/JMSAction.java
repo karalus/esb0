@@ -24,6 +24,7 @@ import javax.naming.NamingException;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSSession;
 import com.artofarc.esb.message.*;
@@ -31,7 +32,7 @@ import com.artofarc.esb.resource.JMSSessionFactory;
 
 public class JMSAction extends TerminalAction {
 
-	private final String _jndiConnectionFactory;
+	private final JMSConnectionData _jmsConnectionData;
 	private Destination _destination;
 	private final String _queueName;
 	private final String _topicName;
@@ -41,15 +42,15 @@ public class JMSAction extends TerminalAction {
 	private final Long _timeToLive;
 	private final boolean _receiveFromTempQueue;
 
-	public JMSAction(GlobalContext globalContext, String jndiConnectionFactory, String jndiDestination, String queueName, String topicName,
+	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName,
 			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, boolean receiveFromTempQueue) throws NamingException {
 		_queueName = queueName;
 		_topicName = topicName;
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}
-		globalContext.lookup(jndiConnectionFactory);
-		_jndiConnectionFactory = jndiConnectionFactory;
+		globalContext.lookup(jmsConnectionData.getJndiConnectionFactory());
+		_jmsConnectionData = jmsConnectionData;
 		_isBytesMessage = isBytesMessage;
 		_deliveryMode = deliveryMode;
 		_priority = priority;
@@ -61,7 +62,7 @@ public class JMSAction extends TerminalAction {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
-		JMSSession jmsSession = jmsSessionFactory.getResource(_jndiConnectionFactory, false);
+		JMSSession jmsSession = jmsSessionFactory.getResource(_jmsConnectionData, false);
 		final Session session = jmsSession.getSession();
 		if (_destination == null) {
 			if (_queueName != null) {

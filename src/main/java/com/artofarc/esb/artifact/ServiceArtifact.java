@@ -34,6 +34,7 @@ import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.jdbc.JDBCParameter;
+import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
@@ -86,7 +87,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case JMS:
 			final Service.JmsBinding jmsBinding = service.getJmsBinding();
-			_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getWorkerPool(), jmsBinding.getJndiConnectionFactory(), jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
+			JMSConnectionData jmsConnectionData = new JMSConnectionData(jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
+			_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getWorkerPool(), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
 					jmsBinding.getTopicName(), jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval());
 			break;
 		case TIMER:
@@ -135,7 +137,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "jms": {
 				Jms jms = (Jms) jaxbElement.getValue();
-				addAction(list, new JMSAction(globalContext, jms.getJndiConnectionFactory(), jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms
+				JMSConnectionData jmsConnectionData = new JMSConnectionData(jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
+				addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms
 						.isBytesMessage(), jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.isReceiveFromTempQueue()));
 				break;
 			}

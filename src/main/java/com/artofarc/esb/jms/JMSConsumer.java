@@ -17,7 +17,6 @@
 package com.artofarc.esb.jms;
 
 import java.util.Enumeration;
-import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,7 +36,7 @@ import com.artofarc.util.Closer;
 public final class JMSConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final String _workerPool;
-	private final String _jndiConnectionFactory;
+	private final JMSConnectionData _jmsConnectionData;
 	private Destination _destination;
 	private final String _queueName;
 	private final String _topicName;
@@ -47,13 +46,13 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	private final long _pollInterval;
 	private final AtomicLong completedTaskCount = new AtomicLong();
 
-	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, String jndiConnectionFactory, String jndiDestination, String queueName,
+	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName,
 			String topicName, String subscription, String messageSelector, int workerCount, long pollInterval) throws NamingException, JMSException {
 
 		super(uri);
 		_workerPool = workerPool;
-		_jndiConnectionFactory = jndiConnectionFactory;
-		_messageSelector = messageSelector != null ? bindProperties(messageSelector, System.getProperties()) : null;
+		_jmsConnectionData = jmsConnectionData;
+		_messageSelector = JMSConnectionData.bindSystemProperties(messageSelector);
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}
@@ -76,34 +75,12 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		_pollInterval = pollInterval; 
 	}
 
-	private static String bindProperties(String exp, Map<?, ?> props) {
-		StringBuilder builder = new StringBuilder();
-		for (int pos = 0;;) {
-			int i = exp.indexOf("${", pos);
-			if (i < 0) {
-				builder.append(exp.substring(pos));
-				break;
-			}
-			builder.append(exp.substring(pos, i));
-			int j = exp.indexOf('}', i);
-			if (j < 0) throw new IllegalArgumentException("Matching } is missing");
-			String name = exp.substring(i + 2, j);
-			Object value = props.get(name);
-			if (value == null) {
-				throw new NullPointerException(name + " is not set");
-			}
-			builder.append(value);
-			pos = j + 1;
-		}
-		return builder.toString();
-	}
-
 	private String getDestinationName() {
 		return _queueName != null ? _queueName : _topicName;
 	}
 
 	public String getKey() {
-		String key = _jndiConnectionFactory + '|' + getDestinationName();
+		String key = _jmsConnectionData.toString() + '|' + getDestinationName();
 		if (_subscription != null) key += '|' + _subscription;
 		if (_messageSelector != null) key += '|' + _messageSelector;
 		return key;
@@ -123,7 +100,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		for (int i = 0; i < _jmsWorker.length; ++i) {
 			_jmsWorker[i] = _pollInterval > 0L ? new JMSPollingWorker(workerPool) : new JMSWorker(workerPool);
 		}
-		workerPool.getPoolContext().getJMSConnectionProvider().registerJMSConsumer(_jndiConnectionFactory, this, super.isEnabled());
+		workerPool.getPoolContext().getJMSConnectionProvider().registerJMSConsumer(_jmsConnectionData, this, super.isEnabled());
 		resume();
 		if (super.isEnabled()) {
 			enable(true);
@@ -212,7 +189,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 		final void open() throws Exception {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
-			_session = jmsSessionFactory.getResource(_jndiConnectionFactory, true).getSession();
+			_session = jmsSessionFactory.getResource(_jmsConnectionData, true).getSession();
 			if (_destination == null) {
 				try {
 					_destination = _queueName != null ? _session.createQueue(_queueName) : _session.createTopic(_topicName);
@@ -265,7 +242,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			stopListening();
 			_session = null;
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
-			jmsSessionFactory.close(_jndiConnectionFactory);
+			jmsSessionFactory.close(_jmsConnectionData);
 		}
 
 		@Override
@@ -326,7 +303,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 					}
 				}
 			} catch (JMSException e) {
-				_workerPool.getPoolContext().getJMSConnectionProvider().getExceptionListener(_jndiConnectionFactory).onException(e);
+				_workerPool.getPoolContext().getJMSConnectionProvider().getExceptionListener(_jmsConnectionData).onException(e);
 			} catch (InterruptedException e) {
 				// stopListening
 			}

@@ -29,15 +29,15 @@ import com.artofarc.util.Closer;
 public final class JMSSession implements AutoCloseable {
 
 	private final PoolContext _poolContext;
-	private final String _jndiConnectionFactory;
+	private final JMSConnectionData _jmsConnectionData;
 	private final Session _session;
 	private final HashMap<Destination, MessageProducer> _producers = new HashMap<>();
 	private TemporaryQueue _temporaryQueue;
 	private MessageConsumer _consumer;
 
-	public JMSSession(PoolContext poolContext, String jndiConnectionFactory, Session session) {
+	public JMSSession(PoolContext poolContext, JMSConnectionData jmsConnectionData, Session session) {
 		_poolContext = poolContext;
-		_jndiConnectionFactory = jndiConnectionFactory;
+		_jmsConnectionData = jmsConnectionData;
 		_session = session;
 	}
 
@@ -100,7 +100,7 @@ public final class JMSSession implements AutoCloseable {
 		if (JMSConnectionProvider.closeWithTimeout > 0) {
 			Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
 			// Oracle AQ sometimes waits forever in close()
-			closer.closeWithTimeout(_session, JMSConnectionProvider.closeWithTimeout, _jndiConnectionFactory);
+			closer.closeWithTimeout(_session, JMSConnectionProvider.closeWithTimeout, _jmsConnectionData.toString());
 		} else {
 			_session.close();
 		}
