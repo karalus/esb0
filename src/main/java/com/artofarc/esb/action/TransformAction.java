@@ -127,7 +127,7 @@ public class TransformAction extends Action {
 		XQResultSequence resultSequence = xqExpression.executeQuery();
 		context.getTimeGauge().stopTimeMeasurement("executeQuery", true);
 		try {
-			processSequence(context, message, resultSequence, destMap);
+			processSequence(message, resultSequence, destMap);
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("processSequence", false);
 		}
@@ -158,7 +158,7 @@ public class TransformAction extends Action {
 		}
 	}
 
-	protected void processSequence(Context context, ESBMessage message, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
+	protected void processSequence(ESBMessage message, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
 		if (destMap == null && !_varNames.isEmpty()) {
 			throw new ExecutionException(this, "Cannot handle assignment");
 		}

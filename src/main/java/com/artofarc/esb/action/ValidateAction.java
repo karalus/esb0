@@ -24,7 +24,6 @@ import javax.xml.validation.Schema;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQResultSequence;
 
-import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
 
 public class ValidateAction extends AssignAction {
@@ -37,7 +36,7 @@ public class ValidateAction extends AssignAction {
 	}
 
 	@Override
-	protected void processSequence(Context context, ESBMessage message, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
+	protected void processSequence(ESBMessage message, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
 		if (!resultSequence.next()) {
 			throw new ExecutionException(this, "Expression had no result");
 		}

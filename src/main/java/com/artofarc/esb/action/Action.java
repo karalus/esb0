@@ -53,16 +53,8 @@ public abstract class Action implements Cloneable {
 		_errorHandler = errorHandler;
 	}
 
-	public final Object getServiceArtifact() {
-		return _serviceArtifact;
-	}
-
 	public final void setServiceArtifact(Object serviceArtifact) {
 		_serviceArtifact = serviceArtifact;
-	}
-
-	public final int getPosInServiceArtifact() {
-		return _posInServiceArtifact;
 	}
 
 	public final void setPosInServiceArtifact(int posInServiceArtifact) {
