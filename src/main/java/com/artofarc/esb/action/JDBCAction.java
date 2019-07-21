@@ -18,26 +18,27 @@ package com.artofarc.esb.action;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
-import java.math.BigDecimal;
 import java.sql.*;
 import static java.sql.Types.*;
-import java.util.GregorianCalendar;
+
 import java.util.List;
 
-import javax.json.*;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
-import javax.xml.bind.DatatypeConverter;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.sax.SAXResult;
+
+import org.eclipse.persistence.dynamic.DynamicEntity;
+import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jdbc.JDBCParameter;
+import com.artofarc.esb.jdbc.JDBCXMLMapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StringWriter;
 
 public abstract class JDBCAction extends TerminalAction {
 
@@ -46,13 +47,15 @@ public abstract class JDBCAction extends TerminalAction {
 	private final List<JDBCParameter> _params;
 	private final int _maxRows;
 	private final Integer _timeout;
+	protected final JDBCXMLMapper _mapper;
 
-	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout) throws NamingException {
+	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, DynamicJAXBContext jaxbContext) throws NamingException {
 		_dataSource = globalContext.lookup(dsName);
 		_sql = sql;
 		_params = params;
 		_maxRows = maxRows;
 		_timeout = timeout;
+		_mapper = jaxbContext != null ? new JDBCXMLMapper(jaxbContext) : null;
 	}
 
 	@Override
@@ -71,6 +74,8 @@ public abstract class JDBCAction extends TerminalAction {
 					case CLOB:
 					case BLOB:
 						execContext = super.prepare(context, message, true);
+						break;
+					case STRUCT:
 						break;
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
@@ -111,6 +116,17 @@ public abstract class JDBCAction extends TerminalAction {
 						ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(param.<byte[]> alignValue(message.getBodyAsByteArray(context))));
 					}
 					break;
+				case STRUCT:
+					Unmarshaller unmarshaller = _mapper.getJAXBContext().createUnmarshaller();
+					Object root = unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context));
+					if (root instanceof DynamicEntity) {
+						DynamicEntity entity = (DynamicEntity) root;
+						ps.setObject(param.getPos(), _mapper.toJDBC(entity, true, getConnection(execContext)));
+					} else {
+						JAXBElement<?> jaxbElement = (JAXBElement<?>) root;
+						ps.setObject(param.getPos(), _mapper.toJDBC(jaxbElement, false, getConnection(execContext)));
+					}
+					break;
 				default:
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 				}
@@ -120,136 +136,6 @@ public abstract class JDBCAction extends TerminalAction {
 		}
 		ps.setQueryTimeout(message.getTimeleft(_timeout).intValue() / 1000);
 		ps.setMaxRows(_maxRows);
-	}
-
-	protected static void extractResult(Statement statement, ESBMessage message) throws SQLException {
-		JsonStructure result = null;
-		JsonArrayBuilder builder = Json.createArrayBuilder();
-		for (boolean moreResults = true;; moreResults = statement.getMoreResults()) {
-			int updateCount = statement.getUpdateCount();
-			ResultSet resultSet = statement.getResultSet();
-			if (updateCount >= 0) {
-				builder.add(updateCount);
-			} else if (moreResults && resultSet != null) {
-				result = createJson(resultSet);
-				builder.add(result);
-			} else {
-				break;
-			}
-		}
-		JsonArray jsonArray = builder.build();
-		if (jsonArray.size() > 1) {
-			result = jsonArray;
-		}
-		if (result != null) {
-			StringWriter sw = new StringWriter();
-			JsonWriter jsonWriter = Json.createWriter(sw);
-			jsonWriter.write(result);
-			jsonWriter.close();
-			message.getHeaders().clear();
-			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
-			message.reset(BodyType.READER, sw.getStringReader());
-		} else if (jsonArray.size() > 0) {
-			message.getVariables().put("sqlUpdateCount", jsonArray.getInt(0));
-		}
-	}
-
-	protected static JsonObject createJson(ResultSet resultSet) throws SQLException {
-		ResultSetMetaData metaData = resultSet.getMetaData();
-		final int colSize = metaData.getColumnCount();
-		JsonObjectBuilder result = Json.createObjectBuilder();
-		JsonArrayBuilder header = Json.createArrayBuilder();
-		for (int i = 1; i <= colSize; ++i) {
-			int scale = metaData.getScale(i);
-			String type = JDBCParameter.CODES.get(metaData.getColumnType(i)) + '(' + metaData.getPrecision(i) + (scale > 0 ? ", " + scale : "" + ')');
-			header.add(Json.createObjectBuilder().add(metaData.getColumnLabel(i), type));
-		}
-		result.add("header", header);
-		JsonArrayBuilder rows = Json.createArrayBuilder();
-		while (resultSet.next()) {
-			JsonArrayBuilder row = Json.createArrayBuilder();
-			for (int i = 1; i <= colSize; ++i) {
-				switch (metaData.getColumnType(i)) {
-				case SMALLINT:
-				case INTEGER:
-					int integer = resultSet.getInt(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(integer);
-					}
-					break;
-				case BIT:
-					boolean bool = resultSet.getBoolean(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(bool);
-					}
-					break;
-				case NUMERIC:
-				case DECIMAL:
-					BigDecimal bigDecimal = resultSet.getBigDecimal(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(bigDecimal);
-					}
-					break;
-				case TIMESTAMP:
-					Timestamp timestamp = resultSet.getTimestamp(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(DatatypeConverter.printDateTime(convert(timestamp)));
-					}
-					break;
-				case DATE:
-					Date date = resultSet.getDate(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(DatatypeConverter.printDate(convert(date)));
-					}
-					break;
-				case BLOB:
-					Blob blob = resultSet.getBlob(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
-						blob.free();
-					}
-					break;
-				case CLOB:
-					Clob clob = resultSet.getClob(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(clob.getSubString(1, (int) clob.length()));
-						clob.free();
-					}
-					break;
-				case VARBINARY:
-				case LONGVARBINARY:
-					byte[] bytes = resultSet.getBytes(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(DatatypeConverter.printBase64Binary(bytes));
-					}
-					break;
-				default:
-					Object value = resultSet.getObject(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(value.toString());
-					}
-					break;
-				}
-			}
-			rows.add(row);
-		}
-		result.add("rows", rows);
-		return result.build();
-	}
-
-	private static boolean checkNotNull(ResultSet resultSet, JsonArrayBuilder row) throws SQLException {
-		if (resultSet.wasNull()) {
-			row.addNull();
-			return false;
-		} else {
-			return true;
-		}
-	}
-
-	private static GregorianCalendar convert(java.util.Date date) {
-		GregorianCalendar gc = new GregorianCalendar();
-		gc.setTime(date);
-		return gc;
 	}
 
 }

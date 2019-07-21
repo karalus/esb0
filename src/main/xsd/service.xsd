@@ -150,6 +150,7 @@
 			<attribute name="variable" type="Name" />
 			<attribute name="type" type="Name" />
 			<attribute name="truncate" type="int" />
+			<attribute name="xmlElement" type="tns:string1" />			
 		</complexType>
 	</element>
 	<complexType name="JDBCBase" abstract="true">
@@ -199,6 +200,7 @@
 							</complexType>
 						</element>
 					</sequence>
+					<attribute name="schemaURI" type="anyURI" />
 				</extension>
 			</complexContent>
 		</complexType>

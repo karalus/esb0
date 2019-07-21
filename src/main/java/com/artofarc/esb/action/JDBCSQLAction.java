@@ -26,12 +26,13 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.jdbc.JDBCParameter;
+import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
 import com.artofarc.esb.message.ESBMessage;
 
 public class JDBCSQLAction extends JDBCAction {
 
 	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout) throws NamingException {
-		super(globalContext, dsName, sql, params, maxRows, timeout);
+		super(globalContext, dsName, sql, params, maxRows, timeout, null);
 		if (sql != null) {
 			int count = 0;
 			for (int i = sql.length(); i > 0;) {
@@ -56,7 +57,7 @@ public class JDBCSQLAction extends JDBCAction {
 
 			bindParameters(ps, context, execContext, message);
 			ps.execute();
-			extractResult(ps, message);
+			JDBCResult2JsonMapper.extractResult(ps, message);
 		}
 	}
 

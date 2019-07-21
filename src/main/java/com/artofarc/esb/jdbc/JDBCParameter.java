@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.namespace.QName;
 
 import com.artofarc.util.Collections;
 
@@ -49,8 +50,9 @@ public final class JDBCParameter {
 	private final boolean _body;
 	private final String _bindName;
 	private final Integer _truncate;
+	private final QName _xmlElement;
 
-	public JDBCParameter(int pos, String typeName, boolean body, String bindName, Integer truncate) {
+	public JDBCParameter(int pos, String typeName, boolean body, String bindName, Integer truncate, String xmlElement) {
 		Integer code = TYPES.get(typeName);
 		if (code == null) {
 			throw new IllegalArgumentException("Not a SQL type: " + typeName);
@@ -61,6 +63,7 @@ public final class JDBCParameter {
 		_body = body;
 		_bindName = bindName;
 		_truncate = truncate;
+		_xmlElement = xmlElement != null ? QName.valueOf(xmlElement) : null;
 	}
 
 	public int getPos() {
@@ -85,6 +88,10 @@ public final class JDBCParameter {
 
 	public Integer getTruncate() {
 		return _truncate;
+	}
+
+	public QName getXmlElement() {
+		return _xmlElement;
 	}
 
 	@SuppressWarnings("unchecked")

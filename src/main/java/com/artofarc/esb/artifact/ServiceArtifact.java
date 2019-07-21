@@ -179,8 +179,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				if (jdbcProcedure.getWorkerPool() != null) {
 					addAction(list, new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, jdbcProcedure.isJoin()));
 				}
+				org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext jaxbContext = null;
+				if (jdbcProcedure.getSchemaURI() != null) {
+					SchemaArtifact schemaArtifact = loadArtifact(jdbcProcedure.getSchemaURI());
+					addReference(schemaArtifact);
+					schemaArtifact.validate(globalContext);
+					jaxbContext = schemaArtifact.getJAXBContext();
+				}
 				addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
-						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout()));
+						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jaxbContext));
 				break;
 			}
 			case "jdbc": {
@@ -447,7 +454,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		for (int i = 0; i < jdbcParameters.size();) {
 			JdbcParameter jdbcParameter = jdbcParameters.get(i++);
 			int pos = jdbcParameter.getPos() != null ? jdbcParameter.getPos() : i;
-			params.add(new JDBCParameter(pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.getVariable(), jdbcParameter.getTruncate()));
+			params.add(new JDBCParameter(pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
 		}
 		return params;
 	}

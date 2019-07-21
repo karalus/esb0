@@ -20,25 +20,32 @@ import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLXML;
-import java.sql.Types;
+import java.sql.Struct;
+
+import static java.sql.Types.*;
 import java.util.List;
 
 import javax.naming.NamingException;
 import javax.xml.transform.sax.SAXSource;
 
+import org.eclipse.persistence.jaxb.JAXBMarshaller;
+import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.jdbc.JDBCParameter;
+import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWriter;
 
 public class JDBCProcedureAction extends JDBCAction {
 
 	private final List<JDBCParameter> _outParams;
 
-	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout) throws NamingException {
-		super(globalContext, dsName, sql, inParams, maxRows, timeout);
+	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout, DynamicJAXBContext jaxbContext) throws NamingException {
+		super(globalContext, dsName, sql, inParams, maxRows, timeout, jaxbContext);
 		_outParams = outParams;
 	}
 
@@ -60,17 +67,23 @@ public class JDBCProcedureAction extends JDBCAction {
 			for (JDBCParameter param : _outParams) {
 				if (param.isBody()) {
 					switch (param.getType()) {
-					case Types.SQLXML:
+					case SQLXML:
 						SQLXML sqlxml = cs.getSQLXML(param.getPos());
 						message.reset(BodyType.SOURCE, sqlxml.getSource(SAXSource.class));
 						break;
-					case Types.CLOB:
+					case CLOB:
 						message.reset(BodyType.READER, cs.getCharacterStream(param.getPos()));
 						break;
-					case Types.BLOB:
+					case BLOB:
 						final Blob blob = cs.getBlob(param.getPos());
 						message.reset(BodyType.BYTES, blob.getBytes(1, (int) blob.length()));
 						blob.free();
+						break;
+					case STRUCT:
+						JAXBMarshaller marshaller = _mapper.getJAXBContext().createMarshaller();
+						StringWriter sw = new StringWriter();
+						marshaller.marshal(_mapper.fromJDBC((Struct) cs.getObject(param.getPos()), param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart()), sw);
+						message.reset(BodyType.READER, sw.getStringReader());
 						break;
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
@@ -79,7 +92,7 @@ public class JDBCProcedureAction extends JDBCAction {
 					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));
 				}
 			}
-			extractResult(cs, message);
+			JDBCResult2JsonMapper.extractResult(cs, message);
 		}
 	}
 

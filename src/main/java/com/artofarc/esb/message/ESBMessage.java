@@ -526,6 +526,13 @@ public final class ESBMessage implements Cloneable {
 		case READER:
 			source = new StreamSource((Reader) _body);
 			break;
+		case XQ_SEQUENCE:
+			XQSequence xqSequence = (XQSequence) _body;
+			if (xqSequence.next()) {
+				init(BodyType.XQ_ITEM, xqSequence.getItem(), null);
+			} else {
+				throw new IllegalStateException("Message already consumed");
+			}
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
 			source = new StAXSource(xqItem.getItemAsStream());
