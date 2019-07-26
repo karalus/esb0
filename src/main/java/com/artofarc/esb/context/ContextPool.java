@@ -60,7 +60,7 @@ public final class ContextPool implements AutoCloseable {
 		return keepAliveMillis;
 	}
 
-	public Context getContext() throws Exception {
+	public Context getContext() throws InterruptedException {
 		Context context = pool.poll();
 		if (context == null) {
 			int newPoolSize = poolSize.incrementAndGet();
@@ -70,12 +70,7 @@ public final class ContextPool implements AutoCloseable {
 					context = pool.take();
 				}
 			} else {
-				try {
-					context = new Context(_poolContext);
-				} catch (Exception e) {
-					poolSize.decrementAndGet();
-					throw e;
-				}
+				context = new Context(_poolContext);
 			}
 		}
 		return context;

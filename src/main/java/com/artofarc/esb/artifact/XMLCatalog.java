@@ -42,13 +42,13 @@ public final class XMLCatalog {
 
 	public static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
 
-	public static void attachToFileSystem(FileSystem fileSystem) throws IOException {
+	public static void attachToFileSystem(FileSystem fileSystem) {
 		Directory parent = fileSystem.makeDirectory(PATH.substring(1));
-		{
-			XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "xml.xsd");
-			xsdArtifact.setContent(StreamUtils.copy(StreamUtils.getResourceAsStream("xml.xsd")));
-		}
 		try {
+			{
+				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "xml.xsd");
+				xsdArtifact.setContent(StreamUtils.copy(StreamUtils.getResourceAsStream("xml.xsd")));
+			}
 			XPath xPath = XPathFactory.newInstance().newXPath();
 			Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
 			// Elements below Body must be strictly validated, with lax we don't detect some kind of errors
@@ -67,7 +67,7 @@ public final class XMLCatalog {
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "soap12.xsd");
 				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
 			}
-		} catch (XPathExpressionException | TransformerException e) {
+		} catch (IOException | XPathExpressionException | TransformerException e) {
 			throw new RuntimeException(e);
 		}
 	}
