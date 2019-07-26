@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
-import javax.naming.NamingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +77,7 @@ public final class JMSConnectionProvider {
 		return ",group=JMSConnectionGuard,name=\"" + jndiConnectionFactory + "\",WorkerPool=" + _poolContext.getWorkerPool().getName();
 	}
 
-	public synchronized Connection getConnection(JMSConnectionData jmsConnectionData) throws NamingException, JMSException {
+	public synchronized Connection getConnection(JMSConnectionData jmsConnectionData) throws JMSException {
 		return getJMSConnectionGuard(jmsConnectionData).getConnection();
 	}
 
@@ -96,7 +95,7 @@ public final class JMSConnectionProvider {
 			try {
 				_poolContext.getGlobalContext().unregisterMBean(getObjectName(entry.getKey().toString()));
 				entry.getValue().getConnection().close();
-			} catch (NamingException | JMSException e) {
+			} catch (JMSException e) {
 				// ignore
 			}
 		}
@@ -120,8 +119,8 @@ public final class JMSConnectionProvider {
 			_jmsConsumers.put(jmsConsumer, enabled);
 		}
 
-		private void createConnection() throws NamingException, JMSException {
-			_connection = _jmsConnectionData.createConnection(_poolContext.getGlobalContext());
+		private void createConnection() throws JMSException {
+			_connection = _jmsConnectionData.createConnection();
 			try {
 				if (_clientID != null) {
 					_connection.setClientID(_clientID);
@@ -133,7 +132,7 @@ public final class JMSConnectionProvider {
 			}
 		}
 
-		Connection getConnection() throws NamingException, JMSException {
+		Connection getConnection() throws JMSException {
 			if (_connection == null) {
 				if (_future == null) {
 					try {

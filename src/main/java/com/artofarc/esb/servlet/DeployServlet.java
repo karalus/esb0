@@ -23,7 +23,6 @@ import java.util.List;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonWriter;
-import javax.naming.NamingException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -58,7 +57,7 @@ public class DeployServlet extends HttpServlet {
 	private GlobalContext getGlobalContext() {
 		return (GlobalContext) getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
 	}
-	
+
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		Artifact artifact = getGlobalContext().getFileSystem().getArtifact(req.getPathInfo());
@@ -198,10 +197,8 @@ public class DeployServlet extends HttpServlet {
 				}
 				try {
 					jmsConsumer.init(globalContext);
-				} catch (NamingException e) {
-					throw new ValidationException(service, "Could not create JMSConsumer: " + jmsConsumer.getKey(), e);
 				} catch (Exception e) {
-					// ignore
+					// ignore, if JMS is down we reconnect later
 				}
 				break;
 			case TIMER:

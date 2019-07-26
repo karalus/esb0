@@ -63,6 +63,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			_queueName = null;
 			_topicName = ((Topic) _destination).getTopicName();
 		} else {
+			if (queueName == null && topicName == null) throw new IllegalArgumentException("One of jndiDestination, queueName or topicName must be set");
 			_queueName = queueName;
 			_topicName = topicName;
 		}
@@ -77,6 +78,14 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 	private String getDestinationName() {
 		return _queueName != null ? _queueName : _topicName;
+	}
+
+	private Destination getDestination(Session session) throws JMSException {
+		if (_destination == null) {
+			// All popular MOMs have no session related data in the Destination object, so we dare to cache it
+			_destination = _queueName != null ? session.createQueue(_queueName) : session.createTopic(_topicName);
+		}
+		return _destination;
 	}
 
 	public String getKey() {
@@ -97,13 +106,19 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	@Override
 	public void init(GlobalContext globalContext) throws Exception {
 		WorkerPool workerPool = globalContext.getWorkerPool(_workerPool);
+		// distribute evenly over poll interval
+		long initialDelay = _pollInterval / _jmsWorker.length;
 		for (int i = 0; i < _jmsWorker.length; ++i) {
-			_jmsWorker[i] = _pollInterval > 0L ? new JMSPollingWorker(workerPool) : new JMSWorker(workerPool);
+			_jmsWorker[i] = _pollInterval > 0L ? new JMSPollingWorker(workerPool, initialDelay * i) : new JMSWorker(workerPool);
 		}
 		workerPool.getPoolContext().getJMSConnectionProvider().registerJMSConsumer(_jmsConnectionData, this, super.isEnabled());
 		resume();
 		if (super.isEnabled()) {
-			enable(true);
+			try {
+				enable(true);
+			} catch (JMSException e) {
+				logger.error("Could not enable " + getKey(), e);
+			}
 		}
 	}
 
@@ -124,14 +139,6 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			JMSWorker jmsWorker = _jmsWorker[i++];
 			if (enable) {
 				jmsWorker.startListening();
-				if (_pollInterval > 0L && i < _jmsWorker.length) {
-					// distribute evenly over poll interval
-					try {
-						Thread.sleep(_pollInterval / _jmsWorker.length);
-					} catch (InterruptedException e) {
-						// ignore
-					}
-				}
 			} else {
 				jmsWorker.stopListening();
 			}
@@ -190,21 +197,14 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		final void open() throws Exception {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
 			_session = jmsSessionFactory.getResource(_jmsConnectionData, true).getSession();
-			if (_destination == null) {
-				try {
-					_destination = _queueName != null ? _session.createQueue(_queueName) : _session.createTopic(_topicName);
-				} catch (JMSException e) {
-					throw new NamingException(e.getMessage());
-				}
-			}
 		}
 
 		final void initMessageConsumer() throws JMSException {
-			if (_messageConsumer == null && _session != null && _destination != null) {
+			if (_messageConsumer == null && _session != null) {
 				if (_subscription != null) {
-					_messageConsumer = _session.createDurableSubscriber((Topic) _destination, _subscription, _messageSelector, false);
+					_messageConsumer = _session.createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, false);
 				} else {
-					_messageConsumer = _session.createConsumer(_destination, _messageSelector);
+					_messageConsumer = _session.createConsumer(getDestination(_session), _messageSelector);
 				}
 			}
 		}
@@ -269,10 +269,12 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 
 	// https://stackoverflow.com/questions/22040361/too-much-selects-when-using-oracle-aq-and-spring-jms
 	class JMSPollingWorker extends JMSWorker implements Runnable {
+		final long _initialDelay;
 		volatile Future<?> _poller;
 
-		JMSPollingWorker(WorkerPool workerPool) {
+		JMSPollingWorker(WorkerPool workerPool, long initialDelay) {
 			super(workerPool);
+			_initialDelay = initialDelay;
 		}
 
 		void startListening() throws JMSException {
@@ -293,6 +295,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		@Override
 		public void run() {
 			try {
+				Thread.sleep(_initialDelay);
 				for (long last = System.nanoTime();;) {
 					Message message = _messageConsumer.receiveNoWait();
 					if (message != null) {

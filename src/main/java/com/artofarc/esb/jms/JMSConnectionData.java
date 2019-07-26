@@ -26,9 +26,10 @@ import com.artofarc.esb.context.GlobalContext;
 public final class JMSConnectionData {
 
 	private final String _jndiConnectionFactory, _userName, _password;
+	private final ConnectionFactory _connectionFactory;
 
-	public JMSConnectionData(String jndiConnectionFactory, String userName, String password) {
-		_jndiConnectionFactory = jndiConnectionFactory;
+	public JMSConnectionData(GlobalContext globalContext, String jndiConnectionFactory, String userName, String password) throws NamingException {
+		_connectionFactory = globalContext.lookup(_jndiConnectionFactory = jndiConnectionFactory);
 		_userName = bindSystemProperties(userName);
 		_password = bindSystemProperties(password);
 	}
@@ -81,9 +82,8 @@ public final class JMSConnectionData {
 		return _userName != null ? _userName + '@' + _jndiConnectionFactory : _jndiConnectionFactory;
 	}
 
-	Connection createConnection(GlobalContext globalContext) throws NamingException, JMSException {
-		ConnectionFactory qcf = globalContext.lookup(_jndiConnectionFactory);
-		return _userName != null ? qcf.createConnection(_userName, _password) : qcf.createConnection();
+	Connection createConnection() throws JMSException {
+		return _userName != null ? _connectionFactory.createConnection(_userName, _password) : _connectionFactory.createConnection();
 	}
 
 	static String bindSystemProperties(String exp) {

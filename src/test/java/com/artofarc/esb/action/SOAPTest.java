@@ -22,7 +22,6 @@ import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.Directory;
 import com.artofarc.esb.artifact.FileSystem;
-import com.artofarc.esb.artifact.FileSystemDir;
 import com.artofarc.esb.artifact.WSDLArtifact;
 import com.artofarc.esb.artifact.XMLArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
@@ -380,7 +379,7 @@ public class SOAPTest extends AbstractESBTest {
    }
    
    public void testJMSConsumer() throws Exception {
-   	JMSConnectionData jmsConnectionData = new JMSConnectionData("ConnectionFactory", null, null);
+   	JMSConnectionData jmsConnectionData = new JMSConnectionData(getGlobalContext(), "ConnectionFactory", null, null);
       JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData, "dynamicQueues/test1", null, null, null, null, 1, 0L);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
