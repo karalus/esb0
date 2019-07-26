@@ -42,7 +42,7 @@ import org.eclipse.persistence.oxm.XMLField;
 public final class JDBCXMLMapper {
 
 	private final static DatatypeFactory datatypeFactory;
-	private final static java.util.TimeZone TimeZone_UTC = TimeZone.getTimeZone("UTC");
+	private final static TimeZone TimeZone_UTC = TimeZone.getTimeZone("UTC");
 
 	static {
 		try {
@@ -67,13 +67,12 @@ public final class JDBCXMLMapper {
 		return _jaxbContext;
 	}
 
-	public Object toJDBC(DynamicEntity entity, boolean root, Connection connection) throws SQLException {
+	public static Object toJDBC(DynamicEntity entity, boolean root, Connection connection) throws SQLException {
 		DynamicType dynamicType = DynamicHelper.getType(entity);
 		XMLDescriptor descriptor = (XMLDescriptor) dynamicType.getDescriptor();
    	QName typeName = descriptor.getSchemaReference().getSchemaContextAsQName();
 		List<String> propertiesNames = dynamicType.getPropertiesNames();
 		Object[] attributes = new Object[propertiesNames.size()];
-		//
 		for (int i = 0; i < propertiesNames.size(); ++i) {
 			Object property = entity.get(propertiesNames.get(i));
 			if (property instanceof JAXBElement<?>) {
@@ -97,7 +96,7 @@ public final class JDBCXMLMapper {
 		return root ? attributes[0] : connection.createStruct(typeName.getLocalPart(), attributes);
 	}
 
-	public Object toJDBC(JAXBElement<?> jaxbElement, boolean root, Connection connection) throws SQLException {
+	public static Object toJDBC(JAXBElement<?> jaxbElement, boolean root, Connection connection) throws SQLException {
 		Object value = jaxbElement.getValue();
 		if (value instanceof DynamicEntity) {
 			return toJDBC((DynamicEntity) value, root, connection);

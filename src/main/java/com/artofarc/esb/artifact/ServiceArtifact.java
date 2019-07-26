@@ -440,7 +440,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 	}
 
-	private HashMap<String, String> createNsDecls(List<NsDecl> nsDecls) {
+	private static HashMap<String, String> createNsDecls(List<NsDecl> nsDecls) {
 		HashMap<String, String> result = new HashMap<>();
 		for (NsDecl nsDecl : nsDecls) {
 			String prefix = nsDecl.getPrefix();
@@ -449,7 +449,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return result;
 	}
 
-	private List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) {
+	private static List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) {
 		List<JDBCParameter> params = new ArrayList<>(jdbcParameters.size());
 		for (int i = 0; i < jdbcParameters.size();) {
 			JdbcParameter jdbcParameter = jdbcParameters.get(i++);

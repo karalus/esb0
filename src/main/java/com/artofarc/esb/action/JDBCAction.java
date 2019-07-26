@@ -56,6 +56,17 @@ public abstract class JDBCAction extends TerminalAction {
 		_maxRows = maxRows;
 		_timeout = timeout;
 		_mapper = jaxbContext != null ? new JDBCXMLMapper(jaxbContext) : null;
+		checkParameters(params);
+	}
+
+	protected final void checkParameters(List<JDBCParameter> params) {
+		if (_mapper == null) {
+			for (JDBCParameter jdbcParameter : params) {
+				if (jdbcParameter.getType() == STRUCT) {
+					throw new IllegalArgumentException("When using parameter type STRUCT, a schema is mandatory");
+				}
+			}
+		}
 	}
 
 	@Override
@@ -121,10 +132,10 @@ public abstract class JDBCAction extends TerminalAction {
 					Object root = unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context));
 					if (root instanceof DynamicEntity) {
 						DynamicEntity entity = (DynamicEntity) root;
-						ps.setObject(param.getPos(), _mapper.toJDBC(entity, true, getConnection(execContext)));
+						ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(entity, true, getConnection(execContext)));
 					} else {
 						JAXBElement<?> jaxbElement = (JAXBElement<?>) root;
-						ps.setObject(param.getPos(), _mapper.toJDBC(jaxbElement, false, getConnection(execContext)));
+						ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(jaxbElement, false, getConnection(execContext)));
 					}
 					break;
 				default:

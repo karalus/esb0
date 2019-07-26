@@ -46,6 +46,7 @@ public class JDBCProcedureAction extends JDBCAction {
 
 	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout, DynamicJAXBContext jaxbContext) throws NamingException {
 		super(globalContext, dsName, sql, inParams, maxRows, timeout, jaxbContext);
+		checkParameters(outParams);
 		_outParams = outParams;
 	}
 
