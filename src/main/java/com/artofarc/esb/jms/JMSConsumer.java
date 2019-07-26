@@ -182,7 +182,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		volatile Session _session;
 		volatile MessageConsumer _messageConsumer;
 
-		JMSWorker(WorkerPool workerPool) throws Exception {
+		JMSWorker(WorkerPool workerPool) {
 			_workerPool = workerPool;
 			_context = new Context(workerPool.getPoolContext());
 		}
@@ -194,7 +194,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 				try {
 					_destination = _queueName != null ? _session.createQueue(_queueName) : _session.createTopic(_topicName);
 				} catch (JMSException e) {
-					throw new InvalidDestinationException(e.getMessage());
+					throw new NamingException(e.getMessage());
 				}
 			}
 		}
@@ -271,7 +271,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	class JMSPollingWorker extends JMSWorker implements Runnable {
 		volatile Future<?> _poller;
 
-		JMSPollingWorker(WorkerPool workerPool) throws Exception {
+		JMSPollingWorker(WorkerPool workerPool) {
 			super(workerPool);
 		}
 

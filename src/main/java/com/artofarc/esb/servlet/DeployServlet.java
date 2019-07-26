@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import javax.jms.InvalidDestinationException;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonWriter;
@@ -199,7 +198,7 @@ public class DeployServlet extends HttpServlet {
 				}
 				try {
 					jmsConsumer.init(globalContext);
-				} catch (NamingException | InvalidDestinationException e) {
+				} catch (NamingException e) {
 					throw new ValidationException(service, "Could not create JMSConsumer: " + jmsConsumer.getKey(), e);
 				} catch (Exception e) {
 					// ignore

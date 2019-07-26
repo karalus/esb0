@@ -68,15 +68,20 @@ public final class Context extends AbstractContext {
 	private final ArrayDeque<Action> _stackErrorHandler = new ArrayDeque<>();
 	private final ArrayDeque<Integer> _stackPos = new ArrayDeque<>();
 
-	public Context(PoolContext poolContext) throws ParserConfigurationException, TransformerConfigurationException, XQException {
+	public Context(PoolContext poolContext) {
 		_poolContext = poolContext;
-		_documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-		_transformer = SAX_TRANSFORMER_FACTORY.newTransformer();
-		_xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
-		XQStaticContext staticContext = _xqConnection.getStaticContext();
-		staticContext.setBindingMode(XQConstants.BINDING_MODE_DEFERRED);
-		staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
-		_xqConnection.setStaticContext(staticContext);
+		try {
+			_documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+			_transformer = SAX_TRANSFORMER_FACTORY.newTransformer();
+			// With Saxon connections are not limited so we will never get an Exception
+			_xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
+			XQStaticContext staticContext = _xqConnection.getStaticContext();
+			staticContext.setBindingMode(XQConstants.BINDING_MODE_DEFERRED);
+			staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
+			_xqConnection.setStaticContext(staticContext);
+		} catch (ParserConfigurationException | TransformerConfigurationException | XQException e) {
+			throw new RuntimeException("Cannot initialize context", e);
+		}
 	}
 
 	public Deque<Action> getExecutionStack() {
