@@ -49,7 +49,6 @@ public class JMSAction extends TerminalAction {
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}
-		globalContext.lookup(jmsConnectionData.getJndiConnectionFactory());
 		_jmsConnectionData = jmsConnectionData;
 		_isBytesMessage = isBytesMessage;
 		_deliveryMode = deliveryMode;

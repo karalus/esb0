@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.jms.Session;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,6 +101,16 @@ public final class JMSConnectionProvider {
 			}
 		}
 		_pool.clear();
+	}
+
+	void closeSession(JMSConnectionData jmsConnectionData, Session session) throws Exception {
+		if (closeWithTimeout > 0) {
+			Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
+			// Oracle AQ sometimes waits forever in close()
+			closer.closeWithTimeout(session, closeWithTimeout, jmsConnectionData.toString());
+		} else {
+			session.close();
+		}
 	}
 
 	final class JMSConnectionGuard extends TimerTask implements ExceptionListener, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {

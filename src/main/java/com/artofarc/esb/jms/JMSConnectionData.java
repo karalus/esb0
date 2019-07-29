@@ -34,18 +34,6 @@ public final class JMSConnectionData {
 		_password = bindSystemProperties(password);
 	}
 
-	public String getJndiConnectionFactory() {
-		return _jndiConnectionFactory;
-	}
-
-	public String getUserName() {
-		return _userName;
-	}
-
-	public String getPassword() {
-		return _password;
-	}
-
 	@Override
 	public int hashCode() {
 		int result = _jndiConnectionFactory.hashCode();

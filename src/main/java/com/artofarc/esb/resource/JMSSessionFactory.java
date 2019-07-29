@@ -40,7 +40,7 @@ public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnection
 		Connection connection = jmsConnectionProvider.getConnection(jmsConnectionData);
 		jmsConnectionProvider.registerJMSSessionFactory(this);
 		Session session = connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE);
-		return new JMSSession(_context.getPoolContext(), jmsConnectionData, session);
+		return new JMSSession(jmsConnectionProvider, jmsConnectionData, session);
 	}
 
 }

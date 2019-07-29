@@ -20,23 +20,20 @@ import java.util.HashMap;
 
 import javax.jms.*;
 
-import com.artofarc.esb.context.PoolContext;
-import com.artofarc.util.Closer;
-
 /**
  * Cache producers because it is expensive to create them.
  */
 public final class JMSSession implements AutoCloseable {
 
-	private final PoolContext _poolContext;
+	private final JMSConnectionProvider _jmsConnectionProvider;
 	private final JMSConnectionData _jmsConnectionData;
 	private final Session _session;
 	private final HashMap<Destination, MessageProducer> _producers = new HashMap<>();
 	private TemporaryQueue _temporaryQueue;
 	private MessageConsumer _consumer;
 
-	public JMSSession(PoolContext poolContext, JMSConnectionData jmsConnectionData, Session session) {
-		_poolContext = poolContext;
+	public JMSSession(JMSConnectionProvider jmsConnectionProvider, JMSConnectionData jmsConnectionData, Session session) {
+		_jmsConnectionProvider = jmsConnectionProvider;
 		_jmsConnectionData = jmsConnectionData;
 		_session = session;
 	}
@@ -97,13 +94,7 @@ public final class JMSSession implements AutoCloseable {
 			_temporaryQueue.delete();
 		}
 		_producers.clear();
-		if (JMSConnectionProvider.closeWithTimeout > 0) {
-			Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
-			// Oracle AQ sometimes waits forever in close()
-			closer.closeWithTimeout(_session, JMSConnectionProvider.closeWithTimeout, _jmsConnectionData.toString());
-		} else {
-			_session.close();
-		}
+		_jmsConnectionProvider.closeSession(_jmsConnectionData, _session);
 	}
 
 }
