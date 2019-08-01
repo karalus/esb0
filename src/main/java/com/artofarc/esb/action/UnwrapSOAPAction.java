@@ -31,7 +31,7 @@ import static com.artofarc.esb.http.HttpConstants.*;
 
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.servlet.DeployServlet;
+import com.artofarc.esb.servlet.ESBServletContextListener;
 
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.util.Collections;
@@ -84,7 +84,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if ("GET".equals(message.getVariable(HttpMethod))) {
 			if (_getWsdl && "wsdl".equals(message.getVariable(QueryString))) {
-				message.getVariables().put(redirect, message.<String> getVariable(ContextPath) + DeployServlet.SERVLET_PATH + _wsdlUrl);
+				message.getVariables().put(redirect, message.getVariable(ContextPath) + ESBServletContextListener.ADMIN_SERVLET_PATH + _wsdlUrl);
 				return null;
 			} else if (!_soap12) {
 				throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));

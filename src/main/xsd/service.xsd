@@ -611,6 +611,13 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<element name="admin" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase" />
+			</complexContent>
+		</complexType>
+	</element>
 	<simpleType name="Protocol">
 		<restriction base="string">
 			<enumeration value="http" />

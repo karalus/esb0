@@ -250,7 +250,13 @@ public abstract class Action implements Cloneable {
 			if (value == null) {
 				value = System.getProperty(name);
 			}
-			if (value == null) {
+			if (value == null && k >= 0) {
+				// interpret dots as separators
+				value = System.getProperty(path);
+				k = -1;
+			}
+			boolean standalone = ++j == exp.length() && pos == 0 && i == 0;
+			if (value == null && !standalone) {
 				throw new ExecutionException(this, "name could not be resolved: " + name);
 			}
 			while (k >= 0) {
@@ -260,7 +266,7 @@ public abstract class Action implements Cloneable {
 				value = method.invoke(value);
 				k = l;
 			}
-			if (++j == exp.length() && pos == 0 && i == 0) {
+			if (standalone) {
 				return value;						
 			}
 			builder.append(value);

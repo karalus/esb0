@@ -3,6 +3,7 @@ package com.artofarc.esb;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.junit.After;
@@ -61,8 +62,8 @@ public abstract class AbstractESBTest {
 		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), 1000, 0, null, null, System.currentTimeMillis()), 60000, null);
 	}
 
-	protected static AssignAction createAssignAction(String varName, String expression) {
-		return new AssignAction(varName, expression, null, Collections.<String> emptyList(), null);
+	protected static AssignAction createAssignAction(String varName, String expression, String... bindNames) {
+		return new AssignAction(varName, expression, null, Arrays.asList(bindNames), null);
 	}
 
 	protected static ValidateAction createValidateAction(SchemaArtifact schemaArtifact) {

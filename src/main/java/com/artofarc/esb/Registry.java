@@ -82,11 +82,7 @@ public class Registry extends AbstractContext {
 	}
 
 	public ConsumerPort getInternalService(String uri) {
-		ConsumerPort consumerPort = _services.get(uri);
-		if (consumerPort == null) {
-			throw new IllegalArgumentException("Service not found: " + uri);
-		}
-		return consumerPort;
+		return _services.get(uri);
 	}
 
 	public Set<String> getHttpServicePaths() {

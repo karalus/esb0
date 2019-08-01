@@ -87,15 +87,16 @@ public class DeployTool {
 		return deploy(new URL(server + "/deploy"), mimeMultipart);
 	}
 
-	public static List<String> listFiles(String server, String path) throws IOException {
+	public List<String> listFiles(String server, String path) throws IOException {
 		URL url = new URL(server + "/deploy" + path);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setRequestMethod("GET");
+		//conn.setRequestProperty("Authorization", "Basic " + DatatypeConverter.printBase64Binary((username + ":" + password).getBytes()));
 		conn.setReadTimeout(30000);
 		if (conn.getResponseCode() ==  HttpURLConnection.HTTP_OK) {
 			try (InputStream inputStream = conn.getInputStream()) {
 				String contentType = conn.getHeaderField(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-				if (HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON.equals(contentType)) {
+				if (contentType != null && contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 					List<String> result = new ArrayList<>();
 					JsonArray jsonArray = Json.createReader(inputStream).readArray();
 					for (int i = 0; i < jsonArray.size(); ++i) {
@@ -113,11 +114,12 @@ public class DeployTool {
 	}
 
 	public static void main(String... args) throws Exception {
-		System.out.println(listFiles(args[0] + "/admin", "/consumer"));
 		DeployTool deployTool = new DeployTool(args[1], args[2]);
+		String serverUrl = args[0] + "/admin";
+		System.out.println(deployTool.listFiles(serverUrl, "/consumer"));
 		Boolean status;
 		try (FileInputStream inputStream = new FileInputStream(args[3])) {
-			status = deployTool.deployServer(args[0] + "/admin", inputStream);
+			status = deployTool.deployServer(serverUrl, inputStream);
 		}
 		if (status == null) {
 			System.err.println("Server not reachable");

@@ -26,6 +26,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
+import com.artofarc.esb.artifact.DeployHelper;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystemDB;
 import com.artofarc.esb.artifact.FileSystemDir;
@@ -34,6 +35,8 @@ import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.GlobalContext;
 
 public final class ESBServletContextListener implements ServletContextListener, Runnable {
+
+	public static final String ADMIN_SERVLET_PATH = "/admin/deploy";
 
 	public static final String VERSION = "esb0.version";
 	public static final String BUILD_TIME = "esb0.build.time";
@@ -58,7 +61,8 @@ public final class ESBServletContextListener implements ServletContextListener, 
 			globalContext.setFileSystem(fileSystem);
 			XMLCatalog.attachToFileSystem(fileSystem);
 			FileSystem.ChangeSet changeSet = fileSystem.init(globalContext);
-			DeployServlet.deployChangeSet(globalContext, changeSet);
+			DeployHelper.deployChangeSet(globalContext, changeSet);
+			DeployHelper.createAdminService(globalContext, ADMIN_SERVLET_PATH + '*');
 		} catch (ValidationException e) {
 			throw new RuntimeException("Could not validate artifact " + e.getArtifact(), e.getCause());
 		} catch (Exception e) {

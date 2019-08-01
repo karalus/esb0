@@ -35,8 +35,10 @@ public enum BodyType {
 			return STRING;
 		} else if (body instanceof byte[]) {
 			return BYTES;
+		} else if (body == null) {
+			return INVALID;
 		} else {
-			throw new IllegalArgumentException("BodyType cannot be auto detected: " + body);
+			throw new IllegalArgumentException("BodyType cannot be auto detected: " + body.getClass().getName());
 		}
 	}
 

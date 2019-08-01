@@ -73,7 +73,9 @@ public class JMSAction extends TerminalAction {
 		final Destination destination = _destination != null ? _destination : getDestination(message, jmsSession);
 		context.getTimeGauge().startTimeMeasurement();
 		Message jmsMessage;
-		if (_isBytesMessage) {
+		if (message.isEmpty()) {
+			jmsMessage = session.createMessage();
+		} else if (_isBytesMessage) {
 			BytesMessage bytesMessage = session.createBytesMessage();
 			bytesMessage.writeBytes(message.getBodyAsByteArray(context));
 			jmsMessage = bytesMessage;
@@ -91,11 +93,12 @@ public class JMSAction extends TerminalAction {
 		context.getTimeGauge().stopTimeMeasurement("JMS createMessage", true);
 		message.getHeaders().clear();
 		message.reset(BodyType.INVALID, null);
+		final long timeToLive = message.getTimeleft(_timeToLive).longValue();
 		if (_receiveFromTempQueue) {
 			jmsMessage.setJMSReplyTo(jmsSession.getTemporaryQueue());
-			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, message.getTimeleft(_timeToLive).longValue());
+			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
 			context.getTimeGauge().stopTimeMeasurement("JMS send", true);
-			Message replyMessage = jmsSession.getConsumerForTemporaryQueue().receive(message.getTimeleft(_timeToLive).longValue());
+			Message replyMessage = jmsSession.getConsumerForTemporaryQueue().receive(timeToLive > 0L ? timeToLive : 60000L);
 			context.getTimeGauge().stopTimeMeasurement("JMS receive", false);
 			if (replyMessage == null) {
 				throw new ExecutionException(this, "No reply message received within given timeout");
@@ -103,10 +106,10 @@ public class JMSAction extends TerminalAction {
 			JMSConsumer.fillESBMessage(message, replyMessage);
 		} else {
 			if (destination != null) {
-				jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, message.getTimeleft(_timeToLive).longValue());
+				jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
 			} else {
 				MessageProducer producer = session.createProducer(message.<Destination> getVariable(ESBConstants.JMSReplyTo));
-				producer.send(jmsMessage, _deliveryMode, _priority, message.getTimeleft(_timeToLive).longValue());
+				producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
 				producer.close();
 			}
 			context.getTimeGauge().stopTimeMeasurement("JMS send", false);

@@ -415,6 +415,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "dump":
 				addAction(list, new DumpAction());
 				break;
+			case "admin":
+				addAction(list, new AdminAction());
+				break;
 			default:
 				throw new IllegalArgumentException("Cannot interpret " + jaxbElement.getName().getLocalPart());
 			}

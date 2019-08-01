@@ -69,13 +69,13 @@ public final class JMSConnectionProvider {
 		if (connectionGuard == null) {
 			connectionGuard = new JMSConnectionGuard(jmsConnectionData);
 			_pool.put(jmsConnectionData, connectionGuard);
-			_poolContext.getGlobalContext().registerMBean(connectionGuard, getObjectName(jmsConnectionData.toString()));
+			_poolContext.getGlobalContext().registerMBean(connectionGuard, getObjectName(jmsConnectionData));
 		}
 		return connectionGuard;
 	}
 
-	private String getObjectName(String jndiConnectionFactory) {
-		return ",group=JMSConnectionGuard,name=\"" + jndiConnectionFactory + "\",WorkerPool=" + _poolContext.getWorkerPool().getName();
+	private String getObjectName(JMSConnectionData jmsConnectionData) {
+		return ",group=JMSConnectionGuard,name=\"" + jmsConnectionData + "\",WorkerPool=" + _poolContext.getWorkerPool().getName();
 	}
 
 	public synchronized Connection getConnection(JMSConnectionData jmsConnectionData) throws JMSException {
@@ -94,7 +94,7 @@ public final class JMSConnectionProvider {
 	public synchronized void close() {
 		for (Entry<JMSConnectionData, JMSConnectionGuard> entry : _pool.entrySet()) {
 			try {
-				_poolContext.getGlobalContext().unregisterMBean(getObjectName(entry.getKey().toString()));
+				_poolContext.getGlobalContext().unregisterMBean(getObjectName(entry.getKey()));
 				entry.getValue().getConnection().close();
 			} catch (JMSException e) {
 				// ignore
@@ -123,7 +123,7 @@ public final class JMSConnectionProvider {
 
 		private JMSConnectionGuard(JMSConnectionData jmsConnectionData) {
 			_jmsConnectionData = jmsConnectionData;
-			_clientID = instanceId != null ? instanceId + _poolContext.getWorkerPool().getName() : null;
+			_clientID = instanceId != null ? instanceId + "-" + jmsConnectionData + "-" + _poolContext.getWorkerPool().getName() : null;
 		}
 
 		synchronized void addJMSConsumer(JMSConsumer jmsConsumer, boolean enabled) {

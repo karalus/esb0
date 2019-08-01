@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.sax.SAXTransformerFactory;
@@ -73,6 +74,7 @@ public final class Context extends AbstractContext {
 		try {
 			_documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
 			_transformer = SAX_TRANSFORMER_FACTORY.newTransformer();
+			_transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 			// With Saxon connections are not limited so we will never get an Exception
 			_xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
 			XQStaticContext staticContext = _xqConnection.getStaticContext();

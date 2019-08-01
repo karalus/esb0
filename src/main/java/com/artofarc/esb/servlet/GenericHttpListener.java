@@ -45,7 +45,7 @@ import static com.artofarc.esb.message.ESBConstants.*;
 /**
  * Servlet implementation class GenericHttpListener
  */
-@WebServlet(asyncSupported=true, urlPatterns={"/*", "/admin/ext/*"})
+@WebServlet(asyncSupported = true, urlPatterns = { "/*", "/admin/ext/*", "/admin/deploy/*" })
 @MultipartConfig
 public class GenericHttpListener extends HttpServlet {
 
