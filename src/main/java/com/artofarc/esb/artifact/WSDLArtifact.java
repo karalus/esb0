@@ -17,6 +17,7 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -150,12 +151,16 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 			throw new IllegalArgumentException("importLocation must be a relative URI " + importLocation);
 		}
 		Artifact artifact;
-		if (parentLocation != null) {
-			Artifact parent = getArtifact(parentLocation);
-			artifact = getArtifact(latestImportURI = parent.getParent().getURI() + '/' + importLocation);
-			parent.addReference(artifact);
-		} else {
-			artifact = getArtifact(latestImportURI = importLocation);
+		try {
+			if (parentLocation != null) {
+				Artifact parent = getArtifact(parentLocation);
+				artifact = loadArtifact(latestImportURI = parent.getParent().getURI() + '/' + importLocation);
+				parent.addReference(artifact);
+			} else {
+				artifact = loadArtifact(latestImportURI = importLocation);
+			}
+		} catch (FileNotFoundException e) {
+			return null;
 		}
 		return new InputSource(artifact.getContentAsStream());
 	}
