@@ -87,6 +87,7 @@ public abstract class JDBCAction extends TerminalAction {
 						execContext = super.prepare(context, message, true);
 						break;
 					case STRUCT:
+						execContext = new ExecutionContext(null, _dataSource.getConnection());
 						break;
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
