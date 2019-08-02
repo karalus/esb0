@@ -51,7 +51,7 @@ public final class JDBCXMLMapper {
 	final static Logger logger = LoggerFactory.getLogger(JDBCXMLMapper.class);
 
 	private final static DatatypeFactory datatypeFactory;
-	private final static TimeZone TimeZone_UTC = TimeZone.getTimeZone("UTC");
+	private final static TimeZone timeZone;
 
 	private static Class<?> iface;
 	private static Method createARRAY;
@@ -63,6 +63,8 @@ public final class JDBCXMLMapper {
 		} catch (javax.xml.datatype.DatatypeConfigurationException e) {
 			throw new RuntimeException(e);
 		}
+		String timezone = System.getProperty("esb0.jdbc.mapper.timezone");
+		timeZone = timezone != null ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault();
 		try {
 			iface = Class.forName("oracle.jdbc.OracleConnection");
 			createARRAY = iface.getMethod("createARRAY", String.class, Object.class);
@@ -218,7 +220,7 @@ public final class JDBCXMLMapper {
 
 	public static Object fromJDBC(Object value) {
 		if (value instanceof Date) {
-			GregorianCalendar calendar = new GregorianCalendar(TimeZone_UTC);
+			GregorianCalendar calendar = new GregorianCalendar(timeZone);
 			calendar.setTime((Date) value);
 			return datatypeFactory.newXMLGregorianCalendar(calendar);
 		}
