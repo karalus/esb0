@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.jdbc;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -38,17 +40,35 @@ import org.eclipse.persistence.dynamic.DynamicType;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.oxm.XMLDescriptor;
 import org.eclipse.persistence.oxm.XMLField;
+import org.eclipse.persistence.oxm.mappings.XMLChoiceObjectMapping;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.artofarc.util.ReflectionUtils;
 
 public final class JDBCXMLMapper {
+
+	final static Logger logger = LoggerFactory.getLogger(JDBCXMLMapper.class);
 
 	private final static DatatypeFactory datatypeFactory;
 	private final static TimeZone TimeZone_UTC = TimeZone.getTimeZone("UTC");
 
+	private static Class<?> iface;
+	private static Method createARRAY;
+	private static Method getSQLTypeName;
+			
 	static {
 		try {
 			datatypeFactory = DatatypeFactory.newInstance();
 		} catch (javax.xml.datatype.DatatypeConfigurationException e) {
 			throw new RuntimeException(e);
+		}
+		try {
+			iface = Class.forName("oracle.jdbc.OracleConnection");
+			createARRAY = iface.getMethod("createARRAY", String.class, Object.class);
+			getSQLTypeName = Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName");
+		} catch (ReflectiveOperationException e) {
+			logger.warn("Oracle JDBC driver not in classpath. Mapping of Arrays will not work");
 		}
 	}
 
@@ -88,11 +108,17 @@ public final class JDBCXMLMapper {
 						elements[j] = toJDBC(value);
 					}
 				}
-				attributes[i] = connection.createArrayOf(typeName.getLocalPart(), elements);
+				return createArray(connection, typeName.getLocalPart(), elements);
 			} else if (property != null) {
 				attributes[i] = toJDBC(property);
 			}
 		}
+//		if (!root) {
+//			logger.info("createStruct for " + typeName.getLocalPart());
+//			for (Object object : attributes) {
+//				logger.info("\t" + object);
+//			}
+//		}
 		return root ? attributes[0] : connection.createStruct(typeName.getLocalPart(), attributes);
 	}
 
@@ -113,6 +139,24 @@ public final class JDBCXMLMapper {
 		return value;
 	}
 
+	public String getTypeName(String namespace, String elementName) {
+		DynamicEntity entity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, elementName, false);
+		DynamicType dynamicType = DynamicHelper.getType(entity);
+		XMLDescriptor descriptor = (XMLDescriptor) dynamicType.getDescriptor();
+		if (descriptor.getDefaultRootElementField() != null) {
+			String propName = dynamicType.getPropertiesNames().get(0);
+			XMLChoiceObjectMapping mapping = (XMLChoiceObjectMapping) descriptor.getMappingForAttributeName(propName);
+			Class<?> inner = mapping.getFieldToClassMappings().get(descriptor.getFields().get(0));
+			DynamicType dynamicTypeInner = _jaxbContext.getDynamicType(inner.getName());
+			XMLDescriptor descriptorInner = (XMLDescriptor) dynamicTypeInner.getDescriptor();
+			QName schemaContext = descriptorInner.getSchemaReference().getSchemaContextAsQName();
+			return schemaContext.getLocalPart();
+		} else {
+			QName schemaContext = descriptor.getSchemaReference().getSchemaContextAsQName();
+			return schemaContext.getLocalPart();
+		}
+	}
+
 	public Object fromJDBC(Struct struct, String namespace, String elementName) throws SQLException {
 		DynamicEntity entity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, elementName, false);
 		DynamicType dynamicType = DynamicHelper.getType(entity);
@@ -127,6 +171,7 @@ public final class JDBCXMLMapper {
 	}
 
 	public DynamicEntity fromJDBC(Struct struct, String namespace) throws SQLException {
+//		logger.info("Struct for " + struct.getSQLTypeName());
 		DynamicEntity entity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, struct.getSQLTypeName(), true);
 		DynamicType dynamicType = DynamicHelper.getType(entity);
 		List<String> propertiesNames = dynamicType.getPropertiesNames();
@@ -137,11 +182,15 @@ public final class JDBCXMLMapper {
 		for (int i = 0; i < attributes.length; ++i) {
 			Object value = attributes[i];
 			String propertyName = propertiesNames.get(i);
+//			logger.info("Property: " + propertyName + " = " + value);
 			if (value instanceof Struct) {
 				Struct inner = (Struct) value;
 				entity.set(propertyName, createJAXBElement(namespace, inner.getSQLTypeName(), fromJDBC(inner, namespace)));
 			} else if (value instanceof Array) {
 				Array inner = (Array) value;
+//				logger.info("Array: " + getSQLTypeName(inner));
+				DynamicEntity arrayEntity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, getSQLTypeName(inner), true);
+				DynamicType dynamicArrayType = DynamicHelper.getType(arrayEntity);
 				Object[] elements = (Object[]) inner.getArray();
 				List<Object> array = new ArrayList<>(elements.length);
 				for (Object element : elements) {
@@ -151,7 +200,8 @@ public final class JDBCXMLMapper {
 						array.add(fromJDBC(element));
 					}
 				}
-				entity.set(propertyName, array);
+				arrayEntity.set(dynamicArrayType.getPropertiesNames().get(0), array);
+				entity.set(propertyName, arrayEntity);
 			} else if (value != null) {
 				if (dynamicType.getPropertyType(propertyName) != null) {
 					entity.set(propertyName, fromJDBC(value));
@@ -173,6 +223,22 @@ public final class JDBCXMLMapper {
 			return datatypeFactory.newXMLGregorianCalendar(calendar);
 		}
 		return value;
+	}
+
+	public static Array createArray(Connection connection, String typeName, Object[] elements) throws SQLException {
+		try {
+			return (Array) createARRAY.invoke(connection.unwrap(iface), typeName, elements);
+		} catch (InvocationTargetException | IllegalAccessException e) {
+			throw ReflectionUtils.convert(e.getCause(), SQLException.class);
+		}
+	}
+
+	public static String getSQLTypeName(Array array) throws SQLException {
+		try {
+			return (String) getSQLTypeName.invoke(array);
+		} catch (InvocationTargetException | IllegalAccessException e) {
+			throw ReflectionUtils.convert(e.getCause(), SQLException.class);
+		}
 	}
 
 }

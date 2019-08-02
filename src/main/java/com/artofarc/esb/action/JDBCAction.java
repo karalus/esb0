@@ -75,12 +75,12 @@ public abstract class JDBCAction extends TerminalAction {
 		if (inPipeline) {
 			for (JDBCParameter param : _params) {
 				if (param.isBody()) {
-					Connection connection = _dataSource.getConnection();
 					switch (param.getType()) {
 					case SQLXML:
+						Connection connection = _dataSource.getConnection();
 						SQLXML xmlObject = connection.createSQLXML();
 						message.reset(BodyType.RESULT, xmlObject.setResult(SAXResult.class));
-						execContext = new ExecutionContext(xmlObject);
+						execContext = new ExecutionContext(xmlObject, connection);
 						break;
 					case CLOB:
 					case BLOB:
@@ -91,7 +91,6 @@ public abstract class JDBCAction extends TerminalAction {
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
-					execContext.setResource2(connection);
 				}
 			}
 		}
@@ -111,7 +110,7 @@ public abstract class JDBCAction extends TerminalAction {
 			if (param.isBody()) {
 				switch (param.getType()) {
 				case SQLXML:
-					ps.setSQLXML(param.getPos(), execContext.<SQLXML>getResource());
+					ps.setSQLXML(param.getPos(), execContext.<SQLXML> getResource());
 					break;
 				case CLOB:
 					if (param.getTruncate() == null) {

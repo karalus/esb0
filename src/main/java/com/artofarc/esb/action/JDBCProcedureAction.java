@@ -60,10 +60,14 @@ public class JDBCProcedureAction extends JDBCAction {
 				AutoCloseable timer = context.getTimeGauge().createTimer("prepareCall & execute");
 				CallableStatement cs = conn.prepareCall(sql)) {
 
-			bindParameters(cs, context, execContext, message);
 			for (JDBCParameter param : _outParams) {
-				cs.registerOutParameter(param.getPos(), param.getType());
+				if (param.getXmlElement() != null) {
+					cs.registerOutParameter(param.getPos(), param.getType(), _mapper.getTypeName(param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart()));
+				} else {
+					cs.registerOutParameter(param.getPos(), param.getType());
+				}
 			}
+			bindParameters(cs, context, execContext, message);
 			cs.execute();
 			for (JDBCParameter param : _outParams) {
 				if (param.isBody()) {

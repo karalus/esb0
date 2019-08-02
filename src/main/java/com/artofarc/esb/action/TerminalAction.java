@@ -42,7 +42,7 @@ public abstract class TerminalAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (execContext != null) {
+		if (execContext != null && message.isSink()) {
 			ByteArrayOutputStream bos = execContext.getResource();
 			message.reset(BodyType.BYTES, bos.toByteArray());
 			message.setCharset(message.getSinkEncoding());
