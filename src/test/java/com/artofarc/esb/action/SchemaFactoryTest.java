@@ -12,10 +12,10 @@ import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.artifact.SchemaArtifact;
+import com.artofarc.esb.artifact.SchemaHelper;
 import com.artofarc.esb.artifact.WSDLArtifact;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.artifact.XSDArtifact;
-import com.artofarc.util.SchemaUtils;
 
 
 public class SchemaFactoryTest extends AbstractESBTest {
@@ -30,9 +30,9 @@ public class SchemaFactoryTest extends AbstractESBTest {
 		System.setProperty("esb0.cacheXSGrammars", "false");
 	}
 
+	
 	@Test
 	public void testCacheGrammars() throws Exception {
-		XMLCatalog.attachToFileSystem(getGlobalContext().getFileSystem());
 		XSDArtifact soap11 = getGlobalContext().getFileSystem().getArtifact(XMLCatalog.PATH + "/soap11.xsd");
 		soap11.clearContent();
 		assertNotNull(soap11.getContent());
@@ -62,7 +62,7 @@ public class SchemaFactoryTest extends AbstractESBTest {
 	
 	private static void printSchemaInternals(SchemaArtifact schemaArtifact) throws ReflectiveOperationException {
 		System.out.println("Internals of: " + schemaArtifact.getURI());
-		SchemaUtils.printGrammars(schemaArtifact.getSchema(), System.out);
+		SchemaHelper.printGrammars(schemaArtifact.getSchema(), System.out);
 		Collection<String> collection = schemaArtifact.getReferenced();
 		printReferencedGrammars(schemaArtifact);
 		for (String referenced : collection) {

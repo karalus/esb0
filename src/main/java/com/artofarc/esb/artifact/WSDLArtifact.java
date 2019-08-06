@@ -75,7 +75,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void validateInternal(GlobalContext globalContext) throws Exception {
+	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		Definition definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
 		_allBindings = definition.getAllBindings();
 		latestImportURI = null;
@@ -100,6 +100,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		}
 		initSchema(sources.toArray(new Source[sources.size()]));
 		schemas.clear();
+		_namespace = definition.getTargetNamespace();
 	}
 
 	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws TransformerException {

@@ -101,7 +101,7 @@ public abstract class Artifact {
 		return _validated;
 	}
 
-	public final void setValidated(boolean validated) {
+	final void setValidated(boolean validated) {
 		_validated = validated;
 	}
 
