@@ -60,11 +60,11 @@ public class TransformAction extends Action {
 	}
 
 	protected TransformAction(String xquery, List<String> varNames) {
-		this(new XQuerySource(xquery), varNames, null);
+		this(XQuerySource.create(xquery), varNames, null);
 	}
 
 	protected TransformAction(String xquery) {
-		this(new XQuerySource(xquery), null);
+		this(XQuerySource.create(xquery), null);
 	}
 
 	private synchronized void initBindings(XQPreparedExpression xqExpression, XQDataFactory xqDataFactory, ESBMessage message) throws Exception {

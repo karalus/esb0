@@ -18,6 +18,7 @@ package com.artofarc.esb.context;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
+import java.util.WeakHashMap;
 
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
@@ -27,20 +28,41 @@ import com.artofarc.esb.resource.XQDataSourceFactory;
 
 public final class XQuerySource {
 
+	private static final WeakHashMap<XQuerySource, XQuerySource> CACHE = new WeakHashMap<>(256);
+
 	private final String _xquery;
 	private final byte[] _data;
 	private final int _hashCode;
 
-	public XQuerySource(byte[] data) {
+	private XQuerySource(byte[] data) {
+		if (data == null) throw new NullPointerException();
 		_xquery = null;
 		_data = data;
 		_hashCode = Arrays.hashCode(_data);
 	}
 
-	public XQuerySource(String xquery) {
+	private XQuerySource(String xquery) {
 		_xquery = xquery;
 		_data = null;
 		_hashCode = xquery.hashCode();
+	}
+
+	private synchronized static XQuerySource intern(XQuerySource instance) {
+		XQuerySource existing = CACHE.get(instance);
+		if (existing != null) {
+			return existing;
+		} else {
+			CACHE.put(instance, instance);
+			return instance;
+		}
+	}
+
+	public static XQuerySource create(byte[] data) {
+		return intern(new XQuerySource(data));
+	}
+
+	public static XQuerySource create(String xquery) {
+		return intern(new XQuerySource(xquery));
 	}
 
 	@Override
@@ -54,12 +76,8 @@ public final class XQuerySource {
 		if (other instanceof XQuerySource) {
 			XQuerySource o = (XQuerySource) other;
 			if (_xquery != null) {
-				if (o._xquery != null) {
-					return _xquery.equals(o._xquery);
-				}
-				return false;
-			}
-			if (o._data != null) {
+				return _xquery.equals(o._xquery);
+			} else {
 				return Arrays.equals(_data, o._data);
 			}
 		}

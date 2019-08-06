@@ -142,7 +142,7 @@ public class XPathTest extends AbstractESBTest {
       assertTrue(module.isValidated());
       assertTrue(xqueryArtifact.getReferenced().size() > 0);
       //assertTrue(xqueryArtifact.getReferenced().contains("/modules/osb-legacy-support-v1.xqm"));
-      Action action = new TransformAction(new XQuerySource(xqueryArtifact.getContent()), xqueryArtifact.getParent().getURI());
+      Action action = new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), xqueryArtifact.getParent().getURI());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new DumpAction());

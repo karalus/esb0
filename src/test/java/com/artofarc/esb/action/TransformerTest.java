@@ -1,5 +1,6 @@
 package com.artofarc.esb.action;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
@@ -185,8 +186,17 @@ public class TransformerTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new TransformAction(new XQuerySource(xQueryArtifact.getContent()), null), new DumpAction());
+		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new TransformAction(XQuerySource.create(xQueryArtifact.getContent()), null), new DumpAction());
 		consumerPort.process(context, message);
+	}
+
+	@Test
+	public void testTransformRegEx() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<nr>8001</nr>");
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(new TransformAction(XQuerySource.create("declare function local:substring-after-match( $arg as xs:string?, $regex as xs:string) as xs:string? {replace($arg,concat('^.*?',$regex),'')}; local:substring-after-match(*/text(), '[0]+')"), null), new DumpAction());
+		consumerPort.process(context, message);
+		Assert.assertEquals("1", message.getBodyAsString(context));
 	}
 
 }
