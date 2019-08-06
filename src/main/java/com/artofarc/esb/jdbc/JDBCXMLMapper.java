@@ -70,6 +70,7 @@ public final class JDBCXMLMapper {
 			createARRAY = iface.getMethod("createARRAY", String.class, Object.class);
 			getSQLTypeName = Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName");
 		} catch (ReflectiveOperationException e) {
+			// https://docs.oracle.com/cd/B28359_01/java.111/b31224/oraarr.htm#i1059642
 			logger.warn("Oracle JDBC driver not in classpath. Mapping of Arrays will not work");
 		}
 	}
@@ -136,7 +137,7 @@ public final class JDBCXMLMapper {
 	public static Object toJDBC(Object value) {
 		if (value instanceof XMLGregorianCalendar) {
 			XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
-			return new Timestamp(calendar.toGregorianCalendar().getTimeInMillis());
+			return new Timestamp(calendar.toGregorianCalendar(timeZone, null, null).getTimeInMillis());
 		}
 		return value;
 	}
