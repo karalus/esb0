@@ -34,7 +34,9 @@ import com.artofarc.util.Collections;
 import com.artofarc.util.ReflectionUtils;
 
 /**
- * This is a hack to allow for global caching of grammars. Relies on Xerces (either original or JDK).
+ * This is a hack to allow for global caching of grammars used by Schema instances. Relies on Xerces (either original or JDK).
+ * @see Schema
+ * @see <a href="https://www.ibm.com/developerworks/xml/library/x-perfap3/index.html">Xerces2 grammar caching API</a>
  */
 public final class SchemaHelper implements InvocationHandler {
 

@@ -129,6 +129,19 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
+	protected XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException {
+		SchemaArtifact base = this;
+		if (baseURI != null) {
+			if (!baseURI.startsWith(FILE_SCHEMA)) {
+				throw new IllegalArgumentException("baseURI must start with " + FILE_SCHEMA);
+			}
+			base = loadArtifact(baseURI.substring(FILE_SCHEMA.length()));
+		}
+		String resourceURI = base.getParent().getURI() + '/' + systemId;
+		return loadArtifact(resourceURI);
+	}
+
+	@Override
 	public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
 		if (systemId == null) {
 			return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(schemas.get(namespaceURI)));

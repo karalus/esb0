@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import javax.xml.bind.JAXBException;
@@ -52,6 +53,21 @@ public class XSDArtifact extends SchemaArtifact {
 			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getStreamSource(), this, null, getDynamicJAXBContextProperties());
 		}
 		return _jaxbContext;
+	}
+
+	@Override
+	protected XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException {
+		SchemaArtifact base = this;
+		if (baseURI != null) {
+			if (!baseURI.startsWith(FILE_SCHEMA)) {
+				throw new IllegalArgumentException("baseURI must start with " + FILE_SCHEMA);
+			}
+			base = loadArtifact(baseURI.substring(FILE_SCHEMA.length()));
+		}
+		String resourceURI = base.getParent().getURI() + '/' + systemId;
+		XSDArtifact artifact = loadArtifact(resourceURI);
+		base.addReference(artifact);
+		return artifact;
 	}
 
 	@Override

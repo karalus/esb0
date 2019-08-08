@@ -3,8 +3,7 @@ package com.artofarc.esb.action;
 import static org.junit.Assert.*;
 
 import java.util.Collection;
-import java.util.Map.Entry;
-import java.util.Set;
+import java.util.Map;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -49,13 +48,15 @@ public class SchemaFactoryTest extends AbstractESBTest {
 		printSchemaInternals(xsdArtifact2);
 		System.out.println("---");
 		
-		WSDLArtifact wsdlArtifact = new WSDLArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "example.wsdl");
-		wsdlArtifact.setContent(readFile("src/test/resources/example/example.wsdl"));
-//		WSDLArtifact wsdlArtifact1 = new WSDLArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "exampleConcrete.wsdl");
-//		wsdlArtifact1.setContent(readFile("src/test/resources/example/exampleConcrete.wsdl"));
-//		WSDLArtifact wsdlArtifact2 = new WSDLArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "exampleAbstract.wsdl");
-//		wsdlArtifact2.setContent(readFile("src/test/resources/example/exampleAbstract.wsdl"));
+//		WSDLArtifact wsdlArtifact = new WSDLArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "example.wsdl");
+//		wsdlArtifact.setContent(readFile("src/test/resources/example/example.wsdl"));
+		WSDLArtifact wsdlArtifact = new WSDLArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "exampleConcrete.wsdl");
+		wsdlArtifact.setContent(readFile("src/test/resources/example/exampleConcrete.wsdl"));
+		WSDLArtifact wsdlArtifact2 = new WSDLArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "exampleAbstract.wsdl");
+		wsdlArtifact2.setContent(readFile("src/test/resources/example/exampleAbstract.wsdl"));
 		wsdlArtifact.validate(getGlobalContext());
+		System.out.println("Referenced: " + wsdlArtifact.getReferenced());
+		System.out.println("Referenced2: " + wsdlArtifact2.getReferenced());
 		printSchemaInternals(soap11);
 		printSchemaInternals(wsdlArtifact);
 	}
@@ -74,9 +75,11 @@ public class SchemaFactoryTest extends AbstractESBTest {
 	
 	private static void printReferencedGrammars(SchemaArtifact schemaArtifact) {
 		System.out.println("Grammars of " + schemaArtifact.getURI());
-		Set<Entry<String,Object>> entrySet = schemaArtifact.getGrammars().entrySet();
-		for (Entry<String, Object> entry : entrySet) {
-			System.out.println("Namespace: " + entry.getKey() + ": " + System.identityHashCode(entry.getValue()));
+		Map<String, Object> grammars = schemaArtifact.getGrammars();
+		if (grammars != null) {
+			for (Map.Entry<String, Object> entry : grammars.entrySet()) {
+				System.out.println("Namespace: " + entry.getKey() + ": " + System.identityHashCode(entry.getValue()));
+			}
 		}
 	}
 

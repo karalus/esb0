@@ -143,19 +143,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 		}
 	}
 
-	protected final XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException {
-		SchemaArtifact base = this;
-		if (baseURI != null) {
-			if (!baseURI.startsWith(FILE_SCHEMA)) {
-				throw new IllegalArgumentException("baseURI must start with " + FILE_SCHEMA);
-			}
-			base = getArtifact(baseURI.substring(FILE_SCHEMA.length()));
-		}
-		String resourceURI = base.getParent().getURI() + '/' + systemId;
-		XSDArtifact artifact = loadArtifact(resourceURI);
-		base.addReference(artifact);
-		return artifact;
-	}
+	protected abstract XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException;
 
 	/**
 	 * Used from Xerces XMLSchemaLoader.
