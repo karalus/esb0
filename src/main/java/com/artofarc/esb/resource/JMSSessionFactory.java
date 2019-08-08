@@ -19,7 +19,6 @@ package com.artofarc.esb.resource;
 import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Session;
-import javax.naming.NamingException;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.jms.JMSConnectionData;
@@ -35,7 +34,7 @@ public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnection
 	}
 
 	@Override
-	protected JMSSession createResource(JMSConnectionData jmsConnectionData, Boolean transacted) throws NamingException, JMSException {
+	protected JMSSession createResource(JMSConnectionData jmsConnectionData, Boolean transacted) throws JMSException {
 		JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getJMSConnectionProvider();
 		Connection connection = jmsConnectionProvider.getConnection(jmsConnectionData);
 		jmsConnectionProvider.registerJMSSessionFactory(this);
