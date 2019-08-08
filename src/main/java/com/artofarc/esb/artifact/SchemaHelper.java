@@ -28,6 +28,8 @@ import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
+import org.xml.sax.SAXException;
+
 import com.artofarc.util.Collections;
 import com.artofarc.util.ReflectionUtils;
 
@@ -35,6 +37,8 @@ import com.artofarc.util.ReflectionUtils;
  * This is a hack to allow for global caching of grammars. Relies on Xerces (either original or JDK).
  */
 public final class SchemaHelper implements InvocationHandler {
+
+	private final static long timeout = Long.parseLong(System.getProperty("esb0.cacheXSGrammars.timeout", "100"));
 
 	private final static Class<?> ifcXMLGrammarPool;
 	private final static Field fXMLSchemaLoader;
@@ -60,7 +64,7 @@ public final class SchemaHelper implements InvocationHandler {
 	}
 
 	@Override
-	public Object invoke(Object proxy, Method method, Object[] args) throws ReflectiveOperationException {
+	public Object invoke(Object proxy, Method method, Object[] args) throws Exception {
 		switch (method.getName()) {
 		case "retrieveInitialGrammarSet":
 			if (!XMLConstants.W3C_XML_SCHEMA_NS_URI.equals(args[0])) {
@@ -69,27 +73,31 @@ public final class SchemaHelper implements InvocationHandler {
 			return initialGrammarSet;
 		case "retrieveGrammar":
 			Object xmlGrammarDescription = args[0];
+			String namespace = ReflectionUtils.eval(xmlGrammarDescription, "namespace");
 			String baseSystemId = ReflectionUtils.eval(xmlGrammarDescription, "baseSystemId");
 			if (baseSystemId != null) {
 				String literalSystemId = ReflectionUtils.eval(xmlGrammarDescription, "literalSystemId");
 				try {
 					XSDArtifact artifact = _schemaArtifact.resolveArtifact(XMLCatalog.alignSystemId(literalSystemId), baseSystemId);
-					synchronized (artifact) {
-						// don't validate when it is already started. Will result in stack overflow caused by circular dependencies. 
-						if (artifact._namespace == null) {
-							// Dirty, but we know that it works for XSDArtifact without GlobalContext 
-							artifact.validate(null);
+					// don't recurse when it is already started. Will result in stack overflow caused by circular dependencies. 
+					if (artifact._namespace.compareAndSet(null, namespace)) {
+						artifact._schema = createXMLSchema(artifact, artifact.getStreamSource());
+					} else {
+						Object grammar = artifact.getGrammars().get(namespace);
+						if (grammar != null) return grammar;
+						synchronized (artifact) {
+							artifact.wait(timeout);
+						}
+						if (artifact.getGrammars().get(namespace) == null) {
+							Artifact.logger.warn(artifact.getURI() + " not initialized, yet. BaseURI is " + baseSystemId);
 						}
 					}
-					return artifact.getGrammars().get(ReflectionUtils.eval(xmlGrammarDescription, "namespace"));
-				} catch (FileNotFoundException | ValidationException e) {
+					return artifact.getGrammars().get(namespace);
+				} catch (FileNotFoundException | SAXException e) {
 					throw new RuntimeException(e);
 				}
 			} else {
-				synchronized (_schemaArtifact) {
-					// indicate that validation has started
-					_schemaArtifact._namespace = ReflectionUtils.eval(xmlGrammarDescription, "namespace");
-				}
+				_schemaArtifact._namespace.set(namespace);
 				return null;
 			}
 		case "cacheGrammars":
@@ -97,10 +105,11 @@ public final class SchemaHelper implements InvocationHandler {
 				throw new IllegalArgumentException("DTDs not supported");
 			}
 			Object[] grammars = (Object[]) args[1];
-			for (Object grammar : grammars) {
-				Object grammarDescription = ReflectionUtils.eval(grammar, "grammarDescription");
-				String namespace = ReflectionUtils.eval(grammarDescription, "namespace");
-				_schemaArtifact.putGrammarIfAbsent(namespace, grammar);
+			synchronized (_schemaArtifact) {
+				for (Object grammar : grammars) {
+					_schemaArtifact.putGrammarIfAbsent(ReflectionUtils.<String> eval(grammar, "grammarDescription.namespace"), grammar);
+				}
+				_schemaArtifact.notifyAll();
 			}
 			return null;
 		default:
@@ -108,7 +117,7 @@ public final class SchemaHelper implements InvocationHandler {
 		}
 	}
 
-	public static Schema createXMLSchema(SchemaArtifact schemaArtifact, Source[] schemas) throws Exception {
+	public static Schema createXMLSchema(SchemaArtifact schemaArtifact, Source... schemas) throws ReflectiveOperationException, SAXException {
 		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 		factory.setResourceResolver(schemaArtifact);
 		Object xmlSchemaLoader = fXMLSchemaLoader.get(factory);

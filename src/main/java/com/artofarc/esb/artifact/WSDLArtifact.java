@@ -66,6 +66,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		clone._lastSchemaElement = _lastSchemaElement;
 		clone._schema = _schema;
 		clone._grammars = _grammars;
+		clone._namespace.set(getNamespace());
 		return clone;
 	}
 
@@ -100,7 +101,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		}
 		initSchema(sources.toArray(new Source[sources.size()]));
 		schemas.clear();
-		_namespace = definition.getTargetNamespace();
+		_namespace.set(definition.getTargetNamespace());
 	}
 
 	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws TransformerException {

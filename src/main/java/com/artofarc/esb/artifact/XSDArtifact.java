@@ -38,6 +38,7 @@ public class XSDArtifact extends SchemaArtifact {
 		clone._jaxbContext = _jaxbContext;
 		clone._schema = _schema;
 		clone._grammars = _grammars;
+		clone._namespace.set(getNamespace());
 		return clone;
 	}
 

@@ -24,6 +24,7 @@ import java.io.Reader;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.transform.Source;
@@ -57,7 +58,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	}
 
 	protected HashMap<String, Object> _grammars = cacheXSGrammars ? new HashMap<String, Object>() : null;
-	protected String _namespace;
+	protected final AtomicReference<String> _namespace = new AtomicReference<>();
 	protected Schema _schema;
 	protected DynamicJAXBContext _jaxbContext;
 
@@ -66,14 +67,14 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	}
 
 	public final String getNamespace() {
-		return _namespace;
+		return _namespace.get();
 	}
 
 	public final HashMap<String, Object> getGrammars() {
 		return _grammars;
 	}
 
-	final synchronized Object putGrammarIfAbsent(String namespace, Object grammar) {
+	final Object putGrammarIfAbsent(String namespace, Object grammar) {
 		Object old = _grammars.get(namespace);
 		if (old == null) {
 			_grammars.put(namespace, grammar);
@@ -85,6 +86,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	protected void invalidate() {
 		if (cacheXSGrammars) {
 			_grammars.clear();
+			_namespace.set(null);
 		}
 		super.invalidate();
 	}
@@ -97,7 +99,9 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 
 	protected final void initSchema(Source... schemas) throws Exception {
 		if (cacheXSGrammars) {
-			_schema = SchemaHelper.createXMLSchema(this, schemas);
+			if (_namespace.compareAndSet(null, "dummy")) {
+				_schema = SchemaHelper.createXMLSchema(this, schemas);
+			}
 		} else {
 			SchemaFactory factory = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
 			factory.setResourceResolver(this);
@@ -161,7 +165,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 		systemId = XMLCatalog.alignSystemId(systemId);
 		try {
 			XSDArtifact artifact = resolveArtifact(systemId, baseURI);
-			artifact._namespace = namespaceURI;
+			artifact._namespace.set(namespaceURI);
 			if (baseURI == null) {
 				baseURI = FILE_SCHEMA + artifact.getURI();
 				systemId = artifact.getName();
