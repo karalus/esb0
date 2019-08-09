@@ -58,11 +58,8 @@ public final class JMSConnectionData {
 		} else if (!_userName.equals(other._userName))
 			return false;
 		if (_password == null) {
-			if (other._password != null)
-				return false;
-		} else if (!_password.equals(other._password))
-			return false;
-		return true;
+			return other._password == null;
+		} else return _password.equals(other._password);
 	}
 
 	@Override

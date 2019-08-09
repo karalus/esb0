@@ -85,7 +85,11 @@ public class JMSAction extends TerminalAction {
 		}
 		for (Map.Entry<String, Object> entry : message.getHeaders().entrySet()) {
 			try {
-				jmsMessage.setObjectProperty(entry.getKey(), entry.getValue());
+				if (entry.getKey().equals(ESBConstants.JMSCorrelationID)) {
+					jmsMessage.setJMSCorrelationID((String) entry.getValue());
+				} else {
+					jmsMessage.setObjectProperty(entry.getKey(), entry.getValue());
+				}
 			} catch (JMSException e) {
 				throw new ExecutionException(this, "Could not set JMS property " + entry.getKey(), e);
 			}
