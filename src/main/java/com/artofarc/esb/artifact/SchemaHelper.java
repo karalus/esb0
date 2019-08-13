@@ -23,7 +23,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Collection;
 
 import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
@@ -32,7 +31,6 @@ import javax.xml.validation.SchemaFactory;
 
 import org.xml.sax.SAXException;
 
-import com.artofarc.util.Collections;
 import com.artofarc.util.ReflectionUtils;
 
 /**
@@ -42,12 +40,11 @@ import com.artofarc.util.ReflectionUtils;
  */
 public final class SchemaHelper implements InvocationHandler {
 
+	private final static String XERCES_XMLGRAMMAR_POOL_PROPERTY = "http://apache.org/xml/properties/internal/grammar-pool";
 	private final static long timeout = Long.parseLong(System.getProperty("esb0.cacheXSGrammars.timeout", "100"));
 
 	private final static Constructor<? extends SchemaFactory> conSchemaFactory; 
-	private final static Class<?> ifcXMLGrammarPool;
 	private final static Field fXMLSchemaLoader;
-	private final static Object[] initialGrammarSet;
 
 	private static boolean isXercesSchemaFactory(Object object) {
 		String className = object.getClass().getName();
@@ -69,9 +66,6 @@ public final class SchemaHelper implements InvocationHandler {
 				}
 			}
 			conSchemaFactory = factory.getClass().getConstructor();
-			Object xmlGrammarPool = ReflectionUtils.newInstanceInnerStatic(factory, "XMLGrammarPoolImplExtension");
-			initialGrammarSet = ReflectionUtils.eval(xmlGrammarPool, "retrieveInitialGrammarSet($1)", XMLConstants.W3C_XML_SCHEMA_NS_URI);
-			ifcXMLGrammarPool = xmlGrammarPool.getClass().getSuperclass();
 			fXMLSchemaLoader = factory.getClass().getDeclaredField("fXMLSchemaLoader");
 			fXMLSchemaLoader.setAccessible(true);
 		} catch (ReflectiveOperationException e) {
@@ -80,9 +74,11 @@ public final class SchemaHelper implements InvocationHandler {
 	}
 
 	private final SchemaArtifact _schemaArtifact;
+	private final Object _grammarPool;
 
-	private SchemaHelper(SchemaArtifact schemaArtifact) {
+	private SchemaHelper(SchemaArtifact schemaArtifact, Object grammarPool) {
 		_schemaArtifact = schemaArtifact;
+		_grammarPool = grammarPool;
 	}
 
 	@Override
@@ -90,9 +86,9 @@ public final class SchemaHelper implements InvocationHandler {
 		switch (method.getName()) {
 		case "retrieveInitialGrammarSet":
 			if (!XMLConstants.W3C_XML_SCHEMA_NS_URI.equals(args[0])) {
-				throw new IllegalArgumentException("DTDs not supported");
+				throw new IllegalArgumentException("Only XML Schema is supported");
 			}
-			return initialGrammarSet;
+			return method.invoke(_grammarPool, args);
 		case "retrieveGrammar":
 			Object xmlGrammarDescription = args[0];
 			String namespace = ReflectionUtils.eval(xmlGrammarDescription, "namespace");
@@ -123,9 +119,6 @@ public final class SchemaHelper implements InvocationHandler {
 				return null;
 			}
 		case "cacheGrammars":
-			if (!XMLConstants.W3C_XML_SCHEMA_NS_URI.equals(args[0])) {
-				throw new IllegalArgumentException("DTDs not supported");
-			}
 			Object[] grammars = (Object[]) args[1];
 			synchronized (_schemaArtifact) {
 				for (Object grammar : grammars) {
@@ -133,7 +126,8 @@ public final class SchemaHelper implements InvocationHandler {
 				}
 				_schemaArtifact.notifyAll();
 			}
-			return null;
+			// write back
+			return method.invoke(_grammarPool, args);
 		default:
 			throw new UnsupportedOperationException("Method not implemented: " + method.getName());
 		}
@@ -143,33 +137,12 @@ public final class SchemaHelper implements InvocationHandler {
 		SchemaFactory factory = conSchemaFactory.newInstance();
 		factory.setResourceResolver(schemaArtifact);
 		Object xmlSchemaLoader = fXMLSchemaLoader.get(factory);
-		Object proxyInstance = Proxy.newProxyInstance(ifcXMLGrammarPool.getClassLoader(), ifcXMLGrammarPool.getInterfaces(), new SchemaHelper(schemaArtifact));
-		ReflectionUtils.eval(xmlSchemaLoader, "setProperty($1,$2)", "http://apache.org/xml/properties/internal/grammar-pool", proxyInstance);
-		// This fills now our XMLGrammarPool but not the one in the factory so returned schema is empty
-		factory.newSchema(schemas);
-		// Take our grammars and create a schema object
-		Collection<Object> grammars = schemaArtifact.getGrammars().values();
-		Object schema;
-		switch (grammars.size()) {
-		case 0:
-			schema = ReflectionUtils.newInstancePackage(factory, "EmptyXMLSchema");
-			break;
-		case 1:
-			schema = ReflectionUtils.newInstancePackage(factory, "SimpleXMLSchema", grammars.iterator().next());
-			break;
-		default:
-			Object grammarPool = ReflectionUtils.newInstanceInnerStatic(factory, "XMLGrammarPoolImplExtension");
-			ReflectionUtils.eval(grammarPool, "cacheGrammars($1,$2)", XMLConstants.W3C_XML_SCHEMA_NS_URI, Collections.toArray(grammars));
-			schema = ReflectionUtils.newInstancePackage(factory, "XMLSchema", ReflectionUtils.newInstancePackage(factory, "ReadOnlyGrammarPool", grammarPool));
-			break;
-		}
-		ReflectionUtils.eval(factory, "propagateFeatures($1)", schema);
-		try {
-			ReflectionUtils.eval(factory, "propagateProperties($1)", schema);
-		} catch (NoSuchMethodException e) {
-			// Newer Xerces does not have this method
-		}
-		return (Schema) schema;
+		Object grammarPool = ReflectionUtils.eval(xmlSchemaLoader, "getProperty($1)", XERCES_XMLGRAMMAR_POOL_PROPERTY);
+		Class<? extends Object> cls = grammarPool.getClass();
+		Object proxyInstance = Proxy.newProxyInstance(cls.getClassLoader(), cls.getInterfaces(), new SchemaHelper(schemaArtifact, grammarPool));
+		ReflectionUtils.eval(xmlSchemaLoader, "setProperty($1,$2)", XERCES_XMLGRAMMAR_POOL_PROPERTY, proxyInstance);
+		// This uses now our XMLGrammarPool for lookup
+		return factory.newSchema(schemas);
 	}
 
 	public static void printGrammars(Schema schema, PrintStream printStream) throws ReflectiveOperationException {

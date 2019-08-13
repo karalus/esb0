@@ -1,4 +1,4 @@
-<%@page import="java.util.Map.Entry"%>
+<%@page import="java.util.Map"%>
 <%@page import="com.artofarc.esb.context.PoolContext"%>
 <%@page import="com.artofarc.esb.context.GlobalContext"%>
 <%@page import="com.artofarc.esb.ConsumerPort"%>
@@ -65,7 +65,7 @@
 <br>HttpEndpoints:
 <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Name</b></td><td align="center"><b>Addresses</b></td><td align="center"><b>Total in use</b></td></tr> 
 <%
-		for (Entry<HttpEndpoint, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
+		for (Map.Entry<HttpEndpoint, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
 		   %>
 		   <tr><td><%=entry.getKey().getName()%></td><td><%=entry.getKey().getHttpUrls()%></td><td><%=entry.getValue() != null ? entry.getValue().getInUseTotal() : "N/A"%></td></tr>
 		   <%
@@ -104,6 +104,13 @@
 		   <tr><td>Name</td><td><%=a.getName()%></td></tr>
 		   <tr><td>Validated</td><td><%=a.isValidated()%></td></tr>
 		   <tr><td>Modified</td><td><%=new java.util.Date(a.getModificationTime())%></td></tr>
+		   <%
+		   	if (a instanceof SchemaArtifact) {
+		   %>
+				   <tr><td>Namespace</td><td><%=((SchemaArtifact) a).getNamespace()%></td></tr>
+		   <%
+		   	}
+		   %>
 	   </table>
 	   <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Referenced</b></td></tr>
 	   <%
