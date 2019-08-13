@@ -16,14 +16,12 @@
  */
 package com.artofarc.esb.action;
 
-import static com.artofarc.esb.message.ESBConstants.SOAP_OPERATION;
-
 import java.net.HttpURLConnection;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.message.ESBMessage;
 
 public class PostSOAPHttpAction extends UnwrapSOAPAction {
 
@@ -46,7 +44,7 @@ public class PostSOAPHttpAction extends UnwrapSOAPAction {
 
 	@Override
 	protected String determineOperation(ESBMessage message) {
-		return message.getVariable(SOAP_OPERATION);
+		return message.getVariable(ESBConstants.SOAP_OPERATION);
 	}
 
 }

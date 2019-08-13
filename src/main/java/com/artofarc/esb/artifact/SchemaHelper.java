@@ -18,10 +18,12 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Collection;
 
 import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
@@ -42,19 +44,31 @@ public final class SchemaHelper implements InvocationHandler {
 
 	private final static long timeout = Long.parseLong(System.getProperty("esb0.cacheXSGrammars.timeout", "100"));
 
+	private final static Constructor<? extends SchemaFactory> conSchemaFactory; 
 	private final static Class<?> ifcXMLGrammarPool;
 	private final static Field fXMLSchemaLoader;
 	private final static Object[] initialGrammarSet;
 
-	private final SchemaArtifact _schemaArtifact;
-
-	private SchemaHelper(SchemaArtifact schemaArtifact) {
-		_schemaArtifact = schemaArtifact;
+	private static boolean isXercesSchemaFactory(Object object) {
+		String className = object.getClass().getName();
+		return className.contains("org.apache.xerces") && className.endsWith("jaxp.validation.XMLSchemaFactory");
 	}
 
 	static {
 		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 		try {
+			if (!isXercesSchemaFactory(factory)) {
+				// Maybe we have got a simple wrapper so search inside
+				for (Field field : factory.getClass().getDeclaredFields()) {
+					field.setAccessible(true);
+					Object object = field.get(factory);
+					if (isXercesSchemaFactory(object)) {
+						factory = (SchemaFactory) object;
+						break;
+					}
+				}
+			}
+			conSchemaFactory = factory.getClass().getConstructor();
 			Object xmlGrammarPool = ReflectionUtils.newInstanceInnerStatic(factory, "XMLGrammarPoolImplExtension");
 			initialGrammarSet = ReflectionUtils.eval(xmlGrammarPool, "retrieveInitialGrammarSet($1)", XMLConstants.W3C_XML_SCHEMA_NS_URI);
 			ifcXMLGrammarPool = xmlGrammarPool.getClass().getSuperclass();
@@ -63,6 +77,12 @@ public final class SchemaHelper implements InvocationHandler {
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException("SchemaFactory not Xerces", e);
 		}
+	}
+
+	private final SchemaArtifact _schemaArtifact;
+
+	private SchemaHelper(SchemaArtifact schemaArtifact) {
+		_schemaArtifact = schemaArtifact;
 	}
 
 	@Override
@@ -120,7 +140,7 @@ public final class SchemaHelper implements InvocationHandler {
 	}
 
 	public static Schema createXMLSchema(SchemaArtifact schemaArtifact, Source... schemas) throws ReflectiveOperationException, SAXException {
-		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+		SchemaFactory factory = conSchemaFactory.newInstance();
 		factory.setResourceResolver(schemaArtifact);
 		Object xmlSchemaLoader = fXMLSchemaLoader.get(factory);
 		Object proxyInstance = Proxy.newProxyInstance(ifcXMLGrammarPool.getClassLoader(), ifcXMLGrammarPool.getInterfaces(), new SchemaHelper(schemaArtifact));
@@ -128,17 +148,18 @@ public final class SchemaHelper implements InvocationHandler {
 		// This fills now our XMLGrammarPool but not the one in the factory so returned schema is empty
 		factory.newSchema(schemas);
 		// Take our grammars and create a schema object
-		Object[] grammars = Collections.toArray(schemaArtifact.getGrammars().values());
+		Collection<Object> grammars = schemaArtifact.getGrammars().values();
 		Object schema;
-		switch (grammars.length) {
+		switch (grammars.size()) {
 		case 0:
-			throw new RuntimeException("Unexpected: No grammar created.");
+			schema = ReflectionUtils.newInstancePackage(factory, "EmptyXMLSchema");
+			break;
 		case 1:
-			schema = ReflectionUtils.newInstancePackage(factory, "SimpleXMLSchema", grammars[0]);
+			schema = ReflectionUtils.newInstancePackage(factory, "SimpleXMLSchema", grammars.iterator().next());
 			break;
 		default:
 			Object grammarPool = ReflectionUtils.newInstanceInnerStatic(factory, "XMLGrammarPoolImplExtension");
-			ReflectionUtils.eval(grammarPool, "cacheGrammars($1,$2)", XMLConstants.W3C_XML_SCHEMA_NS_URI, grammars);
+			ReflectionUtils.eval(grammarPool, "cacheGrammars($1,$2)", XMLConstants.W3C_XML_SCHEMA_NS_URI, Collections.toArray(grammars));
 			schema = ReflectionUtils.newInstancePackage(factory, "XMLSchema", ReflectionUtils.newInstancePackage(factory, "ReadOnlyGrammarPool", grammarPool));
 			break;
 		}

@@ -88,15 +88,15 @@ public final class ReflectionUtils {
 	}
 
 	public static Object newInstanceInnerStatic(Object enclosing, String name, Object... params) throws ReflectiveOperationException {
-		return newInstance(enclosing.getClass().getName() + "$" + name, params);
+		return newInstance(enclosing.getClass().getClassLoader(), enclosing.getClass().getName() + '$' + name, params);
 	}
 
 	public static Object newInstancePackage(Object enclosing, String name, Object... params) throws ReflectiveOperationException {
-		return newInstance(enclosing.getClass().getPackage().getName() + "." + name, params);
+		return newInstance(enclosing.getClass().getClassLoader(), enclosing.getClass().getPackage().getName() + '.' + name, params);
 	}
 
-	public static Object newInstance(String className, Object... params) throws ReflectiveOperationException {
-		Class<?> cls = Class.forName(className);
+	public static Object newInstance(ClassLoader classLoader, String className, Object... params) throws ReflectiveOperationException {
+		Class<?> cls = Class.forName(className, true, classLoader);
 		Constructor<?> con = findConstructor(cls, Arrays.asList(params));
 		con.setAccessible(true);
 		return con.newInstance(params);
