@@ -18,6 +18,7 @@ package com.artofarc.esb.servlet;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.net.URLDecoder;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.concurrent.RejectedExecutionException;
@@ -89,7 +90,7 @@ public class GenericHttpListener extends HttpServlet {
 		message.getVariables().put(ContextPath, request.getContextPath());
 		message.getVariables().put(PathInfo, pathInfo);
 		if (consumerPort.getBindPath().endsWith("*")) {
-			message.getVariables().put(appendHttpUrlPath, pathInfo.substring(consumerPort.getBindPath().length() - 1));
+			message.getVariables().put(appendHttpUrlPath, URLDecoder.decode(pathInfo.substring(consumerPort.getBindPath().length() - 1), "UTF-8"));
 		}
 		message.putVariable(QueryString, request.getQueryString());
 		message.setCharset(request.getCharacterEncoding());

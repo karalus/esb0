@@ -79,12 +79,12 @@ public class BranchOnPathAction extends Action {
 		// REST: also parse query string
 		String queryString = message.getVariable(ESBConstants.QueryString);
 		if (queryString != null) {
-			StringTokenizer st = new StringTokenizer(queryString, "&");
+			StringTokenizer st = new StringTokenizer(URLDecoder.decode(queryString, "UTF-8"), "&");
 			while (st.hasMoreTokens()) {
 				String pair = st.nextToken();
 				final int i = pair.indexOf("=");
-				String key = i > 0 ? URLDecoder.decode(pair.substring(0, i), "UTF-8") : pair;
-				String value = i > 0 && pair.length() > i + 1 ? URLDecoder.decode(pair.substring(i + 1), "UTF-8") : null;
+				String key = i > 0 ? pair.substring(0, i) : pair;
+				String value = i > 0 && pair.length() > i + 1 ? pair.substring(i + 1) : null;
 				message.getVariables().put(key, value);
 			}
 		}
