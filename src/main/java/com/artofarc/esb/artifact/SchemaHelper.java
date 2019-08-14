@@ -117,7 +117,9 @@ public final class SchemaHelper implements InvocationHandler {
 					}
 					return artifact.getGrammars().get(namespace);
 				} else {
-					_schemaArtifact._namespace.set(namespace);
+					if (_schemaArtifact instanceof XSDArtifact) {
+						_schemaArtifact._namespace.set(namespace);
+					}
 					return null;
 				}
 			} catch (FileNotFoundException | SAXException e) {
