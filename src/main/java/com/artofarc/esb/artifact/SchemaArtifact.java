@@ -24,6 +24,7 @@ import java.io.Reader;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.bind.JAXBException;
@@ -48,18 +49,18 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	private static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
 	private static final String JAXB_BINDINGS = System.getProperty("esb0.moxy.jaxb.bindings");
 
-	protected static HashMap<String, Object> getDynamicJAXBContextProperties() throws IOException {
+	protected static Map<String, Object> getDynamicJAXBContextProperties() throws IOException {
 		if (JAXB_BINDINGS != null) {
-			HashMap<String, Object> properties = new HashMap<>();
+			Map<String, Object> properties = new HashMap<>();
 			properties.put(DynamicJAXBContextFactory.EXTERNAL_BINDINGS_KEY, new StreamSource(new FileInputStream(JAXB_BINDINGS), JAXB_BINDINGS));
 			return properties;
 		}
 		return null;
 	}
 
-	protected HashMap<String, Object> _grammars = cacheXSGrammars ? new HashMap<String, Object>() : null;
+	protected Map<String, Object> _grammars = cacheXSGrammars ? new HashMap<String, Object>() : null;
 	protected final AtomicReference<String> _namespace = new AtomicReference<>();
-	protected Schema _schema;
+	protected volatile Schema _schema;
 	protected DynamicJAXBContext _jaxbContext;
 
 	protected SchemaArtifact(FileSystem fileSystem, Directory parent, String name) {
@@ -70,16 +71,8 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 		return _namespace.get();
 	}
 
-	public final HashMap<String, Object> getGrammars() {
+	public final Map<String, Object> getGrammars() {
 		return _grammars;
-	}
-
-	final Object putGrammarIfAbsent(String namespace, Object grammar) {
-		Object old = _grammars.get(namespace);
-		if (old == null) {
-			_grammars.put(namespace, grammar);
-		}
-		return old;
 	}
 
 	@Override
@@ -92,22 +85,27 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 	}
 
 	public final Schema getSchema() {
+		// _schema might be set by different thread in {@link SchemaHelper}
+		while (_namespace.get() != null && _schema == null);
 		return _schema;
 	}
 
-	public abstract DynamicJAXBContext getJAXBContext() throws JAXBException, IOException;
+	protected abstract Source[] getSourcesForSchema() throws Exception;
 
-	protected final void initSchema(Source... schemas) throws Exception {
+	@Override
+	public void validateInternal(GlobalContext globalContext) throws Exception {
 		if (cacheXSGrammars) {
 			if (_namespace.compareAndSet(null, "dummy")) {
-				_schema = SchemaHelper.createXMLSchema(this, schemas);
+				_schema = SchemaHelper.createXMLSchema(this, getSourcesForSchema());
 			}
 		} else {
 			SchemaFactory factory = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
 			factory.setResourceResolver(this);
-			_schema = factory.newSchema(schemas);
+			_schema = factory.newSchema(getSourcesForSchema());
 		}
 	}
+
+	public abstract DynamicJAXBContext getJAXBContext() throws JAXBException, IOException;
 
 	@Override
 	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {
@@ -251,7 +249,6 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 		@Override
 		public void setCertifiedText(boolean certifiedText) {
 		}
-
 	}
 
 }

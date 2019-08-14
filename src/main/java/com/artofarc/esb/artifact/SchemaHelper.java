@@ -92,14 +92,19 @@ public final class SchemaHelper implements InvocationHandler {
 		case "retrieveGrammar":
 			Object xmlGrammarDescription = args[0];
 			String namespace = ReflectionUtils.eval(xmlGrammarDescription, "namespace");
+			String systemId = XMLCatalog.alignSystemId(ReflectionUtils.<String> eval(xmlGrammarDescription, "literalSystemId"));
 			String baseSystemId = ReflectionUtils.eval(xmlGrammarDescription, "baseSystemId");
-			if (baseSystemId != null) {
-				String literalSystemId = ReflectionUtils.eval(xmlGrammarDescription, "literalSystemId");
-				try {
-					XSDArtifact artifact = _schemaArtifact.resolveArtifact(XMLCatalog.alignSystemId(literalSystemId), baseSystemId);
+			try {
+				SchemaArtifact artifact;
+				if (baseSystemId != null) {
+					artifact = _schemaArtifact.resolveArtifact(systemId, baseSystemId);
+				} else {
+					artifact = _schemaArtifact.loadArtifact(systemId);
+				}
+				if (artifact != _schemaArtifact) {
 					// don't recurse when it is already started. Will result in stack overflow caused by circular dependencies. 
 					if (artifact._namespace.compareAndSet(null, namespace)) {
-						artifact._schema = createXMLSchema(artifact, artifact.getStreamSource());
+						artifact._schema = createXMLSchema(artifact, artifact.getSourcesForSchema());
 					} else {
 						Object grammar = artifact.getGrammars().get(namespace);
 						if (grammar != null) return grammar;
@@ -111,18 +116,18 @@ public final class SchemaHelper implements InvocationHandler {
 						}
 					}
 					return artifact.getGrammars().get(namespace);
-				} catch (FileNotFoundException | SAXException e) {
-					throw new RuntimeException(e);
+				} else {
+					_schemaArtifact._namespace.set(namespace);
+					return null;
 				}
-			} else {
-				_schemaArtifact._namespace.set(namespace);
-				return null;
+			} catch (FileNotFoundException | SAXException e) {
+				throw new RuntimeException(e);
 			}
 		case "cacheGrammars":
 			Object[] grammars = (Object[]) args[1];
 			synchronized (_schemaArtifact) {
 				for (Object grammar : grammars) {
-					_schemaArtifact.putGrammarIfAbsent(ReflectionUtils.<String> eval(grammar, "grammarDescription.namespace"), grammar);
+					_schemaArtifact.getGrammars().put(ReflectionUtils.<String> eval(grammar, "grammarDescription.namespace"), grammar);
 				}
 				_schemaArtifact.notifyAll();
 			}
@@ -133,7 +138,7 @@ public final class SchemaHelper implements InvocationHandler {
 		}
 	}
 
-	public static Schema createXMLSchema(SchemaArtifact schemaArtifact, Source... schemas) throws ReflectiveOperationException, SAXException {
+	public static Schema createXMLSchema(SchemaArtifact schemaArtifact, Source[] schemas) throws ReflectiveOperationException, SAXException {
 		SchemaFactory factory = conSchemaFactory.newInstance();
 		factory.setResourceResolver(schemaArtifact);
 		Object xmlSchemaLoader = fXMLSchemaLoader.get(factory);

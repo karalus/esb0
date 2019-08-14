@@ -43,12 +43,11 @@ import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
 
-import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.WSDL4JUtil;
 
 public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
-	private Map<QName, Binding> _allBindings;
+	private volatile Map<QName, Binding> _allBindings;
 	private DOMSource _lastSchemaElement;
 	// only used during validation
 	private String latestImportURI;
@@ -71,12 +70,14 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	public final Map<QName, Binding> getAllBindings() {
+		// _allBindings might be set by different thread in {@link SchemaHelper}
+		while (_namespace.get() != null && _allBindings == null);
 		return _allBindings;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void validateInternal(GlobalContext globalContext) throws Exception {
+	protected Source[] getSourcesForSchema() throws Exception {
 		Definition definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
 		_allBindings = definition.getAllBindings();
 		latestImportURI = null;
@@ -99,9 +100,14 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				processSchemas(import1.getDefinition(), sources, transformer);
 			}
 		}
-		initSchema(sources.toArray(new Source[sources.size()]));
-		schemas.clear();
 		_namespace.set(definition.getTargetNamespace());
+		return sources.toArray(new Source[sources.size()]);
+	}
+
+	@Override
+	public void clearContent() {
+		super.clearContent();
+		schemas.clear();
 	}
 
 	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws TransformerException {

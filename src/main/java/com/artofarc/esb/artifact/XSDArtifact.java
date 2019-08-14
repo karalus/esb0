@@ -25,8 +25,6 @@ import javax.xml.transform.stream.StreamSource;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 
-import com.artofarc.esb.context.GlobalContext;
-
 public class XSDArtifact extends SchemaArtifact {
 
 	public XSDArtifact(FileSystem fileSystem, Directory parent, String name) {
@@ -71,8 +69,8 @@ public class XSDArtifact extends SchemaArtifact {
 	}
 
 	@Override
-	public void validateInternal(GlobalContext globalContext) throws Exception {
-		initSchema(getStreamSource());
+	protected StreamSource[] getSourcesForSchema() {
+		return new StreamSource[] { getStreamSource() };
 	}
 
 	@Override
