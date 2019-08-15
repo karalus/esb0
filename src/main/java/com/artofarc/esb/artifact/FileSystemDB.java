@@ -44,7 +44,7 @@ public class FileSystemDB extends FileSystem {
 		return new FileSystemDB(this);
 	}
 
-	private byte[] getBytes(Blob blob) throws SQLException {
+	private static byte[] getBytes(Blob blob) throws SQLException {
 		byte[] ba = blob.getBytes(1, (int) blob.length());
 		blob.free();
 		return ba;

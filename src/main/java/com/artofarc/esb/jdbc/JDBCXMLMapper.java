@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.TimeZone;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeFactory;
@@ -48,12 +47,10 @@ import com.artofarc.util.ReflectionUtils;
 
 public final class JDBCXMLMapper {
 
-	final static Logger logger = LoggerFactory.getLogger(JDBCXMLMapper.class);
+	private final static Logger logger = LoggerFactory.getLogger(JDBCXMLMapper.class);
 
 	private final static DatatypeFactory datatypeFactory;
-	private final static TimeZone timeZone;
-
-	private static Class<?> iface;
+	private static Class<?> ifcOracleConnection;
 	private static Method createARRAY;
 	private static Method getSQLTypeName;
 			
@@ -63,11 +60,9 @@ public final class JDBCXMLMapper {
 		} catch (javax.xml.datatype.DatatypeConfigurationException e) {
 			throw new RuntimeException(e);
 		}
-		String timezone = System.getProperty("esb0.jdbc.mapper.timezone");
-		timeZone = timezone != null ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault();
 		try {
-			iface = Class.forName("oracle.jdbc.OracleConnection");
-			createARRAY = iface.getMethod("createARRAY", String.class, Object.class);
+			ifcOracleConnection = Class.forName("oracle.jdbc.OracleConnection");
+			createARRAY = ifcOracleConnection.getMethod("createARRAY", String.class, Object.class);
 			getSQLTypeName = Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName");
 		} catch (ReflectiveOperationException e) {
 			// https://docs.oracle.com/cd/B28359_01/java.111/b31224/oraarr.htm#i1059642
@@ -116,12 +111,6 @@ public final class JDBCXMLMapper {
 				attributes[i] = toJDBC(property);
 			}
 		}
-//		if (!root) {
-//			logger.info("createStruct for " + typeName.getLocalPart());
-//			for (Object object : attributes) {
-//				logger.info("\t" + object);
-//			}
-//		}
 		return root ? attributes[0] : connection.createStruct(typeName.getLocalPart(), attributes);
 	}
 
@@ -137,7 +126,7 @@ public final class JDBCXMLMapper {
 	public static Object toJDBC(Object value) {
 		if (value instanceof XMLGregorianCalendar) {
 			XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
-			return new Timestamp(calendar.toGregorianCalendar(timeZone, null, null).getTimeInMillis());
+			return new Timestamp(calendar.toGregorianCalendar(JDBCResult2JsonMapper.TIME_ZONE, null, null).getTimeInMillis());
 		}
 		return value;
 	}
@@ -221,7 +210,7 @@ public final class JDBCXMLMapper {
 
 	public static Object fromJDBC(Object value) {
 		if (value instanceof Date) {
-			GregorianCalendar calendar = new GregorianCalendar(timeZone);
+			GregorianCalendar calendar = new GregorianCalendar(JDBCResult2JsonMapper.TIME_ZONE);
 			calendar.setTime((Date) value);
 			return datatypeFactory.newXMLGregorianCalendar(calendar);
 		}
@@ -230,7 +219,7 @@ public final class JDBCXMLMapper {
 
 	public static Array createArray(Connection connection, String typeName, Object[] elements) throws SQLException {
 		try {
-			return (Array) createARRAY.invoke(connection.unwrap(iface), typeName, elements);
+			return (Array) createARRAY.invoke(connection.unwrap(ifcOracleConnection), typeName, elements);
 		} catch (InvocationTargetException | IllegalAccessException e) {
 			throw ReflectionUtils.convert(e.getCause(), SQLException.class);
 		}

@@ -18,6 +18,7 @@ package com.artofarc.esb.jdbc;
 
 import java.sql.*;
 import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 import static java.sql.Types.*;
 import java.math.BigDecimal;
@@ -31,6 +32,13 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.StringWriter;
 
 public class JDBCResult2JsonMapper {
+
+	final static TimeZone TIME_ZONE;
+
+	static {
+		String timezone = System.getProperty("esb0.jdbc.mapper.timezone");
+		TIME_ZONE = timezone != null ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault();
+	}
 
 	public static void extractResult(Statement statement, ESBMessage message) throws SQLException {
 		JsonStructure result = null;
@@ -64,7 +72,7 @@ public class JDBCResult2JsonMapper {
 		}
 	}
 
-	protected static JsonObject createJson(ResultSet resultSet) throws SQLException {
+	private static JsonObject createJson(ResultSet resultSet) throws SQLException {
 		ResultSetMetaData metaData = resultSet.getMetaData();
 		final int colSize = metaData.getColumnCount();
 		JsonObjectBuilder result = Json.createObjectBuilder();
@@ -157,7 +165,7 @@ public class JDBCResult2JsonMapper {
 	}
 
 	private static GregorianCalendar convert(java.util.Date date) {
-		GregorianCalendar gc = new GregorianCalendar();
+		GregorianCalendar gc = new GregorianCalendar(TIME_ZONE);
 		gc.setTime(date);
 		return gc;
 	}
