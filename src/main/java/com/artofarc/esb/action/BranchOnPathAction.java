@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import com.artofarc.esb.context.Context;
@@ -40,9 +39,9 @@ public class BranchOnPathAction extends Action {
 		_defaultAction = defaultAction;
 	}
 
-	public final Map<PathTemplate, Action> getBranchMap() {
-		return _branchMap;
-	}
+	public final void addBranch(String pathTemplate, Action action) {
+		_branchMap.put(new PathTemplate(pathTemplate), action);
+	}	
 
 	@Override
 	protected boolean isPipelineStop() {
@@ -67,7 +66,7 @@ public class BranchOnPathAction extends Action {
 		if (appendHttpUrlPath != null && appendHttpUrlPath.startsWith(_basePath)) {
 			String path = appendHttpUrlPath.substring(_basePath.length());
 			action = _defaultAction;
-			for (Entry<PathTemplate, Action> entry : _branchMap.entrySet()) {
+			for (Map.Entry<PathTemplate, Action> entry : _branchMap.entrySet()) {
 				final Map<String, String> match = entry.getKey().match(path);
 				if (match != null) {
 					action = entry.getValue();

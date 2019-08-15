@@ -67,7 +67,7 @@ public class ActionTest {
       message.getVariables().put(ESBConstants.appendHttpUrlPath, "partner/4711/order/0815");
       BranchOnPathAction action = new BranchOnPathAction("", null);
       MarkAction markAction = new MarkAction();
-		action.getBranchMap().put(new BranchOnPathAction.PathTemplate("partner/{partnerId}/order/{orderId}"), markAction);
+		action.addBranch("partner/{partnerId}/order/{orderId}", markAction);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       consumerPort.process(context, message);
@@ -94,8 +94,8 @@ public class ActionTest {
       MarkAction action1 = new MarkAction();
       MarkAction action2 = new MarkAction();
       MarkAction action3 = new MarkAction();
-      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("var", action2, null);
-      branchOnVariableAction.getBranchMap().put("ok", action1);
+      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("var", false, action2, null);
+      branchOnVariableAction.addBranch("ok", action1);
       branchOnVariableAction.setNextAction(action3);
       branchOnVariableAction.process(context, message);
       assertFalse(action1.isExecuted());

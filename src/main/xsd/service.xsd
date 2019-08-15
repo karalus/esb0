@@ -433,6 +433,7 @@
 						</element>
 					</sequence>
 					<attribute name="variable" type="Name" use="required" />
+					<attribute name="useRegEx" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>

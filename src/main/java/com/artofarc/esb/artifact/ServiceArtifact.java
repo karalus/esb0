@@ -377,9 +377,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				if (branchOnVariable.getNull() != null) {
 					nullAction = Action.linkList(transform(globalContext, branchOnVariable.getNull().getAction(), null));
 				}
-				BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), defaultAction, nullAction);
+				BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), branchOnVariable.isUseRegEx(), defaultAction, nullAction);
 				for (BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
-					branchOnVariableAction.getBranchMap().put(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), null)));
+					branchOnVariableAction.addBranch(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), null)));
 				}
 				addAction(list, branchOnVariableAction);
 				break;
@@ -392,7 +392,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				BranchOnPathAction branchOnPathAction = new BranchOnPathAction(branchOnPath.getBasePath(), defaultAction);
 				for (BranchOnPath.Branch branch : branchOnPath.getBranch()) {
-					branchOnPathAction.getBranchMap().put(new BranchOnPathAction.PathTemplate(branch.getPathTemplate()), Action.linkList(transform(globalContext, branch.getAction(), null)));
+					branchOnPathAction.addBranch(branch.getPathTemplate(), Action.linkList(transform(globalContext, branch.getAction(), null)));
 				}
 				addAction(list, branchOnPathAction);
 				break;
