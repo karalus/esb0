@@ -145,7 +145,7 @@ public final class SchemaHelper implements InvocationHandler {
 		factory.setResourceResolver(schemaArtifact);
 		Object xmlSchemaLoader = fXMLSchemaLoader.get(factory);
 		Object grammarPool = ReflectionUtils.eval(xmlSchemaLoader, "getProperty($1)", XERCES_XMLGRAMMAR_POOL_PROPERTY);
-		Class<? extends Object> cls = grammarPool.getClass();
+		Class<?> cls = grammarPool.getClass();
 		Object proxyInstance = Proxy.newProxyInstance(cls.getClassLoader(), cls.getInterfaces(), new SchemaHelper(schemaArtifact, grammarPool));
 		ReflectionUtils.eval(xmlSchemaLoader, "setProperty($1,$2)", XERCES_XMLGRAMMAR_POOL_PROPERTY, proxyInstance);
 		// This uses now our XMLGrammarPool for lookup

@@ -38,7 +38,7 @@ public abstract class Action implements Cloneable {
 	protected Action _nextAction;
 	protected Action _errorHandler;
 
-	private Object _serviceArtifact;
+	private String _serviceArtifactURI;
 	private int _posInServiceArtifact;
 
 	public final Action setNextAction(Action nextAction) {
@@ -53,8 +53,8 @@ public abstract class Action implements Cloneable {
 		_errorHandler = errorHandler;
 	}
 
-	public final void setServiceArtifact(Object serviceArtifact) {
-		_serviceArtifact = serviceArtifact;
+	public final void setServiceArtifactURI(String serviceArtifactURI) {
+		_serviceArtifactURI = serviceArtifactURI;
 	}
 
 	public final void setPosInServiceArtifact(int posInServiceArtifact) {
@@ -64,8 +64,8 @@ public abstract class Action implements Cloneable {
 	@Override
 	public final String toString() {
 		String s = getClass().getSimpleName();
-		if (_serviceArtifact != null) {
-			s += " in ServiceArtifact " + _serviceArtifact + "@" + _posInServiceArtifact;
+		if (_serviceArtifactURI != null) {
+			s += " in ServiceArtifact " + _serviceArtifactURI + "@" + _posInServiceArtifact;
 		}
 		return s;
 	}
@@ -156,7 +156,7 @@ public abstract class Action implements Cloneable {
 			resources.clear();
 		}
 		context.getStackPos().poll();
-		timeGauge.stopTimeMeasurement("Finished process: " + _serviceArtifact, false);
+		timeGauge.stopTimeMeasurement("Finished process: " + _serviceArtifactURI, false);
 	}
 
 	// pipelining

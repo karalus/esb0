@@ -73,7 +73,7 @@ public abstract class Artifact {
 
 	public final String getURI() {
 		if (_parent != null) {
-			return _parent.getURI() + '/' + _name;
+			return (_parent.getURI() + '/' + _name).intern();
 		} else {
 			return _name;
 		}
@@ -101,8 +101,8 @@ public abstract class Artifact {
 		return _validated;
 	}
 
-	final void setValidated(boolean validated) {
-		_validated = validated;
+	final void setValidated() {
+		_validated = true;
 	}
 
 	public final byte[] getContent() {
@@ -197,7 +197,7 @@ public abstract class Artifact {
 				} catch (Exception e) {
 					throw ReflectionUtils.convert(e, ValidationException.class, this);
 				}
-				setValidated(true);
+				setValidated();
 				logger.info("Validated: " + getURI());
 			}
 		}
@@ -211,7 +211,7 @@ public abstract class Artifact {
 
 	protected final <A extends Artifact> A initClone(A clone) {
 		if (isValidated()) {
-			clone.setValidated(true);
+			clone.setValidated();
 			clone.getReferenced().addAll(getReferenced());
 			clone.getReferencedBy().addAll(getReferencedBy());
 		}

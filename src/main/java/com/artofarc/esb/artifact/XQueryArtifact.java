@@ -56,7 +56,7 @@ public class XQueryArtifact extends XMLArtifact {
 			preparedExpression.close();
 			// set modules to validated 
 			for (String referenced : owner.getReferenced()) {
-				owner.getArtifact(referenced).setValidated(true);
+				owner.getArtifact(referenced).setValidated();
 			}
 		} finally {
 			connection.close();

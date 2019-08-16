@@ -51,7 +51,7 @@ public class XSLTArtifact extends XMLArtifact {
 		_templates = saxTransformerFactory.newTemplates(new StreamSource(getContentAsStream()));
 		// set imports/includes to validated 
 		for (String referenced : getReferenced()) {
-			getArtifact(referenced).setValidated(true);
+			getArtifact(referenced).setValidated();
 		}
 	}
 

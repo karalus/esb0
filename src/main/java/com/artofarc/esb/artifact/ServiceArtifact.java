@@ -106,7 +106,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	private void addAction(List<Action> list, Action action) {
 		list.add(action);
-		action.setServiceArtifact(this);
+		action.setServiceArtifactURI(getURI());
 		action.setPosInServiceArtifact(_actionCount++);
 	}
 
