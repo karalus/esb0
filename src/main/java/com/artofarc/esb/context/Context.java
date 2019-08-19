@@ -27,7 +27,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQDataFactory;
@@ -36,6 +35,7 @@ import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.esb.action.Action;
+import com.artofarc.esb.resource.SAXTransformerFactoryFactory;
 import com.artofarc.esb.resource.XQDataSourceFactory;
 import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.TimeGauge;
@@ -43,19 +43,9 @@ import com.artofarc.util.TimeGauge;
 public final class Context extends AbstractContext {
 
 	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
-	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
 
 	static {
 		DOCUMENT_BUILDER_FACTORY.setNamespaceAware(true);
-		try {
-			SAX_TRANSFORMER_FACTORY.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
-		} catch (TransformerConfigurationException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public static SAXTransformerFactory getSAXTransformerFactory() {
-		return SAX_TRANSFORMER_FACTORY;
 	}
 
 	private final PoolContext _poolContext;
@@ -73,7 +63,7 @@ public final class Context extends AbstractContext {
 		_poolContext = poolContext;
 		try {
 			_documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-			_transformer = SAX_TRANSFORMER_FACTORY.newTransformer();
+			_transformer = SAXTransformerFactoryFactory.getSAXTransformerFactory().newTransformer();
 			_transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 			// With Saxon connections are not limited so we will never get an Exception
 			_xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();

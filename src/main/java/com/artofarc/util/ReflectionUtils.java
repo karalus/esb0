@@ -56,7 +56,7 @@ public final class ReflectionUtils {
 			Class<?>[] parameterTypes = method.getParameterTypes();
 			if (parameterTypes.length == args.size() && isMatch(method.getName(), methodName, args.size())) {
 				for (int i = 0; i < parameterTypes.length; ++i) {
-					if (!parameterTypes[i].isInstance(args.get(i))) {
+					if (args.get(i) != null && !parameterTypes[i].isInstance(args.get(i))) {
 						continue outer;
 					}
 				}

@@ -22,8 +22,9 @@ import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.stream.StreamSource;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.resource.SAXTransformerFactoryFactory;
 
-public class XSLTArtifact extends XMLArtifact {
+public class XSLTArtifact extends XMLProcessingArtifact {
 
 	private Templates _templates;
 
@@ -45,10 +46,10 @@ public class XSLTArtifact extends XMLArtifact {
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws TransformerConfigurationException {
 		// Needs an individual SAXTransformerFactory to track the use of imports/includes
-		SAXTransformerFactory saxTransformerFactory = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
-		saxTransformerFactory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
-		saxTransformerFactory.setURIResolver(getURIResolver());
+		SAXTransformerFactory saxTransformerFactory = SAXTransformerFactoryFactory.createSAXTransformerFactory();
+		saxTransformerFactory.setURIResolver(new ArtifactURIResolver(this));
 		_templates = saxTransformerFactory.newTemplates(new StreamSource(getContentAsStream()));
+		saxTransformerFactory.setURIResolver(null);
 		// set imports/includes to validated 
 		for (String referenced : getReferenced()) {
 			getArtifact(referenced).setValidated();

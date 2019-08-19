@@ -34,6 +34,7 @@ import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.resource.SAXTransformerFactoryFactory;
 
 public class XSLTAction extends SAXAction {
 
@@ -50,7 +51,7 @@ public class XSLTAction extends SAXAction {
 		TransformerFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerConfigurationException {
 			if (parent != null) {
 				super.setParent(parent);
-				transformerHandler = Context.getSAXTransformerFactory().newTransformerHandler(_templates);
+				transformerHandler = SAXTransformerFactoryFactory.getSAXTransformerFactory().newTransformerHandler(_templates);
 				transformer = transformerHandler.getTransformer();
 			} else {
 				transformerHandler = null;

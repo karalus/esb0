@@ -32,15 +32,17 @@ import javax.xml.xquery.XQDataSource;
 
 import com.artofarc.esb.Registry;
 import com.artofarc.esb.artifact.Artifact;
-import com.artofarc.esb.artifact.ArtifactURIResolver;
 import com.artofarc.esb.artifact.FileSystem;
+import com.artofarc.esb.artifact.XMLProcessingArtifact.AbstractURIResolver;
 import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQDataSourceFactory;
 
 public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
 
+	private final static long deployTimeout = Long.parseLong(System.getProperty("esb0.deploy.timeout", "60"));
+
 	private final InitialContext _initialContext;
-	private final ArtifactURIResolver _uriResolver;
+	private final AbstractURIResolver _uriResolver;
 	private final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 	private final XQDataSource xqds;
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
@@ -56,7 +58,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		} catch (NamingException e) {
 			throw new RuntimeException(e);
 		}
-		_uriResolver = new ArtifactURIResolver() {
+		_uriResolver = new AbstractURIResolver() {
 			@Override
 			public Artifact resolveArtifact(String path) {
 				return getFileSystem().getArtifact(path);
@@ -74,7 +76,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		return (O) _initialContext.lookup(name);
 	}
 
-	public ArtifactURIResolver getUriResolver() {
+	public AbstractURIResolver getUriResolver() {
 		return _uriResolver;
 	}
 
@@ -92,7 +94,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 
 	public boolean lockFileSystem() {
 		try {
-			return _fileSystemLock.tryLock(60L, TimeUnit.SECONDS);
+			return _fileSystemLock.tryLock(deployTimeout, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			return false;
 		}

@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.zip.ZipEntry;
@@ -29,13 +30,14 @@ public class JarArtifact extends Artifact {
 	// will increase memory consumption opposed to reducing class loading time
 	private static final boolean CACHE_JARS_UNZIPPED = Boolean.parseBoolean(System.getProperty("esb0.cacheJARsUnzipped"));
 
-	private HashMap<String, byte[]> _entries = new HashMap<>();
-
-	// track whether the JAR is used 
-	boolean _used;
+	private Jar _jar;
 
 	public JarArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
+	}
+
+	public final Jar getJar() {
+		return _jar;
 	}
 
 	@Override
@@ -46,45 +48,52 @@ public class JarArtifact extends Artifact {
 	@Override
 	protected JarArtifact clone(FileSystem fileSystem, Directory parent) {
 		JarArtifact clone = initClone(new JarArtifact(fileSystem, parent, getName()));
-		clone._entries = _entries;
+		clone._jar = _jar;
 		return clone;
 	}
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws IOException {
-		try (ZipInputStream zis = new ZipInputStream(getContentAsStream())) {
-			ZipEntry entry;
-			while ((entry = zis.getNextEntry()) != null) {
-				if (!entry.isDirectory()) {
-					_entries.put(entry.getName(), CACHE_JARS_UNZIPPED ? StreamUtils.copy(zis) : null);
-				}
-			}
-		}
+		_jar = new Jar(getContent());
 	}
 
-	public final boolean contains(String filename) {
-		return _entries.containsKey(filename);
-	}
+	static final class Jar {
 
-	public final byte[] getEntry(String filename) throws IOException {
-		_used = true;
-		if (!CACHE_JARS_UNZIPPED) {
-			try (ZipInputStream zis = new ZipInputStream(getContentAsStream())) {
+		private final byte[] _content;
+		private final HashMap<String, byte[]> _entries = new HashMap<>();
+
+		// track whether the JAR is used 
+		boolean _used;
+
+		Jar(byte[] content) throws IOException {
+			try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(content))) {
 				ZipEntry entry;
 				while ((entry = zis.getNextEntry()) != null) {
-					if (entry.getName().equals(filename)) {
-						return StreamUtils.copy(zis);
+					if (!entry.isDirectory()) {
+						_entries.put(entry.getName(), CACHE_JARS_UNZIPPED ? StreamUtils.copy(zis) : null);
 					}
 				}
 			}
+			_content = CACHE_JARS_UNZIPPED ? null : content;
 		}
-		return _entries.get(filename);
-	}
 
-	@Override
-	protected void clearContent() {
-		if (CACHE_JARS_UNZIPPED) {
-			super.clearContent();
+		boolean contains(String filename) {
+			return _entries.containsKey(filename);
+		}
+
+		byte[] getEntry(String filename) throws IOException {
+			_used = true;
+			if (!CACHE_JARS_UNZIPPED) {
+				try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(_content))) {
+					ZipEntry entry;
+					while ((entry = zis.getNextEntry()) != null) {
+						if (entry.getName().equals(filename)) {
+							return StreamUtils.copy(zis);
+						}
+					}
+				}
+			}
+			return _entries.get(filename);
 		}
 	}
 

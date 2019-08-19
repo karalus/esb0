@@ -27,7 +27,7 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.resource.XQDataSourceFactory;
 
-public class XQueryArtifact extends XMLArtifact {
+public class XQueryArtifact extends XMLProcessingArtifact {
 
 	final static String FILE_EXTENSION_XQUERY_MODULE = "xqm";
 
@@ -42,7 +42,7 @@ public class XQueryArtifact extends XMLArtifact {
 
 	static void validateXQuerySource(Artifact owner, XQuerySource xQuerySource) throws XQException {
 		// Needs an individual XQDataSourceFactory to track the use of modules
-		XQConnection connection = new XQDataSourceFactory(owner.getURIResolver()).createXQDataSource().getConnection();
+		XQConnection connection = new XQDataSourceFactory(new ArtifactURIResolver(owner)).createXQDataSource().getConnection();
 		try {
 			XQStaticContext staticContext = connection.getStaticContext();
 			staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);

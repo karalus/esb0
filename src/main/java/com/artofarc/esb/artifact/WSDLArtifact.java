@@ -128,7 +128,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	public DynamicJAXBContext getJAXBContext() throws JAXBException, IOException {
 		if (_jaxbContext == null && _lastSchemaElement != null) {
 			// TODO: This just works when the WSDL contains the one schema with the elements used in messages
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(_lastSchemaElement, this, null, getDynamicJAXBContextProperties());
+			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(_lastSchemaElement, getResolver(), null, getDynamicJAXBContextProperties());
 			_lastSchemaElement = null;
 		}
 		return _jaxbContext;
@@ -148,11 +148,27 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
-		if (systemId == null) {
-			return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(schemas.get(namespaceURI)));
-		} else {
-			return super.resolveResource(type, namespaceURI, publicId, systemId, baseURI);
+	protected WSDLArtifactResourceResolver getResolver() {
+		return new WSDLArtifactResourceResolver(this);
+	}
+	
+	static class WSDLArtifactResourceResolver extends SchemaArtifactResolver {
+
+		WSDLArtifactResourceResolver(WSDLArtifact wsdlArtifact) {
+			super(wsdlArtifact);
+		}
+
+		@Override
+		public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
+			if (systemId == null) {
+				WSDLArtifact wsdlArtifact = (WSDLArtifact) _schemaArtifact.get();
+				if (wsdlArtifact == null) {
+					throw new IllegalStateException("Reference has already been cleared");
+				}
+				return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(wsdlArtifact.schemas.get(namespaceURI)));
+			} else {
+				return super.resolveResource(type, namespaceURI, publicId, systemId, baseURI);
+			}
 		}
 	}
 

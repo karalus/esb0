@@ -142,14 +142,21 @@ public final class SchemaHelper implements InvocationHandler {
 
 	public static Schema createXMLSchema(SchemaArtifact schemaArtifact, Source[] schemas) throws ReflectiveOperationException, SAXException {
 		SchemaFactory factory = conSchemaFactory.newInstance();
-		factory.setResourceResolver(schemaArtifact);
+		factory.setResourceResolver(schemaArtifact.getResolver());
 		Object xmlSchemaLoader = fXMLSchemaLoader.get(factory);
 		Object grammarPool = ReflectionUtils.eval(xmlSchemaLoader, "getProperty($1)", XERCES_XMLGRAMMAR_POOL_PROPERTY);
 		Class<?> cls = grammarPool.getClass();
 		Object proxyInstance = Proxy.newProxyInstance(cls.getClassLoader(), cls.getInterfaces(), new SchemaHelper(schemaArtifact, grammarPool));
 		ReflectionUtils.eval(xmlSchemaLoader, "setProperty($1,$2)", XERCES_XMLGRAMMAR_POOL_PROPERTY, proxyInstance);
 		// This uses now our XMLGrammarPool for lookup
-		return factory.newSchema(schemas);
+		Schema schema = factory.newSchema(schemas);
+		try {
+			// Remove references to SchemaArtifact thus prevent memory leak on provisioning
+			ReflectionUtils.eval(schema, "setProperty($1,$2)", XERCES_XMLGRAMMAR_POOL_PROPERTY, grammarPool);
+		} catch (NoSuchMethodException e) {
+			// Recent Xerces does not have this anymore
+		}
+		return schema;
 	}
 
 	public static void printGrammars(Schema schema, PrintStream printStream) throws ReflectiveOperationException {

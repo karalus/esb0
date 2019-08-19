@@ -48,7 +48,7 @@ public class XSDArtifact extends SchemaArtifact {
 	@Override
 	public DynamicJAXBContext getJAXBContext() throws JAXBException, IOException {
 		if (_jaxbContext == null) {
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getStreamSource(), this, null, getDynamicJAXBContextProperties());
+			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getStreamSource(), getResolver(), null, getDynamicJAXBContextProperties());
 		}
 		return _jaxbContext;
 	}

@@ -42,7 +42,7 @@ import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
 import com.artofarc.esb.artifact.Artifact;
-import com.artofarc.esb.artifact.ArtifactURIResolver;
+import com.artofarc.esb.artifact.XMLProcessingArtifact.AbstractURIResolver;
 import com.saxonica.xqj.SaxonXQDataSource;
 
 public final class XQDataSourceFactory implements ModuleURIResolver {
@@ -55,10 +55,10 @@ public final class XQDataSourceFactory implements ModuleURIResolver {
 	
 	// Is instance variable because it maintains state
 	private final Evaluate functionEvaluate = new Evaluate();
-	private final ArtifactURIResolver _artifactURIResolver;
+	private final AbstractURIResolver _artifactURIResolver;
 	
-	public XQDataSourceFactory(ArtifactURIResolver artifactURIResolver) {
-		_artifactURIResolver = artifactURIResolver;
+	public XQDataSourceFactory(AbstractURIResolver abstractArtifactURIResolver) {
+		_artifactURIResolver = abstractArtifactURIResolver;
 	}
 
 	public XQDataSource createXQDataSource() {

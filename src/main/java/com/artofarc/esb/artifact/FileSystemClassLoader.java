@@ -24,9 +24,9 @@ import java.util.List;
 
 public class FileSystemClassLoader extends SecureClassLoader {
 
-	private final List<JarArtifact> _jars;
+	private final List<JarArtifact.Jar> _jars;
 
-	public FileSystemClassLoader(List<JarArtifact> jars, ClassLoader parent) {
+	public FileSystemClassLoader(List<JarArtifact.Jar> jars, ClassLoader parent) {
 		super(parent);
 		_jars = jars;
 	}
@@ -87,9 +87,9 @@ public class FileSystemClassLoader extends SecureClassLoader {
 	}
 
 	private byte[] findInJarArtifacts(final String filename) throws IOException {
-		for (JarArtifact jarArtifact : _jars) {
-			if (jarArtifact.contains(filename)) {
-				return jarArtifact.getEntry(filename);
+		for (JarArtifact.Jar jar : _jars) {
+			if (jar.contains(filename)) {
+				return jar.getEntry(filename);
 			}
 		}
 		return null;

@@ -224,17 +224,4 @@ public abstract class Artifact {
 
 	protected abstract Artifact clone(FileSystem fileSystem, Directory parent);
 
-	protected final ArtifactURIResolver getURIResolver() {
-		return new ArtifactURIResolver() {
-			@Override
-			public Artifact resolveArtifact(String path) {
-				Artifact artifact = getArtifact(path);
-				if (artifact != null) {
-					addReference(artifact);
-				}
-				return artifact;
-			}
-		};
-	}
-
 }

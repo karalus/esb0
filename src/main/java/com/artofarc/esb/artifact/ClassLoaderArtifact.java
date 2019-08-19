@@ -41,12 +41,12 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		ClassLoader classLoader = unmarshal();
-		ArrayList<JarArtifact> jars = new ArrayList<>();
+		ArrayList<JarArtifact.Jar> jars = new ArrayList<>();
 		for (String jar : classLoader.getJar()) {
 			JarArtifact jarArtifact = loadArtifact(jar);
-			addReference(jarArtifact);
 			jarArtifact.validate(globalContext);
-			jars.add(jarArtifact);
+			addReference(jarArtifact);
+			jars.add(jarArtifact.getJar());
 		}
 		// parent
 		if (classLoader.getParent() != null) {

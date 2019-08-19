@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +43,7 @@ import org.xml.sax.InputSource;
 
 import com.artofarc.esb.context.GlobalContext;
 
-public abstract class SchemaArtifact extends Artifact implements LSResourceResolver, EntityResolver {
+public abstract class SchemaArtifact extends Artifact {
 
 	public static final String FILE_SCHEMA = "file://";
 
@@ -100,7 +101,7 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 			}
 		} else {
 			SchemaFactory factory = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
-			factory.setResourceResolver(this);
+			factory.setResourceResolver(getResolver());
 			_schema = factory.newSchema(getSourcesForSchema());
 		}
 	}
@@ -117,58 +118,78 @@ public abstract class SchemaArtifact extends Artifact implements LSResourceResol
 		}
 	}
 
-	// only used during validation
-	private URI lastUri;
-
-	/**
-	 * Used from MOXy.
-	 */
-	@Override
-	public InputSource resolveEntity(String publicId, String systemId) {
-		try {
-			URI uri = new URI(systemId);
-			XSDArtifact artifact = getArtifact(uri.getPath());
-			if (artifact == null) {
-				uri = lastUri.resolve(systemId);
-				artifact = loadArtifact(uri.getPath());
-			}
-			lastUri = uri;
-			InputSource is = new InputSource(artifact.getContentAsStream());
-			is.setSystemId(systemId);
-			return is;
-		} catch (java.net.URISyntaxException | FileNotFoundException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	protected abstract XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException;
 
-	/**
-	 * Used from Xerces XMLSchemaLoader.
-	 */
-	@Override
-	public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
-		systemId = XMLCatalog.alignSystemId(systemId);
-		try {
-			XSDArtifact artifact = resolveArtifact(systemId, baseURI);
-			artifact._namespace.set(namespaceURI);
-			if (baseURI == null) {
-				baseURI = FILE_SCHEMA + artifact.getURI();
-				systemId = artifact.getName();
+	protected SchemaArtifactResolver getResolver() {
+		return new SchemaArtifactResolver(this);
+	}
+
+	static class SchemaArtifactResolver implements EntityResolver, LSResourceResolver {
+
+		final WeakReference<SchemaArtifact> _schemaArtifact;
+
+		private URI lastUri;
+
+		SchemaArtifactResolver(SchemaArtifact schemaArtifact) {
+			_schemaArtifact = new WeakReference<>(schemaArtifact);
+		}
+
+		/**
+		 * Used from MOXy.
+		 */
+		@Override
+		public InputSource resolveEntity(String publicId, String systemId) {
+			SchemaArtifact schemaArtifact = _schemaArtifact.get();
+			if (schemaArtifact == null) {
+				throw new IllegalStateException("Reference has already been cleared");
 			}
-			return new LSInputImpl(publicId, systemId, baseURI, artifact.getContentAsStream());
-		} catch (FileNotFoundException e) {
-			throw new IllegalArgumentException(e);
+			try {
+				URI uri = new URI(systemId);
+				XSDArtifact artifact = schemaArtifact.getArtifact(uri.getPath());
+				if (artifact == null) {
+					uri = lastUri.resolve(systemId);
+					artifact = schemaArtifact.loadArtifact(uri.getPath());
+				}
+				lastUri = uri;
+				InputSource is = new InputSource(artifact.getContentAsStream());
+				is.setSystemId(systemId);
+				return is;
+			} catch (java.net.URISyntaxException | FileNotFoundException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		/**
+		 * Used from {@link SchemaFactory}
+		 */
+		@Override
+		public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId, String baseURI) {
+			SchemaArtifact schemaArtifact = _schemaArtifact.get();
+			if (schemaArtifact == null) {
+				throw new IllegalStateException("Reference has already been cleared");
+			}
+			systemId = XMLCatalog.alignSystemId(systemId);
+			try {
+				XSDArtifact artifact = schemaArtifact.resolveArtifact(systemId, baseURI);
+				artifact._namespace.set(namespaceURI);
+				if (baseURI == null) {
+					baseURI = FILE_SCHEMA + artifact.getURI();
+					systemId = artifact.getName();
+				}
+				return new LSInputImpl(publicId, systemId, baseURI, artifact.getContentAsStream());
+			} catch (FileNotFoundException e) {
+				throw new IllegalArgumentException(e);
+			}
 		}
 	}
 
-	public static class LSInputImpl implements LSInput {
+	static class LSInputImpl implements LSInput {
 		private String _publicId;
 		private String _systemId;
 		private String _baseURI;
 		private InputStream _byteStream;
 
-		public LSInputImpl(String publicId, String systemId, String baseURI, InputStream byteStream) {
+		LSInputImpl(String publicId, String systemId, String baseURI, InputStream byteStream) {
 			_publicId = publicId;
 			_systemId = systemId;
 			_baseURI = baseURI;
