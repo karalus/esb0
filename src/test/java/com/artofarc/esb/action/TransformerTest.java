@@ -6,7 +6,7 @@ import org.junit.Test;
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.Directory;
-import com.artofarc.esb.artifact.XMLArtifact;
+import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.artifact.XSLTArtifact;
@@ -164,7 +164,7 @@ public class TransformerTest extends AbstractESBTest {
 		xsltArtifact1.setContent(readFile("src/test/resources/transformationUsingStaticData.xslt"));
 		XSLTArtifact xsltArtifact = new XSLTArtifact(getGlobalContext().getFileSystem(), stylesheetes, "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
-		XMLArtifact staticXML = new XMLArtifact(getGlobalContext().getFileSystem(), staticData, "static.xml");
+		XMLProcessingArtifact staticXML = new XMLProcessingArtifact(getGlobalContext().getFileSystem(), staticData, "static.xml");
 		staticXML.setContent("<root>Hello World!</root>".getBytes());
 		xsltArtifact1.validateInternal(getGlobalContext());
 

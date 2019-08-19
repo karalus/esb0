@@ -23,7 +23,7 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.Directory;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.WSDLArtifact;
-import com.artofarc.esb.artifact.XMLArtifact;
+import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.context.GlobalContext;
@@ -296,7 +296,7 @@ public class SOAPTest extends AbstractESBTest {
 		XQueryArtifact xqueryArtifact = new XQueryArtifact(null, queries, null);
       String strContent = "declare variable $request as element() external; (doc('/data/static.xml')/*[1]/text(), $request)";
 		xqueryArtifact.setContent(strContent.getBytes());
-		XMLArtifact staticXML = new XMLArtifact(null, staticData, "static.xml");
+		XMLProcessingArtifact staticXML = new XMLProcessingArtifact(null, staticData, "static.xml");
 		staticXML.setContent("<root>Hello World!</root>".getBytes());
       xqueryArtifact.validateInternal(getGlobalContext());
       TransformAction nextAction = new TransformAction(strContent);
