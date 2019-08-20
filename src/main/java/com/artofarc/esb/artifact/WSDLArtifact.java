@@ -71,7 +71,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	public final Map<QName, Binding> getAllBindings() {
 		// _allBindings might be set by different thread in {@link SchemaHelper}
-		while (_namespace.get() != null && _allBindings == null);
+		while (_namespace.get() != null && _allBindings == null) Thread.yield();
 		return _allBindings;
 	}
 

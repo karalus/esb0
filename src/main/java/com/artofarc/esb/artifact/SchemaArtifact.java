@@ -87,7 +87,7 @@ public abstract class SchemaArtifact extends Artifact {
 
 	public final Schema getSchema() {
 		// _schema might be set by different thread in {@link SchemaHelper}
-		while (_namespace.get() != null && _schema == null);
+		while (_namespace.get() != null && _schema == null) Thread.yield();
 		return _schema;
 	}
 
@@ -171,7 +171,9 @@ public abstract class SchemaArtifact extends Artifact {
 			systemId = XMLCatalog.alignSystemId(systemId);
 			try {
 				XSDArtifact artifact = schemaArtifact.resolveArtifact(systemId, baseURI);
-				artifact._namespace.set(namespaceURI);
+				if (!cacheXSGrammars) {
+					artifact._namespace.set(namespaceURI);
+				}
 				if (baseURI == null) {
 					baseURI = FILE_SCHEMA + artifact.getURI();
 					systemId = artifact.getName();

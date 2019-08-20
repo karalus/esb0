@@ -152,7 +152,7 @@ public final class SchemaHelper implements InvocationHandler {
 		Schema schema = factory.newSchema(schemas);
 		try {
 			// Remove references to SchemaArtifact thus prevent memory leak on provisioning
-			ReflectionUtils.eval(schema, "setProperty($1,$2)", XERCES_XMLGRAMMAR_POOL_PROPERTY, grammarPool);
+			ReflectionUtils.eval(schema, "setProperty($1,$2)", XERCES_XMLGRAMMAR_POOL_PROPERTY, null);
 		} catch (NoSuchMethodException e) {
 			// Recent Xerces does not have this anymore
 		}
