@@ -41,7 +41,7 @@ public final class JDBCParameter {
 				throw new RuntimeException(e);
 			}
 		}
-		CODES = Collections.inverseMap(TYPES, true);
+		CODES = Collections.inverseMap(TYPES.entrySet(), true);
 	}
 
 	private final int _pos;

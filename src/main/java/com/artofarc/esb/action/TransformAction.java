@@ -67,6 +67,10 @@ public class TransformAction extends Action {
 		this(XQuerySource.create(xquery), null);
 	}
 
+	public final XQuerySource getXQuery() {
+		return _xquery;
+	}
+
 	private synchronized void initBindings(XQPreparedExpression xqExpression, XQDataFactory xqDataFactory, ESBMessage message) throws Exception {
 		if (_bindNames == null) {
 			_bindNames = new ArrayList<>();

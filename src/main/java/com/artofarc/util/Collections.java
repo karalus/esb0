@@ -30,9 +30,9 @@ public final class Collections {
 		return new AbstractMap.SimpleImmutableEntry<>(key, value);
 	}
 
-	public static <K, V> Map<V, K> inverseMap(Map<K, V> map, boolean unique) {
+	public static <K, V> Map<V, K> inverseMap(Collection<Map.Entry<K, V>> entrySet, boolean unique) {
 		Map<V, K> result = new HashMap<>();
-		for (Map.Entry<K, V> entry : map.entrySet()) {
+		for (Map.Entry<K, V> entry : entrySet) {
 			if (result.put(entry.getValue(), entry.getKey()) != null) {
 				if (unique) {
 					throw new IllegalArgumentException("Value is not unique: " + entry.getValue());

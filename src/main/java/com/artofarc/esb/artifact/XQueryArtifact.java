@@ -47,7 +47,6 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 			XQStaticContext staticContext = connection.getStaticContext();
 			staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
 			connection.setStaticContext(staticContext);
-			logger.info("Parsing XQuery in: " + owner.getURI());
 			XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(connection, owner.getParent().getURI());
 			for (QName qName : preparedExpression.getAllExternalVariables()) {
 				logger.debug("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
@@ -65,6 +64,7 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
+		logger.info("Parsing XQuery in: " + getURI());
 		validateXQuerySource(this, XQuerySource.create(getContentAsBytes()));
 	}
 

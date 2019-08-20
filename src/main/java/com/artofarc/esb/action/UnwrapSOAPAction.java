@@ -73,7 +73,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl) {
-		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(bindingOperations), false), bindingOperations, wsdlUrl, getWsdl, schema);
+		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(bindingOperations).entrySet(), false), bindingOperations, wsdlUrl, getWsdl, schema);
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart) {
@@ -83,7 +83,8 @@ public class UnwrapSOAPAction extends TransformAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if ("GET".equals(message.getVariable(HttpMethod))) {
-			if (_getWsdl && "wsdl".equals(message.getVariable(QueryString))) {
+			String queryString = message.getVariable(QueryString);
+			if (_getWsdl && ("wsdl".equals(queryString) || "WSDL".equals(queryString))) {
 				message.getVariables().put(redirect, message.getVariable(ContextPath) + ESBServletContextListener.ADMIN_SERVLET_PATH + _wsdlUrl);
 				return null;
 			} else if (!_soap12) {

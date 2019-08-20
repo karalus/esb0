@@ -18,6 +18,7 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -240,7 +241,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (Assign.Assignment assignment : assign.getAssignment()) {
 					assignments.add(Collections.createEntry(assignment.getVariable(), assignment.getValue()));
 				}
-				addAction(list, new AssignAction(assignments, createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem()));
+				AssignAction assignAction = new AssignAction(assignments, createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem());
+				XQueryArtifact.validateXQuerySource(this, assignAction.getXQuery());
+				addAction(list, assignAction);
 				break;
 			}
 			case "assignHeaders": {
@@ -248,9 +251,22 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				ArrayList<Entry<String, String>> assignments = new ArrayList<>();
 				for (AssignHeaders.Assignment assignment : assignHeaders.getAssignment()) {
 					assignments.add(Collections.createEntry(assignment.getHeader(), assignment.getValue()));
+					// TO BE REMOVED: Ugly hack to compensate for old buggy service flows
+					if (assignment.getValue().equals("$MEP")) {
+						if (!assignHeaders.getBindName().contains("MEP")) {
+							assignHeaders.getBindName().add("MEP");
+							logger.warn("Missing bindName MEP in AssignHeaders. Patched " + getURI());
+						}
+					} else if (assignment.getValue().contains("$header/")) {
+						if (!assignHeaders.getBindName().contains("header")) {
+							assignHeaders.getBindName().add("header");
+							logger.warn("Missing bindName header in AssignHeaders. Patched " + getURI());
+						}
+					}
 				}
-				addAction(list, new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()).entrySet(), assignHeaders.getBindName(), assignHeaders
-						.getContextItem(), assignHeaders.isClearAll()));
+				AssignHeadersAction assignHeadersAction = new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()), assignHeaders.getBindName(), assignHeaders.getContextItem(), assignHeaders.isClearAll());
+				XQueryArtifact.validateXQuerySource(this, assignHeadersAction.getXQuery());
+				addAction(list, assignHeadersAction);
 				break;
 			}
 			case "xml2json": {
@@ -328,7 +344,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				SchemaArtifact schemaArtifact = loadArtifact(validate.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
-				addAction(list, new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem()));
+				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()), validate.getContextItem());
+				if (validate.getExpression() != "." && !validate.getExpression().equals("*")) {
+					XQueryArtifact.validateXQuerySource(this, validateAction.getXQuery());
+				}
+				addAction(list, validateAction);
 				break;
 			}
 			case "actionPipelineRef": {
@@ -350,7 +370,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "conditional": {
 				Conditional conditional = (Conditional) jaxbElement.getValue();
-				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(), conditional.getBindName(), conditional.getContextItem());
+				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()), conditional.getBindName(), conditional.getContextItem());
+				XQueryArtifact.validateXQuerySource(this, conditionalAction.getXQuery());
 				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), null)));
 				addAction(list, conditionalAction);
 				break;
@@ -443,13 +464,13 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 	}
 
-	private static HashMap<String, String> createNsDecls(List<NsDecl> nsDecls) {
+	private static Collection<Entry<String, String>> createNsDecls(List<NsDecl> nsDecls) {
 		HashMap<String, String> result = new HashMap<>();
 		for (NsDecl nsDecl : nsDecls) {
 			String prefix = nsDecl.getPrefix();
 			result.put(prefix != null ? prefix : "", nsDecl.getNamespace());
 		}
-		return result;
+		return result.entrySet();
 	}
 
 	private static List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) {
