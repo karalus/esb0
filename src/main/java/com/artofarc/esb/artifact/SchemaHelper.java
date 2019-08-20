@@ -41,7 +41,7 @@ import com.artofarc.util.ReflectionUtils;
 public final class SchemaHelper implements InvocationHandler {
 
 	private final static String XERCES_XMLGRAMMAR_POOL_PROPERTY = "http://apache.org/xml/properties/internal/grammar-pool";
-	private final static long timeout = Long.parseLong(System.getProperty("esb0.cacheXSGrammars.timeout", "100"));
+	private final static long timeout = Long.parseLong(System.getProperty("esb0.cacheXSGrammars.timeout", "150"));
 
 	private final static Constructor<? extends SchemaFactory> conSchemaFactory; 
 	private final static Field fXMLSchemaLoader;

@@ -16,13 +16,11 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
@@ -34,13 +32,13 @@ import org.w3c.dom.Attr;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
+import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.SAXTransformerFactoryHelper;
 import com.artofarc.util.StreamUtils;
 
 public final class XMLCatalog {
 
 	public static final String PATH = "/xmlcatalog";
-
-	public static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newInstance();
 
 	public static void attachToFileSystem(FileSystem fileSystem) {
 		Directory parent = fileSystem.makeDirectory(PATH.substring(1));
@@ -50,7 +48,7 @@ public final class XMLCatalog {
 				xsdArtifact.setContent(StreamUtils.copy(StreamUtils.getResourceAsStream("xml.xsd")));
 			}
 			XPath xPath = XPathFactory.newInstance().newXPath();
-			Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
+			Transformer transformer = SAXTransformerFactoryHelper.newTransformer();
 			// Elements below Body must be strictly validated, with lax we don't detect some kind of errors
 			// TODO: Works only with document/literal WSDL style and messageParts referring to elements
 			String exp = "/*/*[local-name()='complexType' and @name='Body']/*/*/@processContents";
@@ -85,7 +83,7 @@ public final class XMLCatalog {
 	}
 
 	protected static byte[] toByteArray(DOMSource source, Transformer transformer) throws TransformerException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream(StreamUtils.MTU);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		transformer.transform(source, new StreamResult(bos));
 		transformer.reset();
 		return bos.toByteArray();

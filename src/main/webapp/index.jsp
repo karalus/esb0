@@ -112,6 +112,7 @@
 		   	}
 		   %>
 	   </table>
+	   <br>
 	   <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Referenced</b></td></tr>
 	   <%
 	   	   for (String r : a.getReferenced()) {
@@ -131,6 +132,7 @@
 	       }
 	   %>
 	   </table>
+	   <br>
 	   <embed src="<%=request.getContextPath() + request.getServletPath() + "/deploy" + a.getURI()%>" type="<%=a.getContentType()%>" width="1600" height="800">
 	   <%
    }

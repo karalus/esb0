@@ -14,15 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.resource;
+package com.artofarc.util;
 
 import java.lang.reflect.Constructor;
 
 import javax.xml.XMLConstants;
+import javax.xml.transform.Templates;
+import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.sax.SAXTransformerFactory;
+import javax.xml.transform.sax.TransformerHandler;
 
-public class SAXTransformerFactoryFactory {
+public final class SAXTransformerFactoryHelper {
 
 	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
 	private static final Constructor<? extends SAXTransformerFactory> conSAXTransformerFactory;
@@ -36,8 +39,12 @@ public class SAXTransformerFactoryFactory {
 		}
 	}
 
-	public static SAXTransformerFactory getSAXTransformerFactory() {
-		return SAX_TRANSFORMER_FACTORY;
+	public static Transformer newTransformer() throws TransformerConfigurationException {
+		return SAX_TRANSFORMER_FACTORY.newTransformer();
+	}
+
+	public static TransformerHandler newTransformerHandler(Templates templates) throws TransformerConfigurationException {
+		return SAX_TRANSFORMER_FACTORY.newTransformerHandler(templates);
 	}
 
 	public static SAXTransformerFactory createSAXTransformerFactory() {

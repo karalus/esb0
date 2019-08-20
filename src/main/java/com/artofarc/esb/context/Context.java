@@ -35,9 +35,9 @@ import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.esb.action.Action;
-import com.artofarc.esb.resource.SAXTransformerFactoryFactory;
 import com.artofarc.esb.resource.XQDataSourceFactory;
 import com.artofarc.util.FastInfosetDeserializer;
+import com.artofarc.util.SAXTransformerFactoryHelper;
 import com.artofarc.util.TimeGauge;
 
 public final class Context extends AbstractContext {
@@ -63,7 +63,7 @@ public final class Context extends AbstractContext {
 		_poolContext = poolContext;
 		try {
 			_documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-			_transformer = SAXTransformerFactoryFactory.getSAXTransformerFactory().newTransformer();
+			_transformer = SAXTransformerFactoryHelper.newTransformer();
 			_transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 			// With Saxon connections are not limited so we will never get an Exception
 			_xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
