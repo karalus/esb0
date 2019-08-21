@@ -22,20 +22,27 @@ import javax.xml.XMLConstants;
 import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.sax.TransformerHandler;
 
 public final class SAXTransformerFactoryHelper {
 
-	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
+	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
 	private static final Constructor<? extends SAXTransformerFactory> conSAXTransformerFactory;
 
 	static {
-		try {
-			SAX_TRANSFORMER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-			conSAXTransformerFactory = SAX_TRANSFORMER_FACTORY.getClass().getConstructor();
-		} catch (TransformerConfigurationException | NoSuchMethodException e) {
-			throw new RuntimeException(e);
+		TransformerFactory transformerFactory = TransformerFactory.newInstance();
+		if (transformerFactory.getFeature(SAXTransformerFactory.FEATURE)) {
+			SAX_TRANSFORMER_FACTORY = (SAXTransformerFactory) transformerFactory;
+			try {
+				SAX_TRANSFORMER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+				conSAXTransformerFactory = SAX_TRANSFORMER_FACTORY.getClass().getConstructor();
+			} catch (TransformerConfigurationException | NoSuchMethodException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			throw new RuntimeException("Cannot be casted to SAXTransformerFactory: " + transformerFactory.getClass());
 		}
 	}
 

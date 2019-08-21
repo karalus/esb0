@@ -79,4 +79,8 @@ public final class StringWriter extends java.io.Writer {
 		return new StringReader(builder);
 	}
 
+	public void reset() {
+		builder.setLength(0);
+	}
+
 }

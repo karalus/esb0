@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWriter;
 import com.artofarc.util.TimeGauge;
 
 public abstract class Action implements Cloneable {
@@ -68,6 +70,13 @@ public abstract class Action implements Cloneable {
 			s += " in ServiceArtifact " + _serviceArtifactURI + "@" + _posInServiceArtifact;
 		}
 		return s;
+	}
+
+	static void logMap(Context context, Map<String, Object> map, String prolog) throws Exception {
+		StringWriter stringWriter = new StringWriter();
+		stringWriter.write(prolog);
+		ESBMessage.dumpMap(context, map, stringWriter);
+		logger.info(stringWriter.toString());
 	}
 
 	/**
@@ -114,6 +123,8 @@ public abstract class Action implements Cloneable {
 				}
 			} catch (Exception e) {
 				logger.info("Exception while processing " + action, e);
+				logMap(context, message.getHeaders(), "Headers: ");
+				logMap(context, message.getVariables(), "Variables: ");
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
 				context.unwindStack();

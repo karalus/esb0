@@ -28,14 +28,11 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.xquery.XQConnection;
-import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQDataFactory;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
-import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.esb.action.Action;
-import com.artofarc.esb.resource.XQDataSourceFactory;
 import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.SAXTransformerFactoryHelper;
 import com.artofarc.util.TimeGauge;
@@ -66,11 +63,7 @@ public final class Context extends AbstractContext {
 			_transformer = SAXTransformerFactoryHelper.newTransformer();
 			_transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 			// With Saxon connections are not limited so we will never get an Exception
-			_xqConnection = poolContext.getGlobalContext().getXQDataSource().getConnection();
-			XQStaticContext staticContext = _xqConnection.getStaticContext();
-			staticContext.setBindingMode(XQConstants.BINDING_MODE_DEFERRED);
-			staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
-			_xqConnection.setStaticContext(staticContext);
+			_xqConnection = poolContext.getGlobalContext().getXQConnectionFactory().getConnection();
 		} catch (ParserConfigurationException | TransformerConfigurationException | XQException e) {
 			throw new RuntimeException("Cannot initialize context", e);
 		}
@@ -126,7 +119,7 @@ public final class Context extends AbstractContext {
 	public XQPreparedExpression getXQPreparedExpression(XQuerySource xquery, String baseURI) throws XQException {
 		XQPreparedExpression preparedExpression = _mapXQ.get(xquery);
 		if (preparedExpression == null) {
-			preparedExpression = xquery.prepareExpression(_xqConnection, baseURI);
+			preparedExpression = xquery.prepareExpression(_poolContext.getGlobalContext().getXQConnectionFactory(), _xqConnection, baseURI);
 			_mapXQ.put(xquery, preparedExpression);
 			_poolContext.getWorkerPool().addCachedXQuery(xquery);
 		}

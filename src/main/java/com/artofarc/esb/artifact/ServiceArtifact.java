@@ -26,6 +26,8 @@ import java.util.Properties;
 
 import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
+import javax.xml.xquery.XQConnection;
+import javax.xml.xquery.XQException;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
@@ -37,6 +39,7 @@ import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
+import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Collections;
@@ -52,6 +55,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	// only used during validation
 	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
+	private XQConnection _connection;
 
 	public ServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -74,35 +78,49 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return clone;
 	}
 
+	private XQConnection getConnection() throws XQException {
+		if (_connection == null) {
+			_connection = XQConnectionFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this)).getConnection();
+		}
+		return _connection;
+	}
+
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		Service service = unmarshal();
-		for (ActionPipeline actionPipeline : service.getActionPipeline()) {
-			_actionPipelines.put(actionPipeline.getName(), transform(globalContext, actionPipeline.getAction(), actionPipeline.getErrorHandler()));
+		try {
+			for (ActionPipeline actionPipeline : service.getActionPipeline()) {
+				_actionPipelines.put(actionPipeline.getName(), transform(globalContext, actionPipeline.getAction(), actionPipeline.getErrorHandler()));
+			}
+			List<Action> list = transform(globalContext, service.getAction(), service.getErrorHandler());
+			switch (_protocol = service.getProtocol()) {
+			case HTTP:
+				final Service.HttpBindURI httpBinding = service.getHttpBindURI();
+				_consumerPort = new HttpConsumer(getURI(), httpBinding.getValue(), httpBinding.getMinPool(), httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
+				break;
+			case JMS:
+				final Service.JmsBinding jmsBinding = service.getJmsBinding();
+				JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
+				_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getWorkerPool(), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
+						jmsBinding.getTopicName(), jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval());
+				break;
+			case TIMER:
+				final Service.TimerBinding timerBinding = service.getTimerBinding();
+				_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getTimeUnit(), timerBinding.getInitialDelay(), timerBinding.getPeriod(), timerBinding.isFixedDelay());
+				break;
+			default:
+				_consumerPort = new ConsumerPort(getURI());
+				break;
+			}
+			_consumerPort.setInternalService(list);
+			_consumerPort.setEnabled(service.isEnabled());
+		} finally {
+			_actionPipelines.clear();
+			if (_connection != null) {
+				_connection.close();
+				_connection = null;
+			}
 		}
-		List<Action> list = transform(globalContext, service.getAction(), service.getErrorHandler());
-		switch (_protocol = service.getProtocol()) {
-		case HTTP:
-			final Service.HttpBindURI httpBinding = service.getHttpBindURI();
-			_consumerPort = new HttpConsumer(getURI(), httpBinding.getValue(), httpBinding.getMinPool(), httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
-			break;
-		case JMS:
-			final Service.JmsBinding jmsBinding = service.getJmsBinding();
-			JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
-			_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getWorkerPool(), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
-					jmsBinding.getTopicName(), jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval());
-			break;
-		case TIMER:
-			final Service.TimerBinding timerBinding = service.getTimerBinding();
-			_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getTimeUnit(), timerBinding.getInitialDelay(), timerBinding.getPeriod(), timerBinding.isFixedDelay());
-			break;
-		default:
-			_consumerPort = new ConsumerPort(getURI());
-			break;
-		}
-		_consumerPort.setInternalService(list);
-		_consumerPort.setEnabled(service.isEnabled());
-		_actionPipelines.clear();
 	}
 
 	private void addAction(List<Action> list, Action action) {
@@ -242,7 +260,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					assignments.add(Collections.createEntry(assignment.getVariable(), assignment.getValue()));
 				}
 				AssignAction assignAction = new AssignAction(assignments, createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem());
-				XQueryArtifact.validateXQuerySource(this, assignAction.getXQuery());
+				XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), assignAction.getXQuery());
 				addAction(list, assignAction);
 				break;
 			}
@@ -265,7 +283,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					}
 				}
 				AssignHeadersAction assignHeadersAction = new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()), assignHeaders.getBindName(), assignHeaders.getContextItem(), assignHeaders.isClearAll());
-				XQueryArtifact.validateXQuerySource(this, assignHeadersAction.getXQuery());
+				XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), assignHeadersAction.getXQuery());
 				addAction(list, assignHeadersAction);
 				break;
 			}
@@ -296,7 +314,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getParent().getURI()));
 				} else if (transform.getXquery() != null) {
 					XQuerySource xquery = XQuerySource.create(transform.getXquery());
-					XQueryArtifact.validateXQuerySource(this, xquery);
+					XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), xquery);
 					addAction(list, new TransformAction(xquery, getParent().getURI()));
 				} else {
 					throw new ValidationException(this, "transform has no XQuery");
@@ -346,7 +364,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				schemaArtifact.validate(globalContext);
 				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()), validate.getContextItem());
 				if (validate.getExpression() != "." && !validate.getExpression().equals("*")) {
-					XQueryArtifact.validateXQuerySource(this, validateAction.getXQuery());
+					XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), validateAction.getXQuery());
 				}
 				addAction(list, validateAction);
 				break;
@@ -371,7 +389,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "conditional": {
 				Conditional conditional = (Conditional) jaxbElement.getValue();
 				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()), conditional.getBindName(), conditional.getContextItem());
-				XQueryArtifact.validateXQuerySource(this, conditionalAction.getXQuery());
+				XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), conditionalAction.getXQuery());
 				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), null)));
 				addAction(list, conditionalAction);
 				break;

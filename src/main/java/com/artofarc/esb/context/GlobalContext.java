@@ -28,14 +28,14 @@ import javax.management.MBeanServer;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.xml.stream.XMLInputFactory;
-import javax.xml.xquery.XQDataSource;
+import javax.xml.transform.URIResolver;
 
 import com.artofarc.esb.Registry;
 import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact.AbstractURIResolver;
 import com.artofarc.esb.http.HttpEndpointRegistry;
-import com.artofarc.esb.resource.XQDataSourceFactory;
+import com.artofarc.esb.resource.XQConnectionFactory;
 
 public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
 
@@ -44,7 +44,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	private final InitialContext _initialContext;
 	private final AbstractURIResolver _uriResolver;
 	private final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-	private final XQDataSource xqds;
+	private final XQConnectionFactory _xqConnectionFactory;
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
 	private final Map<String, WorkerPool> _workerPoolMap = Collections.synchronizedMap(new HashMap<String, WorkerPool>());
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
@@ -60,11 +60,11 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		}
 		_uriResolver = new AbstractURIResolver() {
 			@Override
-			public Artifact resolveArtifact(String path) {
-				return getFileSystem().getArtifact(path);
+			protected Artifact getBaseArtifact() {
+				return getFileSystem().getRoot();
 			}
 		};
-		xqds = new XQDataSourceFactory(_uriResolver).createXQDataSource();
+		_xqConnectionFactory = XQConnectionFactory.newInstance(_uriResolver);
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
 		putWorkerPool(null, new WorkerPool(this, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
@@ -76,7 +76,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		return (O) _initialContext.lookup(name);
 	}
 
-	public AbstractURIResolver getUriResolver() {
+	public URIResolver getURIResolver() {
 		return _uriResolver;
 	}
 
@@ -84,8 +84,8 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		return xmlInputFactory;
 	}
 
-	public XQDataSource getXQDataSource() {
-		return xqds;
+	public XQConnectionFactory getXQConnectionFactory() {
+		return _xqConnectionFactory;
 	}
 
 	public HttpEndpointRegistry getHttpEndpointRegistry() {

@@ -57,7 +57,7 @@ public class XSLTAction extends SAXAction {
 				transformerHandler = null;
 				transformer = _templates.newTransformer();
 			}
-			transformer.setURIResolver(context.getPoolContext().getGlobalContext().getUriResolver());
+			transformer.setURIResolver(context.getPoolContext().getGlobalContext().getURIResolver());
 			for (Entry<String, Object> variable : message.getVariables().entrySet()) {
 				transformer.setParameter(variable.getKey(), variable.getValue());
 			}

@@ -80,6 +80,7 @@ public class FileSystem {
 
 	@SuppressWarnings("unchecked")
 	protected final <A extends Artifact> A getArtifact(Directory current, String uri) {
+		if (current == null) current = _root;
 		if (uri == null) return (A) current;
 		int i = 0, j;
 		while ((j = uri.indexOf('/', i)) >= 0) {

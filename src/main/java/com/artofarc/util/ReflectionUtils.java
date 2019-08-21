@@ -17,6 +17,7 @@
 package com.artofarc.util;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -116,6 +117,37 @@ public final class ReflectionUtils {
 			}
 		}
 		throw new NoSuchMethodException();
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T> Constructor<T> findConstructor(String className, Class<?>... parameterTypes) {
+		try {
+			return (Constructor<T>) Class.forName(className).getConstructor(parameterTypes);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T> T getField(Object obj, String name) {
+		try {
+			Field field = findField(obj.getClass(), name);
+			field.setAccessible(true);
+			return (T) field.get(obj);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static Field findField(Class<?> cls, String name) throws NoSuchFieldException {
+		try {
+			return cls.getDeclaredField(name);
+		} catch (NoSuchFieldException e) {
+			if (cls.getSuperclass() != null) {
+				return findField(cls.getSuperclass(), name);
+			}
+			throw e;
+		}
 	}
 
 	public static <T extends Throwable> T convert(Throwable t, Class<T> cls, Object... params) {

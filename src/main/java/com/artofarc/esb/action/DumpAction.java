@@ -16,20 +16,13 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.PrintStream;
-import java.util.Iterator;
-import java.util.Map;
-
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
-import org.w3c.dom.Node;
+import java.io.Writer;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ReflectionUtils;
 
 public class DumpAction extends TerminalAction {
 
@@ -37,9 +30,14 @@ public class DumpAction extends TerminalAction {
 	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, resource, message, nextActionIsPipelineStop);
 		System.out.println("Headers:");
-		dumpMap(context, message.getHeaders(), System.out);
+		Writer logWriter = ReflectionUtils.getField(System.out, "textOut");
+		ESBMessage.dumpMap(context, message.getHeaders(), logWriter);
+		logWriter.flush();
+		System.out.println();
 		System.out.println("Variables:");
-		dumpMap(context, message.getVariables(), System.out);
+		ESBMessage.dumpMap(context, message.getVariables(), logWriter);
+		logWriter.flush();
+		System.out.println();
 		if (message.getBodyType() != BodyType.INVALID) {
 			System.out.println("Body:");
 			if (message.getBodyType() == BodyType.EXCEPTION) {
@@ -50,25 +48,7 @@ public class DumpAction extends TerminalAction {
 				message.writeRawTo(System.out, context);
 				System.out.println();
 			}
-			System.out.flush();
 		}
-	}
-
-	public static void dumpMap(Context context, Map<String, Object> map, PrintStream ps) throws TransformerException {
-		ps.print('{');
-		for (Iterator<Map.Entry<String, Object>> iter = map.entrySet().iterator(); iter.hasNext();) {
-			Map.Entry<String, Object> entry = iter.next();
-			ps.print(entry.getKey() + "=");
-			if (entry.getValue() instanceof Node) {
-				context.getIdenticalTransformer().transform(new DOMSource((Node) entry.getValue()), new StreamResult(ps));
-			} else {
-				ps.print(entry.getValue());
-			}
-			if (iter.hasNext()) {
-				ps.print(", ");
-			}
-		}
-		ps.println('}');
 	}
 
 }

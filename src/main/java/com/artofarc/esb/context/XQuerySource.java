@@ -24,7 +24,7 @@ import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
 
-import com.artofarc.esb.resource.XQDataSourceFactory;
+import com.artofarc.esb.resource.XQConnectionFactory;
 
 public final class XQuerySource {
 
@@ -89,16 +89,16 @@ public final class XQuerySource {
 		return _xquery != null ? _xquery : new String(_data);
 	}
 
-	public XQPreparedExpression prepareExpression(XQConnection conn, String baseURI) throws XQException {
+	public XQPreparedExpression prepareExpression(XQConnectionFactory factory, XQConnection conn, String baseURI) throws XQException {
 		if (_xquery != null) {
 			if (baseURI != null) {
-				return conn.prepareExpression(_xquery, XQDataSourceFactory.getStaticContext(conn, baseURI));
+				return conn.prepareExpression(_xquery, factory.getStaticContext(conn, baseURI));
 			} else {
 				return conn.prepareExpression(_xquery);
 			}
 		}
 		if (baseURI != null) {
-			return conn.prepareExpression(new ByteArrayInputStream(_data), XQDataSourceFactory.getStaticContext(conn, baseURI));
+			return conn.prepareExpression(new ByteArrayInputStream(_data), factory.getStaticContext(conn, baseURI));
 		} else {
 			return conn.prepareExpression(new ByteArrayInputStream(_data));
 		}

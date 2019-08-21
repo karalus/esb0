@@ -18,9 +18,11 @@ package com.artofarc.esb.resource;
 
 import java.util.HashMap;
 
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xquery.XQConnection;
-import javax.xml.xquery.XQDataSource;
+import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQStaticContext;
 
@@ -41,41 +43,46 @@ import net.sf.saxon.value.SequenceExtent;
 import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
-import com.artofarc.esb.artifact.Artifact;
-import com.artofarc.esb.artifact.XMLProcessingArtifact.AbstractURIResolver;
 import com.saxonica.xqj.SaxonXQDataSource;
 
-public final class XQDataSourceFactory implements ModuleURIResolver {
+final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURIResolver {
 
 	public static final String XPATH_EXTENSION_NS_URI = "http://artofarc.com/xpath-extension";
 	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
 
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
-	
+
 	// Is instance variable because it maintains state
 	private final Evaluate functionEvaluate = new Evaluate();
-	private final AbstractURIResolver _artifactURIResolver;
-	
-	public XQDataSourceFactory(AbstractURIResolver abstractArtifactURIResolver) {
-		_artifactURIResolver = abstractArtifactURIResolver;
-	}
+	private final SaxonXQDataSource _dataSource = new SaxonXQDataSource();
+	private final URIResolver _uriResolver;
 
-	public XQDataSource createXQDataSource() {
-		SaxonXQDataSource dataSource = new SaxonXQDataSource();
-		Configuration configuration = dataSource.getConfiguration();
+	public XQDataSourceFactory(URIResolver uriResolver) {
+		_uriResolver = uriResolver;
+		Configuration configuration = _dataSource.getConfiguration();
 		configuration.registerExtensionFunction(functionUUID);
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
 		configuration.registerExtensionFunction(functionEvaluate);
 		configuration.setModuleURIResolver(this);
-		configuration.setURIResolver(_artifactURIResolver);
-		return dataSource;
+		configuration.setURIResolver(_uriResolver);
 	}
 
-	public static XQStaticContext getStaticContext(XQConnection connection, String baseURI) throws XQException {
+	@Override
+	public XQConnection getConnection() throws XQException {
+		XQConnection connection = _dataSource.getConnection();
+		XQStaticContext staticContext = connection.getStaticContext();
+		staticContext.setBindingMode(XQConstants.BINDING_MODE_DEFERRED);
+		staticContext.declareNamespace(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI);
+		connection.setStaticContext(staticContext);
+		return connection;
+	}
+
+	@Override
+	public XQStaticContext getStaticContext(XQConnection connection, String baseURI) throws XQException {
 		XQStaticContext staticContext = connection.getStaticContext();
 		// In Saxon baseURI must not be an empty string
-		staticContext.setBaseURI(baseURI.isEmpty() ? "/." : baseURI);
+		staticContext.setBaseURI(baseURI.isEmpty() ? "./" : baseURI);
 		return staticContext;
 	}
 
@@ -83,15 +90,11 @@ public final class XQDataSourceFactory implements ModuleURIResolver {
 	public StreamSource[] resolve(String moduleURI, String baseURI, String[] locations) throws XPathException {
 		StreamSource[] result = new StreamSource[locations.length];
 		for (int i = 0; i < locations.length; ++i) {
-			Artifact artifact = _artifactURIResolver.resolveArtifact(locations[i]);
-			if (artifact == null) {
-				artifact = _artifactURIResolver.resolveArtifact(baseURI + locations[i]);
-				if (artifact == null) {
-					throw new XPathException(locations[i] + " in " + baseURI);
-				}
+			try {
+				result[i] = (StreamSource) _uriResolver.resolve(locations[i], baseURI);
+			} catch (TransformerException e) {
+				throw new XPathException(e);
 			}
-			result[i] = new StreamSource(artifact.getContentAsStream());
-			result[i].setSystemId(artifact.getURI());
 		}
 		return result;
 	}

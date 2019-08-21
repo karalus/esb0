@@ -27,6 +27,7 @@ import java.io.StringReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -56,6 +57,7 @@ import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQSequence;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
 import com.artofarc.esb.context.Context;
@@ -657,6 +659,23 @@ public final class ESBMessage implements Cloneable {
 			}
 		}
 		return clone;
+	}
+
+	public static void dumpMap(Context context, Map<String, Object> map, Writer logWriter) throws IOException, TransformerException {
+		logWriter.write('{');
+		for (Iterator<Map.Entry<String, Object>> iter = map.entrySet().iterator(); iter.hasNext();) {
+			Map.Entry<String, Object> entry = iter.next();
+			logWriter.write(entry.getKey() + "=");
+			if (entry.getValue() instanceof Node) {
+				context.getIdenticalTransformer().transform(new DOMSource((Node) entry.getValue()), new StreamResult(logWriter));
+			} else {
+				logWriter.write(String.valueOf(entry.getValue()));
+			}
+			if (iter.hasNext()) {
+				logWriter.write(", ");
+			}
+		}
+		logWriter.write('}');
 	}
 
 }

@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.io.FileNotFoundException;
 import java.lang.ref.WeakReference;
 
 import javax.xml.transform.TransformerException;
@@ -53,18 +54,30 @@ public class XMLProcessingArtifact extends Artifact {
 
 	abstract public static class AbstractURIResolver implements URIResolver {
 
-		public abstract Artifact resolveArtifact(String path);
+		protected abstract Artifact getBaseArtifact();
+
+		Artifact resolveArtifact(String href, String base) throws FileNotFoundException {
+			if (base != null && !base.isEmpty()) {
+				if (href.startsWith("/.")) {
+					return getBaseArtifact().loadArtifact(base + href);
+				} else {
+					return getBaseArtifact().loadArtifact(base).loadArtifact(href);
+				}
+			} else {
+				return getBaseArtifact().loadArtifact(href);
+			}
+		}
 
 		@Override
 		public StreamSource resolve(String href, String base) throws TransformerException {
-			String path = base != null ? base + href : href;
-			Artifact artifact = resolveArtifact(path);
-			if (artifact == null) {
-				throw new TransformerException("document not found: " + path);
+			try {
+				Artifact artifact = resolveArtifact(href, base);
+				StreamSource source = new StreamSource(artifact.getContentAsStream());
+				source.setSystemId(artifact.getURI());
+				return source;
+			} catch (FileNotFoundException e) {
+				throw new TransformerException(e);
 			}
-			StreamSource source = new StreamSource(artifact.getContentAsStream());
-			source.setSystemId(artifact.getURI());
-			return source;
 		}
 	}
 
@@ -77,15 +90,18 @@ public class XMLProcessingArtifact extends Artifact {
 		}
 
 		@Override
-		public Artifact resolveArtifact(String path) {
-			Artifact base = _artifact.get();
-			if (base == null) {
+		protected Artifact getBaseArtifact() {
+			Artifact baseArtifact = _artifact.get();
+			if (baseArtifact == null) {
 				throw new IllegalStateException("Reference has already been cleared");
 			}
-			Artifact artifact = base.getArtifact(path);
-			if (artifact != null) {
-				base.addReference(artifact);
-			}
+			return baseArtifact;
+		}
+
+		@Override
+		Artifact resolveArtifact(String href, String base) throws FileNotFoundException {
+			Artifact artifact = super.resolveArtifact(href, base);
+			_artifact.get().addReference(artifact);
 			return artifact;
 		}
 	}

@@ -21,11 +21,10 @@ import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQSequenceType;
-import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.XQuerySource;
-import com.artofarc.esb.resource.XQDataSourceFactory;
+import com.artofarc.esb.resource.XQConnectionFactory;
 
 public class XQueryArtifact extends XMLProcessingArtifact {
 
@@ -40,32 +39,30 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		return initClone(new XQueryArtifact(fileSystem, parent, getName()));
 	}
 
-	static void validateXQuerySource(Artifact owner, XQuerySource xQuerySource) throws XQException {
-		// Needs an individual XQDataSourceFactory to track the use of modules
-		XQConnection connection = new XQDataSourceFactory(new ArtifactURIResolver(owner)).createXQDataSource().getConnection();
-		try {
-			XQStaticContext staticContext = connection.getStaticContext();
-			staticContext.declareNamespace(XQDataSourceFactory.XPATH_EXTENSION_NS_PREFIX, XQDataSourceFactory.XPATH_EXTENSION_NS_URI);
-			connection.setStaticContext(staticContext);
-			XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(connection, owner.getParent().getURI());
-			for (QName qName : preparedExpression.getAllExternalVariables()) {
-				logger.debug("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
-			}
-			logger.debug("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
-			preparedExpression.close();
-			// set modules to validated 
-			for (String referenced : owner.getReferenced()) {
-				owner.getArtifact(referenced).setValidated();
-			}
-		} finally {
-			connection.close();
+	static void validateXQuerySource(Artifact owner, XQConnectionFactory factory, XQConnection connection, XQuerySource xQuerySource) throws XQException {
+		XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(factory, connection, owner.getParent().getURI());
+		for (QName qName : preparedExpression.getAllExternalVariables()) {
+			logger.debug("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
+		}
+		logger.debug("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
+		preparedExpression.close();
+		// set modules to validated 
+		for (String referenced : owner.getReferenced()) {
+			owner.getArtifact(referenced).setValidated();
 		}
 	}
 
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
-		logger.info("Parsing XQuery in: " + getURI());
-		validateXQuerySource(this, XQuerySource.create(getContentAsBytes()));
+		// Needs an individual XQConnectionFactory to track the use of modules
+		XQConnectionFactory factory = XQConnectionFactory.newInstance(new ArtifactURIResolver(this));
+		XQConnection connection = factory.getConnection();
+		try {
+			logger.info("Parsing XQuery in: " + getURI());
+			validateXQuerySource(this, factory, connection, XQuerySource.create(getContentAsBytes()));
+		} finally {
+			connection.close();
+		}
 	}
 
 	@Override
