@@ -260,7 +260,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					assignments.add(Collections.createEntry(assignment.getVariable(), assignment.getValue()));
 				}
 				AssignAction assignAction = new AssignAction(assignments, createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem());
-				XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), assignAction.getXQuery());
+				XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
 				addAction(list, assignAction);
 				break;
 			}
@@ -283,7 +283,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					}
 				}
 				AssignHeadersAction assignHeadersAction = new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()), assignHeaders.getBindName(), assignHeaders.getContextItem(), assignHeaders.isClearAll());
-				XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), assignHeadersAction.getXQuery());
+				XQueryArtifact.validateXQuerySource(this, getConnection(), assignHeadersAction.getXQuery());
 				addAction(list, assignHeadersAction);
 				break;
 			}
@@ -314,7 +314,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getParent().getURI()));
 				} else if (transform.getXquery() != null) {
 					XQuerySource xquery = XQuerySource.create(transform.getXquery());
-					XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), xquery);
+					XQueryArtifact.validateXQuerySource(this, getConnection(), xquery);
 					addAction(list, new TransformAction(xquery, getParent().getURI()));
 				} else {
 					throw new ValidationException(this, "transform has no XQuery");
@@ -364,7 +364,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				schemaArtifact.validate(globalContext);
 				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()), validate.getContextItem());
 				if (validate.getExpression() != "." && !validate.getExpression().equals("*")) {
-					XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), validateAction.getXQuery());
+					XQueryArtifact.validateXQuerySource(this, getConnection(), validateAction.getXQuery());
 				}
 				addAction(list, validateAction);
 				break;
@@ -389,7 +389,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "conditional": {
 				Conditional conditional = (Conditional) jaxbElement.getValue();
 				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()), conditional.getBindName(), conditional.getContextItem());
-				XQueryArtifact.validateXQuerySource(this, globalContext.getXQConnectionFactory(), getConnection(), conditionalAction.getXQuery());
+				XQueryArtifact.validateXQuerySource(this, getConnection(), conditionalAction.getXQuery());
 				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), null)));
 				addAction(list, conditionalAction);
 				break;

@@ -89,16 +89,16 @@ public final class XQuerySource {
 		return _xquery != null ? _xquery : new String(_data);
 	}
 
-	public XQPreparedExpression prepareExpression(XQConnectionFactory factory, XQConnection conn, String baseURI) throws XQException {
+	public XQPreparedExpression prepareExpression(XQConnection conn, String baseURI) throws XQException {
 		if (_xquery != null) {
 			if (baseURI != null) {
-				return conn.prepareExpression(_xquery, factory.getStaticContext(conn, baseURI));
+				return conn.prepareExpression(_xquery, XQConnectionFactory.getStaticContext(conn, baseURI));
 			} else {
 				return conn.prepareExpression(_xquery);
 			}
 		}
 		if (baseURI != null) {
-			return conn.prepareExpression(new ByteArrayInputStream(_data), factory.getStaticContext(conn, baseURI));
+			return conn.prepareExpression(new ByteArrayInputStream(_data), XQConnectionFactory.getStaticContext(conn, baseURI));
 		} else {
 			return conn.prepareExpression(new ByteArrayInputStream(_data));
 		}

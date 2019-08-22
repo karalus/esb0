@@ -25,7 +25,10 @@ import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.util.ReflectionUtils;
 
-public abstract class XQConnectionFactory {
+public class XQConnectionFactory {
+
+	public static final String XPATH_EXTENSION_NS_URI = "http://artofarc.com/xpath-extension";
+	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
 
 	private static final Constructor<? extends XQConnectionFactory> conXQConnectionFactory = ReflectionUtils.findConstructor(
 			System.getProperty("esb0.XQConnectionFactory", XQDataSourceFactory.class.getName()), URIResolver.class);
@@ -38,8 +41,21 @@ public abstract class XQConnectionFactory {
 		}
 	}
 
-	public abstract XQConnection getConnection() throws XQException;
+	protected final URIResolver _uriResolver;
 
-	public abstract XQStaticContext getStaticContext(XQConnection connection, String baseURI) throws XQException;
+	protected XQConnectionFactory(URIResolver uriResolver) {
+		_uriResolver = uriResolver;
+	}
+
+	public XQConnection getConnection() throws XQException {
+		return null;
+	}
+
+	public static XQStaticContext getStaticContext(XQConnection connection, String baseURI) throws XQException {
+		XQStaticContext staticContext = connection.getStaticContext();
+		// In Saxon baseURI must not be an empty string (root of FileSystem)
+		staticContext.setBaseURI(baseURI.isEmpty() ? "./" : baseURI);
+		return staticContext;
+	}
 
 }

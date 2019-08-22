@@ -47,25 +47,21 @@ import com.saxonica.xqj.SaxonXQDataSource;
 
 final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURIResolver {
 
-	public static final String XPATH_EXTENSION_NS_URI = "http://artofarc.com/xpath-extension";
-	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
-
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
 
 	// Is instance variable because it maintains state
 	private final Evaluate functionEvaluate = new Evaluate();
 	private final SaxonXQDataSource _dataSource = new SaxonXQDataSource();
-	private final URIResolver _uriResolver;
 
-	public XQDataSourceFactory(URIResolver uriResolver) {
-		_uriResolver = uriResolver;
+	XQDataSourceFactory(URIResolver uriResolver) {
+		super(uriResolver);
 		Configuration configuration = _dataSource.getConfiguration();
 		configuration.registerExtensionFunction(functionUUID);
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
 		configuration.registerExtensionFunction(functionEvaluate);
 		configuration.setModuleURIResolver(this);
-		configuration.setURIResolver(_uriResolver);
+		configuration.setURIResolver(uriResolver);
 	}
 
 	@Override
@@ -76,14 +72,6 @@ final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURI
 		staticContext.declareNamespace(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI);
 		connection.setStaticContext(staticContext);
 		return connection;
-	}
-
-	@Override
-	public XQStaticContext getStaticContext(XQConnection connection, String baseURI) throws XQException {
-		XQStaticContext staticContext = connection.getStaticContext();
-		// In Saxon baseURI must not be an empty string
-		staticContext.setBaseURI(baseURI.isEmpty() ? "./" : baseURI);
-		return staticContext;
 	}
 
 	@Override

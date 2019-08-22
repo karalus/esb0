@@ -78,8 +78,9 @@ public class JDBCResult2JsonMapper {
 		JsonObjectBuilder result = Json.createObjectBuilder();
 		JsonArrayBuilder header = Json.createArrayBuilder();
 		for (int i = 1; i <= colSize; ++i) {
+			int precision = metaData.getPrecision(i);
 			int scale = metaData.getScale(i);
-			String type = JDBCParameter.CODES.get(metaData.getColumnType(i)) + '(' + metaData.getPrecision(i) + (scale > 0 ? ", " + scale : "" + ')');
+			String type = JDBCParameter.CODES.get(metaData.getColumnType(i)) + (precision > 0 ? "(" + precision + (scale > 0 ? ", " + scale : "") + ')' : "");
 			header.add(Json.createObjectBuilder().add(metaData.getColumnLabel(i), type));
 		}
 		result.add("header", header);

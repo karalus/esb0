@@ -119,7 +119,7 @@ public final class Context extends AbstractContext {
 	public XQPreparedExpression getXQPreparedExpression(XQuerySource xquery, String baseURI) throws XQException {
 		XQPreparedExpression preparedExpression = _mapXQ.get(xquery);
 		if (preparedExpression == null) {
-			preparedExpression = xquery.prepareExpression(_poolContext.getGlobalContext().getXQConnectionFactory(), _xqConnection, baseURI);
+			preparedExpression = xquery.prepareExpression(_xqConnection, baseURI);
 			_mapXQ.put(xquery, preparedExpression);
 			_poolContext.getWorkerPool().addCachedXQuery(xquery);
 		}
@@ -133,7 +133,9 @@ public final class Context extends AbstractContext {
 				_poolContext.getWorkerPool().removeCachedXQuery(entry.getKey());
 				entry.getValue().close();
 			}
-			_xqConnection.close();
+			if (_xqConnection != null) {
+				_xqConnection.close();
+			}
 		} catch (XQException e) {
 			// ignore
 		}

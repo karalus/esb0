@@ -39,8 +39,8 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		return initClone(new XQueryArtifact(fileSystem, parent, getName()));
 	}
 
-	static void validateXQuerySource(Artifact owner, XQConnectionFactory factory, XQConnection connection, XQuerySource xQuerySource) throws XQException {
-		XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(factory, connection, owner.getParent().getURI());
+	static void validateXQuerySource(Artifact owner, XQConnection connection, XQuerySource xQuerySource) throws XQException {
+		XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(connection, owner.getParent().getURI());
 		for (QName qName : preparedExpression.getAllExternalVariables()) {
 			logger.debug("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
 		}
@@ -59,7 +59,7 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		XQConnection connection = factory.getConnection();
 		try {
 			logger.info("Parsing XQuery in: " + getURI());
-			validateXQuerySource(this, factory, connection, XQuerySource.create(getContentAsBytes()));
+			validateXQuerySource(this, connection, XQuerySource.create(getContentAsBytes()));
 		} finally {
 			connection.close();
 		}

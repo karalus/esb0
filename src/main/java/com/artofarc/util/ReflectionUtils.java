@@ -122,7 +122,7 @@ public final class ReflectionUtils {
 	@SuppressWarnings("unchecked")
 	public static <T> Constructor<T> findConstructor(String className, Class<?>... parameterTypes) {
 		try {
-			return (Constructor<T>) Class.forName(className).getConstructor(parameterTypes);
+			return (Constructor<T>) Class.forName(className).getDeclaredConstructor(parameterTypes);
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
