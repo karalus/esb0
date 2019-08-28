@@ -157,7 +157,7 @@
 		<complexContent>
 			<extension base="tns:ActionBase">
 				<sequence>
-					<element name="sql" type="string" minOccurs="0" />
+					<element name="sql" type="tns:string1" minOccurs="0" />
 				</sequence>
 				<attribute name="dataSource" type="string" use="required" />
 				<attribute name="workerPool" type="anyURI" />
@@ -392,6 +392,22 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<element name="cache" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:AssignBase">
+					<sequence>
+						<element ref="tns:action" maxOccurs="unbounded" />
+					</sequence>
+					<attribute name="key" type="tns:string1" use="required" />
+					<attribute name="value" type="Name" use="required" />
+					<attribute name="name" type="Name" use="required" />
+					<attribute name="maxSize" type="int" use="required" />
+					<attribute name="ttl" type="unsignedInt" use="required" />
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
 	<element name="conditional" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
@@ -399,7 +415,7 @@
 					<sequence>
 						<element ref="tns:action" maxOccurs="unbounded" />
 					</sequence>
-					<attribute name="expression" type="string" use="required" />
+					<attribute name="expression" type="tns:string1" use="required" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -472,7 +488,7 @@
 						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" use="required" />
-					<attribute name="expression" type="string" default="." />
+					<attribute name="expression" type="tns:string1" default="." />
 					<attribute name="contextItem" type="Name" />
 				</extension>
 			</complexContent>
@@ -646,10 +662,10 @@
 								<extension base="anyURI">
 									<attribute name="supportCompression" type="boolean" default="false" />
 									<attribute name="multipartResponse" type="tns:string1" />
-									<attribute name="bufferSize" type="int" />
-									<attribute name="minPool" type="int" default="1" />
-									<attribute name="maxPool" type="int" default="20" />
-									<attribute name="keepAlive" type="long" default="300000" />
+									<attribute name="bufferSize" type="unsignedShort" />
+									<attribute name="minPool" type="unsignedShort" default="1" />
+									<attribute name="maxPool" type="unsignedShort" default="20" />
+									<attribute name="keepAlive" type="unsignedInt" default="300000" />
 								</extension>
 							</simpleContent>
 						</complexType>
@@ -667,7 +683,7 @@
 							<attribute name="password" type="string" />
 							<attribute name="subscription" type="tns:string1" />
 							<attribute name="messageSelector" type="string" />
-							<attribute name="workerCount" type="int" default="1" />
+							<attribute name="workerCount" type="unsignedShort" default="1" />
 							<attribute name="pollInterval" type="int" default="0" />
 						</complexType>
 					</element>
@@ -687,16 +703,16 @@
 			<attribute name="protocol" type="tns:Protocol" use="required" />
 			<attribute name="errorHandler" type="Name" />
 			<attribute name="enabled" type="boolean" default="true" />
-			<attribute name="version" type="int" default="1" />
+			<attribute name="version" type="unsignedShort" default="1" />
 		</complexType>
 	</element>
 	<element name="workerPool">
 		<complexType>
-			<attribute name="minThreads" type="int" use="required" />
-			<attribute name="maxThreads" type="int" use="required" />
-			<attribute name="priority" type="int" default="5" />
+			<attribute name="minThreads" type="unsignedShort" use="required" />
+			<attribute name="maxThreads" type="unsignedShort" use="required" />
+			<attribute name="priority" type="unsignedShort" default="5" />
 			<attribute name="queueDepth" type="int" use="required" />
-			<attribute name="scheduledThreads" type="int" use="required" />
+			<attribute name="scheduledThreads" type="unsignedShort" use="required" />
 			<attribute name="allowCoreThreadTimeOut" type="boolean" default="false" />
 		</complexType>
 	</element>

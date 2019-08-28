@@ -378,34 +378,35 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				addAllActions(list, Action.cloneService(actionPipeline));
 				break;
 			}
-			case "internalService": {
+			case "internalService":
 				InternalService internalService = (InternalService) jaxbElement.getValue();
 				ServiceArtifact serviceArtifact = loadArtifact(internalService.getServiceURI() + '.' + FILE_EXTENSION);
 				addReference(serviceArtifact);
 				serviceArtifact.validate(globalContext);
 				addAllActions(list, serviceArtifact.getConsumerPort().getInternalService());
 				break;
-			}
-			case "conditional": {
+			case "conditional":
 				Conditional conditional = (Conditional) jaxbElement.getValue();
 				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()), conditional.getBindName(), conditional.getContextItem());
 				XQueryArtifact.validateXQuerySource(this, getConnection(), conditionalAction.getXQuery());
 				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), null)));
 				addAction(list, conditionalAction);
 				break;
-			}
-			case "spawn": {
+			case "cache":
+				Cache cache = (Cache) jaxbElement.getValue();
+				addAction(list, new CacheAction(globalContext, cache.getKey(), cache.getValue(),
+						Action.linkList(transform(globalContext, cache.getAction(), null)), cache.getName(), cache.getMaxSize(), cache.getTtl()));
+				break;
+			case "spawn":
 				Spawn spawn = (Spawn) jaxbElement.getValue();
 				addAction(list, new SpawnAction(resolveWorkerPool(spawn.getWorkerPool()), spawn.isUsePipe(), spawn.isJoin()));
 				break;
-			}
-			case "fork": {
+			case "fork":
 				Fork fork = (Fork) jaxbElement.getValue();
 				ForkAction forkAction = new ForkAction(resolveWorkerPool(fork.getWorkerPool()), fork.isCopyMessage());
 				forkAction.setFork(Action.linkList(transform(globalContext, fork.getAction(), fork.getErrorHandler())));
 				addAction(list, forkAction);
 				break;
-			}
 			case "branchOnVariable": {
 				BranchOnVariable branchOnVariable = (BranchOnVariable) jaxbElement.getValue();
 				Action defaultAction = null;

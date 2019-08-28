@@ -17,7 +17,6 @@
 package com.artofarc.esb.context;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 
@@ -49,7 +48,7 @@ public abstract class AbstractContext implements AutoCloseable {
 						break;
 					}
 				}
-			} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+			} catch (ReflectiveOperationException e) {
 				throw new RuntimeException(e);
 			}
 			if (resourceFactory == null) {
