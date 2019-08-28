@@ -19,6 +19,7 @@ package com.artofarc.esb.http;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.net.NoRouteToHostException;
 import java.net.URL;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -157,7 +158,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		int pos = computeNextPos();
 		try {
 			return new HttpUrlConnectionWrapper(pos, connectTo(httpEndpoint.getHttpUrls().get(pos).getUrl(), timeout, method, spec, headers, chunkLength));
-		} catch (ConnectException e) {
+		} catch (ConnectException | NoRouteToHostException e) {
 			if (_httpEndpoint.getCheckAliveInterval() != null) {
 				setActive(pos, false);
 			}
