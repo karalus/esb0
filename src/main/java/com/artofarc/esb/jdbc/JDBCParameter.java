@@ -22,6 +22,7 @@ import java.sql.Types;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
@@ -30,8 +31,9 @@ import com.artofarc.util.Collections;
 
 public final class JDBCParameter {
 
-	public final static Map<String, Integer> TYPES = new HashMap<>();
-	public final static Map<Integer, String> CODES;
+	final static Map<String, Integer> TYPES = new HashMap<>();
+	final static Map<Integer, String> CODES;
+	final static TimeZone TIME_ZONE;
 
 	static{
 		for (Field field : Types.class.getFields()) {
@@ -42,6 +44,8 @@ public final class JDBCParameter {
 			}
 		}
 		CODES = Collections.inverseMap(TYPES.entrySet(), true);
+		String timezone = System.getProperty("esb0.jdbc.mapper.timezone");
+		TIME_ZONE = timezone != null ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault();
 	}
 
 	private final int _pos;
@@ -100,7 +104,7 @@ public final class JDBCParameter {
 		case Types.TIMESTAMP:
 			if (value instanceof XMLGregorianCalendar) {
 				XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
-				return (T) new Timestamp(calendar.toGregorianCalendar().getTimeInMillis());
+				return (T) new Timestamp(calendar.toGregorianCalendar(TIME_ZONE, null, null).getTimeInMillis());
 			}
 			if (value instanceof Calendar) {
 				Calendar calendar = (Calendar) value;

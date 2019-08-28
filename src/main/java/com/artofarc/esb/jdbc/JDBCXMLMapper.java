@@ -126,7 +126,7 @@ public final class JDBCXMLMapper {
 	public static Object toJDBC(Object value) {
 		if (value instanceof XMLGregorianCalendar) {
 			XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
-			return new Timestamp(calendar.toGregorianCalendar(JDBCResult2JsonMapper.TIME_ZONE, null, null).getTimeInMillis());
+			return new Timestamp(calendar.toGregorianCalendar(JDBCParameter.TIME_ZONE, null, null).getTimeInMillis());
 		}
 		return value;
 	}
@@ -210,7 +210,7 @@ public final class JDBCXMLMapper {
 
 	public static Object fromJDBC(Object value) {
 		if (value instanceof Date) {
-			GregorianCalendar calendar = new GregorianCalendar(JDBCResult2JsonMapper.TIME_ZONE);
+			GregorianCalendar calendar = new GregorianCalendar(JDBCParameter.TIME_ZONE);
 			calendar.setTime((Date) value);
 			return datatypeFactory.newXMLGregorianCalendar(calendar);
 		}
