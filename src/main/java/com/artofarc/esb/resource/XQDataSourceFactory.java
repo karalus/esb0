@@ -81,7 +81,8 @@ final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURI
 			try {
 				result[i] = (StreamSource) _uriResolver.resolve(locations[i], baseURI);
 			} catch (TransformerException e) {
-				throw new XPathException(e);
+				// In this case TransformerException is only a wrapper
+				throw new XPathException(e.getCause());
 			}
 		}
 		return result;
