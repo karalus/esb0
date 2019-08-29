@@ -203,7 +203,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					SchemaArtifact schemaArtifact = loadArtifact(jdbcProcedure.getSchemaURI());
 					addReference(schemaArtifact);
 					schemaArtifact.validate(globalContext);
-					jaxbContext = schemaArtifact.getJAXBContext();
+					jaxbContext = schemaArtifact.getJAXBContext(resolveClassLoader(globalContext, jdbcProcedure.getClassLoader()));
 				}
 				addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
 						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jaxbContext));
@@ -219,13 +219,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "setMessage": {
 				SetMessage setMessage = (SetMessage) jaxbElement.getValue();
-				java.lang.ClassLoader classLoader = null;
-				if (setMessage.getClassLoader() != null) {
-					ClassLoaderArtifact classLoaderArtifact = loadArtifact(setMessage.getClassLoader() + '.' + ClassLoaderArtifact.FILE_EXTENSION);
-					addReference(classLoaderArtifact);
-					classLoaderArtifact.validate(globalContext);
-					classLoader = classLoaderArtifact.getFileSystemClassLoader();
-				}
+				java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, setMessage.getClassLoader());
 				SetMessageAction setMessageAction;
 				if (setMessage.getBody() != null) {
 					setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, setMessage.getBody().getValue(), setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
@@ -292,7 +286,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
-				addAction(list, new XML2JsonAction(schemaArtifact.getJAXBContext(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
+				addAction(list, new XML2JsonAction(schemaArtifact.getJAXBContext(null), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
 					Collections.inverseMap(createNsDecls(xml2Json.getNsDecl()), true), xml2Json.isValidate() ? schemaArtifact.getSchema() : null, xml2Json.isFormattedOutput()));
 				break;
 			}
@@ -301,7 +295,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
-				addAction(list, new Json2XMLAction(schemaArtifact.getJAXBContext(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.isCaseInsensitive(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
+				addAction(list, new Json2XMLAction(schemaArtifact.getJAXBContext(null), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.isCaseInsensitive(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
 					Collections.inverseMap(createNsDecls(json2Xml.getNsDecl()), true), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()));
 				break;
 			}
@@ -477,7 +471,18 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		if (workerPool != null) {
 			WorkerPoolArtifact workerPoolArtifact = loadArtifact(workerPool + '.' + WorkerPoolArtifact.FILE_EXTENSION);
 			addReference(workerPoolArtifact);
-			return WorkerPoolArtifact.stripExt(workerPoolArtifact.getURI());
+			return stripExt(workerPoolArtifact.getURI());
+		} else {
+			return null;
+		}
+	}
+
+	private java.lang.ClassLoader resolveClassLoader(GlobalContext globalContext, String classLoaderURI) throws FileNotFoundException, ValidationException {
+		if (classLoaderURI != null) {
+			ClassLoaderArtifact classLoaderArtifact = loadArtifact(classLoaderURI + '.' + ClassLoaderArtifact.FILE_EXTENSION);
+			addReference(classLoaderArtifact);
+			classLoaderArtifact.validate(globalContext);
+			return classLoaderArtifact.getFileSystemClassLoader();
 		} else {
 			return null;
 		}

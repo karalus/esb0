@@ -126,10 +126,10 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	public DynamicJAXBContext getJAXBContext() throws JAXBException, IOException {
+	public DynamicJAXBContext getJAXBContext(ClassLoader classLoader) throws JAXBException, IOException {
 		if (_jaxbContext == null && _lastSchemaElement != null) {
 			// TODO: This just works when the WSDL contains the one schema with the elements used in messages
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(_lastSchemaElement, getResolver(), null, getDynamicJAXBContextProperties());
+			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(_lastSchemaElement, getResolver(), classLoader, getDynamicJAXBContextProperties());
 			_lastSchemaElement = null;
 		}
 		return _jaxbContext;

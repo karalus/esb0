@@ -201,6 +201,7 @@
 						</element>
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" />
+					<attribute name="classLoader" type="anyURI" />
 				</extension>
 			</complexContent>
 		</complexType>

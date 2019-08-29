@@ -117,14 +117,14 @@ public abstract class JDBCAction extends TerminalAction {
 					if (param.getTruncate() == null) {
 						ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
 					} else {
-						ps.setCharacterStream(param.getPos(), new StringReader(param.<String> alignValue(message.getBodyAsString(context))));
+						ps.setCharacterStream(param.getPos(), new StringReader((String) param.alignValue(message.getBodyAsString(context))));
 					}
 					break;
 				case BLOB:
 					if (param.getTruncate() == null) {
 						ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
 					} else {
-						ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(param.<byte[]> alignValue(message.getBodyAsByteArray(context))));
+						ps.setBinaryStream(param.getPos(), new ByteArrayInputStream((byte[]) param.alignValue(message.getBodyAsByteArray(context))));
 					}
 					break;
 				case STRUCT:

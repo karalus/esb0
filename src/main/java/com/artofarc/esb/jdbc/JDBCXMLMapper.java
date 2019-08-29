@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Struct;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -127,6 +128,10 @@ public final class JDBCXMLMapper {
 		if (value instanceof XMLGregorianCalendar) {
 			XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
 			return new Timestamp(calendar.toGregorianCalendar(JDBCParameter.TIME_ZONE, null, null).getTimeInMillis());
+		}
+		if (value instanceof Calendar) {
+			Calendar calendar = (Calendar) value;
+			return new Timestamp(calendar.getTimeInMillis());
 		}
 		return value;
 	}

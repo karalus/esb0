@@ -106,7 +106,10 @@ public abstract class SchemaArtifact extends Artifact {
 		}
 	}
 
-	public abstract DynamicJAXBContext getJAXBContext() throws JAXBException, IOException;
+	/**
+	 * We assume that always the same {@link ClassLoader} is used.
+	 */
+	public abstract DynamicJAXBContext getJAXBContext(ClassLoader classLoader) throws JAXBException, IOException;
 
 	@Override
 	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {

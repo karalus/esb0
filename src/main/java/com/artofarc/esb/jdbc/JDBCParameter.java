@@ -98,20 +98,19 @@ public final class JDBCParameter {
 		return _xmlElement;
 	}
 
-	@SuppressWarnings("unchecked")
-	public <T> T alignValue(Object value) {
+	public Object alignValue(Object value) {
 		switch (_type) {
 		case Types.TIMESTAMP:
 			if (value instanceof XMLGregorianCalendar) {
 				XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
-				return (T) new Timestamp(calendar.toGregorianCalendar(TIME_ZONE, null, null).getTimeInMillis());
+				return new Timestamp(calendar.toGregorianCalendar(TIME_ZONE, null, null).getTimeInMillis());
 			}
 			if (value instanceof Calendar) {
 				Calendar calendar = (Calendar) value;
-				return (T) new Timestamp(calendar.getTimeInMillis());
+				return new Timestamp(calendar.getTimeInMillis());
 			}
 			if (value instanceof Long) {
-				return (T) new Timestamp((Long) value);
+				return new Timestamp((Long) value);
 			}
 			break;
 		case Types.CHAR:
@@ -119,7 +118,7 @@ public final class JDBCParameter {
 		case Types.CLOB:
 			if (_truncate != null && value != null) {
 				String s = (String) value;
-				return (T) (s.length() > _truncate ? s.substring(0, _truncate) : s);
+				return s.length() > _truncate ? s.substring(0, _truncate) : s;
 			}
 			break;
 		case Types.BLOB:
@@ -127,13 +126,13 @@ public final class JDBCParameter {
 			if (_truncate != null && msgBody.length > _truncate) {
 				final byte[] newMsgBody = new byte[_truncate]; 
 				System.arraycopy(msgBody, 0, newMsgBody, 0, _truncate);
-				return (T) newMsgBody;
+				return newMsgBody;
 			}
 			break;
 		default:
 			break;
 		}
-		return (T) value;
+		return value;
 	}
 
 }

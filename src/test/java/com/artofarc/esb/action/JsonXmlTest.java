@@ -28,7 +28,7 @@ public class JsonXmlTest extends AbstractESBTest {
       fileSystem = getGlobalContext().getFileSystem();
       fileSystem.init(getGlobalContext());
       XSDArtifact xsd = fileSystem.getArtifact("de.aoa.ei.foundation.v1.xsd");
-      jaxbContext = xsd.getJAXBContext();
+      jaxbContext = xsd.getJAXBContext(null);
       urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "");
 	}
 
@@ -87,7 +87,7 @@ public class JsonXmlTest extends AbstractESBTest {
 		HashMap<String, String> urisToPrefixes = new HashMap<String, String>();
 		urisToPrefixes.put("http://aoa.de/xsd/demo/v1/", "");
 		urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "ei1");
-		Action action = new XML2JsonAction(xsd.getJAXBContext(), null, true, urisToPrefixes, null, true);
+		Action action = new XML2JsonAction(xsd.getJAXBContext(null), null, true, urisToPrefixes, null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new DumpAction());
@@ -102,7 +102,7 @@ public class JsonXmlTest extends AbstractESBTest {
 		urisToPrefixes.clear();
 		urisToPrefixes.put("http://aoa.de/xsd/demo/v1/", "");
 		urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "ei1");
-		Action action = new Json2XMLAction(xsd.getJAXBContext(), null, true, false, null, urisToPrefixes, null, true);
+		Action action = new Json2XMLAction(xsd.getJAXBContext(null), null, true, false, null, urisToPrefixes, null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new DumpAction());
