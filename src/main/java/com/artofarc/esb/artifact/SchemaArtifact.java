@@ -93,11 +93,20 @@ public abstract class SchemaArtifact extends Artifact {
 
 	protected abstract Source[] getSourcesForSchema() throws Exception;
 
+	final void createXMLSchema() throws Exception {
+		try {
+			_schema = SchemaHelper.createXMLSchema(this, getSourcesForSchema());
+		} catch (Exception e) {
+			_namespace.set(null);
+			throw e;
+		}
+	}
+
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
 		if (cacheXSGrammars) {
 			if (_namespace.compareAndSet(null, "dummy")) {
-				_schema = SchemaHelper.createXMLSchema(this, getSourcesForSchema());
+				createXMLSchema();
 			}
 		} else {
 			SchemaFactory factory = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);

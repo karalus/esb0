@@ -70,9 +70,12 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		return clone;
 	}
 
-	public final Map<QName, Binding> getAllBindings() {
+	public final Map<QName, Binding> getAllBindings() throws ValidationException {
 		// _allBindings might be set by different thread in {@link SchemaHelper}
 		while (_namespace.get() != null && _allBindings == null) Thread.yield();
+		if (_allBindings == null) {
+			throw new ValidationException(this, "WSDL could not been parsed");
+		}
 		return _allBindings;
 	}
 

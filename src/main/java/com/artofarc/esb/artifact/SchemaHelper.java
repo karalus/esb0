@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -104,7 +103,7 @@ public final class SchemaHelper implements InvocationHandler {
 				if (artifact != _schemaArtifact) {
 					// don't recurse when it is already started. Will result in stack overflow caused by circular dependencies. 
 					if (artifact._namespace.compareAndSet(null, namespace)) {
-						artifact._schema = createXMLSchema(artifact, artifact.getSourcesForSchema());
+						artifact.createXMLSchema();
 					} else {
 						Object grammar = artifact.getGrammars().get(namespace);
 						if (grammar != null) return grammar;
@@ -122,8 +121,8 @@ public final class SchemaHelper implements InvocationHandler {
 					}
 					return null;
 				}
-			} catch (FileNotFoundException | SAXException e) {
-				throw new RuntimeException(e);
+			} catch (Exception e) {
+				throw ReflectionUtils.convert(e, RuntimeException.class);
 			}
 		case "cacheGrammars":
 			Object[] grammars = (Object[]) args[1];
