@@ -278,15 +278,6 @@
 				<extension base="tns:ActionBase">
 					<sequence>
 						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
-						<element name="assignment" minOccurs="0" maxOccurs="unbounded">
-							<complexType>
-								<simpleContent>
-									<extension base="string">
-										<attribute name="header" type="Name" use="required" />
-									</extension>
-								</simpleContent>
-							</complexType>
-						</element>
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" use="required" />
 					<attribute name="type" type="tns:string1" />
@@ -307,6 +298,7 @@
 						<element name="xquery" type="string" minOccurs="0" />
 					</sequence>
 					<attribute name="xqueryURI" type="anyURI" />
+					<attribute name="contextItem" type="Name" />
 				</extension>
 			</complexContent>
 		</complexType>

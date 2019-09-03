@@ -38,8 +38,10 @@ import java.util.zip.InflaterInputStream;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.UnmarshallerHandler;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -56,7 +58,6 @@ import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQSequence;
 
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
@@ -415,7 +416,7 @@ public final class ESBMessage implements Cloneable {
 		case SOURCE:
 			return (Source) _body;
 		case DOM:
-			return new DOMSource((Document) _body);
+			return new DOMSource((Node) _body);
 		case EXCEPTION:
 			init(BodyType.STRING, asXMLString((Exception) _body), null);
 		case STRING:
@@ -442,7 +443,7 @@ public final class ESBMessage implements Cloneable {
 		return xml;
 	}
 
-	public XMLStreamReader getBodyAsXMLStreamReader(Context context) throws IOException, XQException, XMLStreamException {
+	public Object unmarshal(Context context, Unmarshaller unmarshaller) throws XQException, IOException, TransformerException, JAXBException {
 		switch (_bodyType) {
 		case XQ_SEQUENCE:
 			XQSequence xqSequence = (XQSequence) _body;
@@ -453,9 +454,33 @@ public final class ESBMessage implements Cloneable {
 			// nobreak
 		case XQ_ITEM:
 			_bodyType = BodyType.INVALID;
-			return ((XQItem) _body).getItemAsStream();
+			XQItem xqItem = (XQItem) _body;
+			return unmarshaller.unmarshal(xqItem.getItemAsStream());
+		case DOM:
+			// Needed because Saxon DOM Element does not work with MOXy
+			UnmarshallerHandler unmarshallerHandler = unmarshaller.getUnmarshallerHandler();
+			context.getIdenticalTransformer().transform(new DOMSource((Node) _body), new SAXResult(unmarshallerHandler));
+			return unmarshallerHandler.getResult();
 		default:
-			return context.getPoolContext().getGlobalContext().getXMLInputFactory().createXMLStreamReader(getBodyAsSource(context));
+			return unmarshaller.unmarshal(getBodyAsSource(context));
+		}
+	}
+
+	public <T> JAXBElement<T> unmarshal(Context context, Unmarshaller unmarshaller, Class<T> declaredType) throws XQException, IOException, JAXBException {
+		switch (_bodyType) {
+		case XQ_SEQUENCE:
+			XQSequence xqSequence = (XQSequence) _body;
+			if (!xqSequence.next()) {
+				throw new IllegalStateException("Message already consumed");
+			}
+			_body = context.getXQDataFactory().createItem(xqSequence.getItem());
+			// nobreak
+		case XQ_ITEM:
+			_bodyType = BodyType.INVALID;
+			XQItem xqItem = (XQItem) _body;
+			return unmarshaller.unmarshal(xqItem.getItemAsStream(), declaredType);
+		default:
+			return unmarshaller.unmarshal(getBodyAsSource(context), declaredType);
 		}
 	}
 
@@ -513,7 +538,7 @@ public final class ESBMessage implements Cloneable {
 		Source source;
 		switch (_bodyType) {
 		case DOM:
-			source = new DOMSource((Document) _body);
+			source = new DOMSource((Node) _body);
 			break;
 		case STRING:
 			source = new StreamSource(new StringReader((String) _body));

@@ -4,7 +4,6 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -324,7 +323,7 @@ public class SOAPTest extends AbstractESBTest {
       assertTrue(module.isValidated());
       assertTrue(xqueryArtifact.getReferenced().size() > 0);
       assertTrue(xqueryArtifact.getReferenced().contains("/modules/helloworld.xqy"));
-      TransformAction nextAction = new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), Arrays.asList("greetings"), xqueryArtifact.getParent().getURI());
+      TransformAction nextAction = createTransformAction(xqueryArtifact, "greetings");
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
@@ -349,7 +348,7 @@ public class SOAPTest extends AbstractESBTest {
       assertTrue(module.isValidated());
       assertTrue(xqueryArtifact.getReferenced().size() > 0);
       assertTrue(xqueryArtifact.getReferenced().contains("/modules/helloworld.xqy"));
-      TransformAction nextAction = new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), Arrays.asList("greetings"), xqueryArtifact.getParent().getURI());
+      TransformAction nextAction = createTransformAction(xqueryArtifact, "greetings");
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
@@ -371,7 +370,7 @@ public class SOAPTest extends AbstractESBTest {
       XQueryArtifact xqueryArtifact = new XQueryArtifact(null, null, null);
       xqueryArtifact.setContent("import schema default element namespace 'http://aoa.de/ei/foundation/v1' at '/kdf.xsd'; declare variable $request as element() external; (validate($request/*[1]/*[1]), $request)".getBytes());
       xqueryArtifact.validateInternal(globalContext);
-      TransformAction nextAction = new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), Arrays.asList("validate"), xqueryArtifact.getParent().getURI());
+      TransformAction nextAction = createTransformAction(xqueryArtifact, "validate");
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
@@ -464,7 +463,7 @@ public class SOAPTest extends AbstractESBTest {
 		XQueryArtifact module = new XQueryArtifact(globalContext.getFileSystem(), globalContext.getFileSystem().getRoot(), "service-utils.xqm");
 		module.setContent(readFile("src/test/resources/service-utils.xqm"));
 
-      action = action.setNextAction(new TransformAction(XQuerySource.create("import module namespace fn-svi='http://aoa.de/esb/service-utils' at '/service-utils.xqm'; fn-svi:copyAndInsertReplyContext(., 'SGFsbG8gV2VsdCE=')"), "/"));
+      action = action.setNextAction(new TransformAction(XQuerySource.create("import module namespace fn-svi='http://aoa.de/esb/service-utils' at '/service-utils.xqm'; fn-svi:copyAndInsertReplyContext(., 'SGFsbG8gV2VsdCE=')"), "/", null));
       action = action.setNextAction(new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; ./*[1]"));
       XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
       xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));

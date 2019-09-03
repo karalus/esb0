@@ -12,14 +12,17 @@ import org.junit.Before;
 import com.artofarc.esb.action.AssignAction;
 import com.artofarc.esb.action.ExecutionException;
 import com.artofarc.esb.action.HttpOutboundAction;
+import com.artofarc.esb.action.TransformAction;
 import com.artofarc.esb.action.UnwrapSOAPAction;
 import com.artofarc.esb.action.ValidateAction;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystemDir;
 import com.artofarc.esb.artifact.SchemaArtifact;
 import com.artofarc.esb.artifact.XMLCatalog;
+import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.message.ESBMessage;
@@ -83,5 +86,9 @@ public abstract class AbstractESBTest {
 			
 		};
 	}
-	
+
+	protected static TransformAction createTransformAction(XQueryArtifact xqueryArtifact, String... varNames) {
+		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), Arrays.asList(varNames), xqueryArtifact.getParent().getURI(), null);
+	}
+
 }

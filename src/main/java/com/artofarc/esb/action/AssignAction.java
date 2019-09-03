@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.util.Collections;
 
 public class AssignAction extends TransformAction {
@@ -30,17 +31,15 @@ public class AssignAction extends TransformAction {
 	}
 
 	public AssignAction(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
-		this(new ArrayList<String>(), assignments, namespaces, bindNames);
-		_contextItem = contextItem;
-		_pipelineStop = contextItem != null;
+		this(new ArrayList<String>(), assignments, namespaces, bindNames, contextItem);
 	}
 
-	private AssignAction(ArrayList<String> varNames, Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames) {
-		super(createQuery(assignments, namespaces, varNames, bindNames), varNames);
+	private AssignAction(List<String> varNames, Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
+		super(createXQuery(assignments, namespaces, varNames, bindNames), varNames, null, contextItem);
 		_bindNames = bindNames;
 	}
 
-	private static String createQuery(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> varNames, List<String> bindNames) {
+	private static XQuerySource createXQuery(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> varNames, List<String> bindNames) {
 		StringBuilder builder = new StringBuilder();
 		if (namespaces != null) {
 			for (Map.Entry<String, String> entry : namespaces) {
@@ -56,7 +55,7 @@ public class AssignAction extends TransformAction {
 			builder.append(entry.getValue()).append(", ");
 		}
 		builder.append(".)");
-		return builder.toString();
+		return XQuerySource.create(builder.toString());
 	}
 
 }

@@ -27,7 +27,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.management.MBeanServer;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.transform.URIResolver;
 
 import com.artofarc.esb.Registry;
@@ -43,7 +42,6 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
-	private final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 	private final XQConnectionFactory _xqConnectionFactory;
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
 	private final Map<String, WorkerPool> _workerPoolMap = Collections.synchronizedMap(new HashMap<String, WorkerPool>());
@@ -78,10 +76,6 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 
 	public URIResolver getURIResolver() {
 		return _uriResolver;
-	}
-
-	public XMLInputFactory getXMLInputFactory() {
-		return xmlInputFactory;
 	}
 
 	public XQConnectionFactory getXQConnectionFactory() {

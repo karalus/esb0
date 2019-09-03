@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.message;
 
+import org.w3c.dom.Node;
+
 public enum BodyType {
 	INVALID(false), INPUT_STREAM(true), READER(false), STRING(false), BYTES(true), DOM(false), XQ_SEQUENCE(false), OUTPUT_STREAM(true), WRITER(true), SOURCE(
 			false), RESULT(false), XQ_ITEM(false), EXCEPTION(false);
@@ -35,6 +37,8 @@ public enum BodyType {
 			return STRING;
 		} else if (body instanceof byte[]) {
 			return BYTES;
+		} else if (body instanceof Node) {
+			return DOM;
 		} else if (body == null) {
 			return INVALID;
 		} else {

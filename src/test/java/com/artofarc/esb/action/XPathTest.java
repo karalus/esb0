@@ -16,7 +16,6 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.Directory;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
@@ -142,7 +141,7 @@ public class XPathTest extends AbstractESBTest {
       assertTrue(module.isValidated());
       assertTrue(xqueryArtifact.getReferenced().size() > 0);
       //assertTrue(xqueryArtifact.getReferenced().contains("/modules/osb-legacy-support-v1.xqm"));
-      Action action = new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), xqueryArtifact.getParent().getURI());
+      Action action = createTransformAction(xqueryArtifact);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new DumpAction());

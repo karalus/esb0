@@ -17,11 +17,11 @@
 package com.artofarc.esb.action;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConstants;
@@ -45,26 +45,28 @@ public class TransformAction extends Action {
 	private final XQuerySource _xquery;
 	private final List<String> _varNames;
 	private final String _baseURI; 
+	private final String _contextItem;
 	protected List<String> _bindNames;
 	private final HashMap<QName, XQItemType> _bindings = new HashMap<>();
-	protected String _contextItem;
 
-	protected TransformAction(XQuerySource xquery, List<String> varNames, String baseURI) {
+	public TransformAction(XQuerySource xquery, List<String> varNames, String baseURI, String contextItem) {
 		_xquery = xquery;
 		_varNames = varNames;
 		_baseURI = baseURI;
+		_contextItem = contextItem;
+		_pipelineStop = contextItem != null;
 	}
 
-	public TransformAction(XQuerySource xquery, String baseURI) {
-		this(xquery, Collections.<String> emptyList(), baseURI);
+	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
+		this(xquery, contextItem != null ? Arrays.asList(contextItem) : Collections.<String> emptyList(), baseURI, contextItem);
 	}
 
 	protected TransformAction(String xquery, List<String> varNames) {
-		this(XQuerySource.create(xquery), varNames, null);
+		this(XQuerySource.create(xquery), varNames, null, null);
 	}
 
 	protected TransformAction(String xquery) {
-		this(XQuerySource.create(xquery), null);
+		this(XQuerySource.create(xquery), Collections.<String> emptyList(), null, null);
 	}
 
 	public final XQuerySource getXQuery() {
@@ -124,7 +126,7 @@ public class TransformAction extends Action {
 				}
 			}
 		}
-		for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {
+		for (Map.Entry<QName, XQItemType> entry : _bindings.entrySet()) {
 			bind(entry.getKey().getLocalPart(), entry.getKey(), entry.getValue(), xqExpression, message);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
@@ -213,7 +215,7 @@ public class TransformAction extends Action {
 			XQPreparedExpression xqExpression = execContext.getResource2();
 			// unbind (large) documents so that they can be garbage collected
 			xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
-			for (Entry<QName, XQItemType> entry : _bindings.entrySet()) {
+			for (Map.Entry<QName, XQItemType> entry : _bindings.entrySet()) {
 				if (entry.getValue() == null || entry.getValue().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
 					xqExpression.bindString(entry.getKey(), "", null);
 				}

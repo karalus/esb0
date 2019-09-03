@@ -64,9 +64,9 @@ public class XML2JsonAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null && !contentType.startsWith(SOAP_1_1_CONTENT_TYPE)) {
-			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
+		String type = parseContentType(message.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
+		if (type != null && !isSOAP11(type) && !isSOAP12(type)) {
+			throw new ExecutionException(this, "Unexpected Content-Type: " + message.<String>getHeader(HTTP_HEADER_CONTENT_TYPE));
 		}
 		message.getHeaders().clear();
 		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
@@ -80,10 +80,10 @@ public class XML2JsonAction extends Action {
 		Object root;
 		try {
 			if (_type != null) {
-				root = unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context), _type);
+				root = message.unmarshal(context, unmarshaller, _type);
 			} else {
 				unmarshaller.setSchema(_schema);
-				root = unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context));
+				root = message.unmarshal(context, unmarshaller);
 			}
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("Unmarshal XML--> Java", true);

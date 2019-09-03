@@ -129,7 +129,7 @@ public abstract class JDBCAction extends TerminalAction {
 					break;
 				case STRUCT:
 					Unmarshaller unmarshaller = _mapper.getJAXBContext().createUnmarshaller();
-					Object root = unmarshaller.unmarshal(message.getBodyAsXMLStreamReader(context));
+					Object root = message.unmarshal(context, unmarshaller);
 					if (root instanceof DynamicEntity) {
 						DynamicEntity entity = (DynamicEntity) root;
 						ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(entity, true, getConnection(execContext)));
