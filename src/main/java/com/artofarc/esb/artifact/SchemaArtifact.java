@@ -82,6 +82,7 @@ public abstract class SchemaArtifact extends Artifact {
 			_grammars.clear();
 			_namespace.set(null);
 		}
+		_jaxbContext = null;
 		super.invalidate();
 	}
 

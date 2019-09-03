@@ -118,7 +118,10 @@ public abstract class Artifact {
 	 * Override when content should be kept in memory.
 	 */
 	protected void clearContent() {
-		_content = null;
+		// don't clear artificial artifacts like "Admin.xservice"
+		if (_modificationTime > 0L) {
+			_content = null;
+		}
 	}
 
 	public final long getModificationTime() {
