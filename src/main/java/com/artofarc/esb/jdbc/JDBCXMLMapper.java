@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -33,6 +34,8 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.dom.DOMSource;
 
 import org.eclipse.persistence.dynamic.DynamicEntity;
 import org.eclipse.persistence.dynamic.DynamicHelper;
@@ -43,6 +46,7 @@ import org.eclipse.persistence.oxm.XMLField;
 import org.eclipse.persistence.oxm.mappings.XMLChoiceObjectMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Node;
 
 import com.artofarc.util.ReflectionUtils;
 
@@ -104,12 +108,12 @@ public final class JDBCXMLMapper {
 					if (value instanceof DynamicEntity) {
 						elements[j] = toJDBC((DynamicEntity) value, false, connection);
 					} else {
-						elements[j] = toJDBC(value);
+						elements[j] = toJDBC(value, connection);
 					}
 				}
 				return createArray(connection, typeName.getLocalPart(), elements);
 			} else if (property != null) {
-				attributes[i] = toJDBC(property);
+				attributes[i] = toJDBC(property, connection);
 			}
 		}
 		return root ? attributes[0] : connection.createStruct(typeName.getLocalPart(), attributes);
@@ -120,11 +124,11 @@ public final class JDBCXMLMapper {
 		if (value instanceof DynamicEntity) {
 			return toJDBC((DynamicEntity) value, root, connection);
 		} else {
-			return toJDBC(value);
+			return toJDBC(value, connection);
 		}
 	}
 
-	public static Object toJDBC(Object value) {
+	public static Object toJDBC(Object value, Connection connection) throws SQLException {
 		if (value instanceof XMLGregorianCalendar) {
 			XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
 			return new Timestamp(calendar.toGregorianCalendar(JDBCParameter.TIME_ZONE, null, null).getTimeInMillis());
@@ -132,6 +136,12 @@ public final class JDBCXMLMapper {
 		if (value instanceof Calendar) {
 			Calendar calendar = (Calendar) value;
 			return new Timestamp(calendar.getTimeInMillis());
+		}
+		if (value instanceof Node) {
+			SQLXML sqlxml = connection.createSQLXML();
+			DOMResult domResult = sqlxml.setResult(DOMResult.class);
+			domResult.setNode((Node) value);
+			return sqlxml;
 		}
 		return value;
 	}
@@ -213,11 +223,15 @@ public final class JDBCXMLMapper {
 		return entity;
 	}
 
-	public static Object fromJDBC(Object value) {
+	public static Object fromJDBC(Object value) throws SQLException {
 		if (value instanceof Date) {
 			GregorianCalendar calendar = new GregorianCalendar(JDBCParameter.TIME_ZONE);
 			calendar.setTime((Date) value);
 			return datatypeFactory.newXMLGregorianCalendar(calendar);
+		}
+		if (value instanceof SQLXML) {
+			DOMSource domSource = ((SQLXML) value).getSource(DOMSource.class);
+			return domSource.getNode();
 		}
 		return value;
 	}
