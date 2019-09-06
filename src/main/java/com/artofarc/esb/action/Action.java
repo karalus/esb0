@@ -301,4 +301,10 @@ public abstract class Action implements Cloneable {
 		}
 	}
 
+	protected final void checkAtomic(Object value, String exp) throws ExecutionException {
+		if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {
+			throw new ExecutionException(this, "Value for " + exp + " is not an atomic type: " + value.getClass());
+		}
+	}
+
 }

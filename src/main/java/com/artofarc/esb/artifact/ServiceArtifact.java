@@ -389,7 +389,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case "cache":
 				Cache cache = (Cache) jaxbElement.getValue();
 				addAction(list, new CacheAction(globalContext, cache.getKey(), cache.getValue(),
-						Action.linkList(transform(globalContext, cache.getAction(), null)), cache.getName(), cache.getMaxSize(), cache.getTtl()));
+						Action.linkList(transform(globalContext, cache.getAction(), null)), cache.isWriteOnly(), cache.getName(), cache.getMaxSize(), cache.getTtl()));
+				break;
+			case "uncache":
+				Uncache uncache = (Uncache) jaxbElement.getValue();
+				addAction(list, new UncacheAction(globalContext, uncache.getKey(), uncache.getName()));
 				break;
 			case "spawn":
 				Spawn spawn = (Spawn) jaxbElement.getValue();

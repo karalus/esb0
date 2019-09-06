@@ -67,9 +67,7 @@ public class BranchOnVariableAction extends Action {
 		Object value = resolve(message, _varName, true);
 		Action action = _nullAction;
 		if (value != null) {
-			if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {
-				throw new ExecutionException(this, "Value for " + _varName + " is not an atomic type: " + value.getClass());
-			}
+			checkAtomic(value, _varName);
 			String strValue = value.toString();
 			action = _defaultAction;
 			if (_useRegEx) {

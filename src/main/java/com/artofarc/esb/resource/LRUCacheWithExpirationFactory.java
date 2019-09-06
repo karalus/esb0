@@ -17,9 +17,9 @@
 package com.artofarc.esb.resource;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.Future;
@@ -56,7 +56,7 @@ public final class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCach
 
 		private final String _name;
 		private final int _maxSize;
-		private final Map<Object, Expiration> _expirationKeys = new HashMap<>();
+		private final Map<Object, Expiration> _expirationKeys = new ConcurrentHashMap<>();
 		private final Map<Object, Object> _cache = Collections.synchronizedMap(new LinkedHashMap<Object, Object>() {
 			private static final long serialVersionUID = 1L;
 
@@ -95,6 +95,16 @@ public final class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCach
 
 		public Object get(Object key) {
 			return _cache.get(key);
+		}
+
+		public Object remove(Object key) {
+			Expiration expiration = _expirationKeys.remove(key);
+			if (expiration != null) {
+				synchronized (LRUCacheWithExpirationFactory.this) {
+					expiries.remove(expiration);
+				}
+			}
+			return _cache.remove(key);
 		}
 
 		@Override
@@ -137,6 +147,9 @@ public final class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCach
 
 	@Override
 	protected Cache createResource(String cacheName, Integer maxSize) {
+		if (maxSize == null) {
+			throw new IllegalArgumentException("Cache cannot be created without parameter maxSize: " + cacheName);
+		}
 		return new Cache(cacheName, maxSize);
 	}
 

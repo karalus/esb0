@@ -26,13 +26,15 @@ public class CacheAction extends Action {
 
 	private final String _keyExp, _valueName;
 	private final Action _cacheAction;
+	private final boolean _notWriteOnly;
 	private final LRUCacheWithExpirationFactory.Cache _cache;
 	private final long _ttl;
 
-	public CacheAction(GlobalContext globalContext, String keyExp, String valueName, Action cacheAction, String cacheName, int maxSize, long ttl) throws Exception {
+	public CacheAction(GlobalContext globalContext, String keyExp, String valueName, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, long ttl) throws Exception {
 		_keyExp = keyExp;
 		_valueName = valueName;
 		_cacheAction = cacheAction;
+		_notWriteOnly = !writeOnly;
 		LRUCacheWithExpirationFactory factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);
 		_cache = factory.getResource(cacheName, maxSize);
 		_ttl = ttl;
@@ -51,14 +53,12 @@ public class CacheAction extends Action {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		final Object key = bindVariable(_keyExp, context, message);
 		if (key != null) {
-			if (!(key instanceof String || key instanceof Number || key instanceof Boolean)) {
-				throw new ExecutionException(this, "Value for " + _keyExp + " is not an atomic type: " + key.getClass());
-			}
+			checkAtomic(key, _keyExp);
 			if (_nextAction != null) {
 				context.getExecutionStack().push(_nextAction);
 			}
 			Action action = null;
-			if (_cache.containsKey(key)) {
+			if (_notWriteOnly && _cache.containsKey(key)) {
 				if (!isValueBody()) {
 					message.putVariable(_valueName, _cache.get(key));
 				}
@@ -82,7 +82,7 @@ public class CacheAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (isValueBody()) {
+		if (_notWriteOnly && isValueBody()) {
 			Object key = execContext.getResource();
 			if (_cache.containsKey(key)) {
 				message.getHeaders().clear();
