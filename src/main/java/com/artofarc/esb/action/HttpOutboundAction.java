@@ -57,8 +57,8 @@ public class HttpOutboundAction extends Action {
 		}
 		int timeout = message.getTimeleft(_readTimeout).intValue();
 		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);
+		message.getVariables().put(HttpURLOutbound, wrapper.getHttpUrl().getUrlStr());
 		HttpURLConnection conn = wrapper.getHttpURLConnection();  
-		message.getVariables().put(HttpURLOutbound, conn.getURL().toString());
 		if (inPipeline) {
 			message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
 		} else {

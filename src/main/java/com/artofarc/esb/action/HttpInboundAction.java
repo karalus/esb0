@@ -23,15 +23,13 @@ import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.Map.Entry;
 
-import javax.xml.transform.Result;
-
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
 import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.StreamUtils;
 
 public class HttpInboundAction extends Action {
@@ -67,10 +65,7 @@ public class HttpInboundAction extends Action {
 			if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
 				StreamUtils.copy(inputStream, message.<OutputStream> getBody());
 			} else {
-				// TODO: Code coverage?
-				Result result = message.getBodyAsSinkResult(context);
 				message.reset(BodyType.INPUT_STREAM, inputStream);
-				message.writeTo(result, context);
 			}
 		}
 	}

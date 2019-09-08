@@ -20,20 +20,25 @@ import java.net.URL;
 
 public final class HttpUrl {
 
+	private final String _urlStr;
 	private final URL _url;
-	private final int _weight;
-	private final boolean _active;
 	private final String _host;
 	private final int _port;
 	private final String _path;
+	private final int _weight;
+	private final boolean _active;
 
 	public HttpUrl(String url, int weight, boolean active) throws java.net.MalformedURLException {
-		_url = new URL(url);
+		_url = new URL(_urlStr = url);
 		_host = _url.getHost();
 		_port = _url.getPort() < 0 ? _url.getDefaultPort() : _url.getPort();
 		_path = _url.getPath();
 		_weight = weight;
 		_active = active;
+	}
+
+	public String getUrlStr() {
+		return _urlStr;
 	}
 
 	public URL getUrl() {
