@@ -18,6 +18,7 @@ package com.artofarc.esb.action;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -43,13 +44,13 @@ import com.artofarc.esb.message.ESBMessage;
 public class TransformAction extends Action {
 
 	private final XQuerySource _xquery;
-	private final List<String> _varNames;
+	private final Collection<Map.Entry<String, Boolean>> _varNames;
 	private final String _baseURI; 
 	private final String _contextItem;
 	protected List<String> _bindNames;
 	private final HashMap<QName, XQItemType> _bindings = new HashMap<>();
 
-	public TransformAction(XQuerySource xquery, List<String> varNames, String baseURI, String contextItem) {
+	public TransformAction(XQuerySource xquery, Collection<Map.Entry<String, Boolean>> varNames, String baseURI, String contextItem) {
 		_xquery = xquery;
 		_varNames = varNames;
 		_baseURI = baseURI;
@@ -58,15 +59,15 @@ public class TransformAction extends Action {
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
-		this(xquery, contextItem != null ? Arrays.asList(contextItem) : Collections.<String> emptyList(), baseURI, contextItem);
+		this(xquery, contextItem != null ? Arrays.asList(com.artofarc.util.Collections.createEntry(contextItem, false)) : Collections.<Map.Entry<String, Boolean>> emptyList(), baseURI, contextItem);
 	}
 
-	protected TransformAction(String xquery, List<String> varNames) {
+	protected TransformAction(String xquery, Collection<Map.Entry<String, Boolean>> varNames) {
 		this(XQuerySource.create(xquery), varNames, null, null);
 	}
 
 	protected TransformAction(String xquery) {
-		this(XQuerySource.create(xquery), Collections.<String> emptyList(), null, null);
+		this(XQuerySource.create(xquery), Collections.<Map.Entry<String, Boolean>> emptyList(), null, null);
 	}
 
 	public final XQuerySource getXQuery() {
@@ -87,6 +88,12 @@ public class TransformAction extends Action {
 				XQItemType itemType = value != null ? xqDataFactory.createItemFromObject(value, null).getItemType() : null;
 				_bindings.put(new QName(bindName), itemType);
 			}
+		}
+	}
+
+	protected final void checkNext(XQSequence sequence, String goal) throws XQException, ExecutionException {
+		if (!sequence.next()) {
+			throw new ExecutionException(this, "Sequence prematurely ended. Could not get " + goal);
 		}
 	}
 
@@ -112,9 +119,7 @@ public class TransformAction extends Action {
 				switch (message.getBodyType()) {
 				case XQ_SEQUENCE:
 					XQSequence sequence = message.getBody();
-					if (!sequence.next()) {
-						throw new ExecutionException(this, "body not passed through");
-					}
+					checkNext(sequence, "body");
 					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
 					break;
 				case XQ_ITEM:
@@ -139,9 +144,7 @@ public class TransformAction extends Action {
 		}
 		if (_contextItem == null) {
 			if (isPipelineStop()) {
-				if (!resultSequence.next()) {
-					throw new ExecutionException(this, "body not passed through");
-				}
+				checkNext(resultSequence, "body");
 				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
 			} else {
 				message.reset(BodyType.XQ_SEQUENCE, resultSequence);
@@ -165,17 +168,20 @@ public class TransformAction extends Action {
 	}
 
 	protected void processSequence(ESBMessage message, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
-		if (destMap == null && !_varNames.isEmpty()) {
-			throw new ExecutionException(this, "Cannot handle assignment");
-		}
-		for (String varName : _varNames) {
-			if (!resultSequence.next()) {
-				throw new ExecutionException(this, "Expression for " + varName + " had no result");
+		for (Map.Entry<String, Boolean> entry : _varNames) {
+			String varName  = entry.getKey();
+			boolean notNull = true;
+			if (entry.getValue()) {
+				checkNext(resultSequence, varName);
+				notNull = resultSequence.getBoolean();
 			}
-			if (resultSequence.getItemType().getItemKind() == XQItemType.XQITEMKIND_TEXT) {
-				destMap.put(varName, resultSequence.getItemAsString(null));
-			} else {
-				destMap.put(varName, resultSequence.getObject());
+			if (notNull) {
+				checkNext(resultSequence, varName);
+				if (resultSequence.getItemType().getItemKind() == XQItemType.XQITEMKIND_TEXT) {
+					destMap.put(varName, resultSequence.getItemAsString(null));
+				} else {
+					destMap.put(varName, resultSequence.getObject());
+				}
 			}
 		}
 	}
@@ -184,19 +190,16 @@ public class TransformAction extends Action {
 	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop && execContext != null) {
 			XQResultSequence resultSequence = execContext.getResource();
-			if (resultSequence.next()) {
-				if (_contextItem == null) {
-					context.getTimeGauge().startTimeMeasurement();
-					if (message.isSink()) {
-						resultSequence.writeItemToResult(message.getBodyAsSinkResult(context));
-						context.getTimeGauge().stopTimeMeasurement("resultSequence.writeItemToResult", false);
-					} else {
-						message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
-						context.getTimeGauge().stopTimeMeasurement("getXQDataFactory().createItem", false);
-					}
+			checkNext(resultSequence, "body");
+			if (_contextItem == null) {
+				context.getTimeGauge().startTimeMeasurement();
+				if (message.isSink()) {
+					resultSequence.writeItemToResult(message.getBodyAsSinkResult(context));
+					context.getTimeGauge().stopTimeMeasurement("resultSequence.writeItemToResult", false);
+				} else {
+					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
+					context.getTimeGauge().stopTimeMeasurement("getXQDataFactory().createItem", false);
 				}
-			} else {
-				throw new ExecutionException(this, "body not passed through");
 			}
 		}
 	}

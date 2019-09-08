@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.jms.Message;
@@ -446,8 +447,8 @@ public class SOAPTest extends AbstractESBTest {
       Action action = createValidateAction(wsdlArtifact);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-		List<Entry<String, String>> assignments = java.util.Collections.singletonList(Collections.createEntry(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"));
-		action = action.setNextAction(new AssignHeadersAction(assignments, null, java.util.Collections.<String>emptyList(), null, true));
+		Map<Entry<String, Boolean>, String> assignments = createAssignments(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'");
+		action = action.setNextAction(new AssignHeadersAction(assignments.entrySet(), null, java.util.Collections.<String> emptyList(), null, true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }

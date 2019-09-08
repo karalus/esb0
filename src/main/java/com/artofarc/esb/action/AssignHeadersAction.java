@@ -19,7 +19,6 @@ package com.artofarc.esb.action;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -29,7 +28,7 @@ public class AssignHeadersAction extends AssignAction {
 
 	private final boolean _clearAll;
 
-	public AssignHeadersAction(Collection<Entry<String, String>> assignments, Collection<Entry<String, String>> namespaces, List<String> bindNames, String contextItem, boolean clearAll) {
+	public AssignHeadersAction(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem, boolean clearAll) {
 		super(assignments, namespaces, bindNames, contextItem);
 		_clearAll = clearAll;
 	}

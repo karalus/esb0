@@ -37,9 +37,7 @@ public class ValidateAction extends AssignAction {
 
 	@Override
 	protected void processSequence(ESBMessage message, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
-		if (!resultSequence.next()) {
-			throw new ExecutionException(this, "Expression had no result");
-		}
+		checkNext(resultSequence, "expression");
 		try {
 			resultSequence.writeItemToSAX(_schema.newValidatorHandler());
 		} catch (XQException e) {

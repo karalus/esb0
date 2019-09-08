@@ -249,9 +249,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "assign": {
 				Assign assign = (Assign) jaxbElement.getValue();
-				List<Entry<String, String>> assignments = new ArrayList<>();
+				List<Entry<Entry<String, Boolean>, String>> assignments = new ArrayList<>();
 				for (Assign.Assignment assignment : assign.getAssignment()) {
-					assignments.add(Collections.createEntry(assignment.getVariable(), assignment.getValue()));
+					assignments.add(Collections.createEntry(Collections.createEntry(assignment.getVariable(), assignment.isNullable()), assignment.getValue()));
 				}
 				AssignAction assignAction = new AssignAction(assignments, createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem());
 				XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
@@ -260,9 +260,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			case "assignHeaders": {
 				AssignHeaders assignHeaders = (AssignHeaders) jaxbElement.getValue();
-				ArrayList<Entry<String, String>> assignments = new ArrayList<>();
+				ArrayList<Entry<Entry<String, Boolean>, String>> assignments = new ArrayList<>();
 				for (AssignHeaders.Assignment assignment : assignHeaders.getAssignment()) {
-					assignments.add(Collections.createEntry(assignment.getHeader(), assignment.getValue()));
+					assignments.add(Collections.createEntry(Collections.createEntry(assignment.getHeader(), assignment.isNullable()), assignment.getValue()));
 					// TO BE REMOVED: Ugly hack to compensate for old buggy service flows
 					if (assignment.getValue().equals("$MEP")) {
 						if (!assignHeaders.getBindName().contains("MEP")) {

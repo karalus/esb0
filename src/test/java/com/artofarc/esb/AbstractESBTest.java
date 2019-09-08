@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -69,6 +72,20 @@ public abstract class AbstractESBTest {
 		return new AssignAction(varName, expression, null, Arrays.asList(bindNames), null);
 	}
 
+	protected static AssignAction createAssignAction(Map<Map.Entry<String, Boolean>, String> assignments, Map<String, String> namespaces, String... bindNames) {
+		return new AssignAction(assignments.entrySet(), namespaces != null ? namespaces.entrySet() : null, Arrays.asList(bindNames), null);
+	}
+
+	protected static Map<Map.Entry<String, Boolean>, String> createAssignments(String... tuples) {
+		Map<Map.Entry<String, Boolean>, String> map = new LinkedHashMap<>();
+		for (int i = 0; i < tuples.length; ++i) {
+			String varName = tuples[i];
+			String expression = tuples[++i];
+			map.put(com.artofarc.util.Collections.createEntry(varName, false), expression);
+		}
+		return map;
+	}
+
 	protected static ValidateAction createValidateAction(SchemaArtifact schemaArtifact) {
 		return new ValidateAction(schemaArtifact.getSchema(), ".", null, null);
 	}
@@ -88,7 +105,11 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static TransformAction createTransformAction(XQueryArtifact xqueryArtifact, String... varNames) {
-		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), Arrays.asList(varNames), xqueryArtifact.getParent().getURI(), null);
+		HashMap<String, Boolean> map = new HashMap<>();
+		for (String varName : varNames) {
+			map.put(varName, false);
+		}
+		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), map.entrySet(), xqueryArtifact.getParent().getURI(), null);
 	}
 
 }

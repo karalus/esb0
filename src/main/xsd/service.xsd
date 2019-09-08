@@ -227,6 +227,7 @@
 								<simpleContent>
 									<extension base="tns:string1">
 										<attribute name="variable" type="Name" use="required" />
+										<attribute name="nullable" type="boolean" default="false" />
 									</extension>
 								</simpleContent>
 							</complexType>
@@ -246,6 +247,7 @@
 								<simpleContent>
 									<extension base="tns:string1">
 										<attribute name="header" type="Name" use="required" />
+										<attribute name="nullable" type="boolean" default="false" />
 									</extension>
 								</simpleContent>
 							</complexType>

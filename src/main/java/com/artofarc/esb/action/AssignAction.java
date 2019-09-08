@@ -27,19 +27,19 @@ import com.artofarc.util.Collections;
 public class AssignAction extends TransformAction {
 
 	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
-		this(java.util.Collections.singletonList(Collections.createEntry(varName, expression)), namespaces, bindNames, contextItem);
+		this(java.util.Collections.singletonList(Collections.createEntry(Collections.createEntry(varName, false), expression)), namespaces, bindNames, contextItem);
 	}
 
-	public AssignAction(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
-		this(new ArrayList<String>(), assignments, namespaces, bindNames, contextItem);
+	public AssignAction(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
+		this(new ArrayList<Map.Entry<String, Boolean>>(), assignments, namespaces, bindNames, contextItem);
 	}
 
-	private AssignAction(List<String> varNames, Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
+	private AssignAction(Collection<Map.Entry<String, Boolean>> varNames, Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
 		super(createXQuery(assignments, namespaces, varNames, bindNames), varNames, null, contextItem);
 		_bindNames = bindNames;
 	}
 
-	private static XQuerySource createXQuery(Collection<Map.Entry<String, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> varNames, List<String> bindNames) {
+	private static XQuerySource createXQuery(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> varNames, List<String> bindNames) {
 		StringBuilder builder = new StringBuilder();
 		if (namespaces != null) {
 			for (Map.Entry<String, String> entry : namespaces) {
@@ -50,9 +50,16 @@ public class AssignAction extends TransformAction {
 			builder.append("declare variable $").append(bindName).append(" external;\n");
 		}
 		builder.append("(");
-		for (Map.Entry<String, String> entry : assignments) {
-			varNames.add(entry.getKey());
-			builder.append(entry.getValue()).append(", ");
+		for (Map.Entry<Map.Entry<String, Boolean>, String> entry : assignments) {
+			Map.Entry<String, Boolean> var = entry.getKey();
+			varNames.add(var);
+			boolean nullable = entry.getKey().getValue();
+			if (nullable) {
+				String varName = entry.getKey().getKey();
+				builder.append("let $").append(varName).append(" := ").append(entry.getValue()).append(" return if ($").append(varName).append(") then (true(), $").append(varName).append(") else false(), ");
+			} else {
+				builder.append(entry.getValue()).append(", ");
+			}
 		}
 		builder.append(".)");
 		return XQuerySource.create(builder.toString());
