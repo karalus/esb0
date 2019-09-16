@@ -17,15 +17,15 @@
 package com.artofarc.esb.resource;
 
 import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
 
-public abstract class ResourceFactory<R extends AutoCloseable, D, P> implements AutoCloseable {
+public abstract class ResourceFactory<R extends AutoCloseable, D, P, E extends Exception> implements AutoCloseable {
 
-	private final Map<D, R> _pool = new HashMap<>();
+	private final HashMap<D, R> _pool = new HashMap<>();
 
-	abstract protected R createResource(D descriptor, P param) throws Exception;
+	abstract protected R createResource(D descriptor, P param) throws E;
 
-	public synchronized R getResource(D descriptor, P param) throws Exception {
+	public final synchronized R getResource(D descriptor, P param) throws E {
 		R resource = _pool.get(descriptor);
 		if (resource == null) {
 			resource = createResource(descriptor, param);
@@ -34,8 +34,12 @@ public abstract class ResourceFactory<R extends AutoCloseable, D, P> implements 
 		return resource;
 	}
 
-	public final R getResource(D descriptor) throws Exception {
+	public final R getResource(D descriptor) throws E {
 		return getResource(descriptor, null);
+	}
+
+	public final Set<D> getResourceDescriptors() {
+		return _pool.keySet();
 	}
 
 	public final void close(D descriptor) throws Exception {
@@ -59,5 +63,5 @@ public abstract class ResourceFactory<R extends AutoCloseable, D, P> implements 
 		}
 		_pool.clear();
 	}
-	
+
 }

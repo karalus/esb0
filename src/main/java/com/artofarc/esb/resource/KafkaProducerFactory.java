@@ -21,7 +21,7 @@ import java.util.Map;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 
-public class KafkaProducerFactory extends ResourceFactory<Producer<?, ?>, Map<?, ?>, Void> {
+public class KafkaProducerFactory extends ResourceFactory<Producer<?, ?>, Map<?, ?>, Void, RuntimeException> {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override

@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.artofarc.esb.context.GlobalContext;
 
-public final class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithExpirationFactory.Cache, String, Integer> implements Runnable {
+public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithExpirationFactory.Cache, String, Integer, RuntimeException> implements Runnable {
 
 	static final class Expiration implements Delayed {
 

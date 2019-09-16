@@ -20,7 +20,7 @@ import javax.xml.validation.Schema;
 
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 
-public class SchemaAwareFISerializerFactory extends ResourceFactory<SchemaAwareFastInfosetSerializer, Schema, Void> {
+public class SchemaAwareFISerializerFactory extends ResourceFactory<SchemaAwareFastInfosetSerializer, Schema, Void, RuntimeException> {
 
 	@Override
 	protected SchemaAwareFastInfosetSerializer createResource(Schema schema, Void param) {

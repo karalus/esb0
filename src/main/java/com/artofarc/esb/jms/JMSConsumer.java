@@ -104,14 +104,15 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 	}
 
 	@Override
-	public void init(GlobalContext globalContext) throws Exception {
+	public void init(GlobalContext globalContext) throws JMSException {
 		WorkerPool workerPool = globalContext.getWorkerPool(_workerPool);
 		// distribute evenly over poll interval
 		long initialDelay = _pollInterval / _jmsWorker.length;
 		for (int i = 0; i < _jmsWorker.length; ++i) {
 			_jmsWorker[i] = _pollInterval > 0L ? new JMSPollingWorker(workerPool, initialDelay * i) : new JMSWorker(workerPool);
 		}
-		workerPool.getPoolContext().getJMSConnectionProvider().registerJMSConsumer(_jmsConnectionData, this, super.isEnabled());
+		JMSConnectionProvider jmsConnectionProvider = workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
+		jmsConnectionProvider.registerJMSConsumer(_jmsConnectionData, this, super.isEnabled());
 		resume();
 		if (super.isEnabled()) {
 			try {
@@ -122,7 +123,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		}
 	}
 
-	void resume() throws Exception {
+	void resume() throws JMSException {
 		for (JMSWorker jmsWorker : _jmsWorker) {
 			jmsWorker.open();
 		}
@@ -194,7 +195,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			_context = new Context(workerPool.getPoolContext());
 		}
 
-		final void open() throws Exception {
+		final void open() throws JMSException {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
 			_session = jmsSessionFactory.getResource(_jmsConnectionData, true).getSession();
 		}
@@ -306,7 +307,8 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 					}
 				}
 			} catch (JMSException e) {
-				_workerPool.getPoolContext().getJMSConnectionProvider().getExceptionListener(_jmsConnectionData).onException(e);
+				JMSConnectionProvider jmsConnectionProvider = _workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
+				jmsConnectionProvider.getExceptionListener(_jmsConnectionData).onException(e);
 			} catch (InterruptedException e) {
 				// stopListening
 			}

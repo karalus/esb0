@@ -25,7 +25,7 @@ import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConnectionProvider;
 import com.artofarc.esb.jms.JMSSession;
 
-public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnectionData, Boolean> {
+public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnectionData, Boolean, JMSException> {
 
 	private final Context _context;
 
@@ -35,7 +35,7 @@ public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnection
 
 	@Override
 	protected JMSSession createResource(JMSConnectionData jmsConnectionData, Boolean transacted) throws JMSException {
-		JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getJMSConnectionProvider();
+		JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 		Connection connection = jmsConnectionProvider.getConnection(jmsConnectionData);
 		jmsConnectionProvider.registerJMSSessionFactory(this);
 		Session session = connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE);

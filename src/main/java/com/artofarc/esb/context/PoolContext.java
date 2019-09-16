@@ -16,21 +16,17 @@
  */
 package com.artofarc.esb.context;
 
-import com.artofarc.esb.jms.JMSConnectionProvider;
-
 /**
  * Shared among the threads of a group.
  */
-public class PoolContext extends AbstractContext {
+public final class PoolContext extends AbstractContext {
 
 	private final GlobalContext _globalContext;
-	private final JMSConnectionProvider _jmsConnectionProvider;
 	private final String _workerPool;
 
 	PoolContext(GlobalContext globalContext, String workerPool) {
 		_globalContext = globalContext;
 		_workerPool = workerPool;
-		_jmsConnectionProvider = new JMSConnectionProvider(this);
 	}
 
 	public GlobalContext getGlobalContext() {
@@ -39,16 +35,6 @@ public class PoolContext extends AbstractContext {
 
 	public WorkerPool getWorkerPool() {
 		return _globalContext.getWorkerPool(_workerPool);
-	}
-
-	public JMSConnectionProvider getJMSConnectionProvider() {
-		return _jmsConnectionProvider;
-	}
-	
-	@Override
-	public void close() {
-		_jmsConnectionProvider.close();
-		super.close();
 	}
 
 	@Override

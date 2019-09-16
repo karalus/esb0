@@ -23,7 +23,7 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchService;
 import java.util.List;
 
-public class DirWatchServiceFactory extends ResourceFactory<WatchService, List<String>, Void> {
+public class DirWatchServiceFactory extends ResourceFactory<WatchService, List<String>, Void, IOException> {
 
 	@Override
 	protected WatchService createResource(List<String> dirs, Void param) throws IOException {

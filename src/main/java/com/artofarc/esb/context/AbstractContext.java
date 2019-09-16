@@ -29,22 +29,22 @@ public abstract class AbstractContext implements AutoCloseable {
 
 	protected final static Logger logger = LoggerFactory.getLogger(AbstractContext.class);
 
-	private final HashMap<Class<?>, ResourceFactory<?, ?, ?>> _pool = new HashMap<>();
+	private final HashMap<Class<?>, ResourceFactory<?, ?, ?, ?>> _pool = new HashMap<>();
 
 	@SuppressWarnings("unchecked")
-	public synchronized <RF extends ResourceFactory<?, ?, ?>> RF getResourceFactory(Class<RF> rfc) {
-		ResourceFactory<?, ?, ?> resourceFactory = _pool.get(rfc);
+	public final synchronized <RF extends ResourceFactory<?, ?, ?, ?>> RF getResourceFactory(Class<RF> rfc) {
+		ResourceFactory<?, ?, ?, ?> resourceFactory = _pool.get(rfc);
 		if (resourceFactory == null) {
 			try {
 				for (Constructor<?> constructor : rfc.getConstructors()) {
 					Type[] paramTypes = constructor.getGenericParameterTypes();
 					if (paramTypes.length == 1) {
 						if (AbstractContext.class.isAssignableFrom((Class<?>) paramTypes[0])) {
-							resourceFactory = (ResourceFactory<?, ?, ?>) constructor.newInstance(this);
+							resourceFactory = (ResourceFactory<?, ?, ?, ?>) constructor.newInstance(this);
 							break;
 						}
 					} else if (paramTypes.length == 0) {
-						resourceFactory = (ResourceFactory<?, ?, ?>) constructor.newInstance();
+						resourceFactory = (ResourceFactory<?, ?, ?, ?>) constructor.newInstance();
 						break;
 					}
 				}
@@ -61,7 +61,7 @@ public abstract class AbstractContext implements AutoCloseable {
 
 	@Override
 	public synchronized void close() {
-		for (ResourceFactory<?, ?, ?> resourceFactory : _pool.values()) {
+		for (ResourceFactory<?, ?, ?, ?> resourceFactory : _pool.values()) {
 			try {
 				resourceFactory.close();
 			} catch (Exception e) {

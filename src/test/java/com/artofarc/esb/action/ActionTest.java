@@ -127,6 +127,8 @@ public class ActionTest {
 		action.addVariable("_id", "", "java.util.UUID", "randomUUID");
 		action.addVariable("calendar", "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime");
 		action.addVariable("timeInMillis", "${calendar.getTimeInMillis}", null, null);
+		action.addVariable("_addr", "", "java.net.InetAddress", "getLocalHost");
+		action.addVariable("hostname", "${_addr.getHostName}", null, null);
    	action.setNextAction(new DumpAction());
    	action.process(context, message);
    	assertEquals(42, message.getHeader("int"));

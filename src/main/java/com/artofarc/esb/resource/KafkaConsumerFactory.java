@@ -22,7 +22,7 @@ import java.util.Map;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
-public class KafkaConsumerFactory extends ResourceFactory<Consumer<?, ?>, Map<?, ?>, Collection<String>> {
+public class KafkaConsumerFactory extends ResourceFactory<Consumer<?, ?>, Map<?, ?>, Collection<String>, RuntimeException> {
 
 	@Override
 	protected Consumer<?, ?> createResource(Map<?, ?> configs, Collection<String> topics) {

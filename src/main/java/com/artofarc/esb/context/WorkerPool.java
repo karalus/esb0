@@ -17,6 +17,7 @@
 package com.artofarc.esb.context;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -28,6 +29,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import com.artofarc.esb.jms.JMSConnectionData;
+import com.artofarc.esb.jms.JMSConnectionProvider;
 
 public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
@@ -152,7 +156,12 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	}
 
 	public Set<String> getJMSSessionFactories() {
-		return _poolContext.getJMSConnectionProvider().getJMSSessionFactories();
+		JMSConnectionProvider jmsConnectionProvider = _poolContext.getResourceFactory(JMSConnectionProvider.class);
+		Set<String> result = new HashSet<>();
+		for (JMSConnectionData jmsConnectionData : jmsConnectionProvider.getResourceDescriptors()) {
+			result.add(jmsConnectionData.toString());
+		}
+		return result;
 	}
 
 	public List<String> getCachedXQueries() {

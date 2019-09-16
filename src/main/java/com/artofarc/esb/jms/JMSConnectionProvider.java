@@ -19,7 +19,6 @@ package com.artofarc.esb.jms;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -35,16 +34,16 @@ import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.resource.JMSSessionFactory;
+import com.artofarc.esb.resource.ResourceFactory;
 import com.artofarc.util.Closer;
 
-public final class JMSConnectionProvider {
+public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionProvider.JMSConnectionGuard, JMSConnectionData, Void, RuntimeException> {
 
 	protected final static Logger logger = LoggerFactory.getLogger(JMSConnectionProvider.class);
 	protected final static String instanceId = System.getProperty("esb0.jms.instanceId");
 	protected final static long closeWithTimeout = Long.parseLong(System.getProperty("esb0.jms.closeWithTimeout", "0"));
 	protected final static long reconnectInterval = Long.parseLong(System.getProperty("esb0.jms.reconnectInterval", "60"));
-	
-	private final HashMap<JMSConnectionData, JMSConnectionGuard> _pool = new HashMap<>();
+
 	private final PoolContext _poolContext;
 	private final HashSet<JMSSessionFactory> _jmsSessionFactories = new HashSet<>();
 
@@ -52,55 +51,31 @@ public final class JMSConnectionProvider {
 		_poolContext = poolContext;
 	}
 
-	public Set<String> getJMSSessionFactories() {
-		Set<String> result = new HashSet<>();
-		for (JMSConnectionData jmsConnectionData : _pool.keySet()) {
-			result.add(jmsConnectionData.toString());
-		}
-		return result;
-	}
-
-	public synchronized ExceptionListener getExceptionListener(JMSConnectionData jmsConnectionData) {
-		return getJMSConnectionGuard(jmsConnectionData);
-	}
-
-	private JMSConnectionGuard getJMSConnectionGuard(JMSConnectionData jmsConnectionData) {
-		JMSConnectionGuard connectionGuard = _pool.get(jmsConnectionData);
-		if (connectionGuard == null) {
-			connectionGuard = new JMSConnectionGuard(jmsConnectionData);
-			_pool.put(jmsConnectionData, connectionGuard);
-			_poolContext.getGlobalContext().registerMBean(connectionGuard, getObjectName(jmsConnectionData));
-		}
-		return connectionGuard;
-	}
-
 	private String getObjectName(JMSConnectionData jmsConnectionData) {
 		return ",group=JMSConnectionGuard,name=\"" + jmsConnectionData + "\",WorkerPool=" + _poolContext.getWorkerPool().getName();
 	}
 
-	public synchronized Connection getConnection(JMSConnectionData jmsConnectionData) throws JMSException {
-		return getJMSConnectionGuard(jmsConnectionData).getConnection();
+	@Override
+	protected JMSConnectionGuard createResource(JMSConnectionData jmsConnectionData, Void param) {
+		JMSConnectionGuard connectionGuard = new JMSConnectionGuard(jmsConnectionData);
+		_poolContext.getGlobalContext().registerMBean(connectionGuard, getObjectName(jmsConnectionData));
+		return connectionGuard;
 	}
 
-	public synchronized void registerJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer, boolean enabled) {
-		JMSConnectionGuard connectionGuard = getJMSConnectionGuard(jmsConnectionData);
-		connectionGuard.addJMSConsumer(jmsConsumer, enabled);
+	public ExceptionListener getExceptionListener(JMSConnectionData jmsConnectionData) {
+		return getResource(jmsConnectionData);
+	}
+
+	public Connection getConnection(JMSConnectionData jmsConnectionData) throws JMSException {
+		return getResource(jmsConnectionData).getConnection();
+	}
+
+	public void registerJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer, boolean enabled) {
+		getResource(jmsConnectionData).addJMSConsumer(jmsConsumer, enabled);
 	}
 
 	public synchronized void registerJMSSessionFactory(JMSSessionFactory jmsSessionFactory) {
 		_jmsSessionFactories.add(jmsSessionFactory);
-	}
-
-	public synchronized void close() {
-		for (Entry<JMSConnectionData, JMSConnectionGuard> entry : _pool.entrySet()) {
-			try {
-				_poolContext.getGlobalContext().unregisterMBean(getObjectName(entry.getKey()));
-				entry.getValue().getConnection().close();
-			} catch (JMSException e) {
-				// ignore
-			}
-		}
-		_pool.clear();
 	}
 
 	void closeSession(JMSConnectionData jmsConnectionData, Session session) throws Exception {
@@ -113,7 +88,7 @@ public final class JMSConnectionProvider {
 		}
 	}
 
-	final class JMSConnectionGuard extends TimerTask implements ExceptionListener, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
+	final class JMSConnectionGuard extends TimerTask implements AutoCloseable, ExceptionListener, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
 
 		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
 		private final JMSConnectionData _jmsConnectionData;
@@ -143,7 +118,7 @@ public final class JMSConnectionProvider {
 			}
 		}
 
-		Connection getConnection() throws JMSException {
+		synchronized Connection getConnection() throws JMSException {
 			if (_connection == null) {
 				if (_future == null) {
 					try {
@@ -249,6 +224,14 @@ public final class JMSConnectionProvider {
 
 		public boolean isConnected() {
 			return _connection != null;
+		}
+
+		@Override
+		public void close() throws JMSException {
+			_poolContext.getGlobalContext().unregisterMBean(getObjectName(_jmsConnectionData));
+			if (_connection != null) {
+				_connection.close();
+			}
 		}
 	}
 
