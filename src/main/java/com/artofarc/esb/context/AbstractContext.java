@@ -39,7 +39,7 @@ public abstract class AbstractContext implements AutoCloseable {
 				for (Constructor<?> constructor : rfc.getConstructors()) {
 					Type[] paramTypes = constructor.getGenericParameterTypes();
 					if (paramTypes.length == 1) {
-						if (AbstractContext.class.isAssignableFrom((Class<?>) paramTypes[0])) {
+						if (((Class<?>) paramTypes[0]).isAssignableFrom(getClass())) {
 							resourceFactory = (ResourceFactory<?, ?, ?, ?>) constructor.newInstance(this);
 							break;
 						}
@@ -52,7 +52,7 @@ public abstract class AbstractContext implements AutoCloseable {
 				throw new RuntimeException(e);
 			}
 			if (resourceFactory == null) {
-				throw new RuntimeException("No appropriate ctor found for " + rfc);
+				throw new RuntimeException(getClass().getSimpleName() + ": No appropriate ctor found in " + rfc);
 			}
 			_pool.put(rfc, resourceFactory);
 		}
