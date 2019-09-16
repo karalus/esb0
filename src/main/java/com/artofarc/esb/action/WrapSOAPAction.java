@@ -26,10 +26,25 @@ public class WrapSOAPAction extends TransformAction {
 	protected final boolean _soap12;
 
 	public WrapSOAPAction(boolean soap12, boolean header, boolean singlePart) {
-		super((header ? "declare variable $header as element() external; " : "") + "<soapenv:Envelope xmlns:soapenv=\""
-				+ (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE) + "\">" + (header ? "{$header}" : "") + (singlePart ? "<soapenv:Body>" : "")
-				+ "{.}" + (singlePart ? "</soapenv:Body>" : "") + "</soapenv:Envelope>");
+		this(soap12, header, singlePart, null);
+	}
+
+	protected WrapSOAPAction(boolean soap12, boolean header, boolean singlePart, String ns4rpc) {
+		super(ns4rpc != null ? createXQueryRPCStyle(soap12, header, ns4rpc) : createXQueryDocumentStyle(soap12, header, singlePart));
 		_soap12 = soap12;
+	}
+
+	private static String createXQueryDocumentStyle(boolean soap12, boolean header, boolean singlePart) {
+		return (header ? "declare variable $header as element() external; " : "") + "<soapenv:Envelope xmlns:soapenv=\""
+				+ (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE) + "\">" + (header ? "{$header}" : "") + (singlePart ? "<soapenv:Body>" : "")
+				+ "{.}" + (singlePart ? "</soapenv:Body>" : "") + "</soapenv:Envelope>";
+	}
+
+	private static String createXQueryRPCStyle(boolean soap12, boolean header, String ns) {
+		return (header ? "declare variable $header as element() external; " : "")
+				+ "declare variable $operation as xs:string external; <soapenv:Envelope xmlns:soapenv=\""
+				+ (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE) + "\">" + (header ? "{$header}" : "") + "<soapenv:Body>{element{QName('" + ns
+				+ "', $operation)} {.} }</soapenv:Body></soapenv:Envelope>";
 	}
 
 	@Override

@@ -16,9 +16,7 @@
  */
 package com.artofarc.util;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +72,7 @@ public final class WSDL4JUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T extends ExtensibilityElement> T getExtensibilityElement(final ElementExtensible elementExtensible, final Class<?>... classes) {
+	private static <T extends ExtensibilityElement> T getExtensibilityElement(final ElementExtensible elementExtensible, final Class<?>... classes) {
 		for (Object extensibilityElement : elementExtensible.getExtensibilityElements()) {
 			for (Class<?> cls : classes) {
 				if (cls.isInstance(extensibilityElement)) {
@@ -86,9 +84,7 @@ public final class WSDL4JUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T> T invokeExtensibilityElement(final ElementExtensible elementExtensible, final String methodName, final Class<?>... classes)
-			throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-
+	private static <T> T invokeExtensibilityElement(final ElementExtensible elementExtensible, final String methodName, final Class<?>... classes) throws ReflectiveOperationException {
 		ExtensibilityElement extensibilityElement = getExtensibilityElement(elementExtensible, classes);
 		if (extensibilityElement != null) {
 			return (T) extensibilityElement.getClass().getMethod(methodName).invoke(extensibilityElement, new Object[0]);
@@ -96,39 +92,46 @@ public final class WSDL4JUtil {
 		return null;
 	}
 
-	public static String getSoapActionURI(BindingOperation bindingOperation) {
+	public static String getSOAPActionURI(BindingOperation bindingOperation) {
 		try {
-			return invokeExtensibilityElement(bindingOperation, "getSoapActionURI", SOAP12Operation.class, SOAPOperation.class);
-		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			return invokeExtensibilityElement(bindingOperation, "getSoapActionURI", SOAPOperation.class, SOAP12Operation.class);
+		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static String getSoapBindingTransportURI(Binding binding) {
+	public static String getSOAPBindingTransportURI(Binding binding) {
 		try {
-			return invokeExtensibilityElement(binding, "getTransportURI", SOAP12Binding.class, SOAPBinding.class);
-		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			return invokeExtensibilityElement(binding, "getTransportURI", SOAPBinding.class, SOAP12Binding.class);
+		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public static List<BindingOperation> getBindingOperations(Map<QName, Binding> allBindings, String bindingName, String transport) {
+	public static boolean isSOAPBindingRPCStyle(Binding binding) {
+		try {
+			return "rpc".equals(invokeExtensibilityElement(binding, "getStyle", SOAPBinding.class, SOAP12Binding.class));
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static Binding getBinding(Map<QName, Binding> allBindings, String bindingName, String transport) {
 		for (Map.Entry<QName, Binding> entry : allBindings.entrySet()) {
 			if (bindingName == null || bindingName.equals(entry.getKey().getLocalPart())) {
 				Binding binding = entry.getValue();
-				if (transport == null || transport.equals(getSoapBindingTransportURI(binding))) {
-					return (List<BindingOperation>) binding.getBindingOperations();
+				if (transport == null || transport.equals(getSOAPBindingTransportURI(binding))) {
+					return binding;
 				}
 			}
 		}
-		return Collections.emptyList();
+		return null;
 	}
 
 	public static Map<String, String> getMapOperation2SoapActionURI(List<BindingOperation> bindingOperations) {
 		final Map<String, String> result = new HashMap<>();
 		for (BindingOperation bindingOperation : bindingOperations) {
-			String soapActionURI = WSDL4JUtil.getSoapActionURI(bindingOperation);
+			String soapActionURI = WSDL4JUtil.getSOAPActionURI(bindingOperation);
 			if (soapActionURI != null) {
 				result.put(bindingOperation.getName(), soapActionURI);
 			}

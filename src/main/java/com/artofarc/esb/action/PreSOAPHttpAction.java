@@ -16,11 +16,9 @@
  */
 package com.artofarc.esb.action;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import javax.wsdl.BindingOperation;
+import javax.wsdl.Binding;
 import javax.xml.validation.Schema;
 
 import com.artofarc.esb.context.Context;
@@ -36,10 +34,11 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 	private final Map<String, String> _mapOperation2SoapActionURI;
 	private final Schema _schema;
 
-	public PreSOAPHttpAction(boolean soap12, boolean header, boolean singlePart, Schema schema, List<BindingOperation> bindingOperations) {
-		super(soap12, header, singlePart);
+	@SuppressWarnings("unchecked")
+	public PreSOAPHttpAction(boolean soap12, boolean header, boolean singlePart, Schema schema, Binding binding) {
+		super(soap12, header, singlePart, binding != null && WSDL4JUtil.isSOAPBindingRPCStyle(binding) ? binding.getQName().getNamespaceURI() : null);
 		_schema = schema;
-		_mapOperation2SoapActionURI = WSDL4JUtil.getMapOperation2SoapActionURI(bindingOperations);
+		_mapOperation2SoapActionURI = binding != null ? WSDL4JUtil.getMapOperation2SoapActionURI(binding.getBindingOperations()) : java.util.Collections.<String, String> emptyMap();
 	}
 
 	@Override
@@ -48,7 +47,7 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 		String soapAction = _mapOperation2SoapActionURI.get(message.<String> getVariable(ESBConstants.SOAP_OPERATION));
 		if (_soap12) {
 			if (soapAction != null && soapAction.length() > 0) {
-				Entry<String, String> contentType = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
+				Map.Entry<String, String> contentType = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
 				contentType.setValue(contentType.getValue() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + soapAction);
 			}
 			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAP_1_2_CONTENT_TYPE);

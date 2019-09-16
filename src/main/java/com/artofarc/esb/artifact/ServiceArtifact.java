@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
 import javax.xml.xquery.XQConnection;
@@ -324,32 +325,34 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			}
 			case "unwrapSOAP": {
-				UnwrapSOAP unwrapSOAP11 = (UnwrapSOAP) jaxbElement.getValue();
-				WSDLArtifact wsdlArtifact = loadArtifact(unwrapSOAP11.getWsdlURI());
+				UnwrapSOAP unwrapSOAP = (UnwrapSOAP) jaxbElement.getValue();
+				WSDLArtifact wsdlArtifact = loadArtifact(unwrapSOAP.getWsdlURI());
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				List<BindingOperation> bindingOperations = WSDL4JUtil.getBindingOperations(wsdlArtifact.getAllBindings(), unwrapSOAP11.getBinding(), unwrapSOAP11.getTransport());
-				UnwrapSOAPAction unwrapSOAP11Action = new UnwrapSOAPAction(unwrapSOAP11.isSoap12(), unwrapSOAP11.isSinglePart(), wsdlArtifact.getSchema(), bindingOperations, wsdlArtifact.getURI(), unwrapSOAP11.isGetWsdl());
-				addAction(list, unwrapSOAP11Action);
+				Binding binding = WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), unwrapSOAP.getBinding(), unwrapSOAP.getTransport());
+				@SuppressWarnings("unchecked")
+				List<BindingOperation> bindingOperations = binding != null ? binding.getBindingOperations() : java.util.Collections.emptyList();
+				UnwrapSOAPAction unwrapSOAPAction = new UnwrapSOAPAction(unwrapSOAP.isSoap12(), unwrapSOAP.isSinglePart(), wsdlArtifact.getSchema(), bindingOperations, wsdlArtifact.getURI(), unwrapSOAP.isGetWsdl());
+				addAction(list, unwrapSOAPAction);
 				break;
 			}
 			case "wrapSOAP":
-				WrapSOAP wrapSOAP11 = (WrapSOAP) jaxbElement.getValue();
-				addAction(list, new WrapSOAPAction(wrapSOAP11.isSoap12(), wrapSOAP11.isHeader(), wrapSOAP11.isSinglePart()));
+				WrapSOAP wrapSOAP = (WrapSOAP) jaxbElement.getValue();
+				addAction(list, new WrapSOAPAction(wrapSOAP.isSoap12(), wrapSOAP.isHeader(), wrapSOAP.isSinglePart()));
 				break;
 			case "preSOAPHttp": {
-				PreSOAPHttp preSOAP11Http = (PreSOAPHttp) jaxbElement.getValue();
-				WSDLArtifact wsdlArtifact = loadArtifact(preSOAP11Http.getWsdlURI());
+				PreSOAPHttp preSOAPHttp = (PreSOAPHttp) jaxbElement.getValue();
+				WSDLArtifact wsdlArtifact = loadArtifact(preSOAPHttp.getWsdlURI());
 				addReference(wsdlArtifact);
 				wsdlArtifact.validate(globalContext);
-				List<BindingOperation> bindingOperations = WSDL4JUtil.getBindingOperations(wsdlArtifact.getAllBindings(), preSOAP11Http.getBinding(), preSOAP11Http.getTransport());
-				PreSOAPHttpAction preSOAP11HttpAction = new PreSOAPHttpAction(preSOAP11Http.isSoap12(), preSOAP11Http.isHeader(), preSOAP11Http.isSinglePart(), wsdlArtifact.getSchema(), bindingOperations);
-				addAction(list, preSOAP11HttpAction);
+				Binding binding = WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), preSOAPHttp.getBinding(), preSOAPHttp.getTransport());
+				PreSOAPHttpAction preSOAPHttpAction = new PreSOAPHttpAction(preSOAPHttp.isSoap12(), preSOAPHttp.isHeader(), preSOAPHttp.isSinglePart(), wsdlArtifact.getSchema(), binding);
+				addAction(list, preSOAPHttpAction);
 				break;
 			}
 			case "postSOAPHttp":
-				PostSOAPHttp postSOAP11Http = (PostSOAPHttp) jaxbElement.getValue();
-				addAction(list, new PostSOAPHttpAction(postSOAP11Http.isSoap12(), postSOAP11Http.isSinglePart()));
+				PostSOAPHttp postSOAPHttp = (PostSOAPHttp) jaxbElement.getValue();
+				addAction(list, new PostSOAPHttpAction(postSOAPHttp.isSoap12(), postSOAPHttp.isSinglePart()));
 				break;
 			case "validate": {
 				Validate validate = (Validate) jaxbElement.getValue();
