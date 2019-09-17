@@ -47,7 +47,6 @@ public final class Context extends AbstractContext {
 
 	private final PoolContext _poolContext;
 	private final DocumentBuilder _documentBuilder;
-	private final FastInfosetDeserializer _fastInfosetDeserializer = new FastInfosetDeserializer();
 	private final Transformer _transformer;
 	private final XQConnection _xqConnection;
 	private final HashMap<XQuerySource, XQPreparedExpression> _mapXQ = new HashMap<>();
@@ -55,6 +54,8 @@ public final class Context extends AbstractContext {
 	private final Deque<Action> _executionStack = new ArrayDeque<>();
 	private final ArrayDeque<Action> _stackErrorHandler = new ArrayDeque<>();
 	private final ArrayDeque<Integer> _stackPos = new ArrayDeque<>();
+
+	private FastInfosetDeserializer _fastInfosetDeserializer;
 
 	public Context(PoolContext poolContext) {
 		_poolContext = poolContext;
@@ -105,6 +106,9 @@ public final class Context extends AbstractContext {
 	}
 
 	public FastInfosetDeserializer getFastInfosetDeserializer() {
+		if (_fastInfosetDeserializer == null) {
+			_fastInfosetDeserializer = new FastInfosetDeserializer();
+		}
 		return _fastInfosetDeserializer;
 	}
 

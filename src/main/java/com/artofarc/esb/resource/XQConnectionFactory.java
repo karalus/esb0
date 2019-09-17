@@ -31,7 +31,7 @@ public class XQConnectionFactory {
 	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
 
 	private static final Constructor<? extends XQConnectionFactory> conXQConnectionFactory = ReflectionUtils.findConstructor(
-			System.getProperty("esb0.XQConnectionFactory", XQDataSourceFactory.class.getName()), URIResolver.class);
+			System.getProperty("esb0.XQConnectionFactory", "com.artofarc.esb.resource.XQDataSourceFactory"), URIResolver.class);
 
 	public static XQConnectionFactory newInstance(URIResolver uriResolver) {
 		try {

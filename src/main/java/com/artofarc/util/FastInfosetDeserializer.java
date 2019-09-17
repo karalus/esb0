@@ -20,12 +20,12 @@ import org.jvnet.fastinfoset.sax.FastInfosetReader;
 
 import com.sun.xml.fastinfoset.sax.SAXDocumentParser;
 
-public class FastInfosetDeserializer {
+public final class FastInfosetDeserializer {
 
 	private final SAXDocumentParser saxDocumentParser = new SAXDocumentParser();
 
 	public FastInfosetReader getFastInfosetReader() {
 		return saxDocumentParser;
 	}
-	
+
 }
