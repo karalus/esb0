@@ -47,7 +47,7 @@ public abstract class SchemaArtifact extends Artifact {
 
 	public static final String FILE_SCHEMA = "file://";
 
-	private static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
+	protected static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
 	private static final String JAXB_BINDINGS = System.getProperty("esb0.moxy.jaxb.bindings");
 
 	protected static Map<String, Object> getDynamicJAXBContextProperties() throws IOException {
@@ -88,7 +88,7 @@ public abstract class SchemaArtifact extends Artifact {
 
 	public final Schema getSchema() {
 		// _schema might be set by different thread in {@link SchemaHelper}
-		while (_namespace.get() != null && _schema == null) Thread.yield();
+		while (cacheXSGrammars && _namespace.get() != null && _schema == null) Thread.yield();
 		return _schema;
 	}
 

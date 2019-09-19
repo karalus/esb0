@@ -72,7 +72,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	public final Map<QName, Binding> getAllBindings() throws ValidationException {
 		// _allBindings might be set by different thread in {@link SchemaHelper}
-		while (_namespace.get() != null && _allBindings == null) Thread.yield();
+		while (cacheXSGrammars && _namespace.get() != null && _allBindings == null) Thread.yield();
 		if (_allBindings == null) {
 			throw new ValidationException(this, "WSDL could not been parsed");
 		}
@@ -84,6 +84,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	protected Source[] getSourcesForSchema() throws Exception {
 		Definition definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
 		_allBindings = definition.getAllBindings();
+		_namespace.set(definition.getTargetNamespace());
 		latestImportURI = null;
 		Transformer transformer = SAXTransformerFactoryHelper.newTransformer();
 		List<Source> sources = new ArrayList<>();
@@ -104,7 +105,6 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				processSchemas(import1.getDefinition(), sources, transformer);
 			}
 		}
-		_namespace.set(definition.getTargetNamespace());
 		return sources.toArray(new Source[sources.size()]);
 	}
 
@@ -120,8 +120,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 			for (Schema schema : WSDL4JUtil.getExtensibilityElements(types, Schema.class)) {
 				Element element = schema.getElement();
 				String targetNamespace = element.getAttribute("targetNamespace");
-				_lastSchemaElement = new DOMSource(element);
-				_lastSchemaElement.setSystemId(getURI());
+				_lastSchemaElement = new DOMSource(element, getURI());
 				sources.add(_lastSchemaElement);
 				schemas.put(targetNamespace, XMLCatalog.toByteArray(_lastSchemaElement, transformer));
 			}
