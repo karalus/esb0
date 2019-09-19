@@ -1,4 +1,4 @@
-<%@page import="java.util.Map"%>
+<%@page import="java.util.*"%>
 <%@page import="com.artofarc.esb.context.PoolContext"%>
 <%@page import="com.artofarc.esb.context.GlobalContext"%>
 <%@page import="com.artofarc.esb.ConsumerPort"%>
@@ -24,7 +24,9 @@
 <br>HttpServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Path</b></td><td align="center"><b>Uri</b></td><td align="center"><b>PoolSize</b></td><td align="center"><b>Enabled</b></td></tr> 
 <%
-		for (String path : globalContext.getHttpServicePaths()) {
+		List<String> list = new ArrayList<>(globalContext.getHttpServicePaths());
+		Collections.sort(list);
+		for (String path : list) {
 		   HttpConsumer consumerPort = globalContext.getHttpService(path);
 		   %>
 		   <tr><td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td><td><%=consumerPort.getPoolSize()%></td><td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></tr>
