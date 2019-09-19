@@ -142,7 +142,12 @@ public abstract class JDBCAction extends TerminalAction {
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 				}
 			} else {
-				ps.setObject(param.getPos(), param.alignValue(resolve(message, param.getBindName(), false)), param.getType());
+				Object value = resolve(message, param.getBindName(), false);
+				if (value != null) {
+					ps.setObject(param.getPos(), param.alignValue(value), param.getType());
+				} else {
+					ps.setNull(param.getPos(), param.getType());
+				}
 			}
 		}
 		ps.setQueryTimeout(message.getTimeleft(_timeout).intValue() / 1000);

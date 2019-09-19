@@ -116,7 +116,7 @@ public final class JDBCParameter {
 		case Types.CHAR:
 		case Types.VARCHAR:
 		case Types.CLOB:
-			if (_truncate != null && value != null) {
+			if (_truncate != null) {
 				String s = (String) value;
 				return s.length() > _truncate ? s.substring(0, _truncate) : s;
 			}
