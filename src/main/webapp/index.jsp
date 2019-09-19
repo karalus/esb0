@@ -24,7 +24,7 @@
 <br>HttpServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Path</b></td><td align="center"><b>Uri</b></td><td align="center"><b>PoolSize</b></td><td align="center"><b>Enabled</b></td></tr> 
 <%
-		List<String> list = new ArrayList<>(globalContext.getHttpServicePaths());
+		List<String> list = new ArrayList<String>(globalContext.getHttpServicePaths());
 		Collections.sort(list);
 		for (String path : list) {
 		   HttpConsumer consumerPort = globalContext.getHttpService(path);
