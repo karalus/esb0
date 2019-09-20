@@ -27,7 +27,7 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
 
 public class FileAction extends TerminalAction {
-	
+
 	private final File _destDir;
 
 	public FileAction(String destDir) throws IOException {
@@ -43,12 +43,14 @@ public class FileAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
-		File file = new File(_destDir, message.<String>getVariable(ESBConstants.PathInfo));
+		File file = new File(_destDir, message.<String> getVariable(ESBConstants.PathInfo));
 		String method = message.getVariable(ESBConstants.HttpMethod);
+		boolean append = false;
 		switch (method) {
-		case "ENTRY_CREATE":
 		case "ENTRY_MODIFY":
-			FileOutputStream fileOutputStream = new FileOutputStream(file);
+			append = Boolean.parseBoolean(String.valueOf(message.getVariable("append")));
+		case "ENTRY_CREATE":
+			FileOutputStream fileOutputStream = new FileOutputStream(file, append);
 			context.getTimeGauge().startTimeMeasurement();
 			message.writeRawTo(fileOutputStream, context);
 			fileOutputStream.close();
