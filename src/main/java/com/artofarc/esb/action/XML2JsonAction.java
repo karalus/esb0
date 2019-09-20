@@ -68,7 +68,7 @@ public class XML2JsonAction extends Action {
 		if (type != null && !isSOAP11(type) && !isSOAP12(type)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + message.<String>getHeader(HTTP_HEADER_CONTENT_TYPE));
 		}
-		message.getHeaders().clear();
+		message.removeHeader(HTTP_HEADER_CONTENT_LENGTH);
 		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 		return null;
 	}
