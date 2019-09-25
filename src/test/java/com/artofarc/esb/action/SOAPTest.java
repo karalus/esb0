@@ -447,7 +447,7 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
 		Map<Entry<String, Boolean>, String> assignments = createAssignments(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'");
-		action = action.setNextAction(new AssignHeadersAction(assignments.entrySet(), null, java.util.Collections.<String> emptyList(), null, true));
+		action = action.setNextAction(new AssignHeadersAction(assignments.entrySet(), null, AssignHeadersAction.emptyNames(), null, true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }

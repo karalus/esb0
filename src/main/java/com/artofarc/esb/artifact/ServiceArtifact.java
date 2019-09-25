@@ -42,6 +42,7 @@ import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.service.*;
+import com.artofarc.esb.service.AssignBase.BindName;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Collections;
 import com.artofarc.util.WSDL4JUtil;
@@ -254,7 +255,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (Assign.Assignment assignment : assign.getAssignment()) {
 					assignments.add(Collections.createEntry(Collections.createEntry(assignment.getVariable(), assignment.isNullable()), assignment.getValue()));
 				}
-				AssignAction assignAction = new AssignAction(assignments, createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem());
+				AssignAction assignAction = new AssignAction(assignments, createNsDecls(assign.getNsDecl()), createBindNames(assign.getBindName()), assign.getContextItem());
 				XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
 				addAction(list, assignAction);
 				break;
@@ -267,17 +268,21 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					// TO BE REMOVED: Ugly hack to compensate for old buggy service flows
 					if (assignment.getValue().equals("$MEP")) {
 						if (!assignHeaders.getBindName().contains("MEP")) {
-							assignHeaders.getBindName().add("MEP");
+							BindName bindName = new AssignBase.BindName();
+							bindName.setValue("MEP");
+							assignHeaders.getBindName().add(bindName);
 							logger.warn("Missing bindName MEP in AssignHeaders. Patched " + getURI());
 						}
 					} else if (assignment.getValue().contains("$header/")) {
 						if (!assignHeaders.getBindName().contains("header")) {
-							assignHeaders.getBindName().add("header");
+							BindName bindName = new AssignBase.BindName();
+							bindName.setValue("header");
+							assignHeaders.getBindName().add(bindName);
 							logger.warn("Missing bindName header in AssignHeaders. Patched " + getURI());
 						}
 					}
 				}
-				AssignHeadersAction assignHeadersAction = new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()), assignHeaders.getBindName(), assignHeaders.getContextItem(), assignHeaders.isClearAll());
+				AssignHeadersAction assignHeadersAction = new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()), createBindNames(assignHeaders.getBindName()), assignHeaders.getContextItem(), assignHeaders.isClearAll());
 				XQueryArtifact.validateXQuerySource(this, getConnection(), assignHeadersAction.getXQuery());
 				addAction(list, assignHeadersAction);
 				break;
@@ -384,7 +389,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			case "conditional":
 				Conditional conditional = (Conditional) jaxbElement.getValue();
-				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()), conditional.getBindName(), conditional.getContextItem());
+				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()), createBindNames(conditional.getBindName()), conditional.getContextItem());
 				XQueryArtifact.validateXQuerySource(this, getConnection(), conditionalAction.getXQuery());
 				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), null)));
 				addAction(list, conditionalAction);
@@ -493,6 +498,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		} else {
 			return null;
 		}
+	}
+
+	private static Collection<Entry<String, Boolean>> createBindNames(List<AssignBase.BindName> bindNames) {
+		HashMap<String, Boolean> result = new HashMap<>();
+		for (AssignBase.BindName bindName : bindNames) {
+			result.put(bindName.getValue(), bindName.isNullable());
+		}
+		return result.entrySet();
 	}
 
 	private static Collection<Entry<String, String>> createNsDecls(List<NsDecl> nsDecls) {

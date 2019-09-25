@@ -2,7 +2,6 @@ package com.artofarc.esb.action;
 
 import static org.junit.Assert.*;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,6 +35,17 @@ public class XPathTest extends AbstractESBTest {
    }
 
    @Test
+   public void testXQueryWithExternalVariable() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+      message.putVariable("inVar", "myValue");
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(createAssignAction("result", "$inVar", "inVar"));
+      createAssignAction("result", "$inVar", "inVar").setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+      assertEquals("myValue", message.getVariable("result"));
+   }
+
+   @Test
    public void testXQueryNS() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
       Map<Entry<String, Boolean>, String> assignments = createAssignments("result", "<v1:result>{test/text()}</v1:result>", "request", ".");
@@ -53,7 +63,7 @@ public class XPathTest extends AbstractESBTest {
    @Test
    public void testCondition() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      ConditionalAction action = new ConditionalAction("test/text() = \'Hello\'", null, Collections.<String> emptyList(), null);
+      ConditionalAction action = new ConditionalAction("test/text() = \'Hello\'", null, ConditionalAction.emptyNames(), null);
       MarkAction action2 = new MarkAction();
       MarkAction action3 = new MarkAction();
       action.setNextAction(action2);

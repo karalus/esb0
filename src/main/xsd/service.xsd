@@ -210,7 +210,15 @@
 		<complexContent>
 			<extension base="tns:ActionBase">
 				<sequence>
-					<element name="bindName" type="string" minOccurs="0" maxOccurs="unbounded" />
+					<element name="bindName" minOccurs="0" maxOccurs="unbounded">
+						<complexType>
+							<simpleContent>
+								<extension base="tns:string1">
+									<attribute name="nullable" type="boolean" default="false" />
+								</extension>
+							</simpleContent>
+						</complexType>
+					</element>
 					<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 				</sequence>
 				<attribute name="contextItem" type="Name" />

@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 
 import javax.xml.validation.Schema;
@@ -31,7 +30,7 @@ public class ValidateAction extends AssignAction {
 	private final Schema _schema;
 
 	public ValidateAction(Schema schema, String expression, Collection<Map.Entry<String, String>> namespaces, String contextItem) {
-		super(null, expression, namespaces, Collections.<String> emptyList(), contextItem);
+		super(null, expression, namespaces, emptyNames(), contextItem);
 		_schema = schema;
 	}
 

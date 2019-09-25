@@ -19,9 +19,7 @@ package com.artofarc.esb.action;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.xml.namespace.QName;
@@ -40,6 +38,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.Collections;
 
 public class TransformAction extends Action {
 
@@ -47,8 +46,12 @@ public class TransformAction extends Action {
 	private final Collection<Map.Entry<String, Boolean>> _varNames;
 	private final String _baseURI; 
 	private final String _contextItem;
-	protected List<String> _bindNames;
-	private final HashMap<QName, XQItemType> _bindings = new HashMap<>();
+	protected Collection<Map.Entry<String, Boolean>> _bindNames;
+	private final HashMap<QName, Map.Entry<XQItemType, Boolean>> _bindings = new HashMap<>();
+
+	public static Collection<Map.Entry<String, Boolean>> emptyNames() {
+		return java.util.Collections.emptyList();
+	}
 
 	public TransformAction(XQuerySource xquery, Collection<Map.Entry<String, Boolean>> varNames, String baseURI, String contextItem) {
 		_xquery = xquery;
@@ -59,7 +62,7 @@ public class TransformAction extends Action {
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
-		this(xquery, contextItem != null ? Arrays.asList(com.artofarc.util.Collections.createEntry(contextItem, false)) : Collections.<Map.Entry<String, Boolean>> emptyList(), baseURI, contextItem);
+		this(xquery, contextItem != null ? Arrays.asList(Collections.createEntry(contextItem, false)) : emptyNames(), baseURI, contextItem);
 	}
 
 	protected TransformAction(String xquery, Collection<Map.Entry<String, Boolean>> varNames) {
@@ -67,7 +70,7 @@ public class TransformAction extends Action {
 	}
 
 	protected TransformAction(String xquery) {
-		this(XQuerySource.create(xquery), Collections.<Map.Entry<String, Boolean>> emptyList(), null, null);
+		this(XQuerySource.create(xquery), emptyNames(), null, null);
 	}
 
 	public final XQuerySource getXQuery() {
@@ -78,15 +81,16 @@ public class TransformAction extends Action {
 		if (_bindNames == null) {
 			_bindNames = new ArrayList<>();
 			for (QName qName : xqExpression.getAllExternalVariables()) {
-				_bindNames.add(qName.getLocalPart());
+				boolean nullable = false;
+				_bindNames.add(Collections.createEntry(qName.getLocalPart(), nullable));
 				XQSequenceType sequenceType = xqExpression.getStaticVariableType(qName);
-				_bindings.put(qName, sequenceType.getItemType());
+				_bindings.put(qName, Collections.createEntry(sequenceType.getItemType(), nullable));
 			}
 		} else {
-			for (String bindName : _bindNames) {
-				Object value = resolve(message, bindName, true);
+			for (Map.Entry<String, Boolean> bindName : _bindNames) {
+				Object value = resolve(message, bindName.getKey(), true);
 				XQItemType itemType = value != null ? xqDataFactory.createItemFromObject(value, null).getItemType() : null;
-				_bindings.put(new QName(bindName), itemType);
+				_bindings.put(new QName(bindName.getKey()), Collections.createEntry(itemType, bindName.getValue()));
 			}
 		}
 	}
@@ -110,7 +114,7 @@ public class TransformAction extends Action {
 		}
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
 		if (_contextItem != null) {
-			bind(_contextItem, XQConstants.CONTEXT_ITEM, null, xqExpression, message);
+			bind(_contextItem, XQConstants.CONTEXT_ITEM, null, _contextItem.equals("none"), xqExpression, message);
 		} else {
 			if (message.isEmpty()) {
 				// Nothing to bind, but we need a context item
@@ -131,8 +135,8 @@ public class TransformAction extends Action {
 				}
 			}
 		}
-		for (Map.Entry<QName, XQItemType> entry : _bindings.entrySet()) {
-			bind(entry.getKey().getLocalPart(), entry.getKey(), entry.getValue(), xqExpression, message);
+		for (Map.Entry<QName, Map.Entry<XQItemType, Boolean>> entry : _bindings.entrySet()) {
+			bind(entry.getKey().getLocalPart(), entry.getKey(), entry.getValue().getKey(), entry.getValue().getValue(), xqExpression, message);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
 		XQResultSequence resultSequence = xqExpression.executeQuery();
@@ -153,7 +157,7 @@ public class TransformAction extends Action {
 		return new ExecutionContext(resultSequence, xqExpression);
 	}
 
-	private void bind(String bindName, QName qName, XQItemType type, XQPreparedExpression xqExpression, ESBMessage message) throws Exception {
+	private void bind(String bindName, QName qName, XQItemType type, boolean nullable, XQPreparedExpression xqExpression, ESBMessage message) throws Exception {
 		Object value = resolve(message, bindName, true);
 		if (value != null) {
 			try {
@@ -161,9 +165,11 @@ public class TransformAction extends Action {
 			} catch (XQException e) {
 				throw new ExecutionException(this, "binding " + bindName + " failed", e);
 			}
-		} else {
+		} else if (nullable) {
 			// Workaround: XQuery has no NULL value
 			xqExpression.bindString(qName, "", null);
+		} else {
+			throw new ExecutionException(this, "Must not be null: " + bindName);
 		}
 	}
 
@@ -218,8 +224,8 @@ public class TransformAction extends Action {
 			XQPreparedExpression xqExpression = execContext.getResource2();
 			// unbind (large) documents so that they can be garbage collected
 			xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
-			for (Map.Entry<QName, XQItemType> entry : _bindings.entrySet()) {
-				if (entry.getValue() == null || entry.getValue().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
+			for (Map.Entry<QName, Map.Entry<XQItemType, Boolean>> entry : _bindings.entrySet()) {
+				if (entry.getValue() == null || entry.getValue().getKey().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
 					xqExpression.bindString(entry.getKey(), "", null);
 				}
 			}

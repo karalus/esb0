@@ -18,7 +18,6 @@ package com.artofarc.esb.action;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 import com.artofarc.esb.context.XQuerySource;
@@ -26,28 +25,28 @@ import com.artofarc.util.Collections;
 
 public class AssignAction extends TransformAction {
 
-	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
+	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> bindNames, String contextItem) {
 		this(java.util.Collections.singletonList(Collections.createEntry(Collections.createEntry(varName, false), expression)), namespaces, bindNames, contextItem);
 	}
 
-	public AssignAction(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
+	public AssignAction(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> bindNames, String contextItem) {
 		this(new ArrayList<Map.Entry<String, Boolean>>(), assignments, namespaces, bindNames, contextItem);
 	}
 
-	private AssignAction(Collection<Map.Entry<String, Boolean>> varNames, Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
+	private AssignAction(Collection<Map.Entry<String, Boolean>> varNames, Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> bindNames, String contextItem) {
 		super(createXQuery(assignments, namespaces, varNames, bindNames), varNames, null, contextItem);
 		_bindNames = bindNames;
 	}
 
-	private static XQuerySource createXQuery(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> varNames, List<String> bindNames) {
+	private static XQuerySource createXQuery(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> varNames, Collection<Map.Entry<String, Boolean>> bindNames) {
 		StringBuilder builder = new StringBuilder();
 		if (namespaces != null) {
 			for (Map.Entry<String, String> entry : namespaces) {
 				builder.append("declare namespace ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\";\n");
 			}
 		}
-		for (String bindName : bindNames) {
-			builder.append("declare variable $").append(bindName).append(" external;\n");
+		for (Map.Entry<String, Boolean> bindName : bindNames) {
+			builder.append("declare variable $").append(bindName.getKey()).append(" external;\n");
 		}
 		builder.append("(");
 		for (Map.Entry<Map.Entry<String, Boolean>, String> entry : assignments) {

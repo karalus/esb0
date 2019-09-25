@@ -3,7 +3,6 @@ package com.artofarc.esb;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -69,11 +68,19 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static AssignAction createAssignAction(String varName, String expression, String... bindNames) {
-		return new AssignAction(varName, expression, null, Arrays.asList(bindNames), null);
+		HashMap<String, Boolean> map = new HashMap<>();
+		for (String bindName : bindNames) {
+			map.put(bindName, false);
+		}
+		return new AssignAction(varName, expression, null, map.entrySet(), null);
 	}
 
 	protected static AssignAction createAssignAction(Map<Map.Entry<String, Boolean>, String> assignments, Map<String, String> namespaces, String... bindNames) {
-		return new AssignAction(assignments.entrySet(), namespaces != null ? namespaces.entrySet() : null, Arrays.asList(bindNames), null);
+		HashMap<String, Boolean> map = new HashMap<>();
+		for (String bindName : bindNames) {
+			map.put(bindName, false);
+		}
+		return new AssignAction(assignments.entrySet(), namespaces != null ? namespaces.entrySet() : null, map.entrySet(), null);
 	}
 
 	protected static Map<Map.Entry<String, Boolean>, String> createAssignments(String... tuples) {

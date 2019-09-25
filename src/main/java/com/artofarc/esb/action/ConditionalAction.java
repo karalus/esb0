@@ -18,7 +18,6 @@ package com.artofarc.esb.action;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.artofarc.esb.context.Context;
@@ -31,7 +30,7 @@ public class ConditionalAction extends AssignAction {
 
 	private Action _conditionalAction;
 
-	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<String> bindNames, String contextItem) {
+	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> bindNames, String contextItem) {
 		super(RESULT, expression, namespaces, bindNames, contextItem);
 	}
 
