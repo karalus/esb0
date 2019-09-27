@@ -114,7 +114,7 @@ public class TransformAction extends Action {
 		}
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
 		if (_contextItem != null) {
-			bind(_contextItem, XQConstants.CONTEXT_ITEM, null, _contextItem.equals("none"), xqExpression, message);
+			bind(_contextItem, XQConstants.CONTEXT_ITEM, null, true, xqExpression, message);
 		} else {
 			if (message.isEmpty()) {
 				// Nothing to bind, but we need a context item
