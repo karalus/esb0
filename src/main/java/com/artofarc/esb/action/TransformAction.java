@@ -81,7 +81,7 @@ public class TransformAction extends Action {
 		if (_bindNames == null) {
 			_bindNames = new ArrayList<>();
 			for (QName qName : xqExpression.getAllExternalVariables()) {
-				boolean nullable = false;
+				boolean nullable = true;
 				_bindNames.add(Collections.createEntry(qName.getLocalPart(), nullable));
 				XQSequenceType sequenceType = xqExpression.getStaticVariableType(qName);
 				_bindings.put(qName, Collections.createEntry(sequenceType.getItemType(), nullable));
@@ -89,7 +89,7 @@ public class TransformAction extends Action {
 		} else {
 			for (Map.Entry<String, Boolean> bindName : _bindNames) {
 				Object value = resolve(message, bindName.getKey(), true);
-				XQItemType itemType = value != null ? xqDataFactory.createItemFromObject(value, null).getItemType() : null;
+				XQItemType itemType = value != null ? xqDataFactory.createItemFromObject(value, null).getItemType() : xqDataFactory.createItemType();
 				_bindings.put(new QName(bindName.getKey()), Collections.createEntry(itemType, bindName.getValue()));
 			}
 		}
