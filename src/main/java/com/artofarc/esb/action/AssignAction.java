@@ -18,47 +18,71 @@ package com.artofarc.esb.action;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import com.artofarc.esb.context.XQuerySource;
-import com.artofarc.util.Collections;
+import com.artofarc.esb.service.XQDecl;
 
 public class AssignAction extends TransformAction {
 
-	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> bindNames, String contextItem) {
-		this(java.util.Collections.singletonList(Collections.createEntry(Collections.createEntry(varName, false), expression)), namespaces, bindNames, contextItem);
+	public final static class Assignment {
+		final String name;
+		final String value;
+		final boolean nullable;
+		final String type;
+
+		public Assignment(String name, String value, boolean nullable, String type) {
+			this.name = name;
+			this.value = value;
+			this.nullable = nullable;
+			this.type = type;
+		}
 	}
 
-	public AssignAction(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> bindNames, String contextItem) {
+	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
+		this(java.util.Collections.singletonList(new Assignment(varName, expression, false, null)), namespaces, bindNames, contextItem);
+	}
+
+	public AssignAction(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
 		this(new ArrayList<Map.Entry<String, Boolean>>(), assignments, namespaces, bindNames, contextItem);
 	}
 
-	private AssignAction(Collection<Map.Entry<String, Boolean>> varNames, Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> bindNames, String contextItem) {
+	private AssignAction(List<Map.Entry<String, Boolean>> varNames, List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
 		super(createXQuery(assignments, namespaces, varNames, bindNames), varNames, null, contextItem);
 		_bindNames = bindNames;
 	}
 
-	private static XQuerySource createXQuery(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> varNames, Collection<Map.Entry<String, Boolean>> bindNames) {
+	private static XQuerySource createXQuery(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<Map.Entry<String, Boolean>> varNames, List<XQDecl> bindNames) {
 		StringBuilder builder = new StringBuilder();
 		if (namespaces != null) {
 			for (Map.Entry<String, String> entry : namespaces) {
 				builder.append("declare namespace ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\";\n");
 			}
 		}
-		for (Map.Entry<String, Boolean> bindName : bindNames) {
-			builder.append("declare variable $").append(bindName.getKey()).append(" external;\n");
+		for (XQDecl bindName : bindNames) {
+			builder.append("declare variable $").append(bindName.getValue());
+			if (bindName.getType() != null) {
+				builder.append(" as ").append(bindName.getType());
+			}
+			builder.append(" external;\n");
 		}
 		builder.append("(");
-		for (Map.Entry<Map.Entry<String, Boolean>, String> entry : assignments) {
-			Map.Entry<String, Boolean> var = entry.getKey();
-			varNames.add(var);
-			boolean nullable = entry.getKey().getValue();
-			if (nullable) {
-				String varName = entry.getKey().getKey();
-				builder.append("let $").append(varName).append(" := ").append(entry.getValue()).append(" return if ($").append(varName).append(") then (true(), $").append(varName).append(") else false(), ");
+		for (Assignment assignment : assignments) {
+			varNames.add(com.artofarc.util.Collections.createEntry(assignment.name, assignment.nullable));
+			boolean hasAtomicType = assignment.type != null && assignment.type.startsWith("xs:");
+			if (assignment.nullable) {
+				builder.append("let $").append(assignment.name).append(" := ").append(assignment.value).append(" return if ($").append(assignment.name).append(") then (true(), ");
+				if (hasAtomicType) builder.append(assignment.type).append('(');
+				builder.append("$").append(assignment.name);
+				if (hasAtomicType) builder.append(')');
+				builder.append(") else false()");
 			} else {
-				builder.append(entry.getValue()).append(", ");
+				if (hasAtomicType) builder.append(assignment.type).append('(');
+				builder.append(assignment.value);
+				if (hasAtomicType) builder.append(')');
 			}
+			builder.append(", ");
 		}
 		builder.append(".)");
 		return XQuerySource.create(builder.toString());

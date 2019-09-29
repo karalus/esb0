@@ -18,11 +18,13 @@ package com.artofarc.esb.action;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.service.XQDecl;
 
 public class ConditionalAction extends AssignAction {
 
@@ -30,7 +32,7 @@ public class ConditionalAction extends AssignAction {
 
 	private Action _conditionalAction;
 
-	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> bindNames, String contextItem) {
+	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
 		super(RESULT, expression, namespaces, bindNames, contextItem);
 	}
 

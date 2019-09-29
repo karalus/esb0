@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.namespace.QName;
@@ -38,6 +39,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.Collections;
 
 public class TransformAction extends Action {
@@ -46,10 +48,10 @@ public class TransformAction extends Action {
 	private final Collection<Map.Entry<String, Boolean>> _varNames;
 	private final String _baseURI; 
 	private final String _contextItem;
-	protected Collection<Map.Entry<String, Boolean>> _bindNames;
-	private final HashMap<QName, Map.Entry<XQItemType, Boolean>> _bindings = new HashMap<>();
+	protected List<XQDecl> _bindNames;
+	private final Map<QName, Map.Entry<XQItemType, Boolean>> _bindings = new HashMap<>();
 
-	public static Collection<Map.Entry<String, Boolean>> emptyNames() {
+	public static List<Map.Entry<String, Boolean>> emptyNames() {
 		return java.util.Collections.emptyList();
 	}
 
@@ -81,16 +83,26 @@ public class TransformAction extends Action {
 		if (_bindNames == null) {
 			_bindNames = new ArrayList<>();
 			for (QName qName : xqExpression.getAllExternalVariables()) {
-				boolean nullable = true;
-				_bindNames.add(Collections.createEntry(qName.getLocalPart(), nullable));
+				Boolean nullable = true;
+				XQDecl xqDecl = new XQDecl();
+				xqDecl.setValue(qName.getLocalPart());
+				xqDecl.setNullable(nullable);
+				_bindNames.add(xqDecl);
 				XQSequenceType sequenceType = xqExpression.getStaticVariableType(qName);
 				_bindings.put(qName, Collections.createEntry(sequenceType.getItemType(), nullable));
 			}
 		} else {
-			for (Map.Entry<String, Boolean> bindName : _bindNames) {
-				Object value = resolve(message, bindName.getKey(), true);
-				XQItemType itemType = value != null ? xqDataFactory.createItemFromObject(value, null).getItemType() : xqDataFactory.createItemType();
-				_bindings.put(new QName(bindName.getKey()), Collections.createEntry(itemType, bindName.getValue()));
+			for (XQDecl bindName : _bindNames) {
+				QName qName = new QName(bindName.getValue());
+				if (bindName.getType() != null) {
+					XQSequenceType sequenceType = xqExpression.getStaticVariableType(qName);
+					_bindings.put(qName, Collections.createEntry(sequenceType.getItemType(), bindName.isNullable()));
+				} else {
+					// type cannot be determined statically, take sample from message
+					Object value = resolve(message, bindName.getValue(), true);
+					XQItemType itemType = value != null ? xqDataFactory.createItemFromObject(value, null).getItemType() : xqDataFactory.createItemType();
+					_bindings.put(qName, Collections.createEntry(itemType, bindName.isNullable()));
+				}
 			}
 		}
 	}

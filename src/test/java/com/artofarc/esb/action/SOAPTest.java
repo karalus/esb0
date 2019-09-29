@@ -6,7 +6,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.jms.Message;
 import javax.jws.WebService;
@@ -32,10 +31,10 @@ import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.service.XQDecl;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.Collections;
 import com.artofarc.util.WSDL4JUtil;
-
 
 public class SOAPTest extends AbstractESBTest {
    
@@ -256,7 +255,7 @@ public class SOAPTest extends AbstractESBTest {
       XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
       xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
       xsdArtifact.validateInternal(getGlobalContext());
-      List<Entry<String, String>> result = new ArrayList<>();
+      List<Map.Entry<String, String>> result = new ArrayList<>();
       result.add(Collections.createEntry("v1", "http://aoa.de/ei/foundation/v1"));
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), "v1:messageHeader", result, null));
       action = action.setNextAction(new DumpAction());
@@ -446,8 +445,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = createValidateAction(wsdlArtifact);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-		Map<Entry<String, Boolean>, String> assignments = createAssignments(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'");
-		action = action.setNextAction(new AssignHeadersAction(assignments.entrySet(), null, AssignHeadersAction.emptyNames(), null, true));
+	  action = action.setNextAction(new AssignHeadersAction(createAssignments(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"), null, java.util.Collections.<XQDecl> emptyList(), null, true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }

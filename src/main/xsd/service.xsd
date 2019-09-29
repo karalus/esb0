@@ -206,19 +206,19 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<complexType name="XQDecl">
+		<simpleContent>
+			<extension base="tns:string1">
+				<attribute name="nullable" type="boolean" default="false" />
+				<attribute name="type" type="tns:string1" />
+			</extension>
+		</simpleContent>
+	</complexType>
 	<complexType name="AssignBase" abstract="true">
 		<complexContent>
 			<extension base="tns:ActionBase">
 				<sequence>
-					<element name="bindName" minOccurs="0" maxOccurs="unbounded">
-						<complexType>
-							<simpleContent>
-								<extension base="tns:string1">
-									<attribute name="nullable" type="boolean" default="false" />
-								</extension>
-							</simpleContent>
-						</complexType>
-					</element>
+					<element name="bindName" type="tns:XQDecl" minOccurs="0" maxOccurs="unbounded"/>
 					<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 				</sequence>
 				<attribute name="contextItem" type="Name" />
@@ -233,9 +233,8 @@
 						<element name="assignment" maxOccurs="unbounded">
 							<complexType>
 								<simpleContent>
-									<extension base="tns:string1">
+									<extension base="tns:XQDecl">
 										<attribute name="variable" type="Name" use="required" />
-										<attribute name="nullable" type="boolean" default="false" />
 									</extension>
 								</simpleContent>
 							</complexType>
@@ -253,9 +252,8 @@
 						<element name="assignment" maxOccurs="unbounded">
 							<complexType>
 								<simpleContent>
-									<extension base="tns:string1">
+									<extension base="tns:XQDecl">
 										<attribute name="header" type="Name" use="required" />
-										<attribute name="nullable" type="boolean" default="false" />
 									</extension>
 								</simpleContent>
 							</complexType>

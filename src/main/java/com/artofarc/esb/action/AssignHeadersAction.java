@@ -17,17 +17,19 @@
 package com.artofarc.esb.action;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.service.XQDecl;
 
 public class AssignHeadersAction extends AssignAction {
 
 	private final boolean _clearAll;
 
-	public AssignHeadersAction(Collection<Map.Entry<Map.Entry<String, Boolean>, String>> assignments, Collection<Map.Entry<String, String>> namespaces, Collection<Map.Entry<String, Boolean>> bindNames, String contextItem, boolean clearAll) {
+	public AssignHeadersAction(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearAll) {
 		super(assignments, namespaces, bindNames, contextItem);
 		_clearAll = clearAll;
 	}

@@ -2,9 +2,9 @@ package com.artofarc.esb.action;
 
 import static org.junit.Assert.*;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.List;
 
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
@@ -19,7 +19,7 @@ import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-
+import com.artofarc.esb.service.XQDecl;
 
 public class XPathTest extends AbstractESBTest {
    
@@ -39,8 +39,7 @@ public class XPathTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
       message.putVariable("inVar", "myValue");
       ConsumerPort consumerPort = new ConsumerPort(null);
-      consumerPort.setStartAction(createAssignAction("result", "$inVar", "inVar"));
-      createAssignAction("result", "$inVar", "inVar").setNextAction(new DumpAction());
+      consumerPort.setStartAction(createAssignAction("result", "$inVar", "inVar"), new DumpAction());
       consumerPort.process(context, message);
       assertEquals("myValue", message.getVariable("result"));
    }
@@ -48,10 +47,9 @@ public class XPathTest extends AbstractESBTest {
    @Test
    public void testXQueryNS() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      Map<Entry<String, Boolean>, String> assignments = createAssignments("result", "<v1:result>{test/text()}</v1:result>", "request", ".");
       LinkedHashMap<String, String> ns = new LinkedHashMap<>();
       ns.put("v1", "http://com.artofarc/v1");
-      Action action = createAssignAction(assignments, ns);
+      Action action = createAssignAction(createAssignments("result", "<v1:result>{test/text()}</v1:result>", "request", "."), ns);
       action.setNextAction(new DumpAction());
       action.process(context, message);
       Node node = message.getVariable("result");
@@ -63,7 +61,7 @@ public class XPathTest extends AbstractESBTest {
    @Test
    public void testCondition() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      ConditionalAction action = new ConditionalAction("test/text() = \'Hello\'", null, ConditionalAction.emptyNames(), null);
+      ConditionalAction action = new ConditionalAction("test/text() = \'Hello\'", null, Collections.<XQDecl> emptyList(), null);
       MarkAction action2 = new MarkAction();
       MarkAction action3 = new MarkAction();
       action.setNextAction(action2);
@@ -78,10 +76,9 @@ public class XPathTest extends AbstractESBTest {
    @Test
    public void testJavaExtension() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      Map<Entry<String, Boolean>, String> assignments = createAssignments("result", "<result>{fn-bea:uuid(), fn-artofarc:uuid()}</result>", "result2", "data(<url>http://localhost/nix/ep</url>)");
       LinkedHashMap<String, String> ns = new LinkedHashMap<>();
       ns.put("fn-bea", "http://artofarc.com/xpath-extension");
-      Action action = createAssignAction(assignments, ns);
+      Action action = createAssignAction(createAssignments("result", "<result>{fn-bea:uuid(), fn-artofarc:uuid()}</result>", "result2", "data(<url>http://localhost/nix/ep</url>)"), ns);
       action.setNextAction(new DumpAction());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action, new DumpAction());
@@ -98,8 +95,7 @@ public class XPathTest extends AbstractESBTest {
    @Test
    public void testCurrentUTC() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      Map<Entry<String, Boolean>, String> assignments = createAssignments("result", "format-dateTime(adjust-dateTime-to-timezone(current-dateTime(),xs:dayTimeDuration('PT0H')),'[Y,4]-[M,2]-[D,2]T[H01]:[m01]:[s01].[f,3]Z')");
-      Action action = createAssignAction(assignments, null);
+      Action action = createAssignAction(createAssignments("result", "format-dateTime(adjust-dateTime-to-timezone(current-dateTime(),xs:dayTimeDuration('PT0H')),'[Y,4]-[M,2]-[D,2]T[H01]:[m01]:[s01].[f,3]Z')"), null);
       action.setNextAction(new DumpAction());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -113,8 +109,9 @@ public class XPathTest extends AbstractESBTest {
    @Test
    public void testJavaExtensionEvaluate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
-      Map<Entry<String, Boolean>, String> assignments = createAssignments("result", "fn-artofarc:evaluate('test/text()')");
-      assignments.put(com.artofarc.util.Collections.createEntry("result2", true), "*[2]/text()");
+      List<AssignAction.Assignment> assignments = createAssignments();
+      assignments.add(new AssignAction.Assignment("result", "fn-artofarc:evaluate('test')", false, "xs:string"));
+      assignments.add(new AssignAction.Assignment("result2", "*[2]", true, "xs:string"));
       Action action = createAssignAction(assignments, null);
       action.setNextAction(new DumpAction());
       ConsumerPort consumerPort = new ConsumerPort(null);

@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 import javax.xml.validation.Schema;
@@ -24,13 +25,14 @@ import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQResultSequence;
 
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.service.XQDecl;
 
 public class ValidateAction extends AssignAction {
 
 	private final Schema _schema;
 
 	public ValidateAction(Schema schema, String expression, Collection<Map.Entry<String, String>> namespaces, String contextItem) {
-		super(null, expression, namespaces, emptyNames(), contextItem);
+		super(null, expression, namespaces, Collections.<XQDecl> emptyList(), contextItem);
 		_schema = schema;
 	}
 

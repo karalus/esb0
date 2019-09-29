@@ -3,9 +3,10 @@ package com.artofarc.esb;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.After;
@@ -28,6 +29,7 @@ import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.StreamUtils;
 
 public abstract class AbstractESBTest {
@@ -68,29 +70,33 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static AssignAction createAssignAction(String varName, String expression, String... bindNames) {
-		HashMap<String, Boolean> map = new HashMap<>();
+		List<XQDecl> decls = new ArrayList<>();
 		for (String bindName : bindNames) {
-			map.put(bindName, false);
+			XQDecl decl = new XQDecl();
+			decl.setValue(bindName);
+			decls.add(decl);
 		}
-		return new AssignAction(varName, expression, null, map.entrySet(), null);
+		return new AssignAction(varName, expression, null, decls, null);
 	}
 
-	protected static AssignAction createAssignAction(Map<Map.Entry<String, Boolean>, String> assignments, Map<String, String> namespaces, String... bindNames) {
-		HashMap<String, Boolean> map = new HashMap<>();
+	protected static AssignAction createAssignAction(List<AssignAction.Assignment> assignments, Map<String, String> namespaces, String... bindNames) {
+		List<XQDecl> decls = new ArrayList<>();
 		for (String bindName : bindNames) {
-			map.put(bindName, false);
+			XQDecl decl = new XQDecl();
+			decl.setValue(bindName);
+			decls.add(decl);
 		}
-		return new AssignAction(assignments.entrySet(), namespaces != null ? namespaces.entrySet() : null, map.entrySet(), null);
+		return new AssignAction(assignments, namespaces != null ? namespaces.entrySet() : null, decls, null);
 	}
 
-	protected static Map<Map.Entry<String, Boolean>, String> createAssignments(String... tuples) {
-		Map<Map.Entry<String, Boolean>, String> map = new LinkedHashMap<>();
+	protected static List<AssignAction.Assignment> createAssignments(String... tuples) {
+		List<AssignAction.Assignment> assignments = new ArrayList<>();
 		for (int i = 0; i < tuples.length; ++i) {
 			String varName = tuples[i];
 			String expression = tuples[++i];
-			map.put(com.artofarc.util.Collections.createEntry(varName, false), expression);
+			assignments.add(new AssignAction.Assignment(varName, expression, false, null));
 		}
-		return map;
+		return assignments;
 	}
 
 	protected static ValidateAction createValidateAction(SchemaArtifact schemaArtifact) {
