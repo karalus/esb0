@@ -28,7 +28,6 @@ import javax.xml.bind.DatatypeConverter;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StringWriter;
 
 public class JDBCResult2JsonMapper {
 
@@ -52,13 +51,9 @@ public class JDBCResult2JsonMapper {
 			result = jsonArray;
 		}
 		if (result != null) {
-			StringWriter sw = new StringWriter();
-			JsonWriter jsonWriter = Json.createWriter(sw);
-			jsonWriter.write(result);
-			jsonWriter.close();
 			message.getHeaders().clear();
 			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
-			message.reset(BodyType.READER, sw.getStringReader());
+			message.reset(BodyType.JSON, result);
 		} else if (jsonArray.size() > 0) {
 			message.getVariables().put("sqlUpdateCount", jsonArray.getInt(0));
 		}

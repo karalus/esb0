@@ -42,7 +42,7 @@ public class DumpAction extends TerminalAction {
 			System.out.println("Body:");
 			if (message.getBodyType() == BodyType.EXCEPTION) {
 				message.<Exception> getBody().printStackTrace(System.out);
-			} else if (message.isStream()) {
+			} else if (message.isStream() || message.getBodyType() == BodyType.JSON) {
 				System.out.println(message.getBodyAsString(context));
 			} else {
 				message.writeRawTo(System.out, context);

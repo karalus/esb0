@@ -16,6 +16,9 @@
  */
 package com.artofarc.esb.action;
 
+import static com.artofarc.esb.http.HttpConstants.HTTP_HEADER_CONTENT_TYPE;
+import static com.artofarc.esb.http.HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -132,18 +135,23 @@ public class TransformAction extends Action {
 				// Nothing to bind, but we need a context item
 				xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 			} else {
-				switch (message.getBodyType()) {
-				case XQ_SEQUENCE:
-					XQSequence sequence = message.getBody();
-					checkNext(sequence, "body");
-					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
-					break;
-				case XQ_ITEM:
-					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
-					break;
-				default:
-					xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
-					break;
+				String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+				if (contentType != null && contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_JSON)) {
+					xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
+				} else {
+					switch (message.getBodyType()) {
+					case XQ_SEQUENCE:
+						XQSequence sequence = message.getBody();
+						checkNext(sequence, "body");
+						xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
+						break;
+					case XQ_ITEM:
+						xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
+						break;
+					default:
+						xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
+						break;
+					}
 				}
 			}
 		}

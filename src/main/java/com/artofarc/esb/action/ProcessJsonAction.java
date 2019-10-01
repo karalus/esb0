@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonException;
 import javax.json.JsonNumber;
@@ -66,7 +65,8 @@ public class ProcessJsonAction extends Action {
 		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		JsonStructure json = Json.createReader(message.getBodyAsReader(context)).read();
+		JsonStructure json = message.getBodyAsJson(context);
+		message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 		
 		for (Assignment variable : _variables) {
 			Object value = variable.getValueAsObject(json);
@@ -82,10 +82,6 @@ public class ProcessJsonAction extends Action {
 		}
 		if (_bodyExpr != null) {
 			message.reset(BodyType.STRING, bindVariable(_bodyExpr, context, message));
-			message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
-		} else if (message.isStream()) {
-			message.reset(BodyType.STRING, json.toString());
-			message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 		}
 		return null;
 	}

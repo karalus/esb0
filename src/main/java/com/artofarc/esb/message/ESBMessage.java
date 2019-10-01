@@ -36,6 +36,10 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import javax.json.Json;
+import javax.json.JsonStructure;
+import javax.json.JsonWriter;
+import javax.json.JsonWriterFactory;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
 import javax.xml.bind.JAXBElement;
@@ -222,7 +226,11 @@ public final class ESBMessage implements Cloneable {
 	public String getSinkEncoding() {
 		return (_sinkEncoding != null ? _sinkEncoding : getCharset()).name();
 	}
-	
+
+	private boolean isSinkEncodingdifferent() {
+		return _sinkEncoding != null && _sinkEncoding != getCharset();
+	}
+
 	public Properties getSinkProperties() {
 		Properties props = new Properties();
 		props.setProperty(OutputKeys.ENCODING, getSinkEncoding());
@@ -230,8 +238,14 @@ public final class ESBMessage implements Cloneable {
 		return props;
 	}
 
-	private boolean isSinkEncodingdifferent() {
-		return _sinkEncoding != null && _sinkEncoding != getCharset();
+	private static JsonWriterFactory getJsonWriterFactory() {
+		if (XML_OUTPUT_INDENT.equals("yes")) {
+			Map<String, Object> map = new HashMap<>();
+			map.put(javax.json.stream.JsonGenerator.PRETTY_PRINTING, true);
+			return Json.createWriterFactory(map);
+		} else {
+			return Json.createWriterFactory(null);
+		}
 	}
 
 	public Number getTimeleft(Number def) {
@@ -353,6 +367,12 @@ public final class ESBMessage implements Cloneable {
 		case EXCEPTION:
 			str = asXMLString((Exception) _body);
 			break;
+		case JSON:
+			JsonWriter jsonWriter = getJsonWriterFactory().createWriter(sw = new StringWriter());
+			jsonWriter.write((JsonStructure) _body);
+			jsonWriter.close();
+			str = sw.toString();
+			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");
 		default:
@@ -431,6 +451,15 @@ public final class ESBMessage implements Cloneable {
 			return new StreamSource((Reader) _body);
 		default:
 			throw new IllegalStateException("Message is invalid");
+		}
+	}
+
+	public JsonStructure getBodyAsJson(Context context) throws TransformerException, IOException, XQException  {
+		switch (_bodyType) {
+		case JSON:
+			return (JsonStructure) _body;
+		default:
+			return init(BodyType.JSON, Json.createReader(getBodyAsReader(context)).read(), null);
 		}
 	}
 
@@ -595,7 +624,7 @@ public final class ESBMessage implements Cloneable {
 			init(BodyType.OUTPUT_STREAM, os, _sinkEncoding);
 		}
 	}
-	
+
 	public void writeRawTo(OutputStream os, Context context) throws TransformerException, IOException, XQException {
 		switch (_bodyType) {
 		case DOM:
@@ -631,6 +660,10 @@ public final class ESBMessage implements Cloneable {
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(os, getSinkProperties());
+			break;
+		case JSON:
+			JsonStructure json = (JsonStructure) _body;
+			init(BodyType.WRITER, getJsonWriterFactory().createWriter(os, _sinkEncoding != null ? _sinkEncoding : getCharset()), null).write(json);
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");
