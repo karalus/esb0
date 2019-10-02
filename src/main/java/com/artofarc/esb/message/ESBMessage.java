@@ -67,7 +67,6 @@ import org.xml.sax.InputSource;
 
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
-
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
@@ -79,6 +78,15 @@ public final class ESBMessage implements Cloneable {
 	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
 	public static final int MTU = StreamUtils.MTU;
 	private static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
+	private static final JsonWriterFactory JSON_WRITER_FACTORY;
+
+	static {
+		Map<String, Object> map = new HashMap<>();
+		if (Boolean.parseBoolean(System.getProperty("esb0.jsonPrettyPrinting"))) {
+			map.put(javax.json.stream.JsonGenerator.PRETTY_PRINTING, true);
+		}
+		JSON_WRITER_FACTORY = Json.createWriterFactory(map);
+	}
 
 	private final HashMap<String, Object> _headers = new HashMap<>();
 	private final HashMap<String, Object> _variables = new HashMap<>();
@@ -238,16 +246,6 @@ public final class ESBMessage implements Cloneable {
 		return props;
 	}
 
-	private static JsonWriterFactory getJsonWriterFactory() {
-		if (XML_OUTPUT_INDENT.equals("yes")) {
-			Map<String, Object> map = new HashMap<>();
-			map.put(javax.json.stream.JsonGenerator.PRETTY_PRINTING, true);
-			return Json.createWriterFactory(map);
-		} else {
-			return Json.createWriterFactory(null);
-		}
-	}
-
 	public Number getTimeleft(Number def) {
 		return getVariable(ESBConstants.timeleft, def);
 	}
@@ -368,7 +366,7 @@ public final class ESBMessage implements Cloneable {
 			str = asXMLString((Exception) _body);
 			break;
 		case JSON:
-			JsonWriter jsonWriter = getJsonWriterFactory().createWriter(sw = new StringWriter());
+			JsonWriter jsonWriter = JSON_WRITER_FACTORY.createWriter(sw = new StringWriter());
 			jsonWriter.write((JsonStructure) _body);
 			jsonWriter.close();
 			str = sw.toString();
@@ -663,7 +661,7 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case JSON:
 			JsonStructure json = (JsonStructure) _body;
-			init(BodyType.WRITER, getJsonWriterFactory().createWriter(os, _sinkEncoding != null ? _sinkEncoding : getCharset()), null).write(json);
+			init(BodyType.WRITER, JSON_WRITER_FACTORY.createWriter(os, _sinkEncoding != null ? _sinkEncoding : getCharset()), null).write(json);
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");

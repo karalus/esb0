@@ -16,9 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import static com.artofarc.esb.http.HttpConstants.HTTP_HEADER_CONTENT_TYPE;
-import static com.artofarc.esb.http.HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,6 +37,7 @@ import javax.xml.xquery.XQSequenceType;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.XQuerySource;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
@@ -135,8 +133,8 @@ public class TransformAction extends Action {
 				// Nothing to bind, but we need a context item
 				xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 			} else {
-				String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-				if (contentType != null && contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_JSON)) {
+				String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+				if (contentType != null && contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 					xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
 				} else {
 					switch (message.getBodyType()) {
