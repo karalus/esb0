@@ -186,6 +186,9 @@
 					<sources>
                     	<source>src/main/xsd/service.xsd</source>
                 	</sources>
+					<arguments>
+						<argument>-Xlocator</argument>
+					</arguments>
 				</configuration>
 			</plugin>
 			<plugin>

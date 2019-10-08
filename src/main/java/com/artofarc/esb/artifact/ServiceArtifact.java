@@ -52,7 +52,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	private Protocol _protocol;
 	private ConsumerPort _consumerPort;
-	private int _actionCount;
 
 	// only used during validation
 	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
@@ -124,15 +123,16 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 	}
 
-	private void addAction(List<Action> list, Action action) {
+	private void addAction(List<Action> list, Action action, ActionBase actionBase) {
+		action.setLocation(new Location(getURI(), actionBase.sourceLocation().getLineNumber()));
 		list.add(action);
-		action.setServiceArtifactURI(getURI());
-		action.setPosInServiceArtifact(_actionCount++);
 	}
 
-	private void addAllActions(List<Action> list, List<Action> clone) {
-		for (Action action : clone) {
-			addAction(list, action);
+	private void addAllActions(List<Action> list, List<Action> clones, ActionBase actionBase) {
+		Location parent = new Location(getURI(), actionBase.sourceLocation().getLineNumber());
+		for (Action clone : clones) {
+			clone.setLocation(new Location(clone.getLocation(), parent));
+			list.add(clone);
 		}
 	}
 
@@ -148,18 +148,18 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getConnectionTimeout(), http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
 				httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
-				addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength()));
+				addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength()), http);
 				if (http.getWorkerPool() != null) {
-					addAction(list, new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, http.isJoin()));
+					addAction(list, new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, http.isJoin()), http);
 				}
-				addAction(list, new HttpInboundAction());
+				addAction(list, new HttpInboundAction(), http);
 				break;
 			}
 			case "jms": {
 				Jms jms = (Jms) jaxbElement.getValue();
 				JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
 				addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms
-						.isBytesMessage(), jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.isReceiveFromTempQueue()));
+						.isBytesMessage(), jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.isReceiveFromTempQueue()), jms);
 				break;
 			}
 			case "produceKafka": {
@@ -168,7 +168,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (Property property : produceKafka.getProperty()) {
 					properties.put(property.getKey(), property.getValue());
 				}
-				addAction(list, new KafkaProduceAction(globalContext, properties, produceKafka.getTopic(), produceKafka.getPartition(), produceKafka.isBinary()));
+				addAction(list, new KafkaProduceAction(globalContext, properties, produceKafka.getTopic(), produceKafka.getPartition(), produceKafka.isBinary()), produceKafka);
 				break;
 			}
 			case "consumeKafka": {
@@ -179,25 +179,25 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				KafkaConsumeAction kafkaConsumeAction = new KafkaConsumeAction(properties, consumeKafka.getTopic(), consumeKafka.getTimeout(),
 						resolveWorkerPool(consumeKafka.getWorkerPool()), Action.linkList(transform(globalContext, consumeKafka.getAction(), null)));
-				addAction(list, kafkaConsumeAction);
+				addAction(list, kafkaConsumeAction, consumeKafka);
 				break;
 			}
 			case "file": {
 				File file = (File) jaxbElement.getValue();
-				addAction(list, new FileAction(file.getDir()));
+				addAction(list, new FileAction(file.getDir()), file);
 				break;
 			}
 			case "fileSystemWatch": {
 				FileSystemWatch fileSystemWatch = (FileSystemWatch) jaxbElement.getValue();
 				FileSystemWatchAction fileSystemWatchAction = new FileSystemWatchAction(fileSystemWatch.getDir(), fileSystemWatch.getTimeout(),
 						resolveWorkerPool(fileSystemWatch.getWorkerPool()), Action.linkList(transform(globalContext, fileSystemWatch.getAction(), null)));
-				addAction(list, fileSystemWatchAction);
+				addAction(list, fileSystemWatchAction, fileSystemWatch);
 				break;
 			}
 			case "jdbcProcedure": {
 				JdbcProcedure jdbcProcedure = (JdbcProcedure) jaxbElement.getValue();
 				if (jdbcProcedure.getWorkerPool() != null) {
-					addAction(list, new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, jdbcProcedure.isJoin()));
+					addAction(list, new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, jdbcProcedure.isJoin()), jdbcProcedure);
 				}
 				org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext jaxbContext = null;
 				if (jdbcProcedure.getSchemaURI() != null) {
@@ -207,15 +207,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					jaxbContext = schemaArtifact.getJAXBContext(resolveClassLoader(globalContext, jdbcProcedure.getClassLoader()));
 				}
 				addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
-						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jaxbContext));
+						.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jaxbContext), jdbcProcedure);
 				break;
 			}
 			case "jdbc": {
 				Jdbc jdbc = (Jdbc) jaxbElement.getValue();
 				if (jdbc.getWorkerPool() != null) {
-					addAction(list, new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()));
+					addAction(list, new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()), jdbc);
 				}
-				addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getMaxRows(), jdbc.getTimeout()));
+				addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getMaxRows(), jdbc.getTimeout()), jdbc);
 				break;
 			}
 			case "setMessage": {
@@ -233,7 +233,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (SetMessage.Variable variable : setMessage.getVariable()) {
 					setMessageAction.addVariable(variable.getName(), variable.getValue(), variable.getJavaType(), variable.getMethod());
 				}
-				addAction(list, setMessageAction);
+				addAction(list, setMessageAction, setMessage);
 				break;
 			}
 			case "processJson": {
@@ -245,7 +245,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (ProcessJson.Variable variable : processJson.getVariable()) {
 					processJsonAction.addVariable(variable.getName(), variable.getValue());
 				}
-				addAction(list, processJsonAction);
+				addAction(list, processJsonAction, processJson);
 				break;
 			}
 			case "assign": {
@@ -256,7 +256,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				AssignAction assignAction = new AssignAction(assignments, createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem());
 				XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
-				addAction(list, assignAction);
+				addAction(list, assignAction, assign);
 				break;
 			}
 			case "assignHeaders": {
@@ -283,7 +283,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				AssignHeadersAction assignHeadersAction = new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()), assignHeaders.getBindName(), assignHeaders.getContextItem(), assignHeaders.isClearAll());
 				XQueryArtifact.validateXQuerySource(this, getConnection(), assignHeadersAction.getXQuery());
-				addAction(list, assignHeadersAction);
+				addAction(list, assignHeadersAction, assignHeaders);
 				break;
 			}
 			case "xml2json": {
@@ -292,7 +292,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
 				addAction(list, new XML2JsonAction(schemaArtifact.getJAXBContext(null), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
-					Collections.inverseMap(createNsDecls(xml2Json.getNsDecl()), true), xml2Json.isValidate() ? schemaArtifact.getSchema() : null, xml2Json.isFormattedOutput()));
+					Collections.inverseMap(createNsDecls(xml2Json.getNsDecl()), true), xml2Json.isValidate() ? schemaArtifact.getSchema() : null, xml2Json.isFormattedOutput()), xml2Json);
 				break;
 			}
 			case "json2xml": {
@@ -301,7 +301,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
 				addAction(list, new Json2XMLAction(schemaArtifact.getJAXBContext(null), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.isCaseInsensitive(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
-					Collections.inverseMap(createNsDecls(json2Xml.getNsDecl()), true), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()));
+					Collections.inverseMap(createNsDecls(json2Xml.getNsDecl()), true), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()), json2Xml);
 				break;
 			}
 			case "transform": {
@@ -310,11 +310,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					XQueryArtifact xQueryArtifact = loadArtifact(transform.getXqueryURI());
 					addReference(xQueryArtifact);
 					xQueryArtifact.validate(globalContext);
-					addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getParent().getURI(), transform.getContextItem()));
+					addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getParent().getURI(), transform.getContextItem()), transform);
 				} else if (transform.getXquery() != null) {
 					XQuerySource xquery = XQuerySource.create(transform.getXquery());
 					XQueryArtifact.validateXQuerySource(this, getConnection(), xquery);
-					addAction(list, new TransformAction(xquery, getParent().getURI(), transform.getContextItem()));
+					addAction(list, new TransformAction(xquery, getParent().getURI(), transform.getContextItem()), transform);
 				} else {
 					throw new ValidationException(this, "transform has no XQuery");
 				}
@@ -325,7 +325,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				XSLTArtifact xsltArtifact = loadArtifact(applyXSLT.getXslURI());
 				addReference(xsltArtifact);
 				xsltArtifact.validate(globalContext);
-				addAction(list, new XSLTAction(xsltArtifact.getTemplates()));
+				addAction(list, new XSLTAction(xsltArtifact.getTemplates()), applyXSLT);
 				break;
 			}
 			case "unwrapSOAP": {
@@ -337,12 +337,12 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				@SuppressWarnings("unchecked")
 				List<BindingOperation> bindingOperations = binding != null ? binding.getBindingOperations() : java.util.Collections.emptyList();
 				UnwrapSOAPAction unwrapSOAPAction = new UnwrapSOAPAction(unwrapSOAP.isSoap12(), unwrapSOAP.isSinglePart(), wsdlArtifact.getSchema(), bindingOperations, wsdlArtifact.getURI(), unwrapSOAP.isGetWsdl());
-				addAction(list, unwrapSOAPAction);
+				addAction(list, unwrapSOAPAction, unwrapSOAP);
 				break;
 			}
 			case "wrapSOAP":
 				WrapSOAP wrapSOAP = (WrapSOAP) jaxbElement.getValue();
-				addAction(list, new WrapSOAPAction(wrapSOAP.isSoap12(), wrapSOAP.isHeader(), wrapSOAP.isSinglePart()));
+				addAction(list, new WrapSOAPAction(wrapSOAP.isSoap12(), wrapSOAP.isHeader(), wrapSOAP.isSinglePart()), wrapSOAP);
 				break;
 			case "preSOAPHttp": {
 				PreSOAPHttp preSOAPHttp = (PreSOAPHttp) jaxbElement.getValue();
@@ -351,12 +351,12 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				wsdlArtifact.validate(globalContext);
 				Binding binding = WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), preSOAPHttp.getBinding(), preSOAPHttp.getTransport());
 				PreSOAPHttpAction preSOAPHttpAction = new PreSOAPHttpAction(preSOAPHttp.isSoap12(), preSOAPHttp.isHeader(), preSOAPHttp.isSinglePart(), wsdlArtifact.getSchema(), binding);
-				addAction(list, preSOAPHttpAction);
+				addAction(list, preSOAPHttpAction, preSOAPHttp);
 				break;
 			}
 			case "postSOAPHttp":
 				PostSOAPHttp postSOAPHttp = (PostSOAPHttp) jaxbElement.getValue();
-				addAction(list, new PostSOAPHttpAction(postSOAPHttp.isSoap12(), postSOAPHttp.isSinglePart()));
+				addAction(list, new PostSOAPHttpAction(postSOAPHttp.isSoap12(), postSOAPHttp.isSinglePart()), postSOAPHttp);
 				break;
 			case "validate": {
 				Validate validate = (Validate) jaxbElement.getValue();
@@ -367,7 +367,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				if (validate.getExpression() != "." && !validate.getExpression().equals("*")) {
 					XQueryArtifact.validateXQuerySource(this, getConnection(), validateAction.getXQuery());
 				}
-				addAction(list, validateAction);
+				addAction(list, validateAction, validate);
 				break;
 			}
 			case "actionPipelineRef": {
@@ -376,7 +376,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				if (actionPipeline == null) {
 					throw new ValidationException(this, "actionPipeline not found: " + actionPipelineRef.getRef());
 				}
-				addAllActions(list, Action.cloneService(actionPipeline));
+				addAllActions(list, Action.cloneService(actionPipeline), actionPipelineRef);
 				break;
 			}
 			case "internalService":
@@ -384,33 +384,33 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				ServiceArtifact serviceArtifact = loadArtifact(internalService.getServiceURI() + '.' + FILE_EXTENSION);
 				addReference(serviceArtifact);
 				serviceArtifact.validate(globalContext);
-				addAllActions(list, serviceArtifact.getConsumerPort().getInternalService());
+				addAllActions(list, serviceArtifact.getConsumerPort().getInternalService(), internalService);
 				break;
 			case "conditional":
 				Conditional conditional = (Conditional) jaxbElement.getValue();
 				ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()), conditional.getBindName(), conditional.getContextItem());
 				XQueryArtifact.validateXQuerySource(this, getConnection(), conditionalAction.getXQuery());
 				conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), null)));
-				addAction(list, conditionalAction);
+				addAction(list, conditionalAction, conditional);
 				break;
 			case "cache":
 				Cache cache = (Cache) jaxbElement.getValue();
 				addAction(list, new CacheAction(globalContext, cache.getKey(), cache.getValue(),
-						Action.linkList(transform(globalContext, cache.getAction(), null)), cache.isWriteOnly(), cache.getName(), cache.getMaxSize(), cache.getTtl()));
+						Action.linkList(transform(globalContext, cache.getAction(), null)), cache.isWriteOnly(), cache.getName(), cache.getMaxSize(), cache.getTtl()), cache);
 				break;
 			case "uncache":
 				Uncache uncache = (Uncache) jaxbElement.getValue();
-				addAction(list, new UncacheAction(globalContext, uncache.getKey(), uncache.getName()));
+				addAction(list, new UncacheAction(globalContext, uncache.getKey(), uncache.getName()), uncache);
 				break;
 			case "spawn":
 				Spawn spawn = (Spawn) jaxbElement.getValue();
-				addAction(list, new SpawnAction(resolveWorkerPool(spawn.getWorkerPool()), spawn.isUsePipe(), spawn.isJoin()));
+				addAction(list, new SpawnAction(resolveWorkerPool(spawn.getWorkerPool()), spawn.isUsePipe(), spawn.isJoin()), spawn);
 				break;
 			case "fork":
 				Fork fork = (Fork) jaxbElement.getValue();
 				ForkAction forkAction = new ForkAction(resolveWorkerPool(fork.getWorkerPool()), fork.isCopyMessage());
 				forkAction.setFork(Action.linkList(transform(globalContext, fork.getAction(), fork.getErrorHandler())));
-				addAction(list, forkAction);
+				addAction(list, forkAction, fork);
 				break;
 			case "branchOnVariable": {
 				BranchOnVariable branchOnVariable = (BranchOnVariable) jaxbElement.getValue();
@@ -426,7 +426,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
 					branchOnVariableAction.addBranch(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), null)));
 				}
-				addAction(list, branchOnVariableAction);
+				addAction(list, branchOnVariableAction, branchOnVariable);
 				break;
 			}
 			case "branchOnPath": {
@@ -439,29 +439,29 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				for (BranchOnPath.Branch branch : branchOnPath.getBranch()) {
 					branchOnPathAction.addBranch(branch.getPathTemplate(), Action.linkList(transform(globalContext, branch.getAction(), null)));
 				}
-				addAction(list, branchOnPathAction);
+				addAction(list, branchOnPathAction, branchOnPath);
 				break;
 			}
 			case "deserializeMtomXop":
-				addAction(list, new MtomXopDeserializeAction());
+				addAction(list, new MtomXopDeserializeAction(), jaxbElement.getValue());
 				break;
 			case "suspend":
 				Suspend suspend = (Suspend) jaxbElement.getValue();
-				addAction(list, new SuspendAction(suspend.getCorrelationID(), suspend.getTimeout()));
+				addAction(list, new SuspendAction(suspend.getCorrelationID(), suspend.getTimeout()), suspend);
 				break;
 			case "resume":
 				Resume resume = (Resume) jaxbElement.getValue();
-				addAction(list, new ResumeAction(resume.getWorkerPool(), resume.getCorrelationID()));
+				addAction(list, new ResumeAction(resume.getWorkerPool(), resume.getCorrelationID()), resume);
 				break;
 			case "throwException":
 				ThrowException throwException = (ThrowException) jaxbElement.getValue();
-				addAction(list, new ThrowExceptionAction(throwException.getMessage()));
+				addAction(list, new ThrowExceptionAction(throwException.getMessage()), throwException);
 				break;
 			case "dump":
-				addAction(list, new DumpAction());
+				addAction(list, new DumpAction(), jaxbElement.getValue());
 				break;
 			case "admin":
-				addAction(list, new AdminAction());
+				addAction(list, new AdminAction(), jaxbElement.getValue());
 				break;
 			default:
 				throw new IllegalArgumentException("Cannot interpret " + jaxbElement.getName().getLocalPart());

@@ -26,6 +26,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.artofarc.esb.artifact.Location;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
@@ -39,9 +40,7 @@ public abstract class Action implements Cloneable {
 
 	protected Action _nextAction;
 	protected Action _errorHandler;
-
-	private String _serviceArtifactURI;
-	private int _posInServiceArtifact;
+	private Location _location;
 
 	public final Action setNextAction(Action nextAction) {
 		return _nextAction = nextAction;
@@ -55,19 +54,19 @@ public abstract class Action implements Cloneable {
 		_errorHandler = errorHandler;
 	}
 
-	public final void setServiceArtifactURI(String serviceArtifactURI) {
-		_serviceArtifactURI = serviceArtifactURI;
+	public final Location getLocation() {
+		return _location;
 	}
 
-	public final void setPosInServiceArtifact(int posInServiceArtifact) {
-		_posInServiceArtifact = posInServiceArtifact;
+	public final void setLocation(Location location) {
+		_location = location;
 	}
 
 	@Override
 	public final String toString() {
 		String s = getClass().getSimpleName();
-		if (_serviceArtifactURI != null) {
-			s += " in ServiceArtifact " + _serviceArtifactURI + "@" + _posInServiceArtifact;
+		if (_location != null) {
+			s += " in ServiceArtifact " + _location;
 		}
 		return s;
 	}
@@ -167,7 +166,7 @@ public abstract class Action implements Cloneable {
 			resources.clear();
 		}
 		context.getStackPos().poll();
-		timeGauge.stopTimeMeasurement("Finished process: " + _serviceArtifactURI, false);
+		timeGauge.stopTimeMeasurement("Finished process: %s", false, _location != null ? _location.getServiceArtifactURI() : getClass().getSimpleName());
 	}
 
 	// pipelining
