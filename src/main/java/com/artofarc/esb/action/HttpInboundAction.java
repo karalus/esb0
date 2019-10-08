@@ -54,6 +54,9 @@ public class HttpInboundAction extends Action {
 			message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 		}
 		InputStream inputStream = conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST ? conn.getInputStream() : conn.getErrorStream();
+		if (inputStream == null) {
+			inputStream = new java.io.ByteArrayInputStream(new byte[0]);
+		}
 		message.reset(BodyType.INPUT_STREAM, inputStream);
 		return new ExecutionContext(inputStream, wrapper);
 	}
