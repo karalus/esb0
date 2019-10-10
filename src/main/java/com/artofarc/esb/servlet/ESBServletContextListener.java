@@ -64,7 +64,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 			DeployHelper.deployChangeSet(globalContext, changeSet);
 			DeployHelper.createAdminService(globalContext, ADMIN_SERVLET_PATH + '*');
 		} catch (ValidationException e) {
-			throw new RuntimeException("Could not validate artifact " + e.getArtifact(), e.getCause());
+			throw new RuntimeException("Could not validate artifact " + e.getArtifactLocation(), e.getCause());
 		} catch (Exception e) {
 			throw new RuntimeException("Could not read services", e);
 		}

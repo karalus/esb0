@@ -21,24 +21,35 @@ public class ValidationException extends Exception {
 	private static final long serialVersionUID = 1L;
 
 	private final Artifact _artifact;
+	private final Integer _lineNumber;
 
-	public ValidationException(Artifact action, String message, Throwable cause) {
+	public ValidationException(Artifact artifact, String message, Throwable cause) {
 		super(message, cause);
-		_artifact = action;
+		_artifact = artifact;
+		_lineNumber = null;
 	}
 
-	public ValidationException(Artifact action, String message) {
+	public ValidationException(Artifact artifact, String message) {
 		super(message);
-		_artifact = action;
+		_artifact = artifact;
+		_lineNumber = null;
 	}
 
-	public ValidationException(Artifact action, Throwable cause) {
+	public ValidationException(Artifact artifact, Throwable cause) {
 		super(cause);
-		_artifact = action;
+		_artifact = artifact;
+		_lineNumber = null;
 	}
 
-	public Artifact getArtifact() {
-		return _artifact;
+	public ValidationException(Artifact artifact, Integer lineNumber, Throwable cause) {
+		super(cause);
+		_artifact = artifact;
+		_lineNumber = lineNumber;
+	}
+
+	public final String getArtifactLocation() {
+		String s = _artifact.getURI();
+		return _lineNumber != null ? s + '@' + _lineNumber : s;
 	}
 
 }

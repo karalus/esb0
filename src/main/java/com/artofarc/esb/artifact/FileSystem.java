@@ -319,7 +319,7 @@ public class FileSystem {
 			}
 			if (exceptions.size() > 0) {
 				for (ValidationException exception : exceptions) {
-					logger.error(exception.getArtifact().getURI(), exception);
+					logger.error(exception.getArtifactLocation(), exception);
 				}
 				throw exceptions.get(0);
 			}
