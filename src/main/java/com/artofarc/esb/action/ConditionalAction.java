@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,12 +27,10 @@ import com.artofarc.esb.service.XQDecl;
 
 public class ConditionalAction extends AssignAction {
 
-	private static final String RESULT = "result";
-
 	private Action _conditionalAction;
 
 	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
-		super(RESULT, expression, namespaces, bindNames, contextItem);
+		super(null, expression, namespaces, bindNames, contextItem);
 	}
 
 	public final void setConditionalAction(Action conditionalAction) {
@@ -42,9 +39,8 @@ public class ConditionalAction extends AssignAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		HashMap<String, Object> map = new HashMap<>();
-		ExecutionContext executionContext = prepare(context, message, map);
-		executionContext.setResource3(map.get(RESULT));
+		ExecutionContext executionContext = super.prepare(context, message, inPipeline);
+		executionContext.setResource3(message.getVariable(null));
 		return executionContext;
 	}
 

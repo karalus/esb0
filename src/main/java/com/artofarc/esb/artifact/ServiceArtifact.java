@@ -246,11 +246,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			} else {
 				setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, null, null, null);
 			}
-			for (SetMessage.Header header : setMessage.getHeader()) {
-				setMessageAction.addHeader(header.getName(), header.getValue(), header.getJavaType(), header.getMethod());
-			}
-			for (SetMessage.Variable variable : setMessage.getVariable()) {
-				setMessageAction.addVariable(variable.getName(), variable.getValue(), variable.getJavaType(), variable.getMethod());
+			for (JAXBElement<HeaderOrVariable> jaxbElement2 : setMessage.getHeaderOrVariable()) {
+				HeaderOrVariable hov = jaxbElement2.getValue();
+				setMessageAction.addAssignment(hov.getName(), jaxbElement.getName().getLocalPart().equals("header"), hov.getValue(), hov.getJavaType(), hov.getMethod());
 			}
 			addAction(list, setMessageAction, location);
 			break;
@@ -267,42 +265,38 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			addAction(list, processJsonAction, location);
 			break;
 		}
-		case "assign": {
+		case "assign":
+		case "assignHeaders": {
 			Assign assign = (Assign) jaxbElement.getValue();
 			List<AssignAction.Assignment> assignments = new ArrayList<>();
 			for (Assign.Assignment assignment : assign.getAssignment()) {
-				assignments.add(new AssignAction.Assignment(assignment.getVariable(), assignment.getValue(), assignment.isNullable(), assignment.getType()));
-			}
-			AssignAction assignAction = new AssignAction(assignments, createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem());
-			XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
-			addAction(list, assignAction, location);
-			break;
-		}
-		case "assignHeaders": {
-			AssignHeaders assignHeaders = (AssignHeaders) jaxbElement.getValue();
-			List<AssignAction.Assignment> assignments = new ArrayList<>();
-			for (AssignHeaders.Assignment assignment : assignHeaders.getAssignment()) {
-				assignments.add(new AssignAction.Assignment(assignment.getHeader(), assignment.getValue(), assignment.isNullable(), assignment.getType()));
-				// TO BE REMOVED: Ugly hack to compensate for old buggy service flows
-				if (assignment.getValue().equals("$MEP")) {
-					if (!containsBindName(assignHeaders.getBindName(), "MEP")) {
-						XQDecl bindName = new XQDecl();
-						bindName.setValue("MEP");
-						assignHeaders.getBindName().add(bindName);
-						logger.warn("Missing bindName MEP in AssignHeaders. Patched " + getURI());
+				if (assignment.getVariable() != null) {
+					assignments.add(new AssignAction.Assignment(assignment.getVariable(), false, assignment.getValue(), assignment.isNullable(), assignment.getType()));
+				} else if (assignment.getHeader() != null) {
+					assignments.add(new AssignAction.Assignment(assignment.getHeader(), true, assignment.getValue(), assignment.isNullable(), assignment.getType()));
+					// TO BE REMOVED: Ugly hack to compensate for old buggy service flows
+					if (assignment.getValue().equals("$MEP")) {
+						if (!containsBindName(assign.getBindName(), "MEP")) {
+							XQDecl bindName = new XQDecl();
+							bindName.setValue("MEP");
+							assign.getBindName().add(bindName);
+							logger.warn("Missing bindName MEP in AssignHeaders. Patched " + getURI());
+						}
+					} else if (assignment.getValue().contains("$header/")) {
+						if (!containsBindName(assign.getBindName(), "header")) {
+							XQDecl bindName = new XQDecl();
+							bindName.setValue("header");
+							assign.getBindName().add(bindName);
+							logger.warn("Missing bindName header in AssignHeaders. Patched " + getURI());
+						}
 					}
-				} else if (assignment.getValue().contains("$header/")) {
-					if (!containsBindName(assignHeaders.getBindName(), "header")) {
-						XQDecl bindName = new XQDecl();
-						bindName.setValue("header");
-						assignHeaders.getBindName().add(bindName);
-						logger.warn("Missing bindName header in AssignHeaders. Patched " + getURI());
-					}
+				} else {
+					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either varaible or header");
 				}
 			}
-			AssignHeadersAction assignHeadersAction = new AssignHeadersAction(assignments, createNsDecls(assignHeaders.getNsDecl()), assignHeaders.getBindName(), assignHeaders.getContextItem(), assignHeaders.isClearAll());
-			XQueryArtifact.validateXQuerySource(this, getConnection(), assignHeadersAction.getXQuery());
-			addAction(list, assignHeadersAction, location);
+			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem(), false);
+			XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
+			addAction(list, assignAction, location);
 			break;
 		}
 		case "xml2json": {

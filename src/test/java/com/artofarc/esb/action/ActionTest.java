@@ -120,15 +120,15 @@ public class ActionTest {
    public void testSetMessage() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
 		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), "${body}", "java.lang.String", null);
-		action.addHeader("int", "42", "java.lang.Integer", null);
-		action.addHeader("bool", "true", "java.lang.Boolean", "parseBoolean");
-		action.addHeader("now", "", "java.lang.System", "currentTimeMillis");
-		action.addHeader("id", "${_id.toString}", null, null);
-		action.addVariable("_id", "", "java.util.UUID", "randomUUID");
-		action.addVariable("calendar", "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime");
-		action.addVariable("timeInMillis", "${calendar.getTimeInMillis}", null, null);
-		action.addVariable("_addr", "", "java.net.InetAddress", "getLocalHost");
-		action.addVariable("hostname", "${_addr.getHostName}", null, null);
+		action.addAssignment("int", true, "42", "java.lang.Integer", null);
+		action.addAssignment("bool", true, "true", "java.lang.Boolean", "parseBoolean");
+		action.addAssignment("now", true, "", "java.lang.System", "currentTimeMillis");
+		action.addAssignment("_id", false, "", "java.util.UUID", "randomUUID");
+		action.addAssignment("id", true, "${_id.toString}", null, null);
+		action.addAssignment("calendar", false, "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime");
+		action.addAssignment("timeInMillis", false, "${calendar.getTimeInMillis}", null, null);
+		action.addAssignment("_addr", false, "", "java.net.InetAddress", "getLocalHost");
+		action.addAssignment("hostname", false, "${_addr.getHostName}", null, null);
    	action.setNextAction(new DumpAction());
    	action.process(context, message);
    	assertEquals(42, message.getHeader("int"));

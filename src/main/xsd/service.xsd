@@ -225,45 +225,28 @@
 			</extension>
 		</complexContent>
 	</complexType>
-	<element name="assign" substitutionGroup="tns:action">
-		<complexType>
-			<complexContent>
-				<extension base="tns:AssignBase">
-					<sequence>
-						<element name="assignment" maxOccurs="unbounded">
-							<complexType>
-								<simpleContent>
-									<extension base="tns:XQDecl">
-										<attribute name="variable" type="Name" use="required" />
-									</extension>
-								</simpleContent>
-							</complexType>
-						</element>
-					</sequence>
-				</extension>
-			</complexContent>
-		</complexType>
-	</element>
-	<element name="assignHeaders" substitutionGroup="tns:action">
-		<complexType>
-			<complexContent>
-				<extension base="tns:AssignBase">
-					<sequence>
-						<element name="assignment" maxOccurs="unbounded">
-							<complexType>
-								<simpleContent>
-									<extension base="tns:XQDecl">
-										<attribute name="header" type="Name" use="required" />
-									</extension>
-								</simpleContent>
-							</complexType>
-						</element>
-					</sequence>
-					<attribute name="clearAll" type="boolean" default="false" />
-				</extension>
-			</complexContent>
-		</complexType>
-	</element>
+	<complexType name="assign">
+		<complexContent>
+			<extension base="tns:AssignBase">
+				<sequence>
+					<element name="assignment" maxOccurs="unbounded">
+						<complexType>
+							<simpleContent>
+								<extension base="tns:XQDecl">
+									<attribute name="variable" type="Name" />
+									<attribute name="header" type="Name" />
+								</extension>
+							</simpleContent>
+						</complexType>
+					</element>
+					<element name="body" type="tns:string1" minOccurs="0"/>
+				</sequence>
+				<attribute name="clearAll" type="boolean" default="false" />
+			</extension>
+		</complexContent>
+	</complexType>
+	<element name="assign" type="tns:assign" substitutionGroup="tns:action"/>
+	<element name="assignHeaders" type="tns:assign" substitutionGroup="tns:action"/>
 	<element name="xml2json" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
@@ -524,33 +507,24 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<complexType name="HeaderOrVariable">
+		<simpleContent>
+			<extension base="string">
+				<attribute name="name" type="Name" use="required" />
+				<attribute name="javaType" type="Name" />
+				<attribute name="method" type="Name" />
+			</extension>
+		</simpleContent>
+	</complexType>
 	<element name="setMessage" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<sequence>
-						<element name="header" minOccurs="0" maxOccurs="unbounded">
-							<complexType>
-								<simpleContent>
-									<extension base="string">
-										<attribute name="name" type="Name" use="required" />
-										<attribute name="javaType" type="Name" />
-										<attribute name="method" type="Name" />
-									</extension>
-								</simpleContent>
-							</complexType>
-						</element>
-						<element name="variable" minOccurs="0" maxOccurs="unbounded">
-							<complexType>
-								<simpleContent>
-									<extension base="string">
-										<attribute name="name" type="Name" use="required" />
-										<attribute name="javaType" type="Name" />
-										<attribute name="method" type="Name" />
-									</extension>
-								</simpleContent>
-							</complexType>
-						</element>
+						<choice minOccurs="0" maxOccurs="unbounded">
+							<element name="header" type="tns:HeaderOrVariable"/>
+							<element name="variable" type="tns:HeaderOrVariable"/>
+						</choice>
 						<element name="body" minOccurs="0">
 							<complexType>
 								<simpleContent>

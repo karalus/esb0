@@ -23,12 +23,6 @@ public class ValidationException extends Exception {
 	private final Artifact _artifact;
 	private final Integer _lineNumber;
 
-	public ValidationException(Artifact artifact, String message, Throwable cause) {
-		super(message, cause);
-		_artifact = artifact;
-		_lineNumber = null;
-	}
-
 	public ValidationException(Artifact artifact, String message) {
 		super(message);
 		_artifact = artifact;
@@ -39,6 +33,12 @@ public class ValidationException extends Exception {
 		super(cause);
 		_artifact = artifact;
 		_lineNumber = null;
+	}
+
+	public ValidationException(Artifact artifact, Integer lineNumber, String message) {
+		super(message);
+		_artifact = artifact;
+		_lineNumber = lineNumber;
 	}
 
 	public ValidationException(Artifact artifact, Integer lineNumber, Throwable cause) {

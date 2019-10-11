@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -86,15 +85,15 @@ public abstract class AbstractESBTest {
 			decl.setValue(bindName);
 			decls.add(decl);
 		}
-		return new AssignAction(assignments, namespaces != null ? namespaces.entrySet() : null, decls, null);
+		return new AssignAction(assignments, ".", namespaces != null ? namespaces.entrySet() : null, decls, null, false);
 	}
 
-	protected static List<AssignAction.Assignment> createAssignments(String... tuples) {
+	protected static List<AssignAction.Assignment> createAssignments(boolean header, String... tuples) {
 		List<AssignAction.Assignment> assignments = new ArrayList<>();
 		for (int i = 0; i < tuples.length; ++i) {
 			String varName = tuples[i];
 			String expression = tuples[++i];
-			assignments.add(new AssignAction.Assignment(varName, expression, false, null));
+			assignments.add(new AssignAction.Assignment(varName, header, expression, false, null));
 		}
 		return assignments;
 	}
@@ -118,11 +117,11 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static TransformAction createTransformAction(XQueryArtifact xqueryArtifact, String... varNames) {
-		HashMap<String, Boolean> map = new HashMap<>();
+		List<AssignAction.Assignment> assignments = new ArrayList<>();
 		for (String varName : varNames) {
-			map.put(varName, false);
+			assignments.add(new AssignAction.Assignment(varName, false, null, false, null));
 		}
-		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), map.entrySet(), xqueryArtifact.getParent().getURI(), null);
+		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), assignments, xqueryArtifact.getParent().getURI(), null);
 	}
 
 }

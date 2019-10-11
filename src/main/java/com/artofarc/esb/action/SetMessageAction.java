@@ -33,26 +33,21 @@ public class SetMessageAction extends Action {
 
 	private final boolean _clearAll;
 	private final ClassLoader _classLoader;
-	private final List<Assignment> _headers = new ArrayList<>();
-	private final List<Assignment> _variables = new ArrayList<>();
+	private final List<Assignment> _assignments = new ArrayList<>();
 	private final Assignment _body; 
 
 	public SetMessageAction(boolean clearAll, ClassLoader cl, String bodyExpr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 		_clearAll = clearAll;
 		_classLoader = cl;
-		_body = bodyExpr != null ? new Assignment(null, bodyExpr, javaType, method) : null;
+		_body = bodyExpr != null ? new Assignment(null, false, bodyExpr, javaType, method) : null;
 		_pipelineStop = bodyExpr != null;
 		_pipelineStart = false;
 	}
 
-	public final void addHeader(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
-		_headers.add(new Assignment(name, expr, javaType, method));
-	}
-
-	public final void addVariable(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
-		Assignment variable = new Assignment(name, expr, javaType, method);
-		_variables.add(variable);
-		if (variable._needsBody) {
+	public final void addAssignment(String name, boolean header, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+		Assignment assignment = new Assignment(name, header, expr, javaType, method);
+		_assignments.add(assignment);
+		if (assignment._needsBody) {
 			_pipelineStop = true;
 		}
 	}
@@ -67,22 +62,21 @@ public class SetMessageAction extends Action {
 		if (_clearAll) {
 			message.getHeaders().clear();
 		}
-		for (Assignment variable : _variables) {
-			if (!variable._needsBody) {
-				message.getVariables().put(variable._name, variable.convert(bindVariable(variable._expr, context, message)));
+		for (Assignment assignment : _assignments) {
+			if (assignment._header) {
+				message.putHeader(assignment._name, assignment.convert(bindVariable(assignment._expr, context, message)));
+			} else if (!assignment._needsBody) {
+				message.getVariables().put(assignment._name, assignment.convert(bindVariable(assignment._expr, context, message)));
 			}
-		}
-		for (Assignment header : _headers) {
-			message.putHeader(header._name, header.convert(bindVariable(header._expr, context, message)));
 		}
 		return null;
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		for (Assignment variable : _variables) {
-			if (variable._needsBody) {
-				message.getVariables().put(variable._name, variable.convert(bindVariable(variable._expr, context, message)));
+		for (Assignment assignment : _assignments) {
+			if (assignment._needsBody) {
+				message.getVariables().put(assignment._name, assignment.convert(bindVariable(assignment._expr, context, message)));
 			}
 		}
 		if (_body != null) {
@@ -95,13 +89,15 @@ public class SetMessageAction extends Action {
 	final class Assignment {
 
 		final String _name;
+		final boolean _header;
 		final String _expr;
 		final boolean _needsBody;
 		Constructor<?> _con;
 		Method _method;
 
-		Assignment(String name, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+		Assignment(String name, boolean header, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 			_name = name;
+			_header = header;
 			_expr = expr;
 			_needsBody = expr.contains("${body");
 			if (javaType != null) {

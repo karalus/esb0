@@ -56,8 +56,8 @@ public class UnwrapSOAPAction extends TransformAction {
 				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
 				+ (singlePart && bindingOperations != null ? "local-name($b), " : "") + "if ($h) then (true(), $h) else false(), $b)",
 				singlePart && bindingOperations != null ?
-						Arrays.asList(Collections.createEntry(SOAP_OPERATION, false), Collections.createEntry(SOAP_HEADER, true)) :
-						java.util.Collections.singletonList(Collections.createEntry(SOAP_HEADER, true)));
+						Arrays.asList(new Assignment(SOAP_OPERATION, false, null, false, null), new Assignment(SOAP_HEADER, false, null, true, null)) :
+						java.util.Collections.singletonList(new Assignment(SOAP_HEADER, false, null, true, null)));
 		
 		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;

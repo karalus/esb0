@@ -416,13 +416,13 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       SetMessageAction setMessageAction = new SetMessageAction(false, null, null, null, null);
-      setMessageAction.addHeader(HttpConstants.HTTP_HEADER_ACCEPT, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null);
+      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_ACCEPT, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null);
 		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
       action = action.setNextAction(new DumpAction());
       action = action.setNextAction(createUnwrapSOAPAction(false, true));
       setMessageAction = new SetMessageAction(false, null, null, null, null);
-      setMessageAction.addHeader(HttpConstants.HTTP_HEADER_ACCEPT, "", null, null);
+      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_ACCEPT, true, "", null, null);
 		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
       action = action.setNextAction(new DumpAction());
@@ -445,7 +445,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = createValidateAction(wsdlArtifact);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-	  action = action.setNextAction(new AssignHeadersAction(createAssignments(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"), null, java.util.Collections.<XQDecl> emptyList(), null, true));
+      action = action.setNextAction(new AssignAction(createAssignments(true, HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"), null, null, java.util.Collections.<XQDecl> emptyList(), null, true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }

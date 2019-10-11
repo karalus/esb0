@@ -16,44 +16,31 @@
  */
 package com.artofarc.esb.action;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.XQuerySource;
+import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
 
 public class AssignAction extends TransformAction {
 
-	public final static class Assignment {
-		final String name;
-		final String value;
-		final boolean nullable;
-		final String type;
-
-		public Assignment(String name, String value, boolean nullable, String type) {
-			this.name = name;
-			this.value = value;
-			this.nullable = nullable;
-			this.type = type;
-		}
-	}
+	private final boolean _clearAll;
 
 	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
-		this(java.util.Collections.singletonList(new Assignment(varName, expression, false, null)), namespaces, bindNames, contextItem);
+		this(java.util.Collections.singletonList(new Assignment(varName, false, expression, false, null)), null, namespaces, bindNames, contextItem, false);
 	}
 
-	public AssignAction(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
-		this(new ArrayList<Map.Entry<String, Boolean>>(), assignments, namespaces, bindNames, contextItem);
-	}
-
-	private AssignAction(List<Map.Entry<String, Boolean>> varNames, List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
-		super(createXQuery(assignments, namespaces, varNames, bindNames), varNames, null, contextItem);
+	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearAll) {
+		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), assignments, null, contextItem);
+		_clearAll = clearAll;
 		_bindNames = bindNames;
 	}
 
-	private static XQuerySource createXQuery(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<Map.Entry<String, Boolean>> varNames, List<XQDecl> bindNames) {
+	private static XQuerySource createXQuery(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
 		StringBuilder builder = new StringBuilder();
 		if (namespaces != null) {
 			for (Map.Entry<String, String> entry : namespaces) {
@@ -69,23 +56,30 @@ public class AssignAction extends TransformAction {
 		}
 		builder.append("(");
 		for (Assignment assignment : assignments) {
-			varNames.add(com.artofarc.util.Collections.createEntry(assignment.name, assignment.nullable));
 			boolean hasAtomicType = assignment.type != null && assignment.type.startsWith("xs:");
 			if (assignment.nullable) {
-				builder.append("let $").append(assignment.name).append(" := ").append(assignment.value).append(" return if ($").append(assignment.name).append(") then (true(), ");
+				builder.append("let $").append(assignment.name).append(" := ").append(assignment.expr).append(" return if ($").append(assignment.name).append(") then (true(), ");
 				if (hasAtomicType) builder.append(assignment.type).append('(');
 				builder.append("$").append(assignment.name);
 				if (hasAtomicType) builder.append(')');
 				builder.append(") else false()");
 			} else {
 				if (hasAtomicType) builder.append(assignment.type).append('(');
-				builder.append(assignment.value);
+				builder.append(assignment.expr);
 				if (hasAtomicType) builder.append(')');
 			}
 			builder.append(", ");
 		}
-		builder.append(".)");
+		builder.append(bodyExpr).append(')');
 		return XQuerySource.create(builder.toString());
+	}
+
+	@Override
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		if (_clearAll) {
+			message.getHeaders().clear();
+		}
+		return super.prepare(context, message, inPipeline);
 	}
 
 }

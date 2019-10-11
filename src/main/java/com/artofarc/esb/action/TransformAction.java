@@ -18,7 +18,6 @@ package com.artofarc.esb.action;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,30 +44,46 @@ import com.artofarc.util.Collections;
 
 public class TransformAction extends Action {
 
+	public final static class Assignment {
+		final String name;
+		final boolean header;
+		final String expr;
+		final boolean nullable;
+		final String type;
+
+		public Assignment(String name, boolean header, String expr, boolean nullable, String type) {
+			this.name = name;
+			this.header = header;
+			this.expr = expr;
+			this.nullable = nullable;
+			this.type = type;
+		}
+	}
+
 	private final XQuerySource _xquery;
-	private final Collection<Map.Entry<String, Boolean>> _varNames;
+	private final List<Assignment> _assignments;
 	private final String _baseURI; 
 	private final String _contextItem;
 	protected List<XQDecl> _bindNames;
 	private final Map<QName, Map.Entry<XQItemType, Boolean>> _bindings = new HashMap<>();
 
-	public static List<Map.Entry<String, Boolean>> emptyNames() {
+	private static List<Assignment> emptyNames() {
 		return java.util.Collections.emptyList();
 	}
 
-	public TransformAction(XQuerySource xquery, Collection<Map.Entry<String, Boolean>> varNames, String baseURI, String contextItem) {
+	public TransformAction(XQuerySource xquery, List<Assignment> varNames, String baseURI, String contextItem) {
 		_xquery = xquery;
-		_varNames = varNames;
+		_assignments = varNames;
 		_baseURI = baseURI;
 		_contextItem = contextItem;
 		_pipelineStop = contextItem != null;
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
-		this(xquery, contextItem != null ? Arrays.asList(Collections.createEntry(contextItem, false)) : emptyNames(), baseURI, contextItem);
+		this(xquery, contextItem != null ? Arrays.asList(new Assignment(contextItem, false, null, false, null)) : emptyNames(), baseURI, contextItem);
 	}
 
-	protected TransformAction(String xquery, Collection<Map.Entry<String, Boolean>> varNames) {
+	protected TransformAction(String xquery, List<Assignment> varNames) {
 		this(XQuerySource.create(xquery), varNames, null, null);
 	}
 
@@ -116,10 +131,6 @@ public class TransformAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		return prepare(context, message, message.getVariables());
-	}
-
-	protected final ExecutionContext prepare(Context context, ESBMessage message, Map<String, Object> destMap) throws Exception {
 		context.getTimeGauge().startTimeMeasurement();
 		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery, _baseURI);
 		if (_bindNames == null || _bindNames.size() != _bindings.size()) {
@@ -160,7 +171,7 @@ public class TransformAction extends Action {
 		XQResultSequence resultSequence = xqExpression.executeQuery();
 		context.getTimeGauge().stopTimeMeasurement("executeQuery", true);
 		try {
-			processSequence(message, resultSequence, destMap);
+			processSequence(message, resultSequence);
 		} finally {
 			context.getTimeGauge().stopTimeMeasurement("processSequence", false);
 		}
@@ -191,20 +202,20 @@ public class TransformAction extends Action {
 		}
 	}
 
-	protected void processSequence(ESBMessage message, XQResultSequence resultSequence, Map<String, Object> destMap) throws Exception {
-		for (Map.Entry<String, Boolean> entry : _varNames) {
-			String varName  = entry.getKey();
+	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws Exception {
+		for (Assignment assignment : _assignments) {
 			boolean notNull = true;
-			if (entry.getValue()) {
-				checkNext(resultSequence, varName);
+			if (assignment.nullable) {
+				checkNext(resultSequence, assignment.name);
 				notNull = resultSequence.getBoolean();
 			}
 			if (notNull) {
-				checkNext(resultSequence, varName);
+				checkNext(resultSequence, assignment.name);
+				Map<String, Object> destMap = assignment.header ? message.getHeaders() : message.getVariables();
 				if (resultSequence.getItemType().getItemKind() == XQItemType.XQITEMKIND_TEXT) {
-					destMap.put(varName, resultSequence.getItemAsString(null));
+					destMap.put(assignment.name, resultSequence.getItemAsString(null));
 				} else {
-					destMap.put(varName, resultSequence.getObject());
+					destMap.put(assignment.name, resultSequence.getObject());
 				}
 			}
 		}
