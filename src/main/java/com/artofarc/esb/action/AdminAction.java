@@ -51,10 +51,11 @@ public class AdminAction extends Action {
 		String resource = resolve(message, ESBConstants.appendHttpUrlPath, true);
 		switch (verb) {
 		case "GET":
-			doGet(context.getPoolContext().getGlobalContext(), message, resource);
+			readArtifact(context.getPoolContext().getGlobalContext(), message, resource);
 			break;
+		case "PUT":
 		case "POST":
-			doPost(context.getPoolContext().getGlobalContext(), message, resource);
+			changeConfiguration(context.getPoolContext().getGlobalContext(), message, resource);
 			break;
 		default:
 			createErrorResponse(message, HttpServletResponse.SC_METHOD_NOT_ALLOWED, verb);
@@ -76,7 +77,7 @@ public class AdminAction extends Action {
 		message.reset(null, errorMessage);
 	}
 
-	private static void doGet(GlobalContext globalContext, ESBMessage message, String resource) {
+	private static void readArtifact(GlobalContext globalContext, ESBMessage message, String resource) {
 		Artifact artifact = globalContext.getFileSystem().getArtifact(resource);
 		if (artifact != null) {
 			if (artifact instanceof Directory) {
@@ -107,7 +108,8 @@ public class AdminAction extends Action {
 		}
 	}
 
-	private static void doPost(GlobalContext globalContext, ESBMessage message, String resource) throws Exception {
+	private static void changeConfiguration(GlobalContext globalContext, ESBMessage message, String resource) throws Exception {
+		// if a file is received then deploy it otherwise change the state of a service flow
 		if (message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION) != null) {
 			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 			if (contentType.startsWith("application/")) {
@@ -136,7 +138,9 @@ public class AdminAction extends Action {
 		} else {
 			ConsumerPort consumerPort = globalContext.getInternalService(resource);
 			if (consumerPort != null) {
-				consumerPort.enable(!consumerPort.isEnabled());
+				String enable = message.getHeader("enable");
+				// if header is missing just toggle state
+				consumerPort.enable(enable != null ? Boolean.parseBoolean(enable) : !consumerPort.isEnabled());
 				createResponse(message, null, null);
 			} else {
 				createErrorResponse(message, HttpServletResponse.SC_NOT_FOUND, null);
