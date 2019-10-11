@@ -47,9 +47,9 @@ public class TransformAction extends Action {
 	public final static class Assignment {
 		final String name;
 		final boolean header;
-		final String expr;
+		String expr;
 		final boolean nullable;
-		final String type;
+		String type;
 
 		public Assignment(String name, boolean header, String expr, boolean nullable, String type) {
 			this.name = name;
@@ -60,6 +60,10 @@ public class TransformAction extends Action {
 		}
 	}
 
+	private static List<Assignment> emptyNames() {
+		return java.util.Collections.emptyList();
+	}
+
 	private final XQuerySource _xquery;
 	private final List<Assignment> _assignments;
 	private final String _baseURI; 
@@ -67,13 +71,9 @@ public class TransformAction extends Action {
 	protected List<XQDecl> _bindNames;
 	private final Map<QName, Map.Entry<XQItemType, Boolean>> _bindings = new HashMap<>();
 
-	private static List<Assignment> emptyNames() {
-		return java.util.Collections.emptyList();
-	}
-
-	public TransformAction(XQuerySource xquery, List<Assignment> varNames, String baseURI, String contextItem) {
+	public TransformAction(XQuerySource xquery, List<Assignment> assignments, String baseURI, String contextItem) {
 		_xquery = xquery;
-		_assignments = varNames;
+		_assignments = assignments;
 		_baseURI = baseURI;
 		_contextItem = contextItem;
 		_pipelineStop = contextItem != null;
@@ -211,7 +211,7 @@ public class TransformAction extends Action {
 			}
 			if (notNull) {
 				checkNext(resultSequence, assignment.name);
-				Map<String, Object> destMap = assignment.header ? message.getHeaders() : message.getVariables();
+				final Map<String, Object> destMap = assignment.header ? message.getHeaders() : message.getVariables();
 				if (resultSequence.getItemType().getItemKind() == XQItemType.XQITEMKIND_TEXT) {
 					destMap.put(assignment.name, resultSequence.getItemAsString(null));
 				} else {

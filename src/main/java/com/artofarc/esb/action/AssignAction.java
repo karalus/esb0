@@ -69,6 +69,8 @@ public class AssignAction extends TransformAction {
 				if (hasAtomicType) builder.append(')');
 			}
 			builder.append(", ");
+			assignment.expr = null;
+			assignment.type = null;
 		}
 		builder.append(bodyExpr).append(')');
 		return XQuerySource.create(builder.toString());

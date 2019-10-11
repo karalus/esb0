@@ -40,7 +40,7 @@ public class ConditionalAction extends AssignAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		ExecutionContext executionContext = super.prepare(context, message, inPipeline);
-		executionContext.setResource3(message.getVariable(null));
+		executionContext.setResource3(message.removeVariable(null));
 		return executionContext;
 	}
 
