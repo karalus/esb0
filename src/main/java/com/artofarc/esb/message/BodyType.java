@@ -20,7 +20,7 @@ import org.w3c.dom.Node;
 
 public enum BodyType {
 	INVALID(false), INPUT_STREAM(true), READER(false), STRING(false), BYTES(true), DOM(false), XQ_SEQUENCE(false), OUTPUT_STREAM(true), WRITER(true), SOURCE(
-			false), RESULT(false), XQ_ITEM(false), JSON(false), EXCEPTION(false);
+			false), RESULT(false), XQ_ITEM(false), EXCEPTION(false);
 
 	private final boolean _hasCharset;
 

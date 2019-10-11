@@ -50,6 +50,10 @@ public abstract class JDBCAction extends TerminalAction {
 	protected final JDBCXMLMapper _mapper;
 
 	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, DynamicJAXBContext jaxbContext) throws NamingException {
+		_pipelineStop = false;
+		for (JDBCParameter param : params) {
+			_pipelineStop |= param.isBody();
+		}
 		_dataSource = globalContext.lookup(dsName);
 		_sql = sql;
 		_params = params;

@@ -21,13 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import javax.json.JsonArray;
-import javax.json.JsonException;
-import javax.json.JsonNumber;
-import javax.json.JsonObject;
-import javax.json.JsonString;
-import javax.json.JsonStructure;
-import javax.json.JsonValue;
+import javax.json.*;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -45,12 +39,12 @@ public class ProcessJsonAction extends Action {
 	private final List<Assignment> _headers = new ArrayList<>();
 	private final List<Assignment> _variables = new ArrayList<>();
 	private final String _bodyExpr; 
-	
+
 	public ProcessJsonAction(String bodyExpr) {
 		_pipelineStop = true;
 		_bodyExpr = bodyExpr;
 	}
-		
+
 	public void addHeader(String name, String jsonPointer)  {
 		_headers.add(new Assignment(name, jsonPointer));
 	}
@@ -60,13 +54,13 @@ public class ProcessJsonAction extends Action {
 	}
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+		super.execute(context, execContext, message, nextActionIsPipelineStop);
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		JsonStructure json = message.getBodyAsJson(context);
-		message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
+		JsonStructure json = Json.createReader(message.getBodyAsReader(context)).read();
 		
 		for (Assignment variable : _variables) {
 			Object value = variable.getValueAsObject(json);
@@ -82,10 +76,10 @@ public class ProcessJsonAction extends Action {
 		}
 		if (_bodyExpr != null) {
 			message.reset(BodyType.STRING, bindVariable(_bodyExpr, context, message));
+			message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 		}
-		return null;
 	}
-	
+
 	protected final static class Assignment {
 		private final String _name;
 		private final ArrayList<String> _pointer = new ArrayList<>();

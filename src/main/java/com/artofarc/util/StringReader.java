@@ -80,4 +80,9 @@ public final class StringReader extends java.io.Reader {
 	public void close() {
 	}
 
+	@Override
+	public String toString() {
+		return builder.toString();
+	}
+
 }

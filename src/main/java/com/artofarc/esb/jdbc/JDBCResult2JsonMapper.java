@@ -16,23 +16,26 @@
  */
 package com.artofarc.esb.jdbc;
 
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.*;
+import static java.sql.Types.*;
 import java.util.GregorianCalendar;
 
-import static java.sql.Types.*;
-import java.math.BigDecimal;
-
 import javax.json.*;
+import javax.json.stream.JsonGenerator;
 import javax.xml.bind.DatatypeConverter;
 
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWriter;
 
 public class JDBCResult2JsonMapper {
 
-	public static void extractResult(Statement statement, ESBMessage message) throws SQLException {
-		JsonStructure result = null;
+	public static void extractResult(Statement statement, ESBMessage message) throws SQLException, IOException {
+		StringWriter sw = null;
+		JsonGenerator jsonGenerator = null;
 		JsonArrayBuilder builder = Json.createArrayBuilder();
 		for (boolean moreResults = true;; moreResults = statement.getMoreResults()) {
 			int updateCount = statement.getUpdateCount();
@@ -40,112 +43,129 @@ public class JDBCResult2JsonMapper {
 			if (updateCount >= 0) {
 				builder.add(updateCount);
 			} else if (moreResults && resultSet != null) {
-				result = createJson(resultSet);
-				builder.add(result);
+				if (jsonGenerator == null) {
+					if (!message.isSink()) {
+						message.reset(BodyType.WRITER, sw = new StringWriter());
+					}
+					jsonGenerator = message.getBodyAsJsonGenerator();
+				}
+				createJson(resultSet, jsonGenerator);
 			} else {
 				break;
 			}
 		}
-		JsonArray jsonArray = builder.build();
-		if (jsonArray.size() > 1) {
-			result = jsonArray;
+		if (jsonGenerator != null) {
+			jsonGenerator.close();
 		}
-		if (result != null) {
+		JsonArray jsonArray = builder.build();
+		switch (jsonArray.size()) {
+		case 1:
+			message.getVariables().put("sqlUpdateCount", jsonArray.getInt(0));
+			break;
+		default:
+			JsonWriter jsonWriter = Json.createWriter(sw = new StringWriter());
+			jsonWriter.write(jsonArray);
+			jsonWriter.close();
+			// nobreak
+		case 0:
 			message.getHeaders().clear();
 			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
-			message.reset(BodyType.JSON, result);
-		} else if (jsonArray.size() > 0) {
-			message.getVariables().put("sqlUpdateCount", jsonArray.getInt(0));
+			break;
+		}
+		if (sw != null) {
+			message.reset(BodyType.READER, sw.getStringReader());
 		}
 	}
 
-	private static JsonObject createJson(ResultSet resultSet) throws SQLException {
+	private static void createJson(ResultSet resultSet, JsonGenerator json) throws SQLException {
 		ResultSetMetaData metaData = resultSet.getMetaData();
 		final int colSize = metaData.getColumnCount();
-		JsonObjectBuilder result = Json.createObjectBuilder();
-		JsonArrayBuilder header = Json.createArrayBuilder();
+		json.writeStartObject();
+		json.writeStartArray("header");
 		for (int i = 1; i <= colSize; ++i) {
 			int precision = metaData.getPrecision(i);
 			int scale = metaData.getScale(i);
 			String type = JDBCParameter.CODES.get(metaData.getColumnType(i)) + (precision > 0 ? "(" + precision + (scale > 0 ? ", " + scale : "") + ')' : "");
-			header.add(Json.createObjectBuilder().add(metaData.getColumnLabel(i), type));
+			json.writeStartObject();
+			json.write(metaData.getColumnLabel(i), type);
+			json.writeEnd();
 		}
-		result.add("header", header);
-		JsonArrayBuilder rows = Json.createArrayBuilder();
+		json.writeEnd();
+		json.writeStartArray("rows");
 		while (resultSet.next()) {
-			JsonArrayBuilder row = Json.createArrayBuilder();
+			json.writeStartArray();
 			for (int i = 1; i <= colSize; ++i) {
 				switch (metaData.getColumnType(i)) {
 				case SMALLINT:
 				case INTEGER:
 					int integer = resultSet.getInt(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(integer);
+					if (checkNotNull(resultSet, json)) {
+						json.write(integer);
 					}
 					break;
 				case BIT:
 					boolean bool = resultSet.getBoolean(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(bool);
+					if (checkNotNull(resultSet, json)) {
+						json.write(bool);
 					}
 					break;
 				case NUMERIC:
 				case DECIMAL:
 					BigDecimal bigDecimal = resultSet.getBigDecimal(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(bigDecimal);
+					if (checkNotNull(resultSet, json)) {
+						json.write(bigDecimal);
 					}
 					break;
 				case TIMESTAMP:
 					Timestamp timestamp = resultSet.getTimestamp(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(DatatypeConverter.printDateTime(convert(timestamp)));
+					if (checkNotNull(resultSet, json)) {
+						json.write(DatatypeConverter.printDateTime(convert(timestamp)));
 					}
 					break;
 				case DATE:
 					Date date = resultSet.getDate(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(DatatypeConverter.printDate(convert(date)));
+					if (checkNotNull(resultSet, json)) {
+						json.write(DatatypeConverter.printDate(convert(date)));
 					}
 					break;
 				case BLOB:
 					Blob blob = resultSet.getBlob(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
+					if (checkNotNull(resultSet, json)) {
+						json.write(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
 						blob.free();
 					}
 					break;
 				case CLOB:
 					Clob clob = resultSet.getClob(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(clob.getSubString(1, (int) clob.length()));
+					if (checkNotNull(resultSet, json)) {
+						json.write(clob.getSubString(1, (int) clob.length()));
 						clob.free();
 					}
 					break;
 				case VARBINARY:
 				case LONGVARBINARY:
 					byte[] bytes = resultSet.getBytes(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(DatatypeConverter.printBase64Binary(bytes));
+					if (checkNotNull(resultSet, json)) {
+						json.write(DatatypeConverter.printBase64Binary(bytes));
 					}
 					break;
 				default:
 					Object value = resultSet.getObject(i);
-					if (checkNotNull(resultSet, row)) {
-						row.add(value.toString());
+					if (checkNotNull(resultSet, json)) {
+						json.write(value.toString());
 					}
 					break;
 				}
 			}
-			rows.add(row);
+			json.writeEnd();
 		}
-		result.add("rows", rows);
-		return result.build();
+		json.writeEnd();
+		json.writeEnd();
 	}
 
-	private static boolean checkNotNull(ResultSet resultSet, JsonArrayBuilder row) throws SQLException {
+	private static boolean checkNotNull(ResultSet resultSet, JsonGenerator json) throws SQLException {
 		if (resultSet.wasNull()) {
-			row.addNull();
+			json.writeNull();
 			return false;
 		} else {
 			return true;

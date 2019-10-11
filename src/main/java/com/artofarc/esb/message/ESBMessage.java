@@ -37,9 +37,8 @@ import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
 import javax.json.Json;
-import javax.json.JsonStructure;
-import javax.json.JsonWriter;
-import javax.json.JsonWriterFactory;
+import javax.json.stream.JsonGenerator;
+import javax.json.stream.JsonGeneratorFactory;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
 import javax.xml.bind.JAXBElement;
@@ -78,14 +77,14 @@ public final class ESBMessage implements Cloneable {
 	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
 	public static final int MTU = StreamUtils.MTU;
 	private static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
-	private static final JsonWriterFactory JSON_WRITER_FACTORY;
+	private static final JsonGeneratorFactory JSON_GENERATOR_FACTORY;
 
 	static {
-		Map<String, Object> map = new HashMap<>();
+		Map<String, Object> config = new HashMap<>();
 		if (Boolean.parseBoolean(System.getProperty("esb0.jsonPrettyPrinting"))) {
-			map.put(javax.json.stream.JsonGenerator.PRETTY_PRINTING, true);
+			config.put(JsonGenerator.PRETTY_PRINTING, true);
 		}
-		JSON_WRITER_FACTORY = Json.createWriterFactory(map);
+		JSON_GENERATOR_FACTORY = Json.createGeneratorFactory(config);
 	}
 
 	private final HashMap<String, Object> _headers = new HashMap<>();
@@ -231,8 +230,12 @@ public final class ESBMessage implements Cloneable {
 		_sinkEncoding = Charset.forName(sinkEncoding);
 	}
 
+	private Charset getSinkEncodingCharset() {
+		return _sinkEncoding != null ? _sinkEncoding : getCharset();
+	}
+
 	public String getSinkEncoding() {
-		return (_sinkEncoding != null ? _sinkEncoding : getCharset()).name();
+		return getSinkEncodingCharset().name();
 	}
 
 	private boolean isSinkEncodingdifferent() {
@@ -359,17 +362,15 @@ public final class ESBMessage implements Cloneable {
 			str = sw.toString();
 			break;
 		case READER:
-			StreamUtils.copy((Reader) _body, sw = new StringWriter());
-			str = sw.toString();
+			if (_body instanceof com.artofarc.util.StringReader) {
+				str = _body.toString();
+			} else {
+				StreamUtils.copy((Reader) _body, sw = new StringWriter());
+				str = sw.toString();
+			}
 			break;
 		case EXCEPTION:
 			str = asXMLString((Exception) _body);
-			break;
-		case JSON:
-			JsonWriter jsonWriter = JSON_WRITER_FACTORY.createWriter(sw = new StringWriter());
-			jsonWriter.write((JsonStructure) _body);
-			jsonWriter.close();
-			str = sw.toString();
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");
@@ -449,15 +450,6 @@ public final class ESBMessage implements Cloneable {
 			return new StreamSource((Reader) _body);
 		default:
 			throw new IllegalStateException("Message is invalid");
-		}
-	}
-
-	public JsonStructure getBodyAsJson(Context context) throws TransformerException, IOException, XQException  {
-		switch (_bodyType) {
-		case JSON:
-			return (JsonStructure) _body;
-		default:
-			return init(BodyType.JSON, Json.createReader(getBodyAsReader(context)).read(), null);
 		}
 	}
 
@@ -561,6 +553,18 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
+	public JsonGenerator getBodyAsJsonGenerator() throws IOException {
+		switch (_bodyType) {
+		case OUTPUT_STREAM:
+			_body = getCompressedOutputStream((OutputStream) _body);
+			return JSON_GENERATOR_FACTORY.createGenerator((OutputStream) _body, getSinkEncodingCharset());
+		case WRITER:
+			return JSON_GENERATOR_FACTORY.createGenerator((Writer) _body);
+		default:
+			throw new IllegalStateException("Message cannot be converted to JsonGenerator: " + _bodyType);
+		}
+	}
+
 	private void transform(Transformer transformer, Result result) throws TransformerException, XQException, IOException {
 		Source source;
 		switch (_bodyType) {
@@ -658,10 +662,6 @@ public final class ESBMessage implements Cloneable {
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(os, getSinkProperties());
-			break;
-		case JSON:
-			JsonStructure json = (JsonStructure) _body;
-			init(BodyType.WRITER, JSON_WRITER_FACTORY.createWriter(os, _sinkEncoding != null ? _sinkEncoding : getCharset()), null).write(json);
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");
