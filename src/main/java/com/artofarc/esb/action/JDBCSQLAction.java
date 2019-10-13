@@ -46,9 +46,7 @@ public class JDBCSQLAction extends JDBCAction {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, execContext, message, nextActionIsPipelineStop);
-
+	protected void executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
 		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.debug("JDBCSQLAction sql=" + sql);
 		try (Connection conn = getConnection(execContext);

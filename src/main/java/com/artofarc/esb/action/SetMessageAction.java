@@ -82,7 +82,9 @@ public class SetMessageAction extends Action {
 		if (_body != null) {
 			Object body = _body.convert(bindVariable(_body._expr, context, message));
 			message.reset(null, body);
-			message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
+			if (!_clearAll) {
+				message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
+			}
 		}
 	}
 

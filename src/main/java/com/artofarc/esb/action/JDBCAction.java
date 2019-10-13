@@ -99,7 +99,20 @@ public abstract class JDBCAction extends TerminalAction {
 				}
 			}
 		}
+		if (!_pipelineStop) {
+			executeStatement(context, execContext, message);
+		}
 		return execContext;
+	}
+
+	abstract protected void executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception;
+
+	@Override
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+		if (_pipelineStop) {
+			super.execute(context, execContext, message, nextActionIsPipelineStop);
+			executeStatement(context, execContext, message);
+		}
 	}
 
 	protected final Connection getConnection(ExecutionContext execContext) throws SQLException {

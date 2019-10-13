@@ -156,11 +156,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return list;
 	}
 
-	private void transform(GlobalContext globalContext, List<Action> list, JAXBElement<? extends ActionBase> jaxbElement) throws Exception {
-		Location location = new Location(getURI(), jaxbElement.getValue().sourceLocation().getLineNumber());
-		switch (jaxbElement.getName().getLocalPart()) {
+	private void transform(GlobalContext globalContext, List<Action> list, JAXBElement<? extends ActionBase> actionElement) throws Exception {
+		Location location = new Location(getURI(), actionElement.getValue().sourceLocation().getLineNumber());
+		switch (actionElement.getName().getLocalPart()) {
 		case "http": {
-			Http http = (Http) jaxbElement.getValue();
+			Http http = (Http) actionElement.getValue();
 			List<HttpUrl> endpoints = new ArrayList<>();
 			for (Http.Url url : http.getUrl()) {
 				endpoints.add(new HttpUrl(url.getValue(), url.getWeight(), url.isActive()));
@@ -175,14 +175,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "jms": {
-			Jms jms = (Jms) jaxbElement.getValue();
+			Jms jms = (Jms) actionElement.getValue();
 			JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
 			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms
 					.isBytesMessage(), jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.isReceiveFromTempQueue()), location);
 			break;
 		}
 		case "produceKafka": {
-			ProduceKafka produceKafka = (ProduceKafka) jaxbElement.getValue();
+			ProduceKafka produceKafka = (ProduceKafka) actionElement.getValue();
 			Properties properties = new Properties();
 			for (Property property : produceKafka.getProperty()) {
 				properties.put(property.getKey(), property.getValue());
@@ -191,7 +191,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "consumeKafka": {
-			ConsumeKafka consumeKafka = (ConsumeKafka) jaxbElement.getValue();
+			ConsumeKafka consumeKafka = (ConsumeKafka) actionElement.getValue();
 			Properties properties = new Properties();
 			for (Property property : consumeKafka.getProperty()) {
 				properties.put(property.getKey(), property.getValue());
@@ -202,19 +202,19 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "file": {
-			File file = (File) jaxbElement.getValue();
+			File file = (File) actionElement.getValue();
 			addAction(list, new FileAction(file.getDir()), location);
 			break;
 		}
 		case "fileSystemWatch": {
-			FileSystemWatch fileSystemWatch = (FileSystemWatch) jaxbElement.getValue();
+			FileSystemWatch fileSystemWatch = (FileSystemWatch) actionElement.getValue();
 			FileSystemWatchAction fileSystemWatchAction = new FileSystemWatchAction(fileSystemWatch.getDir(), fileSystemWatch.getTimeout(),
 					resolveWorkerPool(fileSystemWatch.getWorkerPool()), Action.linkList(transform(globalContext, fileSystemWatch.getAction(), null)));
 			addAction(list, fileSystemWatchAction, location);
 			break;
 		}
 		case "jdbcProcedure": {
-			JdbcProcedure jdbcProcedure = (JdbcProcedure) jaxbElement.getValue();
+			JdbcProcedure jdbcProcedure = (JdbcProcedure) actionElement.getValue();
 			if (jdbcProcedure.getWorkerPool() != null) {
 				addAction(list, new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, jdbcProcedure.isJoin()), location);
 			}
@@ -230,7 +230,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "jdbc": {
-			Jdbc jdbc = (Jdbc) jaxbElement.getValue();
+			Jdbc jdbc = (Jdbc) actionElement.getValue();
 			if (jdbc.getWorkerPool() != null) {
 				addAction(list, new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()), location);
 			}
@@ -238,7 +238,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "setMessage": {
-			SetMessage setMessage = (SetMessage) jaxbElement.getValue();
+			SetMessage setMessage = (SetMessage) actionElement.getValue();
 			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, setMessage.getClassLoader());
 			SetMessageAction setMessageAction;
 			if (setMessage.getBody() != null) {
@@ -246,15 +246,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			} else {
 				setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, null, null, null);
 			}
-			for (JAXBElement<HeaderOrVariable> jaxbElement2 : setMessage.getHeaderOrVariable()) {
-				HeaderOrVariable hov = jaxbElement2.getValue();
+			for (JAXBElement<HeaderOrVariable> jaxbElement : setMessage.getHeaderOrVariable()) {
+				HeaderOrVariable hov = jaxbElement.getValue();
 				setMessageAction.addAssignment(hov.getName(), jaxbElement.getName().getLocalPart().equals("header"), hov.getValue(), hov.getJavaType(), hov.getMethod());
 			}
 			addAction(list, setMessageAction, location);
 			break;
 		}
 		case "processJson": {
-			ProcessJson processJson = (ProcessJson) jaxbElement.getValue();
+			ProcessJson processJson = (ProcessJson) actionElement.getValue();
 			ProcessJsonAction processJsonAction = new ProcessJsonAction(processJson.getBody());
 			for (ProcessJson.Header header : processJson.getHeader()) {
 				processJsonAction.addHeader(header.getName(), header.getValue());
@@ -267,7 +267,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "assign":
 		case "assignHeaders": {
-			Assign assign = (Assign) jaxbElement.getValue();
+			Assign assign = (Assign) actionElement.getValue();
 			List<AssignAction.Assignment> assignments = new ArrayList<>();
 			for (Assign.Assignment assignment : assign.getAssignment()) {
 				if (assignment.getVariable() != null) {
@@ -300,7 +300,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "xml2json": {
-			Xml2Json xml2Json = (Xml2Json) jaxbElement.getValue();
+			Xml2Json xml2Json = (Xml2Json) actionElement.getValue();
 			SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
@@ -309,7 +309,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "json2xml": {
-			Json2Xml json2Xml = (Json2Xml) jaxbElement.getValue();
+			Json2Xml json2Xml = (Json2Xml) actionElement.getValue();
 			SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
@@ -318,7 +318,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "transform": {
-			Transform transform = (Transform) jaxbElement.getValue();
+			Transform transform = (Transform) actionElement.getValue();
 			if (transform.getXqueryURI() != null) {
 				XQueryArtifact xQueryArtifact = loadArtifact(transform.getXqueryURI());
 				addReference(xQueryArtifact);
@@ -334,7 +334,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "applyXSLT": {
-			ApplyXSLT applyXSLT = (ApplyXSLT) jaxbElement.getValue();
+			ApplyXSLT applyXSLT = (ApplyXSLT) actionElement.getValue();
 			XSLTArtifact xsltArtifact = loadArtifact(applyXSLT.getXslURI());
 			addReference(xsltArtifact);
 			xsltArtifact.validate(globalContext);
@@ -342,7 +342,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "unwrapSOAP": {
-			UnwrapSOAP unwrapSOAP = (UnwrapSOAP) jaxbElement.getValue();
+			UnwrapSOAP unwrapSOAP = (UnwrapSOAP) actionElement.getValue();
 			WSDLArtifact wsdlArtifact = loadArtifact(unwrapSOAP.getWsdlURI());
 			addReference(wsdlArtifact);
 			wsdlArtifact.validate(globalContext);
@@ -354,11 +354,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "wrapSOAP":
-			WrapSOAP wrapSOAP = (WrapSOAP) jaxbElement.getValue();
+			WrapSOAP wrapSOAP = (WrapSOAP) actionElement.getValue();
 			addAction(list, new WrapSOAPAction(wrapSOAP.isSoap12(), wrapSOAP.isHeader(), wrapSOAP.isSinglePart()), location);
 			break;
 		case "preSOAPHttp": {
-			PreSOAPHttp preSOAPHttp = (PreSOAPHttp) jaxbElement.getValue();
+			PreSOAPHttp preSOAPHttp = (PreSOAPHttp) actionElement.getValue();
 			WSDLArtifact wsdlArtifact = loadArtifact(preSOAPHttp.getWsdlURI());
 			addReference(wsdlArtifact);
 			wsdlArtifact.validate(globalContext);
@@ -368,11 +368,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "postSOAPHttp":
-			PostSOAPHttp postSOAPHttp = (PostSOAPHttp) jaxbElement.getValue();
+			PostSOAPHttp postSOAPHttp = (PostSOAPHttp) actionElement.getValue();
 			addAction(list, new PostSOAPHttpAction(postSOAPHttp.isSoap12(), postSOAPHttp.isSinglePart()), location);
 			break;
 		case "validate": {
-			Validate validate = (Validate) jaxbElement.getValue();
+			Validate validate = (Validate) actionElement.getValue();
 			SchemaArtifact schemaArtifact = loadArtifact(validate.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
@@ -384,7 +384,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "actionPipelineRef": {
-			ActionPipelineRef actionPipelineRef = (ActionPipelineRef) jaxbElement.getValue();
+			ActionPipelineRef actionPipelineRef = (ActionPipelineRef) actionElement.getValue();
 			List<Action> actionPipeline = _actionPipelines.get(actionPipelineRef.getRef());
 			if (actionPipeline == null) {
 				throw new ValidationException(this, "actionPipeline not found: " + actionPipelineRef.getRef());
@@ -393,40 +393,40 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "internalService":
-			InternalService internalService = (InternalService) jaxbElement.getValue();
+			InternalService internalService = (InternalService) actionElement.getValue();
 			ServiceArtifact serviceArtifact = loadArtifact(internalService.getServiceURI() + '.' + FILE_EXTENSION);
 			addReference(serviceArtifact);
 			serviceArtifact.validate(globalContext);
 			addAllActions(list, serviceArtifact.getConsumerPort().getInternalService(), location);
 			break;
 		case "conditional":
-			Conditional conditional = (Conditional) jaxbElement.getValue();
+			Conditional conditional = (Conditional) actionElement.getValue();
 			ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()), conditional.getBindName(), conditional.getContextItem());
 			XQueryArtifact.validateXQuerySource(this, getConnection(), conditionalAction.getXQuery());
 			conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), null)));
 			addAction(list, conditionalAction, location);
 			break;
 		case "cache":
-			Cache cache = (Cache) jaxbElement.getValue();
+			Cache cache = (Cache) actionElement.getValue();
 			addAction(list, new CacheAction(globalContext, cache.getKey(), cache.getValue(),
 					Action.linkList(transform(globalContext, cache.getAction(), null)), cache.isWriteOnly(), cache.getName(), cache.getMaxSize(), cache.getTtl()), location);
 			break;
 		case "uncache":
-			Uncache uncache = (Uncache) jaxbElement.getValue();
+			Uncache uncache = (Uncache) actionElement.getValue();
 			addAction(list, new UncacheAction(globalContext, uncache.getKey(), uncache.getName()), location);
 			break;
 		case "spawn":
-			Spawn spawn = (Spawn) jaxbElement.getValue();
+			Spawn spawn = (Spawn) actionElement.getValue();
 			addAction(list, new SpawnAction(resolveWorkerPool(spawn.getWorkerPool()), spawn.isUsePipe(), spawn.isJoin()), location);
 			break;
 		case "fork":
-			Fork fork = (Fork) jaxbElement.getValue();
+			Fork fork = (Fork) actionElement.getValue();
 			ForkAction forkAction = new ForkAction(resolveWorkerPool(fork.getWorkerPool()), fork.isCopyMessage());
 			forkAction.setFork(Action.linkList(transform(globalContext, fork.getAction(), fork.getErrorHandler())));
 			addAction(list, forkAction, location);
 			break;
 		case "branchOnVariable": {
-			BranchOnVariable branchOnVariable = (BranchOnVariable) jaxbElement.getValue();
+			BranchOnVariable branchOnVariable = (BranchOnVariable) actionElement.getValue();
 			Action defaultAction = null;
 			if (branchOnVariable.getDefault() != null) {
 				defaultAction = Action.linkList(transform(globalContext, branchOnVariable.getDefault().getAction(), null));
@@ -443,7 +443,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		}
 		case "branchOnPath": {
-			BranchOnPath branchOnPath = (BranchOnPath) jaxbElement.getValue();
+			BranchOnPath branchOnPath = (BranchOnPath) actionElement.getValue();
 			Action defaultAction = null;
 			if (branchOnPath.getDefault() != null) {
 				defaultAction = Action.linkList(transform(globalContext, branchOnPath.getDefault().getAction(), null));
@@ -459,15 +459,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			addAction(list, new MtomXopDeserializeAction(), location);
 			break;
 		case "suspend":
-			Suspend suspend = (Suspend) jaxbElement.getValue();
+			Suspend suspend = (Suspend) actionElement.getValue();
 			addAction(list, new SuspendAction(suspend.getCorrelationID(), suspend.getTimeout()), location);
 			break;
 		case "resume":
-			Resume resume = (Resume) jaxbElement.getValue();
+			Resume resume = (Resume) actionElement.getValue();
 			addAction(list, new ResumeAction(resume.getWorkerPool(), resume.getCorrelationID()), location);
 			break;
 		case "throwException":
-			ThrowException throwException = (ThrowException) jaxbElement.getValue();
+			ThrowException throwException = (ThrowException) actionElement.getValue();
 			addAction(list, new ThrowExceptionAction(throwException.getMessage()), location);
 			break;
 		case "dump":
@@ -477,7 +477,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			addAction(list, new AdminAction(), location);
 			break;
 		default:
-			throw new IllegalArgumentException("Cannot interpret " + jaxbElement.getName().getLocalPart());
+			throw new IllegalArgumentException("Unknown action " + actionElement.getName().getLocalPart());
 		}
 	}
 
