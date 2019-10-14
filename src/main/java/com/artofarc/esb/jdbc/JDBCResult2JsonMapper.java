@@ -22,7 +22,6 @@ import java.sql.*;
 import static java.sql.Types.*;
 import java.util.GregorianCalendar;
 
-import javax.json.*;
 import javax.json.stream.JsonGenerator;
 import javax.xml.bind.DatatypeConverter;
 
@@ -33,51 +32,33 @@ import com.artofarc.util.StringWriter;
 
 public class JDBCResult2JsonMapper {
 
-	public static void extractResult(Statement statement, ESBMessage message) throws SQLException, IOException {
-		StringWriter sw = null;
-		JsonGenerator jsonGenerator = null;
-		JsonArrayBuilder builder = Json.createArrayBuilder();
-		for (boolean moreResults = true;; moreResults = statement.getMoreResults()) {
-			int updateCount = statement.getUpdateCount();
-			ResultSet resultSet = statement.getResultSet();
-			if (updateCount >= 0) {
-				builder.add(updateCount);
-			} else if (moreResults && resultSet != null) {
-				if (jsonGenerator == null) {
-					if (!message.isSink()) {
-						message.reset(BodyType.WRITER, sw = new StringWriter());
-					}
-					jsonGenerator = message.getBodyAsJsonGenerator();
-				}
-				createJson(resultSet, jsonGenerator);
-			} else {
-				break;
+	public static void writeResult(JDBCResult result, ESBMessage message) throws SQLException, IOException {
+		if (result.hasComplexContent()) {
+			StringWriter sw = null;
+			if (!message.isSink()) {
+				message.reset(BodyType.WRITER, sw = new StringWriter());
 			}
-		}
-		if (jsonGenerator != null) {
+			JsonGenerator jsonGenerator = message.getBodyAsJsonGenerator();
+			do {
+				if (result.getCurrentUpdateCount() >= 0) {
+					jsonGenerator.writeStartObject();
+					jsonGenerator.write(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
+					jsonGenerator.writeEnd();
+				} else {
+					writeJson(result.getCurrentResultSet(), jsonGenerator);
+				}
+			} while (result.next());
 			jsonGenerator.close();
-		}
-		JsonArray jsonArray = builder.build();
-		switch (jsonArray.size()) {
-		case 1:
-			message.getVariables().put("sqlUpdateCount", jsonArray.getInt(0));
-			break;
-		default:
-			JsonWriter jsonWriter = Json.createWriter(sw = new StringWriter());
-			jsonWriter.write(jsonArray);
-			jsonWriter.close();
-			// nobreak
-		case 0:
-			message.getHeaders().clear();
+			if (sw != null) {
+				message.reset(BodyType.READER, sw.getStringReader());
+			}
 			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
-			break;
-		}
-		if (sw != null) {
-			message.reset(BodyType.READER, sw.getStringReader());
+		} else {
+			message.getVariables().put(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
 		}
 	}
 
-	private static void createJson(ResultSet resultSet, JsonGenerator json) throws SQLException {
+	private static void writeJson(ResultSet resultSet, JsonGenerator json) throws SQLException {
 		ResultSetMetaData metaData = resultSet.getMetaData();
 		final int colSize = metaData.getColumnCount();
 		json.writeStartObject();

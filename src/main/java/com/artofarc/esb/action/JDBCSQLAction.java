@@ -26,7 +26,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.jdbc.JDBCParameter;
-import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
+import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.message.ESBMessage;
 
 public class JDBCSQLAction extends JDBCAction {
@@ -46,17 +46,19 @@ public class JDBCSQLAction extends JDBCAction {
 	}
 
 	@Override
-	protected void executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
+	protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
 		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.debug("JDBCSQLAction sql=" + sql);
-		try (Connection conn = getConnection(execContext);
-				AutoCloseable timer = context.getTimeGauge().createTimer("prepareStatement & execute");
-				PreparedStatement ps = conn.prepareStatement(sql)) {
-
-			bindParameters(ps, context, execContext, message);
+		Connection conn = execContext.getResource();
+		try {
+			PreparedStatement ps = conn.prepareStatement(sql);
+			bindParameters(conn, ps, context, execContext, message);
 			ps.execute();
-			JDBCResult2JsonMapper.extractResult(ps, message);
+			return execContext.setResource3(new JDBCResult(ps));
+		} catch (Exception e) {
+			conn.close();
+			throw e;
 		}
-	}
+	} 
 
 }

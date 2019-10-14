@@ -53,11 +53,6 @@ public class SetMessageAction extends Action {
 	}
 
 	@Override
-	protected boolean isPipelineStop() {
-		return _pipelineStop || _nextAction == null || _nextAction.isPipelineStop();
-	}
-
-	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if (_clearAll) {
 			message.getHeaders().clear();

@@ -16,12 +16,7 @@
  */
 package com.artofarc.esb.action;
 
-import java.sql.Blob;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.SQLXML;
-import java.sql.Struct;
-
+import java.sql.*;
 import static java.sql.Types.*;
 import java.util.List;
 
@@ -35,7 +30,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.jdbc.JDBCParameter;
-import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
+import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.StringWriter;
@@ -51,13 +46,12 @@ public class JDBCProcedureAction extends JDBCAction {
 	}
 
 	@Override
-	protected void executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
+	protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
 		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.debug("JDBCProcedureAction sql=" + sql);
-		try (Connection conn = getConnection(execContext);
-				AutoCloseable timer = context.getTimeGauge().createTimer("prepareCall & execute");
-				CallableStatement cs = conn.prepareCall(sql)) {
-
+		Connection conn = execContext.getResource();
+		try {
+			CallableStatement cs = conn.prepareCall(sql);
 			for (JDBCParameter param : _outParams) {
 				if (param.getXmlElement() != null) {
 					cs.registerOutParameter(param.getPos(), param.getType(), _mapper.getTypeName(param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart()));
@@ -65,7 +59,7 @@ public class JDBCProcedureAction extends JDBCAction {
 					cs.registerOutParameter(param.getPos(), param.getType());
 				}
 			}
-			bindParameters(cs, context, execContext, message);
+			bindParameters(conn, cs, context, execContext, message);
 			cs.execute();
 			for (JDBCParameter param : _outParams) {
 				if (param.isBody()) {
@@ -95,7 +89,10 @@ public class JDBCProcedureAction extends JDBCAction {
 					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));
 				}
 			}
-			JDBCResult2JsonMapper.extractResult(cs, message);
+			return execContext.setResource3(new JDBCResult(cs));
+		} catch (Exception e) {
+			conn.close();
+			throw e;
 		}
 	}
 
