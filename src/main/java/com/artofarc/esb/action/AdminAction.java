@@ -125,6 +125,7 @@ public class AdminAction extends Action {
 				FileSystem newFileSystem = changeSet.getFileSystem();
 				globalContext.setFileSystem(newFileSystem);
 				newFileSystem.writeBackChanges();
+				logger.info("Artifact " +  resource + " deleted by " + message.getVariable(ESBConstants.RemoteUser));
 				createResponse(message, null, null);
 			} catch (ValidationException e) {
 				logger.error("Not valid", e);
@@ -148,6 +149,7 @@ public class AdminAction extends Action {
 						FileSystem newFileSystem = changeSet.getFileSystem();
 						globalContext.setFileSystem(newFileSystem);
 						newFileSystem.writeBackChanges();
+						logger.info("Configuration changed by: " + message.getVariable(ESBConstants.RemoteUser));
 						logger.info("Number of created/updated services: " + serviceCount);
 						logger.info("Number of deleted services: " + changeSet.getDeletedServiceArtifacts().size());
 						createResponse(message, null, null);

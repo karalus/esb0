@@ -98,6 +98,7 @@ public class GenericHttpListener extends HttpServlet {
 			String headerName = headerNames.nextElement();
 			message.getHeaders().put(headerName, request.getHeader(headerName));
 		}
+		message.putVariable(RemoteUser, request.getRemoteUser());
 		final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
 		if (certs != null) {
 			// Only for SSL mutual authentication
