@@ -336,11 +336,26 @@ public class FileSystem {
 		}
 	}
 
-	public final ChangeSet createUpdate(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {
+	public final ChangeSet createChangeSet(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {
 		FileSystem copy = copy();
 		boolean tidyOut = copy.mergeZIP(inputStream);
 		ChangeSet changeSet = validateChanges(globalContext, copy);
 		if (tidyOut) copy.tidyOut();
+		return changeSet;
+	}
+
+	public final ChangeSet createChangeSet(GlobalContext globalContext, String uriToDelete) throws FileNotFoundException, ValidationException {
+		FileSystem copy = copy();
+		Artifact artifact = loadArtifact(copy.getRoot(), uriToDelete);
+		if (!deleteArtifact(artifact)) {
+			throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
+		}
+		copy._changes.put(uriToDelete, ChangeType.DELETE);
+		ChangeSet changeSet = copy.new ChangeSet();
+		if (artifact instanceof ServiceArtifact) {
+			changeSet.deletedServiceArtifacts.add((ServiceArtifact) artifact);
+		}
+		copy.tidyOut();
 		return changeSet;
 	}
 

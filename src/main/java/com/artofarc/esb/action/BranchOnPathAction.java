@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,22 +76,27 @@ public class BranchOnPathAction extends Action {
 				}
 			}
 		}
-		// REST: also parse query string
+		parseQueryString(message);
+		if (_nextAction != null) {
+			context.getExecutionStack().push(_nextAction);
+		}
+		return new ExecutionContext(action);
+	}
+
+	public static void parseQueryString(ESBMessage message) throws UnsupportedEncodingException {
 		String queryString = message.getVariable(ESBConstants.QueryString);
 		if (queryString != null) {
 			StringTokenizer st = new StringTokenizer(URLDecoder.decode(queryString, "UTF-8"), "&");
 			while (st.hasMoreTokens()) {
 				String pair = st.nextToken();
 				final int i = pair.indexOf("=");
-				String key = i > 0 ? pair.substring(0, i) : pair;
-				String value = i > 0 && pair.length() > i + 1 ? pair.substring(i + 1) : null;
-				message.getVariables().put(key, value);
+				if (i > 0) {
+					message.getVariables().put(pair.substring(0, i), pair.substring(i + 1));
+				} else {
+					message.getVariables().put(pair, null);
+				}
 			}
 		}
-		if (_nextAction != null) {
-			context.getExecutionStack().push(_nextAction);
-		}
-		return new ExecutionContext(action);
 	}
 
 	@Override

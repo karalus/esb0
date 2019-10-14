@@ -22,34 +22,48 @@
 	if (request.getPathInfo() == null) {
 %>
 <br>HttpServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Path</b></td><td align="center"><b>Uri</b></td><td align="center"><b>PoolSize</b></td><td align="center"><b>Enabled</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Path</b></td><td align="center"><b>Uri</b></td><td align="center"><b>PoolSize</b></td><td align="center"><b>Enabled</b></td><td align="center"><b>Delete</b></td></tr> 
 <%
 		List<String> list = new ArrayList<String>(globalContext.getHttpServicePaths());
 		Collections.sort(list);
 		for (String path : list) {
 		   HttpConsumer consumerPort = globalContext.getHttpService(path);
 		   %>
-		   <tr><td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td><td><%=consumerPort.getPoolSize()%></td><td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></tr>
+		   <tr>
+		    <td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
+		    <td><%=consumerPort.getPoolSize()%></td>
+		    <td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+		    <td><form action="admin/deploy<%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete this service?');"><input type="submit" value="delete"/><input type="hidden" name="delete"/></form></td>
+		   </tr>
 		   <%
 		}
 %>
 </table>
 <br>JMSServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Key</b></td><td align="center"><b>Uri</b></td><td align="center"><b>Enabled</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Key</b></td><td align="center"><b>Uri</b></td><td align="center"><b>Enabled</b></td><td align="center"><b>Delete</b></td></tr> 
 <%
 		for (JMSConsumer jmsConsumer : globalContext.getJMSConsumers()) {
 		   %>
-		   <tr><td><%=jmsConsumer.getKey()%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + jmsConsumer.getUri()%>"><%=jmsConsumer.getUri()%></a></td><td><form method="post" action="admin/deploy<%=jmsConsumer.getUri()%>"><input type="submit" value="<%=jmsConsumer.isEnabled()%>"/></form></tr>
+		   <tr>
+		    <td><%=jmsConsumer.getKey()%></td>
+		    <td><a href="<%=request.getContextPath() + request.getServletPath() + jmsConsumer.getUri()%>"><%=jmsConsumer.getUri()%></a></td>
+		    <td><form method="post" action="admin/deploy<%=jmsConsumer.getUri()%>"><input type="submit" value="<%=jmsConsumer.isEnabled()%>"/></form></td>
+		    <td><form action="admin/deploy<%=jmsConsumer.getUri()%>" onsubmit="return confirm('Are you sure to delete this service?');"><input type="submit" value="delete"/><input type="hidden" name="delete"/></form></td>
+		   </tr>
 		   <%
 		}
 %>
 </table>
 <br>TimerServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Uri</b></td><td align="center"><b>Enabled</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td align="center"><b>Uri</b></td><td align="center"><b>Enabled</b></td><td align="center"><b>Delete</b></td></tr> 
 <%
 		for (ConsumerPort consumerPort : globalContext.getTimerServices()) {
 		   %>
-		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td><td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></tr>
+		   <tr>
+		    <td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
+		    <td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+		    <td><form action="admin/deploy<%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete this service?');"><input type="submit" value="delete"/><input type="hidden" name="delete"/></form></td>
+		   </tr>
 		   <%
 		}
 %>

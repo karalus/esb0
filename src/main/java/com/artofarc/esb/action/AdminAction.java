@@ -51,11 +51,20 @@ public class AdminAction extends Action {
 		String resource = resolve(message, ESBConstants.appendHttpUrlPath, true);
 		switch (verb) {
 		case "GET":
-			readArtifact(context.getPoolContext().getGlobalContext(), message, resource);
+			BranchOnPathAction.parseQueryString(message);
+			if (message.getVariables().containsKey("delete")) {
+				// Dirty hack for standard JSP is not able to send DELETE without ajax
+				deleteArtifact(context.getPoolContext().getGlobalContext(), message, resource);
+			} else {
+				readArtifact(context.getPoolContext().getGlobalContext(), message, resource);
+			}
 			break;
 		case "PUT":
 		case "POST":
 			changeConfiguration(context.getPoolContext().getGlobalContext(), message, resource);
+			break;
+		case "DELETE":
+			deleteArtifact(context.getPoolContext().getGlobalContext(), message, resource);
 			break;
 		default:
 			createErrorResponse(message, HttpServletResponse.SC_METHOD_NOT_ALLOWED, verb);
@@ -108,6 +117,24 @@ public class AdminAction extends Action {
 		}
 	}
 
+	private static void deleteArtifact(GlobalContext globalContext, ESBMessage message, String resource) throws Exception {
+		if (globalContext.lockFileSystem()) {
+			try {
+				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource);
+				DeployHelper.deployChangeSet(globalContext, changeSet);
+				FileSystem newFileSystem = changeSet.getFileSystem();
+				globalContext.setFileSystem(newFileSystem);
+				newFileSystem.writeBackChanges();
+				createResponse(message, null, null);
+			} catch (ValidationException e) {
+				logger.error("Not valid", e);
+				createErrorResponse(message, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+			} finally {
+				globalContext.unlockFileSystem();
+			}
+		}
+	}
+
 	private static void changeConfiguration(GlobalContext globalContext, ESBMessage message, String resource) throws Exception {
 		// if a file is received then deploy it otherwise change the state of a service flow
 		if (message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION) != null) {
@@ -116,12 +143,13 @@ public class AdminAction extends Action {
 				if (globalContext.lockFileSystem()) {
 					try {
 						InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
-						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createUpdate(globalContext, is);
+						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
 						int serviceCount = DeployHelper.deployChangeSet(globalContext, changeSet);
 						FileSystem newFileSystem = changeSet.getFileSystem();
 						globalContext.setFileSystem(newFileSystem);
 						newFileSystem.writeBackChanges();
-						logger.info("Number of affected services: " + serviceCount);
+						logger.info("Number of created/updated services: " + serviceCount);
+						logger.info("Number of deleted services: " + changeSet.getDeletedServiceArtifacts().size());
 						createResponse(message, null, null);
 					} catch (ValidationException e) {
 						logger.error("Not valid", e);
