@@ -151,9 +151,9 @@ public abstract class JDBCAction extends Action {
 						ps.setClob(param.getPos(), clob);
 					} else {
 						if (param.getTruncate() == null) {
-							ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
+							ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
 						} else {
-							ps.setBinaryStream(param.getPos(), new ByteArrayInputStream((byte[]) param.alignValue(message.getBodyAsByteArray(context))));
+							ps.setCharacterStream(param.getPos(), new StringReader((String) param.alignValue(message.getBodyAsString(context))));
 						}
 					}
 					break;
@@ -166,9 +166,9 @@ public abstract class JDBCAction extends Action {
 						ps.setBlob(param.getPos(), blob);
 					} else {
 						if (param.getTruncate() == null) {
-							ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
+							ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
 						} else {
-							ps.setCharacterStream(param.getPos(), new StringReader((String) param.alignValue(message.getBodyAsString(context))));
+							ps.setBinaryStream(param.getPos(), new ByteArrayInputStream((byte[]) param.alignValue(message.getBodyAsByteArray(context))));
 						}
 					}
 					break;

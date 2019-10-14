@@ -32,10 +32,12 @@ public final class JDBCResult implements AutoCloseable {
 
 	public JDBCResult(Statement statement) throws SQLException {
 		_statement = statement;
-		firstUpdateCount = statement.getUpdateCount();
 		currentResultSet = statement.getResultSet();
 		if (currentResultSet == null) {
-			readAhead = next();
+			firstUpdateCount = statement.getUpdateCount();
+			readAhead = firstUpdateCount >= 0 ? next() : false;
+		} else {
+			firstUpdateCount = -1;
 		}
 	}
 
@@ -45,10 +47,15 @@ public final class JDBCResult implements AutoCloseable {
 			readAhead = null;
 			return next;
 		}
-		_statement.getMoreResults();
-		currentUpdateCount = _statement.getUpdateCount();
-		currentResultSet = _statement.getResultSet();
-		return currentResultSet != null || currentUpdateCount >= 0;
+		if (_statement.getMoreResults()) {
+			currentResultSet = _statement.getResultSet();
+			currentUpdateCount = -1;
+			return true;
+		} else {
+			currentResultSet = null;
+			currentUpdateCount = _statement.getUpdateCount();
+			return currentUpdateCount >= 0;
+		}
 	}
 
 	public int getCurrentUpdateCount() {
