@@ -27,13 +27,10 @@ import com.artofarc.esb.service.XQDecl;
 
 public class ConditionalAction extends AssignAction {
 
-	private Action _conditionalAction;
+	private final Action _conditionalAction;
 
-	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
+	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, Action conditionalAction) {
 		super(null, expression, namespaces, bindNames, contextItem);
-	}
-
-	public final void setConditionalAction(Action conditionalAction) {
 		_conditionalAction = conditionalAction;
 	}
 

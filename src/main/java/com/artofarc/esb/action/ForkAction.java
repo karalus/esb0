@@ -19,37 +19,24 @@ package com.artofarc.esb.action;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.WorkerPool;
-import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.message.ESBMessage;
 
 public class ForkAction extends Action {
 
 	private final String _workerPool;
 	private final boolean _copyMessage;
+	private final Action _fork;
 
-	private Action _fork;
-
-	public ForkAction(String workerPool, boolean copyMessage) {
+	public ForkAction(String workerPool, boolean copyMessage, Action fork) {
 		_pipelineStop = true;
 		_workerPool = workerPool;
 		_copyMessage = copyMessage;
-	}
-
-	public final void setFork(Action fork) {
 		_fork = fork;
 	}
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
-		if (inPipeline) {
-			message.reset(BodyType.INVALID, null);
-		}
-		return null;
-	}
-
-	@Override
-	protected void execute(Context context, ExecutionContext resource, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		final WorkerPool workerPool = context.getPoolContext().getGlobalContext().getWorkerPool(_workerPool);
 		final Context workerContext = workerPool.getContext();
 		try {

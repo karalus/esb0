@@ -401,15 +401,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "conditional":
 			Conditional conditional = (Conditional) actionElement.getValue();
-			ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()), conditional.getBindName(), conditional.getContextItem());
+			ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()),
+				conditional.getBindName(), conditional.getContextItem(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
 			XQueryArtifact.validateXQuerySource(this, getConnection(), conditionalAction.getXQuery());
-			conditionalAction.setConditionalAction(Action.linkList(transform(globalContext, conditional.getAction(), null)));
 			addAction(list, conditionalAction, location);
 			break;
 		case "cache":
 			Cache cache = (Cache) actionElement.getValue();
 			addAction(list, new CacheAction(globalContext, cache.getKey(), cache.getValue(),
-					Action.linkList(transform(globalContext, cache.getAction(), null)), cache.isWriteOnly(), cache.getName(), cache.getMaxSize(), cache.getTtl()), location);
+				Action.linkList(transform(globalContext, cache.getAction(), null)), cache.isWriteOnly(), cache.getName(), cache.getMaxSize(), cache.getTtl()), location);
 			break;
 		case "uncache":
 			Uncache uncache = (Uncache) actionElement.getValue();
@@ -421,8 +421,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "fork":
 			Fork fork = (Fork) actionElement.getValue();
-			ForkAction forkAction = new ForkAction(resolveWorkerPool(fork.getWorkerPool()), fork.isCopyMessage());
-			forkAction.setFork(Action.linkList(transform(globalContext, fork.getAction(), fork.getErrorHandler())));
+			ForkAction forkAction = new ForkAction(resolveWorkerPool(fork.getWorkerPool()), fork.isCopyMessage(), Action.linkList(transform(globalContext,
+				fork.getAction(), fork.getErrorHandler())));
 			addAction(list, forkAction, location);
 			break;
 		case "branchOnVariable": {

@@ -61,11 +61,10 @@ public class XPathTest extends AbstractESBTest {
    @Test
    public void testCondition() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      ConditionalAction action = new ConditionalAction("test/text() = \'Hello\'", null, Collections.<XQDecl> emptyList(), null);
-      MarkAction action2 = new MarkAction();
       MarkAction action3 = new MarkAction();
+      ConditionalAction action = new ConditionalAction("test/text() = \'Hello\'", null, Collections.<XQDecl> emptyList(), null, action3);
+      MarkAction action2 = new MarkAction();
       action.setNextAction(action2);
-      action.setConditionalAction(action3);
       action.process(context, message);
       assertTrue(action3.isExecuted());
       message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
