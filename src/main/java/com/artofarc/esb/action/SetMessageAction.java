@@ -29,7 +29,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SetMessageAction extends Action {
+public class SetMessageAction extends ForwardAction {
 
 	private final boolean _clearAll;
 	private final ClassLoader _classLoader;
@@ -64,7 +64,7 @@ public class SetMessageAction extends Action {
 				message.getVariables().put(assignment._name, assignment.convert(bindVariable(assignment._expr, context, message)));
 			}
 		}
-		return null;
+		return super.prepare(context, message, inPipeline);
 	}
 
 	@Override
@@ -81,6 +81,7 @@ public class SetMessageAction extends Action {
 				message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 			}
 		}
+		super.execute(context, execContext, message, nextActionIsPipelineStop);
 	}
 
 	final class Assignment {

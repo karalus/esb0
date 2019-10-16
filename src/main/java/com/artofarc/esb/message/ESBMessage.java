@@ -591,6 +591,7 @@ public final class ESBMessage implements Cloneable {
 			} else {
 				throw new IllegalStateException("Message already consumed");
 			}
+			// nobreak
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
 			source = new StAXSource(xqItem.getItemAsStream());
@@ -659,6 +660,7 @@ public final class ESBMessage implements Cloneable {
 			} else {
 				throw new IllegalStateException("Message already consumed");
 			}
+			// nobreak
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(os, getSinkProperties());
