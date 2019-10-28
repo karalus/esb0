@@ -29,8 +29,18 @@ public abstract class ForwardAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		if (inPipeline && !_pipelineStop && isPipelineStop()) {
-			Action nextAction = _nextAction != null ? _nextAction : context.getExecutionStack().poll();
+		if (inPipeline && !_pipelineStop) {
+			Action nextAction;
+			if (_nextAction != null) {
+				nextAction = _nextAction.isPipelineStop() ? _nextAction : null;
+			} else {
+				nextAction = context.getExecutionStack().poll();
+				if (nextAction != null && !nextAction.isPipelineStop()) {
+					// We cannot forward pipeline for more than one hop because isPipelineStop() will return false
+					context.getExecutionStack().push(nextAction);
+					nextAction = null;
+				}
+			}
 			if (nextAction != null) {
 				return new ExecutionContext(nextAction, nextAction.prepare(context, message, inPipeline));
 			}
