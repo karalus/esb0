@@ -318,7 +318,7 @@
 					<attribute name="wsdlURI" type="anyURI" use="required" />
 					<attribute name="binding" type="tns:string1" />
 					<attribute name="transport" type="anyURI" />
-					<attribute name="getWsdl" type="boolean" default="true" />
+					<attribute name="getWsdl" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>

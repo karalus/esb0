@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 import javax.json.Json;
@@ -30,6 +31,7 @@ import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.Directory;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.ValidationException;
+import com.artofarc.esb.artifact.WSDLArtifact;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
@@ -37,6 +39,7 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StreamUtils;
 import com.artofarc.util.StringWriter;
 
 public class AdminAction extends Action {
@@ -86,7 +89,7 @@ public class AdminAction extends Action {
 		message.reset(null, errorMessage);
 	}
 
-	private static void readArtifact(GlobalContext globalContext, ESBMessage message, String resource) {
+	private void readArtifact(GlobalContext globalContext, ESBMessage message, String resource) throws IOException {
 		Artifact artifact = globalContext.getFileSystem().getArtifact(resource);
 		if (artifact != null) {
 			if (artifact instanceof Directory) {
@@ -105,7 +108,19 @@ public class AdminAction extends Action {
 				String headerAccept = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT);
 				// SoapUI does not send an "Accept" header
 				if (headerAccept == null || headerAccept.contains("text/")) {
-					createResponse(message, BodyType.INPUT_STREAM, artifact.getContentAsStream());
+					InputStream contentAsStream = artifact.getContentAsStream();
+					if (artifact instanceof WSDLArtifact) {
+						String content = new String(StreamUtils.copy(contentAsStream), ESBMessage.CHARSET_DEFAULT);
+						contentAsStream.close();
+						try {
+							content = (String) bindVariable(content, null, message);
+						} catch (Exception e) {
+							logger.warn("Could not adapt WSDL " + resource, e);
+						}
+						createResponse(message, BodyType.STRING, content);
+					} else {
+						createResponse(message, BodyType.INPUT_STREAM, contentAsStream);
+					}
 					message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
 					message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
 				} else {
