@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,8 +61,10 @@ public class ProcessJsonAction extends Action {
 		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		JsonStructure json = Json.createReader(message.getBodyAsReader(context)).read();
-		
+		// Materialize message in case it is a stream thus it will not be consumed
+		String content = message.getBodyAsString(context);
+		JsonStructure json = Json.createReader(new StringReader(content)).read();
+
 		for (Assignment variable : _variables) {
 			Object value = variable.getValueAsObject(json);
 			if (value != null) {
@@ -84,7 +87,7 @@ public class ProcessJsonAction extends Action {
 		private final String _name;
 		private final ArrayList<String> _pointer = new ArrayList<>();
 		//private final javax.json.JsonPointer _jsonPointer;
-		
+
 		public Assignment(String name, String jsonPointer) {
 			_name = name;
 			StringTokenizer st = new StringTokenizer(jsonPointer, "/");
@@ -98,11 +101,11 @@ public class ProcessJsonAction extends Action {
 			// needs javax.json v1.1 and Java 8
 			//_jsonPointer = Json.createPointer(jsonPointer);
 		}
-		
+
 //		private JsonValue getValue(JsonStructure json) {
 //			return _jsonPointer.getValue(json);
 //		}
-			
+
 		private JsonValue getValue(JsonStructure json) {
 			JsonValue result = json;
 			for (int i = 0; result != null && i < _pointer.size(); ++i) {
@@ -131,7 +134,7 @@ public class ProcessJsonAction extends Action {
 			}
 			return result;
 		}
-			
+
 		public Object getValueAsObject(JsonStructure json) {
 			try {
 				JsonValue value = getValue(json);
@@ -156,5 +159,5 @@ public class ProcessJsonAction extends Action {
 		}
 
 	}
-	
+
 }
