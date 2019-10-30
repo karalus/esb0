@@ -59,11 +59,15 @@ public final class DeployHelper {
 		for (WorkerPoolArtifact workerPoolArtifact : changeSet.getWorkerPoolArtifacts()) {
 			String name = Artifact.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
-			WorkerPool workerPool = new WorkerPool(globalContext, name, wpDef.getMinThreads(), wpDef.getMaxThreads(), wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut());
-			WorkerPool oldWorkerPool = globalContext.putWorkerPool(name, workerPool);
+			WorkerPool oldWorkerPool = globalContext.getWorkerPool(name);
 			if (oldWorkerPool != null) {
+				globalContext.putWorkerPool(name, new WorkerPool(oldWorkerPool.getPoolContext(), name, wpDef.getMinThreads(), wpDef.getMaxThreads(),
+						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
 				// close later
 				closer.add(oldWorkerPool);
+			} else {
+				globalContext.putWorkerPool(name, new WorkerPool(globalContext, name, wpDef.getMinThreads(), wpDef.getMaxThreads(),
+						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
 			}
 		}
 		for (ServiceArtifact service : serviceArtifacts) {

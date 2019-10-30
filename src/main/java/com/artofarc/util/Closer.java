@@ -47,7 +47,7 @@ public final class Closer implements AutoCloseable {
 			closeable.close();
 			logger.debug("Closed " + closeable);
 		} catch (Exception e) {
-			logger.warn("Possible resource leak: Exception while closing " + closeable);
+			logger.warn("Possible resource leak: Exception while closing " + closeable, e);
 		}
 	}
 

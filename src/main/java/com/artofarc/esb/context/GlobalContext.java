@@ -118,13 +118,12 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		return _workerPoolMap.get(null);
 	}
 
-	public WorkerPool putWorkerPool(String name, WorkerPool workerPool) {
+	public void putWorkerPool(String name, WorkerPool workerPool) {
 		WorkerPool old = _workerPoolMap.put(name, workerPool);
 		if (old != null) {
 			unregisterMBean(",group=WorkerPool,name=" + name);
 		}
 		registerMBean(workerPool, ",group=WorkerPool,name=" + name);
-		return old;
 	}
 
 	@Override
@@ -134,7 +133,9 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		// Phase 2
 		httpEndpointRegistry.close();
 		for (Entry<String, WorkerPool> entry : _workerPoolMap.entrySet()) {
-			entry.getValue().close();
+			WorkerPool workerPool = entry.getValue();
+			workerPool.close();
+			workerPool.getPoolContext().close();
 			unregisterMBean(",group=WorkerPool,name=" + entry.getKey());
 		}
 		try {

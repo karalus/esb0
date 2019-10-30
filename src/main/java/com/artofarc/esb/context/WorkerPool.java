@@ -44,11 +44,10 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	private final ConcurrentHashMap<XQuerySource, Integer> _cachedXQueries = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Thread, String> _threads = new ConcurrentHashMap<>();
 
-	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
-		_poolContext = new PoolContext(globalContext, name);
-		_contextPool = new ContextPool(_poolContext, minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L, true);
+	public WorkerPool(PoolContext poolContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
+		_contextPool = new ContextPool(_poolContext = poolContext, minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L, true);
 		if (maxThreads > 0 || scheduledThreads > 0) {
-			_threadFactory = new WorkerPoolThreadFactory(name != null ? name : "default", priority);
+			_threadFactory = new WorkerPoolThreadFactory(name, priority);
 		} else {
 			_threadFactory = null;
 		}
@@ -68,8 +67,12 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		}
 	}
 
+	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
+		this(new PoolContext(globalContext, name), name, minThreads, maxThreads, priority, queueDepth, scheduledThreads, allowCoreThreadTimeOut);
+	}
+
 	WorkerPool(GlobalContext globalContext, int nThreads) {
-		this(globalContext, null, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
+		this(new PoolContext(globalContext, null), "default", nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
 	}
 
 	public PoolContext getPoolContext() {
@@ -118,7 +121,6 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		} catch (InterruptedException e) {
 			PoolContext.logger.error("Unexpected", e);
 		}
-		_poolContext.close();
 	}
 
 	// Methods for monitoring
@@ -185,7 +187,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		Integer count;
 		do {
 			count = _cachedXQueries.get(xquery);
-		} while (!(count == 1 ? _cachedXQueries.remove(xquery, count) : _cachedXQueries.replace(xquery, count, --count)));
+		} while (count != null && !(count == 1 ? _cachedXQueries.remove(xquery, count) : _cachedXQueries.replace(xquery, count, --count)));
 	}
 
 	public int getCachedXQueriesTotal() {
