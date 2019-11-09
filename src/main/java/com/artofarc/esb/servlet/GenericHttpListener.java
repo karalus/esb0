@@ -129,6 +129,7 @@ public class GenericHttpListener extends HttpServlet {
 						Header header = allHeaders.nextElement();
 						message.putHeader(header.getName(), header.getValue());
 					}
+					message.setCharset(getValueFromHttpHeader(bodyPart.getContentType(), HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream());
 				} else {
 					message.addAttachment(bodyPart);
