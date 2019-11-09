@@ -23,8 +23,19 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.ReflectionUtils;
+import com.artofarc.util.StreamUtils;
 
 public class DumpAction extends TerminalAction {
+
+	private final boolean _binary;
+
+	public DumpAction(boolean binary) {
+		_binary = binary;
+	}
+
+	public DumpAction() {
+		this(false);
+	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
@@ -42,11 +53,21 @@ public class DumpAction extends TerminalAction {
 			System.out.println("Body:");
 			if (message.getBodyType() == BodyType.EXCEPTION) {
 				message.<Exception> getBody().printStackTrace(System.out);
-			} else if (message.isStream()) {
-				System.out.println(message.getBodyAsString(context));
 			} else {
-				message.writeRawTo(System.out, context);
-				System.out.println();
+				if (message.isStream()) {
+					// Materialize message in case it is a stream thus it will not be consumed
+					if (message.getBodyType().hasCharset()) {
+						message.getBodyAsByteArray(context);
+					} else {
+						message.getBodyAsString(context);
+					}
+				}
+				if (_binary) {
+					System.out.print(StreamUtils.convertToHexDump(message.getBodyAsInputStream(context)));
+				} else {
+					message.writeRawTo(System.out, context);
+					System.out.println();
+				}
 			}
 		}
 	}

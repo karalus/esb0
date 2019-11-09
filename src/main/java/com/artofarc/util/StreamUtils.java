@@ -17,6 +17,7 @@
 package com.artofarc.util;
 
 import java.io.*;
+import java.util.Formatter;
 
 public final class StreamUtils {
 
@@ -58,6 +59,41 @@ public final class StreamUtils {
 			throw new FileNotFoundException(name);
 		}
 		return stream;
+	}
+
+	public static String convertToHexDump(InputStream is) throws IOException {
+		int pos = 0;
+		int c;
+		StringBuilder text = new StringBuilder();
+		StringBuilder result = new StringBuilder();
+		Formatter formatter = new Formatter(result);
+
+		while ((c = is.read()) >= 0) {
+			// convert to hex value with "X" formatter
+			formatter.format("%02X ", c);
+
+			// If the character is not printable, just print a dot symbol "."
+			if (Character.isISOControl(c)) {
+				text.append('.');
+			} else {
+				text.append((char) c);
+			}
+			if (++pos == 16) {
+				result.append("   ").append(text).append(System.getProperty("line.separator"));
+				text.setLength(0);
+				pos = 0;
+			}
+		}
+		// remaining content
+		if (pos != 0) {
+			// add spaces for formatting purpose
+			for (; pos < 16; ++pos) {
+				result.append("   ");
+			}
+			result.append("   ").append(text).append(System.getProperty("line.separator"));
+		}
+		is.close();
+		return result.toString();
 	}
 
 }

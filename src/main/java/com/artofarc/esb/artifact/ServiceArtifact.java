@@ -471,7 +471,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			addAction(list, new ThrowExceptionAction(throwException.getMessage()), location);
 			break;
 		case "dump":
-			addAction(list, new DumpAction(), location);
+			Dump dump = (Dump) actionElement.getValue();
+			addAction(list, new DumpAction(dump.isBinary()), location);
 			break;
 		case "admin":
 			addAction(list, new AdminAction(), location);
