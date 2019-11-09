@@ -64,9 +64,11 @@ public final class ESBServletContextListener implements ServletContextListener, 
 			DeployHelper.deployChangeSet(globalContext, changeSet);
 			DeployHelper.createAdminService(globalContext, ADMIN_SERVLET_PATH + '*');
 		} catch (ValidationException e) {
+			globalContext.close();
 			throw new RuntimeException("Could not validate artifact " + e.getArtifactLocation(), e.getCause());
 		} catch (Exception e) {
-			throw new RuntimeException("Could not read services", e);
+			globalContext.close();
+			throw new RuntimeException("Could not initialize services", e);
 		}
 		globalContext.getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
 		return globalContext;
@@ -104,6 +106,10 @@ public final class ESBServletContextListener implements ServletContextListener, 
 				consumerPort.getContextPool().shrinkPool();
 			}
 		}
+	}
+
+	public static void main(String[] args) {
+		new ESBServletContextListener().createContext(args[0]);
 	}
 
 }
