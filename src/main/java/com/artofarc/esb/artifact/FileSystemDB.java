@@ -28,6 +28,8 @@ import javax.sql.DataSource;
 
 public class FileSystemDB extends FileSystem {
 
+	private final static String FILESYSTEM_TABLE = System.getProperty("esb0.filesystem.dbtable", "FILESYSTEM");
+
 	private final DataSource _dataSource;
 
 	public FileSystemDB(DataSource dataSource) {
@@ -52,7 +54,7 @@ public class FileSystemDB extends FileSystem {
 
 	@Override
 	protected byte[] reloadContent(String uri) throws SQLException {
-		String sql = "select CONTENT from FILESYSTEM where URI=? and ENVIRONMENT='" + environment + "'";
+		String sql = "select CONTENT from " + FILESYSTEM_TABLE + " where URI=? and ENVIRONMENT='" + environment + "'";
 		try (Connection conn = _dataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 			ps.setString(1, uri);
 			ResultSet resultSet = ps.executeQuery();
@@ -67,7 +69,7 @@ public class FileSystemDB extends FileSystem {
 	@Override
 	public void parse() throws SQLException {
 		CRC32 crc = new CRC32();
-		String sql = "select URI, MODIFIED, CONTENT from FILESYSTEM where ENVIRONMENT='" + environment + "'";
+		String sql = "select URI, MODIFIED, CONTENT from " + FILESYSTEM_TABLE + " where ENVIRONMENT='" + environment + "'";
 		try (Connection conn = _dataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet resultSet = ps.executeQuery()) {
 			while (resultSet.next()) {
 				String uri = resultSet.getString(1).substring(1);
@@ -97,9 +99,9 @@ public class FileSystemDB extends FileSystem {
 
 	@Override
 	public void writeBackChanges() {
-		String createSql = "insert into FILESYSTEM (URI, ENVIRONMENT, MODIFIED, CONTENT) VALUES (?,'" + environment + "',?,?)";
-		String updateSql = "update FILESYSTEM set MODIFIED=?, CONTENT=? WHERE URI=? and ENVIRONMENT='" + environment + "'";
-		String deleteSql = "delete from FILESYSTEM WHERE URI=? and ENVIRONMENT='" + environment + "'";
+		String createSql = "insert into " + FILESYSTEM_TABLE + " (URI, ENVIRONMENT, MODIFIED, CONTENT) VALUES (?,'" + environment + "',?,?)";
+		String updateSql = "update " + FILESYSTEM_TABLE + " set MODIFIED=?, CONTENT=? WHERE URI=? and ENVIRONMENT='" + environment + "'";
+		String deleteSql = "delete from " + FILESYSTEM_TABLE + " WHERE URI=? and ENVIRONMENT='" + environment + "'";
 		try {
 			try (Connection conn = _dataSource.getConnection();
 					PreparedStatement create = conn.prepareStatement(createSql);
