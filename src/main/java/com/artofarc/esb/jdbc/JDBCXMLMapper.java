@@ -58,7 +58,7 @@ public final class JDBCXMLMapper {
 	private static Class<?> ifcOracleConnection;
 	private static Method createARRAY;
 	private static Method getSQLTypeName;
-			
+
 	static {
 		try {
 			datatypeFactory = DatatypeFactory.newInstance();
@@ -93,7 +93,7 @@ public final class JDBCXMLMapper {
 	public static Object toJDBC(DynamicEntity entity, boolean root, Connection connection) throws SQLException {
 		DynamicType dynamicType = DynamicHelper.getType(entity);
 		XMLDescriptor descriptor = (XMLDescriptor) dynamicType.getDescriptor();
-   	QName typeName = descriptor.getSchemaReference().getSchemaContextAsQName();
+		QName typeName = descriptor.getSchemaReference().getSchemaContextAsQName();
 		List<String> propertiesNames = dynamicType.getPropertiesNames();
 		Object[] attributes = new Object[propertiesNames.size()];
 		for (int i = 0; i < propertiesNames.size(); ++i) {
@@ -116,7 +116,8 @@ public final class JDBCXMLMapper {
 				attributes[i] = toJDBC(property, connection);
 			}
 		}
-		return root ? attributes[0] : connection.createStruct(typeName.getLocalPart(), attributes);
+		boolean isXmlType = attributes.length == 1 && attributes[0] instanceof SQLXML;
+		return root || isXmlType ? attributes[0] : connection.createStruct(typeName.getLocalPart(), attributes);
 	}
 
 	public static Object toJDBC(JAXBElement<?> jaxbElement, boolean root, Connection connection) throws SQLException {
@@ -178,7 +179,6 @@ public final class JDBCXMLMapper {
 	}
 
 	public DynamicEntity fromJDBC(Struct struct, String namespace) throws SQLException {
-//		logger.info("Struct for " + struct.getSQLTypeName());
 		DynamicEntity entity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, struct.getSQLTypeName(), true);
 		DynamicType dynamicType = DynamicHelper.getType(entity);
 		List<String> propertiesNames = dynamicType.getPropertiesNames();
@@ -187,15 +187,13 @@ public final class JDBCXMLMapper {
 			throw new IllegalArgumentException(struct.getSQLTypeName() + " does not match " + dynamicType.getName());
 		}
 		for (int i = 0; i < attributes.length; ++i) {
-			Object value = attributes[i];
+			Object attribute = attributes[i];
 			String propertyName = propertiesNames.get(i);
-//			logger.info("Property: " + propertyName + " = " + value);
-			if (value instanceof Struct) {
-				Struct inner = (Struct) value;
+			if (attribute instanceof Struct) {
+				Struct inner = (Struct) attribute;
 				entity.set(propertyName, createJAXBElement(namespace, inner.getSQLTypeName(), fromJDBC(inner, namespace)));
-			} else if (value instanceof Array) {
-				Array inner = (Array) value;
-//				logger.info("Array: " + getSQLTypeName(inner));
+			} else if (attribute instanceof Array) {
+				Array inner = (Array) attribute;
 				DynamicEntity arrayEntity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, getSQLTypeName(inner), true);
 				DynamicType dynamicArrayType = DynamicHelper.getType(arrayEntity);
 				Object[] elements = (Object[]) inner.getArray();
@@ -209,14 +207,24 @@ public final class JDBCXMLMapper {
 				}
 				arrayEntity.set(dynamicArrayType.getPropertiesNames().get(0), array);
 				entity.set(propertyName, arrayEntity);
-			} else if (value != null) {
+			} else if (attribute != null) {
+				Object value = fromJDBC(attribute);
 				if (dynamicType.getPropertyType(propertyName) != null) {
-					entity.set(propertyName, fromJDBC(value));
+					entity.set(propertyName, value);
 				} else {
 					// For nillable elements. Refer to: https://stackoverflow.com/questions/20396375/why-and-when-jaxbelement-is-required-in-jaxb
 					XMLDescriptor descriptor = (XMLDescriptor) dynamicType.getDescriptor();
-					XMLField databaseField = (XMLField) descriptor.getFields().get(i);
-					entity.set(propertyName, createJAXBElement(namespace, databaseField.getXPathFragment().getXPath(), fromJDBC(value)));
+					XMLField xmlField = (XMLField) descriptor.getFields().get(i);
+					if (value instanceof Node) {
+						// Assume that there is an element into which the any is wrapped 
+						XMLChoiceObjectMapping mapping = (XMLChoiceObjectMapping) descriptor.getMappingForAttributeName(propertyName);
+						Class<?> inner = mapping.getFieldToClassMappings().get(xmlField);
+						DynamicType dynamicTypeInner = _jaxbContext.getDynamicType(inner.getName());
+						String propName = dynamicTypeInner.getPropertiesNames().get(0);
+						DynamicEntity entityInner = dynamicTypeInner.newDynamicEntity();
+						value = entityInner.set(propName, value);
+					}
+					entity.set(propertyName, createJAXBElement(namespace, xmlField.getXPathFragment().getXPath(), value));
 				}
 			}
 		}
