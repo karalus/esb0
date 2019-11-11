@@ -463,6 +463,8 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Object unmarshal(Context context, Unmarshaller unmarshaller) throws XQException, IOException, TransformerException, JAXBException {
+		// Needed because neither Saxon DOM Element nor Saxon XMLStreamReader work with MOXy
+		UnmarshallerHandler unmarshallerHandler;
 		switch (_bodyType) {
 		case XQ_SEQUENCE:
 			XQSequence xqSequence = (XQSequence) _body;
@@ -474,10 +476,11 @@ public final class ESBMessage implements Cloneable {
 		case XQ_ITEM:
 			_bodyType = BodyType.INVALID;
 			XQItem xqItem = (XQItem) _body;
-			return unmarshaller.unmarshal(xqItem.getItemAsStream());
+			unmarshallerHandler = unmarshaller.getUnmarshallerHandler();
+			xqItem.writeItemToSAX(unmarshallerHandler);
+			return unmarshallerHandler.getResult();
 		case DOM:
-			// Needed because Saxon DOM Element does not work with MOXy
-			UnmarshallerHandler unmarshallerHandler = unmarshaller.getUnmarshallerHandler();
+			unmarshallerHandler = unmarshaller.getUnmarshallerHandler();
 			context.getIdenticalTransformer().transform(new DOMSource((Node) _body), new SAXResult(unmarshallerHandler));
 			return unmarshallerHandler.getResult();
 		default:
