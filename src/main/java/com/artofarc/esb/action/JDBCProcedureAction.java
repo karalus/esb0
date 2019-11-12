@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.naming.NamingException;
 import javax.xml.transform.sax.SAXSource;
+import javax.xml.xquery.XQItem;
 
 import org.eclipse.persistence.jaxb.JAXBMarshaller;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
@@ -29,6 +30,7 @@ import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.jdbc.JDBCConnection;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.message.BodyType;
@@ -49,9 +51,9 @@ public class JDBCProcedureAction extends JDBCAction {
 	protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
 		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.debug("JDBCProcedureAction sql=" + sql);
-		Connection conn = execContext.getResource();
+		JDBCConnection conn = execContext.getResource();
 		try {
-			CallableStatement cs = conn.prepareCall(sql);
+			CallableStatement cs = conn.getConnection().prepareCall(sql);
 			for (JDBCParameter param : _outParams) {
 				if (param.getXmlElement() != null) {
 					cs.registerOutParameter(param.getPos(), param.getType(), _mapper.getTypeName(param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart()));
@@ -66,7 +68,9 @@ public class JDBCProcedureAction extends JDBCAction {
 					switch (param.getType()) {
 					case SQLXML:
 						SQLXML sqlxml = cs.getSQLXML(param.getPos());
-						message.reset(BodyType.SOURCE, sqlxml.getSource(SAXSource.class));
+						XQItem xqItem = context.getXQDataFactory().createItemFromDocument(sqlxml.getSource(SAXSource.class), null);
+						message.reset(BodyType.XQ_ITEM, xqItem);
+						sqlxml.free();
 						break;
 					case CLOB:
 						message.reset(BodyType.READER, cs.getCharacterStream(param.getPos()));

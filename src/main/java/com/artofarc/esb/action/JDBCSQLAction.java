@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.List;
 
@@ -25,6 +24,7 @@ import javax.naming.NamingException;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.jdbc.JDBCConnection;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.message.ESBMessage;
@@ -49,9 +49,9 @@ public class JDBCSQLAction extends JDBCAction {
 	protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
 		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.debug("JDBCSQLAction sql=" + sql);
-		Connection conn = execContext.getResource();
+		JDBCConnection conn = execContext.getResource();
 		try {
-			PreparedStatement ps = conn.prepareStatement(sql);
+			PreparedStatement ps = conn.getConnection().prepareStatement(sql);
 			bindParameters(conn, ps, context, execContext, message);
 			ps.execute();
 			return execContext.setResource3(new JDBCResult(ps));

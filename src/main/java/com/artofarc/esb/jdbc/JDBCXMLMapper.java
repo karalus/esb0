@@ -16,10 +16,8 @@
  */
 package com.artofarc.esb.jdbc;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.sql.Array;
-import java.sql.Connection;
+import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Struct;
@@ -41,37 +39,21 @@ import org.eclipse.persistence.dynamic.DynamicEntity;
 import org.eclipse.persistence.dynamic.DynamicHelper;
 import org.eclipse.persistence.dynamic.DynamicType;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
+import org.eclipse.persistence.mappings.DatabaseMapping;
 import org.eclipse.persistence.oxm.XMLDescriptor;
 import org.eclipse.persistence.oxm.XMLField;
 import org.eclipse.persistence.oxm.mappings.XMLChoiceObjectMapping;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
-
-import com.artofarc.util.ReflectionUtils;
 
 public final class JDBCXMLMapper {
 
-	private final static Logger logger = LoggerFactory.getLogger(JDBCXMLMapper.class);
-
 	private final static DatatypeFactory datatypeFactory;
-	private static Class<?> ifcOracleConnection;
-	private static Method createARRAY;
-	private static Method getSQLTypeName;
 
 	static {
 		try {
 			datatypeFactory = DatatypeFactory.newInstance();
 		} catch (javax.xml.datatype.DatatypeConfigurationException e) {
 			throw new RuntimeException(e);
-		}
-		try {
-			ifcOracleConnection = Class.forName("oracle.jdbc.OracleConnection");
-			createARRAY = ifcOracleConnection.getMethod("createARRAY", String.class, Object.class);
-			getSQLTypeName = Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName");
-		} catch (ReflectiveOperationException e) {
-			// https://docs.oracle.com/cd/B28359_01/java.111/b31224/oraarr.htm#i1059642
-			logger.warn("Oracle JDBC driver not in classpath. Mapping of Arrays will not work");
 		}
 	}
 
@@ -90,17 +72,27 @@ public final class JDBCXMLMapper {
 		return _jaxbContext;
 	}
 
-	public static Object toJDBC(DynamicEntity entity, boolean root, Connection connection) throws SQLException {
+	public DynamicEntity createDynamicEntity(String namespace, String typeName, boolean isGlobalType) {
+		Object entity = _jaxbContext.createByQualifiedName(namespace, typeName, isGlobalType);
+		if (entity == null) {
+			throw new RuntimeException("Cannot find complex type for " + typeName + " in " + namespace);
+		}
+		return (DynamicEntity) entity;
+	}
+
+	public static Object toJDBC(DynamicEntity entity, boolean root, JDBCConnection connection) throws SQLException {
 		DynamicType dynamicType = DynamicHelper.getType(entity);
 		XMLDescriptor descriptor = (XMLDescriptor) dynamicType.getDescriptor();
 		QName typeName = descriptor.getSchemaReference().getSchemaContextAsQName();
 		List<String> propertiesNames = dynamicType.getPropertiesNames();
-		Object[] attributes = new Object[propertiesNames.size()];
-		for (int i = 0; i < propertiesNames.size(); ++i) {
-			Object property = entity.get(propertiesNames.get(i));
-			if (property instanceof JAXBElement<?>) {
-				attributes[i] = toJDBC((JAXBElement<?>) property, false, connection);
-			} else if (property instanceof List<?>) {
+		boolean isArray = false;
+		if (propertiesNames.size() == 1) {
+			DatabaseMapping mapping = descriptor.getMappingForAttributeName(propertiesNames.get(0));
+			isArray = mapping.isAbstractCompositeCollectionMapping();
+		}
+		if (isArray) {
+			Object property = entity.get(propertiesNames.get(0));
+			if (property instanceof List<?>) {
 				List<?> array = (List<?>) property;
 				Object[] elements = new Object[array.size()];
 				for (int j = 0; j < array.size(); ++j) {
@@ -111,16 +103,30 @@ public final class JDBCXMLMapper {
 						elements[j] = toJDBC(value, connection);
 					}
 				}
-				return createArray(connection, typeName.getLocalPart(), elements);
-			} else if (property != null) {
-				attributes[i] = toJDBC(property, connection);
+				return connection.createArray(typeName.getLocalPart(), elements);
+			} else if (property == null) {
+				return null;//connection.createArray(typeName.getLocalPart(), new Object[0]);
+			} else {
+				throw new RuntimeException("Cannot map property to " + typeName + ": " + property);
 			}
+		} else {
+			Object[] attributes = new Object[propertiesNames.size()];
+			for (int i = 0; i < propertiesNames.size(); ++i) {
+				Object property = entity.get(propertiesNames.get(i));
+				if (property instanceof JAXBElement<?>) {
+					attributes[i] = toJDBC((JAXBElement<?>) property, false, connection);
+				} else if (property instanceof DynamicEntity) {
+					attributes[i] = toJDBC((DynamicEntity) property, false, connection);
+				} else if (property != null) {
+					attributes[i] = toJDBC(property, connection);
+				}
+			}
+			boolean isXmlType = attributes.length == 1 && attributes[0] instanceof SQLXML;
+			return root || isXmlType ? attributes[0] : connection.getConnection().createStruct(typeName.getLocalPart(), attributes);
 		}
-		boolean isXmlType = attributes.length == 1 && attributes[0] instanceof SQLXML;
-		return root || isXmlType ? attributes[0] : connection.createStruct(typeName.getLocalPart(), attributes);
 	}
 
-	public static Object toJDBC(JAXBElement<?> jaxbElement, boolean root, Connection connection) throws SQLException {
+	public static Object toJDBC(JAXBElement<?> jaxbElement, boolean root, JDBCConnection connection) throws SQLException {
 		Object value = jaxbElement.getValue();
 		if (value instanceof DynamicEntity) {
 			return toJDBC((DynamicEntity) value, root, connection);
@@ -129,7 +135,7 @@ public final class JDBCXMLMapper {
 		}
 	}
 
-	public static Object toJDBC(Object value, Connection connection) throws SQLException {
+	public static Object toJDBC(Object value, JDBCConnection connection) throws SQLException {
 		if (value instanceof XMLGregorianCalendar) {
 			XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
 			return new Timestamp(calendar.toGregorianCalendar(JDBCParameter.TIME_ZONE, null, null).getTimeInMillis());
@@ -139,16 +145,20 @@ public final class JDBCXMLMapper {
 			return new Timestamp(calendar.getTimeInMillis());
 		}
 		if (value instanceof Node) {
-			SQLXML sqlxml = connection.createSQLXML();
-			DOMResult domResult = sqlxml.setResult(DOMResult.class);
-			domResult.setNode((Node) value);
+			SQLXML sqlxml = connection.getConnection().createSQLXML();
+			sqlxml.setResult(DOMResult.class).setNode((Node) value);
 			return sqlxml;
+		}
+		if (value instanceof byte[]) {
+			Blob blob = connection.getConnection().createBlob();
+			blob.setBytes(1, (byte[]) value);
+			return blob;
 		}
 		return value;
 	}
 
 	public String getTypeName(String namespace, String elementName) {
-		DynamicEntity entity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, elementName, false);
+		DynamicEntity entity = createDynamicEntity(namespace, elementName, false);
 		DynamicType dynamicType = DynamicHelper.getType(entity);
 		XMLDescriptor descriptor = (XMLDescriptor) dynamicType.getDescriptor();
 		if (descriptor.getDefaultRootElementField() != null) {
@@ -166,7 +176,7 @@ public final class JDBCXMLMapper {
 	}
 
 	public Object fromJDBC(Struct struct, String namespace, String elementName) throws SQLException {
-		DynamicEntity entity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, elementName, false);
+		DynamicEntity entity = createDynamicEntity(namespace, elementName, false);
 		DynamicType dynamicType = DynamicHelper.getType(entity);
 		XMLDescriptor descriptor = (XMLDescriptor) dynamicType.getDescriptor();
 		DynamicEntity result = fromJDBC(struct, namespace);
@@ -179,7 +189,7 @@ public final class JDBCXMLMapper {
 	}
 
 	public DynamicEntity fromJDBC(Struct struct, String namespace) throws SQLException {
-		DynamicEntity entity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, struct.getSQLTypeName(), true);
+		DynamicEntity entity = createDynamicEntity(namespace, struct.getSQLTypeName(), true);
 		DynamicType dynamicType = DynamicHelper.getType(entity);
 		List<String> propertiesNames = dynamicType.getPropertiesNames();
 		Object[] attributes = struct.getAttributes();
@@ -194,7 +204,7 @@ public final class JDBCXMLMapper {
 				entity.set(propertyName, createJAXBElement(namespace, inner.getSQLTypeName(), fromJDBC(inner, namespace)));
 			} else if (attribute instanceof Array) {
 				Array inner = (Array) attribute;
-				DynamicEntity arrayEntity = (DynamicEntity) _jaxbContext.createByQualifiedName(namespace, getSQLTypeName(inner), true);
+				DynamicEntity arrayEntity = createDynamicEntity(namespace, JDBCConnection.getSQLTypeName(inner), true);
 				DynamicType dynamicArrayType = DynamicHelper.getType(arrayEntity);
 				Object[] elements = (Object[]) inner.getArray();
 				List<Object> array = new ArrayList<>(elements.length);
@@ -241,23 +251,11 @@ public final class JDBCXMLMapper {
 			DOMSource domSource = ((SQLXML) value).getSource(DOMSource.class);
 			return domSource.getNode();
 		}
+		if (value instanceof Blob) {
+			Blob blob = (Blob) value;
+			return blob.getBytes(1, (int) blob.length());
+		}
 		return value;
-	}
-
-	public static Array createArray(Connection connection, String typeName, Object[] elements) throws SQLException {
-		try {
-			return (Array) createARRAY.invoke(connection.unwrap(ifcOracleConnection), typeName, elements);
-		} catch (InvocationTargetException | IllegalAccessException e) {
-			throw ReflectionUtils.convert(e.getCause(), SQLException.class);
-		}
-	}
-
-	public static String getSQLTypeName(Array array) throws SQLException {
-		try {
-			return (String) getSQLTypeName.invoke(array);
-		} catch (InvocationTargetException | IllegalAccessException e) {
-			throw ReflectionUtils.convert(e.getCause(), SQLException.class);
-		}
 	}
 
 }

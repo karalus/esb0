@@ -40,6 +40,7 @@ import javax.json.Json;
 import javax.json.stream.JsonGenerator;
 import javax.json.stream.JsonGeneratorFactory;
 import javax.mail.MessagingException;
+import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -208,9 +209,15 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void addAttachment(MimeBodyPart bodyPart) throws MessagingException {
-		String cid = bodyPart.getContentID();
-		cid = cid.substring(1, cid.length() - 1);
-		_attachments.put(cid, bodyPart);
+		_attachments.put(removeQuotes(bodyPart.getContentID()), bodyPart);
+	}
+
+	public void addAttachment(String contentID, String contentType, byte[] content) throws MessagingException {
+		InternetHeaders headers = new InternetHeaders();
+		headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
+		MimeBodyPart part = new MimeBodyPart(headers, content);
+		part.setContentID(contentID);
+		addAttachment(part);
 	}
 
 	public Charset getCharset() {
@@ -410,7 +417,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public Source getBodyAsSource(Context context) throws IOException {
+	public Source getBodyAsSource(Context context) throws IOException, XQException {
 		Entry<String, String> contentType = getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && isFastInfoset(contentType.getValue())) {
 			InputStream is;
@@ -430,10 +437,13 @@ public final class ESBMessage implements Cloneable {
 		return getBodyAsSourceInternal();
 	}
 
-	private Source getBodyAsSourceInternal() throws IOException {
+	private Source getBodyAsSourceInternal() throws IOException, XQException {
 		switch (_bodyType) {
 		case SOURCE:
 			return (Source) _body;
+		case XQ_ITEM:
+			XQItem xqItem = (XQItem) _body;
+			return new DOMSource(xqItem.getNode());
 		case DOM:
 			return new DOMSource((Node) _body);
 		case EXCEPTION:
@@ -571,6 +581,9 @@ public final class ESBMessage implements Cloneable {
 	private void transform(Transformer transformer, Result result) throws TransformerException, XQException, IOException {
 		Source source;
 		switch (_bodyType) {
+		case SOURCE:
+			source = (Source) _body;
+			break;
 		case DOM:
 			source = new DOMSource((Node) _body);
 			break;

@@ -27,6 +27,7 @@ import javax.sql.DataSource;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.sax.SAXResult;
+import javax.xml.transform.sax.TransformerHandler;
 
 import org.eclipse.persistence.dynamic.DynamicEntity;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
@@ -34,6 +35,7 @@ import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.jdbc.JDBCConnection;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
@@ -76,24 +78,24 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Connection connection = _dataSource.getConnection();
+		JDBCConnection connection = new JDBCConnection(_dataSource.getConnection());
 		ExecutionContext execContext = new ExecutionContext(connection);
 		if (inPipeline) {
 			for (JDBCParameter param : _params) {
 				if (param.isBody()) {
 					switch (param.getType()) {
 					case SQLXML:
-						SQLXML xmlObject = connection.createSQLXML();
-						message.reset(BodyType.RESULT, xmlObject.setResult(SAXResult.class));
+						SQLXML xmlObject = connection.getConnection().createSQLXML();
+						message.reset(BodyType.RESULT, connection.createSAXResult(xmlObject));
 						execContext.setResource2(xmlObject);
 						break;
 					case CLOB:
-						Clob clob = connection.createClob();
+						Clob clob = connection.getConnection().createClob();
 						message.reset(BodyType.WRITER, clob.setCharacterStream(1L));
 						execContext.setResource2(clob);
 						break;
 					case BLOB:
-						Blob blob = connection.createBlob();
+						Blob blob = connection.getConnection().createBlob();
 						message.reset(BodyType.OUTPUT_STREAM, blob.setBinaryStream(1L));
 						message.setCharset(message.getSinkEncoding());						
 						execContext.setResource2(blob);
@@ -125,20 +127,26 @@ public abstract class JDBCAction extends Action {
 				message.getHeaders().clear();
 			}
 		}
-		try (Connection connection = execContext.getResource(); JDBCResult result = execContext.getResource3()) {
+		try (JDBCConnection connection = execContext.getResource(); JDBCResult result = execContext.getResource3()) {
 			JDBCResult2JsonMapper.writeResult(result, message);
 		}
 	}
 
-	protected final void bindParameters(Connection conn, PreparedStatement ps, Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
+	protected final void bindParameters(JDBCConnection conn, PreparedStatement ps, Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
 		for (JDBCParameter param : _params) {
 			if (param.isBody()) {
 				switch (param.getType()) {
 				case SQLXML:
 					SQLXML xmlObject = execContext.getResource2();
 					if (xmlObject == null) {
-						xmlObject = conn.createSQLXML();
-						message.writeTo(xmlObject.setResult(SAXResult.class), context);
+						xmlObject = conn.getConnection().createSQLXML();
+						SAXResult result = xmlObject.setResult(SAXResult.class);
+						TransformerHandler transformerHandler = conn.getTransformerHandler();
+						if (transformerHandler != null) {
+							transformerHandler.getTransformer().transform(message.getBodyAsSource(context), result);
+						} else {
+							message.writeTo(result, context);
+						}
 					}
 					ps.setSQLXML(param.getPos(), xmlObject);
 					break;
