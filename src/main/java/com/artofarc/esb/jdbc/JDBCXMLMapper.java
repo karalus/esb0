@@ -26,8 +26,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Iterator;
 import java.util.List;
 
+import javax.mail.internet.MimeBodyPart;
 import javax.xml.bind.JAXBElement;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -43,7 +45,12 @@ import org.eclipse.persistence.mappings.DatabaseMapping;
 import org.eclipse.persistence.oxm.XMLDescriptor;
 import org.eclipse.persistence.oxm.XMLField;
 import org.eclipse.persistence.oxm.mappings.XMLChoiceObjectMapping;
+import org.eclipse.persistence.oxm.mappings.XMLCompositeCollectionMapping;
+import org.eclipse.persistence.oxm.mappings.XMLCompositeObjectMapping;
 import org.w3c.dom.Node;
+
+import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StreamUtils;
 
 public final class JDBCXMLMapper {
 
@@ -88,7 +95,7 @@ public final class JDBCXMLMapper {
 		boolean isArray = false;
 		if (propertiesNames.size() == 1) {
 			DatabaseMapping mapping = descriptor.getMappingForAttributeName(propertiesNames.get(0));
-			isArray = mapping.isAbstractCompositeCollectionMapping();
+			isArray = mapping.isCollectionMapping();
 		}
 		if (isArray) {
 			Object property = entity.get(propertiesNames.get(0));
@@ -256,6 +263,49 @@ public final class JDBCXMLMapper {
 			return blob.getBytes(1, (int) blob.length());
 		}
 		return value;
+	}
+
+	public JAXBElement<?> fromAttachments(ESBMessage message, String namespace, String elementName) throws Exception {
+		DynamicEntity entity = createDynamicEntity(namespace, elementName, false);
+		DynamicType dynamicType = DynamicHelper.getType(entity);
+		XMLDescriptor descriptor = (XMLDescriptor) dynamicType.getDescriptor();
+		XMLCompositeObjectMapping mapping = (XMLCompositeObjectMapping) descriptor.getMappingForAttributeName("attachments");
+		DynamicType dynamicTypeInner = _jaxbContext.getDynamicType(mapping.getReferenceClassName());
+		XMLDescriptor descriptorInner = (XMLDescriptor) dynamicTypeInner.getDescriptor();
+		DynamicEntity attachments = dynamicTypeInner.newDynamicEntity();
+		entity.set("attachments", attachments);
+		List<String> propertiesNames = dynamicTypeInner.getPropertiesNames();
+		if (propertiesNames.size() == 1) {
+			DatabaseMapping mappingInner = descriptorInner.getMappingForAttributeName(propertiesNames.get(0));
+			if (mappingInner.isAbstractCompositeCollectionMapping()) {
+				XMLCompositeCollectionMapping mappingAttachments = (XMLCompositeCollectionMapping) mappingInner;
+				DynamicType dynamicTypeAttachment = _jaxbContext.getDynamicType(mappingAttachments.getReferenceClassName());
+				List<DynamicEntity> array = new ArrayList<>();
+				for (Iterator<String> iter = message.getAttachments().keySet().iterator(); iter.hasNext();) {
+					String cid = iter.next();
+					MimeBodyPart mimeBodyPart = message.getAttachments().get(cid);
+					DynamicEntity attachment = dynamicTypeAttachment.newDynamicEntity();
+					for (String propertyName : dynamicTypeAttachment.getPropertiesNames()) {
+						switch (propertyName) {
+						case "contentId":
+							attachment.set(propertyName, cid);
+							break;
+						case "contentType":
+							attachment.set(propertyName, mimeBodyPart.getContentType());
+							break;
+						default:
+							attachment.set(propertyName, StreamUtils.copy(mimeBodyPart.getInputStream()));
+							break;
+						}
+					}
+					array.add(attachment);
+					iter.remove();
+				}
+				attachments.set(propertiesNames.get(0), array);
+				return createJAXBElement(namespace, elementName, entity);
+			}
+		}
+		throw new IllegalArgumentException("Cannot map attachments to " + elementName + " in " + namespace);
 	}
 
 }
