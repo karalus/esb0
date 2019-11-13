@@ -19,6 +19,8 @@ package com.artofarc.esb.action;
 import java.net.HttpURLConnection;
 import java.util.Map.Entry;
 
+import javax.xml.bind.DatatypeConverter;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
@@ -54,6 +56,11 @@ public class HttpOutboundAction extends Action {
 		Entry<String, String> contentType = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null) {
 			contentType.setValue(contentType.getValue() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+		}
+		String basicAuthCredential = _httpEndpoint.getBasicAuthCredential();
+		if (basicAuthCredential != null) {
+			basicAuthCredential = (String) bindVariable(basicAuthCredential, context, message);
+			message.putHeader("Authorization", "Basic " + DatatypeConverter.printBase64Binary(basicAuthCredential.getBytes()));
 		}
 		int timeout = message.getTimeleft(_readTimeout).intValue();
 		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);

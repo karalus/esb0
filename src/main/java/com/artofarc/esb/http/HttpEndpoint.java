@@ -19,18 +19,18 @@ package com.artofarc.esb.http;
 import java.util.List;
 import java.util.ListIterator;
 
-
 public final class HttpEndpoint {
 
 	private final String _name;
 	private final List<HttpUrl> _endpoints;
+	private final String _basicAuthCredential;
 	private final int _connectionTimeout;
 	private final int _retries;
 	private final Integer _checkAliveInterval;
 	private final Integer _keepAliveInterval;
 	private final long _modificationTime;
 
-	public HttpEndpoint(String name, List<HttpUrl> endpoints, int connectionTimeout, int retries, Integer checkAliveInterval, Integer keepAliveInterval, long modificationTime) {
+	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectionTimeout, int retries, Integer checkAliveInterval, Integer keepAliveInterval, long modificationTime) {
 		if (name != null) {
 			_name = name;
 		} else {
@@ -42,6 +42,7 @@ public final class HttpEndpoint {
 			_name = builder.toString();
 		}
 		_endpoints = endpoints;
+		_basicAuthCredential = username != null && password != null ? username + ':' + password : null;
 		_connectionTimeout = connectionTimeout;
 		_retries = retries;
 		_checkAliveInterval = checkAliveInterval;
@@ -55,6 +56,10 @@ public final class HttpEndpoint {
 
 	public List<HttpUrl> getHttpUrls() {
 		return _endpoints;
+	}
+
+	public String getBasicAuthCredential() {
+		return _basicAuthCredential;
 	}
 
 	public int getConnectionTimeout() {
@@ -84,10 +89,8 @@ public final class HttpEndpoint {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (!(obj instanceof HttpEndpoint))
-			return false;
+		if (this == obj) return true;
+		if (!(obj instanceof HttpEndpoint)) return false;
 		return _name.equals(((HttpEndpoint) obj)._name);
 	}
 
@@ -97,8 +100,7 @@ public final class HttpEndpoint {
 		while (i1.hasNext() && i2.hasNext()) {
 			HttpUrl o1 = i1.next();
 			HttpUrl o2 = i2.next();
-			if (!o1.isCompatible(o2))
-				return false;
+			if (!o1.isCompatible(o2)) return false;
 		}
 		return !(i1.hasNext() || i2.hasNext());
 	}

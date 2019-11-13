@@ -57,6 +57,8 @@
 							</complexType>
 						</element>
 					</sequence>
+					<attribute name="username" type="string" />
+					<attribute name="password" type="string" />
 					<attribute name="connectionTimeout" type="int" default="10000" />
 					<attribute name="retries" type="int" default="0" />
 					<attribute name="checkAliveInterval" type="int" />
