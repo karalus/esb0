@@ -52,7 +52,7 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 		super(uri);
 		_workerPool = workerPool;
 		_jmsConnectionData = jmsConnectionData;
-		_messageSelector = JMSConnectionData.bindSystemProperties(messageSelector);
+		_messageSelector = globalContext.bindProperties(messageSelector);
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}

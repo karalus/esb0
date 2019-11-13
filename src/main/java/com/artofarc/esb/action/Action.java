@@ -258,11 +258,11 @@ public abstract class Action implements Cloneable {
 			String name = k < 0 ? path : path.substring(0, k);
 			Object value = "body".equals(name) ? (k < 0 ? message.getBodyAsString(context) : message.getBody()) : resolve(message, name, true);
 			if (value == null) {
-				value = System.getProperty(name);
+				value = context.getPoolContext().getGlobalContext().getProperty(name);
 			}
 			if (value == null && k >= 0) {
 				// interpret dots as separators
-				value = System.getProperty(path);
+				value = context.getPoolContext().getGlobalContext().getProperty(path);
 				k = -1;
 			}
 			boolean standalone = ++j == exp.length() && pos == 0 && i == 0;

@@ -163,7 +163,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			Http http = (Http) actionElement.getValue();
 			List<HttpUrl> endpoints = new ArrayList<>();
 			for (Http.Url url : http.getUrl()) {
-				endpoints.add(new HttpUrl(url.getValue(), url.getWeight(), url.isActive()));
+				endpoints.add(new HttpUrl(globalContext.bindProperties(url.getValue()), url.getWeight(), url.isActive()));
 			}
 			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getConnectionTimeout(), http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);

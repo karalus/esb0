@@ -30,8 +30,8 @@ public final class JMSConnectionData {
 
 	public JMSConnectionData(GlobalContext globalContext, String jndiConnectionFactory, String userName, String password) throws NamingException {
 		_connectionFactory = globalContext.lookup(_jndiConnectionFactory = jndiConnectionFactory);
-		_userName = bindSystemProperties(userName);
-		_password = bindSystemProperties(password);
+		_userName = globalContext.bindProperties(userName);
+		_password = globalContext.bindProperties(password);
 	}
 
 	@Override
@@ -69,29 +69,6 @@ public final class JMSConnectionData {
 
 	Connection createConnection() throws JMSException {
 		return _userName != null ? _connectionFactory.createConnection(_userName, _password) : _connectionFactory.createConnection();
-	}
-
-	static String bindSystemProperties(String exp) {
-		if (exp == null) return null;
-		StringBuilder builder = new StringBuilder();
-		for (int pos = 0;;) {
-			int i = exp.indexOf("${", pos);
-			if (i < 0) {
-				builder.append(exp.substring(pos));
-				break;
-			}
-			builder.append(exp.substring(pos, i));
-			int j = exp.indexOf('}', i);
-			if (j < 0) throw new IllegalArgumentException("Matching } is missing");
-			String name = exp.substring(i + 2, j);
-			Object value = System.getProperty(name);
-			if (value == null) {
-				throw new NullPointerException(name + " is not set");
-			}
-			builder.append(value);
-			pos = j + 1;
-		}
-		return builder.toString();
 	}
 
 }
