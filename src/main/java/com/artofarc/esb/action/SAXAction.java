@@ -31,31 +31,17 @@ import javax.xml.xquery.XQSequence;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.XMLFilterImpl;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.StringWriter;
 
 public abstract class SAXAction extends Action {
 
-	static class FeatureFilter extends XMLFilterImpl {
-
-		FeatureFilter() {
-		}
-
-		FeatureFilter(XMLReader parent) {
-			super(parent);
-		}
-
-		@Override
-		public void setFeature(String name, boolean value) {
-		}
-	}
-
-	static class XQJFilter extends FeatureFilter {
+	static class XQJFilter extends XMLFilterBase {
 		private final XQItem _item;
 
 		XQJFilter(XQItem item) {
@@ -89,7 +75,7 @@ public abstract class SAXAction extends Action {
 
 	protected abstract SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception;
 
-	protected abstract FeatureFilter createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception;
+	protected abstract XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception;
 
 	private SAXSource createSAXSource(Context context, ESBMessage message, Source source) throws Exception {
 		XMLReader parent = null;
@@ -97,7 +83,7 @@ public abstract class SAXAction extends Action {
 			SAXSource saxSource = (SAXSource) source;
 			parent = saxSource.getXMLReader();
 		}
-		FeatureFilter xmlFilter = createXMLFilter(context, message, parent);
+		XMLFilterBase xmlFilter = createXMLFilter(context, message, parent);
 		InputSource inputSource = SAXSource.sourceToInputSource(source);
 		if (inputSource == null) {
 			throw new IllegalStateException("Message is invalid");			

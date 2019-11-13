@@ -26,6 +26,7 @@ import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.XMLFilterBase;
 
 public class SAXValidationAction extends SAXAction {
 
@@ -56,9 +57,9 @@ public class SAXValidationAction extends SAXAction {
 	}
 
 	@Override
-	protected FeatureFilter createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
 		message.setSchema(_schema);
-		FeatureFilter xmlFilter = new FeatureFilter(parent);
+		XMLFilterBase xmlFilter = new XMLFilterBase(parent);
 		xmlFilter.setContentHandler(_schema.newValidatorHandler());
 		return xmlFilter;
 	}

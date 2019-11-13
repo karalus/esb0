@@ -35,7 +35,6 @@ import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StringWriter;
 
 public class JDBCProcedureAction extends JDBCAction {
 
@@ -82,9 +81,8 @@ public class JDBCProcedureAction extends JDBCAction {
 						break;
 					case STRUCT:
 						JAXBMarshaller marshaller = _mapper.getJAXBContext().createMarshaller();
-						StringWriter sw = new StringWriter();
-						marshaller.marshal(_mapper.fromJDBC((Struct) cs.getObject(param.getPos()), param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart()), sw);
-						message.reset(BodyType.READER, sw.getStringReader());
+						Object jaxbElement = _mapper.fromJDBC((Struct) cs.getObject(param.getPos()), param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+						message.marshal(context, marshaller, jaxbElement);
 						break;
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());

@@ -34,6 +34,7 @@ import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.SAXTransformerFactoryHelper;
 
 public class XSLTAction extends SAXAction {
@@ -44,7 +45,7 @@ public class XSLTAction extends SAXAction {
 		_templates = templates;
 	}
 
-	class TransformerFilter extends FeatureFilter {
+	class TransformerFilter extends XMLFilterBase {
 		final TransformerHandler transformerHandler;
 		final Transformer transformer;
 
@@ -95,7 +96,7 @@ public class XSLTAction extends SAXAction {
 	}
 
 	@Override
-	protected FeatureFilter createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerConfigurationException {
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerConfigurationException {
 		return new TransformerFilter(context, message, parent);
 	}
 

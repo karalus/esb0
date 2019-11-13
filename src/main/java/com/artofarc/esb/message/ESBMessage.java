@@ -44,6 +44,7 @@ import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.UnmarshallerHandler;
 import javax.xml.transform.OutputKeys;
@@ -64,11 +65,13 @@ import javax.xml.xquery.XQSequence;
 
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 import com.artofarc.util.StreamUtils;
 import com.artofarc.util.StringWriter;
@@ -514,6 +517,21 @@ public final class ESBMessage implements Cloneable {
 		default:
 			return unmarshaller.unmarshal(getBodyAsSource(context), declaredType);
 		}
+	}
+
+	public void marshal(Context context, final Marshaller marshaller, final Object jaxbElement) throws XQException {
+		SAXSource source = new SAXSource(new XMLFilterBase() {
+
+			@Override
+			public void parse(InputSource source) throws SAXException {
+				try {
+					marshaller.marshal(jaxbElement, getContentHandler());
+				} catch (JAXBException e) {
+					throw new SAXException(e);
+				}
+			}
+		}, null);
+		init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(source, null), null);
 	}
 
 	public boolean isSink() {

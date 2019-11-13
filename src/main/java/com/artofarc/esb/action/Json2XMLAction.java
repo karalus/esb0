@@ -33,9 +33,7 @@ import org.eclipse.persistence.oxm.MediaType;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
-import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StringWriter;
 
 public class Json2XMLAction extends Action {
 
@@ -101,7 +99,7 @@ public class Json2XMLAction extends Action {
 				root = jsonUnmarshaller.unmarshal(message.getBodyAsSource(context));
 			}
 		} finally {
-			context.getTimeGauge().stopTimeMeasurement("Unmarshal JSON--> Java", true);
+			context.getTimeGauge().stopTimeMeasurement("Unmarshal JSON --> Java", true);
 		}
 		Marshaller marshaller = _jaxbContext.createMarshaller();
 		if (_type != null) {
@@ -109,14 +107,12 @@ public class Json2XMLAction extends Action {
 		} else {
 			marshaller.setSchema(_schema);
 		}
-		marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, _formattedOutput);
 		try {
 			if (nextActionIsPipelineStop) {
+				marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, _formattedOutput);
 				marshaller.marshal(root, message.getBodyAsSinkResult(context));
 			} else {
-				StringWriter sw = new StringWriter();
-				marshaller.marshal(root, sw);
-				message.reset(BodyType.READER, sw.getStringReader());
+				message.marshal(context, marshaller, root);
 			}
 		} catch (JAXBException e) {
 			throw new ExecutionException(this, "Validation failed", e.getLinkedException());
