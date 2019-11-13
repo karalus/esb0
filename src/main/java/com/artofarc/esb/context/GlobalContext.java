@@ -38,7 +38,7 @@ import com.artofarc.esb.resource.XQConnectionFactory;
 
 public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
 
-	private final static long deployTimeout = Long.parseLong(System.getProperty("esb0.deploy.timeout", "60"));
+	private static final long deployTimeout = Long.parseLong(System.getProperty("esb0.deploy.timeout", "60"));
 
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
@@ -146,12 +146,11 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		super.close();
 	}
 
-	public Object getProperty(String key) {
-		// Could be extended to access the attributes from ServletContext
-		return System.getProperty(key);
+	public Object getProperty(String key) throws NamingException {
+		return key.startsWith("java:") ? lookup(key) : System.getProperty(key);
 	}
 
-	public String bindProperties(String exp) {
+	public String bindProperties(String exp) throws NamingException {
 		if (exp == null) return null;
 		StringBuilder builder = new StringBuilder();
 		for (int pos = 0;;) {
