@@ -16,14 +16,14 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.Writer;
+import java.io.PrintWriter;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StreamUtils;
+import com.artofarc.util.StringWriter;
 
 public class DumpAction extends TerminalAction {
 
@@ -40,19 +40,20 @@ public class DumpAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, resource, message, nextActionIsPipelineStop);
-		System.out.println("Headers:");
-		Writer logWriter = ReflectionUtils.getField(System.out, "textOut");
-		ESBMessage.dumpMap(context, message.getHeaders(), logWriter);
-		logWriter.flush();
-		System.out.println();
-		System.out.println("Variables:");
-		ESBMessage.dumpMap(context, message.getVariables(), logWriter);
-		logWriter.flush();
-		System.out.println();
+		StringWriter writer = new StringWriter();
+		writer.write("Headers: ");
+		ESBMessage.dumpMap(context, message.getHeaders(), writer);
+		logger.info(writer.toString());
+		writer.reset();
+		writer.write("Variables: ");
+		ESBMessage.dumpMap(context, message.getVariables(), writer);
+		logger.info(writer.toString());
+		writer.reset();
 		if (message.getBodyType() != BodyType.INVALID) {
-			System.out.println("Body:");
 			if (message.getBodyType() == BodyType.EXCEPTION) {
-				message.<Exception> getBody().printStackTrace(System.out);
+				writer.write("Body(Exception): ");
+				message.<Exception> getBody().printStackTrace(new PrintWriter(writer));
+				logger.info(writer.toString());
 			} else {
 				if (message.isStream()) {
 					// Materialize message in case it is a stream thus it will not be consumed
@@ -63,10 +64,9 @@ public class DumpAction extends TerminalAction {
 					}
 				}
 				if (_binary) {
-					System.out.print(StreamUtils.convertToHexDump(message.getBodyAsInputStream(context)));
+					logger.info("Body(" + message.getCharset() + "):\n" + StreamUtils.convertToHexDump(message.getBodyAsInputStream(context)));
 				} else {
-					message.writeRawTo(System.out, context);
-					System.out.println();
+					logger.info("Body:\n" + message.getBodyAsString(context));
 				}
 			}
 		}
