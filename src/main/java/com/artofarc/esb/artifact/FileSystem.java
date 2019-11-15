@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 
 import org.slf4j.Logger;
@@ -342,6 +343,20 @@ public class FileSystem {
 		ChangeSet changeSet = validateChanges(globalContext, copy);
 		if (tidyOut) copy.tidyOut();
 		return changeSet;
+	}
+
+	public final ChangeSet createChangeSet(GlobalContext globalContext, String uri, byte[] content) throws Exception {
+		FileSystem copy = copy();
+		Artifact artifact = copy.loadArtifact(copy.getRoot(), uri);
+		CRC32 crc = new CRC32();
+		crc.update(content);
+		if (artifact._length != content.length || artifact._crc != crc.getValue()) {
+			artifact.setContent(content);
+			artifact.setModificationTime(System.currentTimeMillis());
+			artifact.setCrc(crc.getValue());
+			copy._changes.put(uri, ChangeType.UPDATE);
+		}
+		return validateChanges(globalContext, copy);
 	}
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, String uriToDelete) throws FileNotFoundException, ValidationException {

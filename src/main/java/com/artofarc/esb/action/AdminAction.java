@@ -64,7 +64,7 @@ public class AdminAction extends Action {
 			break;
 		case "PUT":
 		case "POST":
-			changeConfiguration(context.getPoolContext().getGlobalContext(), message, resource);
+			changeConfiguration(context, message, resource);
 			break;
 		case "DELETE":
 			deleteArtifact(context.getPoolContext().getGlobalContext(), message, resource);
@@ -75,10 +75,10 @@ public class AdminAction extends Action {
 		}
 	}
 
-	private static void createResponse(ESBMessage message, BodyType bodyType, Object body) {
+	private static void createResponse(ESBMessage message, BodyType bodyType, Object body, String pathInfo) {
 		message.getHeaders().clear();
 		message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_OK);
-		if (body == null) message.getVariables().put(ESBConstants.redirect, message.getVariable(ESBConstants.ContextPath) + "/admin");
+		if (body == null) message.getVariables().put(ESBConstants.redirect, message.getVariable(ESBConstants.ContextPath) + "/admin" + pathInfo);
 		message.reset(bodyType, body);
 	}
 
@@ -102,7 +102,7 @@ public class AdminAction extends Action {
 				JsonWriter jsonWriter = Json.createWriter(sw);
 				jsonWriter.writeArray(builder.build());
 				jsonWriter.close();
-				createResponse(message, BodyType.READER, sw.getStringReader());
+				createResponse(message, BodyType.READER, sw.getStringReader(), "");
 				message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				String headerAccept = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT);
@@ -117,9 +117,9 @@ public class AdminAction extends Action {
 						} catch (Exception e) {
 							logger.warn("Could not adapt WSDL " + resource, e);
 						}
-						createResponse(message, BodyType.STRING, content);
+						createResponse(message, BodyType.STRING, content, "");
 					} else {
-						createResponse(message, BodyType.INPUT_STREAM, contentAsStream);
+						createResponse(message, BodyType.INPUT_STREAM, contentAsStream, "");
 					}
 					message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
 					message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
@@ -141,7 +141,7 @@ public class AdminAction extends Action {
 				globalContext.setFileSystem(newFileSystem);
 				newFileSystem.writeBackChanges();
 				logger.info("Artifact " +  resource + " deleted by " + message.getVariable(ESBConstants.RemoteUser));
-				createResponse(message, null, null);
+				createResponse(message, null, null, "");
 			} catch (ValidationException e) {
 				logger.error("Not valid", e);
 				createErrorResponse(message, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
@@ -151,46 +151,59 @@ public class AdminAction extends Action {
 		}
 	}
 
-	private static void changeConfiguration(GlobalContext globalContext, ESBMessage message, String resource) throws Exception {
+	private static void changeConfiguration(Context context, ESBMessage message, String resource) throws Exception {
+		GlobalContext globalContext = context.getPoolContext().getGlobalContext();
 		// if a file is received then deploy it otherwise change the state of a service flow
 		if (message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION) != null) {
 			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 			if (contentType.startsWith("application/")) {
-				if (globalContext.lockFileSystem()) {
-					try {
-						InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
-						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
-						int serviceCount = DeployHelper.deployChangeSet(globalContext, changeSet);
-						FileSystem newFileSystem = changeSet.getFileSystem();
-						globalContext.setFileSystem(newFileSystem);
-						newFileSystem.writeBackChanges();
-						logger.info("Configuration changed by: " + message.getVariable(ESBConstants.RemoteUser));
-						logger.info("Number of created/updated services: " + serviceCount);
-						logger.info("Number of deleted services: " + changeSet.getDeletedServiceArtifacts().size());
-						createResponse(message, null, null);
-					} catch (ValidationException e) {
-						logger.error("Not valid", e);
-						createErrorResponse(message, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-					} finally {
-						globalContext.unlockFileSystem();
-					}
-				} else {
-					createErrorResponse(message, HttpServletResponse.SC_GATEWAY_TIMEOUT, "Another update is in progress");
-				}
+				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
+				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
+				deployChangeset(globalContext, changeSet, message, "");
 			} else {
 				createErrorResponse(message, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, null);
 			}
 		} else {
-			ConsumerPort consumerPort = globalContext.getInternalService(resource);
-			if (consumerPort != null) {
-				String enable = message.getHeader("enable");
-				// if header is missing just toggle state
-				consumerPort.enable(enable != null ? Boolean.parseBoolean(enable) : !consumerPort.isEnabled());
-				createResponse(message, null, null);
+			String enable = message.getHeader("enable");
+			String content = message.getBodyAsString(context);
+			if (enable != null || content.isEmpty()) {
+				ConsumerPort consumerPort = globalContext.getInternalService(resource);
+				if (consumerPort != null) {
+					// if header is missing just toggle state
+					consumerPort.enable(enable != null ? Boolean.parseBoolean(enable) : !consumerPort.isEnabled());
+					createResponse(message, null, null, "");
+				} else {
+					createErrorResponse(message, HttpServletResponse.SC_NOT_FOUND, null);
+				}
 			} else {
-				createErrorResponse(message, HttpServletResponse.SC_NOT_FOUND, null);
+				content = content.substring(content.indexOf('=') + 1, content.length() - 2);
+				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, content.getBytes());
+				deployChangeset(globalContext, changeSet, message, resource);
 			}
 		}
+	}
+
+	private static void deployChangeset(GlobalContext globalContext, FileSystem.ChangeSet changeSet, ESBMessage message, String pathInfo) throws IOException {
+		if (globalContext.lockFileSystem()) {
+			try {
+				int serviceCount = DeployHelper.deployChangeSet(globalContext, changeSet);
+				FileSystem newFileSystem = changeSet.getFileSystem();
+				globalContext.setFileSystem(newFileSystem);
+				newFileSystem.writeBackChanges();
+				logger.info("Configuration changed by: " + message.getVariable(ESBConstants.RemoteUser));
+				logger.info("Number of created/updated services: " + serviceCount);
+				logger.info("Number of deleted services: " + changeSet.getDeletedServiceArtifacts().size());
+				createResponse(message, null, null, pathInfo);
+			} catch (ValidationException e) {
+				logger.error("Not valid", e);
+				createErrorResponse(message, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+			} finally {
+				globalContext.unlockFileSystem();
+			}
+		} else {
+			createErrorResponse(message, HttpServletResponse.SC_GATEWAY_TIMEOUT, "Another update is in progress");
+		}
+		
 	}
 
 }
