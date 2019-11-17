@@ -152,10 +152,11 @@
 	   </table>
 	   <%
 			if (a.getContentType().startsWith("text/")) {
+				String content = new String(com.artofarc.util.StreamUtils.copy(a.getContentAsStream())).replace("&", "&amp;");
 		%>
 			<br>
 			<form action="<%=request.getContextPath() + "/admin/deploy" + pathInfo%>" enctype="text/plain" method="POST">
-				<textarea name="content" rows="50" cols="200" spellcheck="false"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=new String(com.artofarc.util.StreamUtils.copy(a.getContentAsStream()))%></textarea>
+				<textarea name="content" rows="50" cols="200" spellcheck="false"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=content%></textarea>
 				<input type="submit" value="Change">
 			</form>
 		<%
