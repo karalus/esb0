@@ -64,8 +64,8 @@ public final class JMSConsumer extends ConsumerPort implements AutoCloseable, co
 			_topicName = ((Topic) _destination).getTopicName();
 		} else {
 			if (queueName == null && topicName == null) throw new IllegalArgumentException("One of jndiDestination, queueName or topicName must be set");
-			_queueName = queueName;
-			_topicName = topicName;
+			_queueName = globalContext.bindProperties(queueName);
+			_topicName = globalContext.bindProperties(topicName);
 		}
 		if (subscription != null) {
 			if (_topicName == null) throw new IllegalArgumentException("Subscription only allowed for topics: " + getKey());

@@ -156,6 +156,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		for (int pos = 0;;) {
 			int i = exp.indexOf("${", pos);
 			if (i < 0) {
+				if (pos == 0) return exp;
 				builder.append(exp.substring(pos));
 				break;
 			}

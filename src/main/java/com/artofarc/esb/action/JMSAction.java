@@ -44,8 +44,8 @@ public class JMSAction extends TerminalAction {
 
 	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName,
 			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, boolean receiveFromTempQueue) throws NamingException {
-		_queueName = queueName;
-		_topicName = topicName;
+		_queueName = globalContext.bindProperties(queueName);
+		_topicName = globalContext.bindProperties(topicName);
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}
