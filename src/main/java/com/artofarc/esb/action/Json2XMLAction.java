@@ -102,9 +102,7 @@ public class Json2XMLAction extends Action {
 			context.getTimeGauge().stopTimeMeasurement("Unmarshal JSON --> Java", true);
 		}
 		Marshaller marshaller = _jaxbContext.createMarshaller();
-		if (_type != null) {
-			marshaller.setProperty(Marshaller.JAXB_FRAGMENT, true);
-		} else {
+		if (_type == null) {
 			marshaller.setSchema(_schema);
 		}
 		try {
