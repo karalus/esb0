@@ -108,7 +108,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			case TIMER:
 				final Service.TimerBinding timerBinding = service.getTimerBinding();
-				_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getTimeUnit(), timerBinding.getInitialDelay(), timerBinding.getPeriod(), timerBinding.isFixedDelay());
+				_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getAt(), timerBinding.getTimeUnit(), timerBinding.getPeriod(),
+						timerBinding.getInitialDelay(), timerBinding.isFixedDelay());
 				break;
 			default:
 				_consumerPort = new ConsumerPort(getURI());

@@ -680,9 +680,10 @@
 					<element name="timerBinding">
 						<complexType>
 							<attribute name="workerPool" type="anyURI" />
-							<attribute name="timeUnit" type="string" default="seconds"/>
-							<attribute name="initialDelay" type="int" default="60" />
+							<attribute name="at" type="time" />
+							<attribute name="timeUnit" type="string" default="seconds" />
 							<attribute name="period" type="int" default="300" />
+							<attribute name="initialDelay" type="int" default="60" />
 							<attribute name="fixedDelay" type="boolean" default="false" />
 						</complexType>
 					</element>

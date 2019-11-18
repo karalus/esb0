@@ -16,8 +16,11 @@
  */
 package com.artofarc.esb;
 
+import java.util.Calendar;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import javax.xml.datatype.XMLGregorianCalendar;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
@@ -29,19 +32,21 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 
 	private final String _workerPoolName;
 	private final TimeUnit _timeUnit;
-	private final int _initialDelay, _period;
+	private final long _initialDelay, _period;
+	private final XMLGregorianCalendar _at;
 	private final boolean _fixedDelay;
 
 	private WorkerPool _workerPool;
 
 	private volatile ScheduledFuture<?> _future;
 
-	public TimerService(String uri, String workerPool, String timeUnit, int initialDelay, int period, boolean fixedDelay) {
+	public TimerService(String uri, String workerPool, XMLGregorianCalendar at, String timeUnit, int period, int initialDelay, boolean fixedDelay) {
 		super(uri);
 		_workerPoolName = workerPool;
+		_at = at;
 		_timeUnit = TimeUnit.valueOf(timeUnit.toUpperCase());
-		_initialDelay = initialDelay;
 		_period = period;
+		_initialDelay = initialDelay;
 		_fixedDelay = fixedDelay;
 	}
 
@@ -62,15 +67,32 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 	public void enable(boolean enable) {
 		if (enable) {
 			if (_future == null) {
-				if (_fixedDelay) {
-					_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _initialDelay, _period, _timeUnit);
+				if (_at != null) {
+					_future = _workerPool.getScheduledExecutorService().schedule(this, getNextDelay(), TimeUnit.MILLISECONDS);
 				} else {
-					_future = _workerPool.getScheduledExecutorService().scheduleAtFixedRate(this, _initialDelay, _period, _timeUnit);
+					if (_fixedDelay) {
+						_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _initialDelay, _period, _timeUnit);
+					} else {
+						_future = _workerPool.getScheduledExecutorService().scheduleAtFixedRate(this, _initialDelay, _period, _timeUnit);
+					}
 				}
 			}
 		} else {
 			close();
 		}
+	}
+
+	private long getNextDelay() {
+		Calendar now = Calendar.getInstance(_at.getTimeZone(javax.xml.datatype.DatatypeConstants.FIELD_UNDEFINED));
+		Calendar atTime = (Calendar) now.clone();
+		atTime.set(Calendar.HOUR_OF_DAY, _at.getHour());
+		atTime.set(Calendar.MINUTE, _at.getMinute());
+		atTime.set(Calendar.SECOND, _at.getSecond());
+		atTime.set(Calendar.MILLISECOND, 0);
+		if (now.after(atTime)) {
+			atTime.add(Calendar.DATE, 1);
+		}
+		return (atTime.getTimeInMillis() - now.getTimeInMillis()) % _timeUnit.toMillis(_period);
 	}
 
 	public final Long getDelay() {
@@ -95,6 +117,9 @@ public final class TimerService extends ConsumerPort implements AutoCloseable, R
 				logger.error("Exception in forked action pipeline", e);
 			} finally {
 				_workerPool.releaseContext(context);
+				if (_at != null) {
+					_future = _workerPool.getScheduledExecutorService().schedule(this, getNextDelay(), TimeUnit.MILLISECONDS);
+				}
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
