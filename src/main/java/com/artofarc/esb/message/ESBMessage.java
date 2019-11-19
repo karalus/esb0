@@ -69,6 +69,7 @@ import org.xml.sax.SAXException;
 
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
+
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.XMLFilterBase;
@@ -380,7 +381,12 @@ public final class ESBMessage implements Cloneable {
 			}
 			break;
 		case EXCEPTION:
-			str = asXMLString((Exception) _body);
+			if ("text/plain".equals(getHeader(HTTP_HEADER_CONTENT_TYPE))) {
+				// In this case message we assume that the message will not be processed as XML
+				str = _body.toString();
+			} else {
+				str = asXMLString((Exception) _body);
+			}
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");

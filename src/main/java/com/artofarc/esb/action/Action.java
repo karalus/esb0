@@ -256,13 +256,13 @@ public abstract class Action implements Cloneable {
 			String path = exp.substring(i + 2, j);
 			int k = path.indexOf('.');
 			String name = k < 0 ? path : path.substring(0, k);
-			Object value = "body".equals(name) ? (k < 0 ? message.getBodyAsString(context) : message.getBody()) : resolve(message, name, true);
+			Object value = "body".equals(name) ? message.getBodyAsString(context) : resolve(message, name, true);
 			if (value == null) {
-				value = context.getPoolContext().getGlobalContext().getProperty(name);
+				value = context.getGlobalContext().getProperty(name);
 			}
 			if (value == null && k >= 0) {
 				// interpret dots as separators
-				value = context.getPoolContext().getGlobalContext().getProperty(path);
+				value = context.getGlobalContext().getProperty(path);
 				k = -1;
 			}
 			boolean standalone = ++j == exp.length() && pos == 0 && i == 0;

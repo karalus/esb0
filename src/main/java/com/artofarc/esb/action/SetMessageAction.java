@@ -58,10 +58,10 @@ public class SetMessageAction extends ForwardAction {
 			message.getHeaders().clear();
 		}
 		for (Assignment assignment : _assignments) {
-			if (assignment._header) {
-				message.putHeader(assignment._name, assignment.convert(bindVariable(assignment._expr, context, message)));
-			} else if (!assignment._needsBody) {
-				message.getVariables().put(assignment._name, assignment.convert(bindVariable(assignment._expr, context, message)));
+			if (assignment._needsBody) {
+				break;
+			} else {
+				assignment.assign(message, bindVariable(assignment._expr, context, message));
 			}
 		}
 		return super.prepare(context, message, inPipeline);
@@ -69,14 +69,14 @@ public class SetMessageAction extends ForwardAction {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+		boolean forBody = false;
 		for (Assignment assignment : _assignments) {
-			if (assignment._needsBody) {
-				message.getVariables().put(assignment._name, assignment.convert(bindVariable(assignment._expr, context, message)));
+			if (forBody |= assignment._needsBody) {
+				assignment.assign(message, bindVariable(assignment._expr, context, message));
 			}
 		}
 		if (_body != null) {
-			Object body = _body.convert(bindVariable(_body._expr, context, message));
-			message.reset(null, body);
+			message.reset(null, _body.convert(bindVariable(_body._expr, context, message)));
 			if (!_clearAll) {
 				message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 			}
@@ -122,6 +122,14 @@ public class SetMessageAction extends ForwardAction {
 				return value;
 			} catch (InvocationTargetException e) {
 				throw ReflectionUtils.convert(e.getCause(), Exception.class);
+			}
+		}
+
+		void assign(ESBMessage message, Object value) throws Exception {
+			if (_header) {
+				message.putHeader(_name, convert(value));
+			} else {
+				message.getVariables().put(_name, convert(value));
 			}
 		}
 	}
