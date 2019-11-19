@@ -650,6 +650,7 @@
 						<complexType>
 							<simpleContent>
 								<extension base="anyURI">
+									<attribute name="requiredRole" type="tns:string1" />
 									<attribute name="supportCompression" type="boolean" default="false" />
 									<attribute name="multipartResponse" type="tns:string1" />
 									<attribute name="bufferSize" type="unsignedShort" />

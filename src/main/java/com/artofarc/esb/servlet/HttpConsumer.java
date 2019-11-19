@@ -29,14 +29,16 @@ import com.artofarc.esb.message.ESBMessage;
 public final class HttpConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.HttpConsumerMXBean {
 
 	private final String _bindPath;
+	private final String _requiredRole;
 	private final int _minPool, _maxPool;
 	private final long _keepAlive;
 	private final HttpServletResponseAction _terminalAction;
 	private ContextPool _contextPool;
 
-	public HttpConsumer(String uri, String bindPath, int minPool, int maxPool, long keepAlive, boolean supportCompression, String multipartResponse, Integer bufferSize) {
+	public HttpConsumer(String uri, String bindPath, String requiredRole, int minPool, int maxPool, long keepAlive, boolean supportCompression, String multipartResponse, Integer bufferSize) {
 		super(uri);
 		_bindPath = bindPath;
+		_requiredRole = requiredRole;
 		_minPool = minPool;
 		_maxPool = maxPool;
 		_keepAlive = keepAlive;
@@ -45,6 +47,10 @@ public final class HttpConsumer extends ConsumerPort implements AutoCloseable, c
 
 	public String getBindPath() {
 		return _bindPath;
+	}
+
+	public String getRequiredRole() {
+		return _requiredRole;
 	}
 
 	public ContextPool getContextPool() {

@@ -29,6 +29,7 @@ import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
+import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -53,29 +54,39 @@ public class GenericHttpListener extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
 	@Override
-	protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// process input
 		final String pathInfo = request.getRequestURI().substring(request.getContextPath().length());
 		GlobalContext globalContext = (GlobalContext) getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
 		HttpConsumer consumerPort = globalContext.getHttpService(pathInfo);
 		if (consumerPort != null) {
-			if (consumerPort.isEnabled()) {
-				try {
-					Context context = consumerPort.getContextPool().getContext();
-					if (context != null) {
-						try {
-							consumerPort.process(context, createESBMessage(request, pathInfo, consumerPort));
-						} finally {
-							consumerPort.getContextPool().releaseContext(context);
-						}
-					} else {
-						response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
-					}
-				} catch (Exception e) {
-					sendErrorResponse(response, e);
+			boolean secure = true;
+			if (consumerPort.getRequiredRole() != null) {
+				secure = request.authenticate(response);
+				if (secure && !request.isUserInRole(consumerPort.getRequiredRole())) {
+					secure = false;
+					response.sendError(HttpServletResponse.SC_FORBIDDEN, "User not in role " + consumerPort.getRequiredRole());
 				}
-			} else {
-				response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
+			}
+			if (secure) {
+				if (consumerPort.isEnabled()) {
+					try {
+						Context context = consumerPort.getContextPool().getContext();
+						if (context != null) {
+							try {
+								consumerPort.process(context, createESBMessage(request, pathInfo, consumerPort));
+							} finally {
+								consumerPort.getContextPool().releaseContext(context);
+							}
+						} else {
+							response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
+						}
+					} catch (Exception e) {
+						sendErrorResponse(response, e);
+					}
+				} else {
+					response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
+				}
 			}
 		} else {
 			response.sendError(HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
