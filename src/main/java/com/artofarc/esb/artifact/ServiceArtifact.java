@@ -205,12 +205,16 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "file": {
 			File file = (File) actionElement.getValue();
-			addAction(list, new FileAction(file.getDir()), location);
+			addAction(list, new FileAction(globalContext.bindProperties(file.getDir())), location);
 			break;
 		}
 		case "fileSystemWatch": {
 			FileSystemWatch fileSystemWatch = (FileSystemWatch) actionElement.getValue();
-			FileSystemWatchAction fileSystemWatchAction = new FileSystemWatchAction(fileSystemWatch.getDir(), fileSystemWatch.getTimeout(),
+			List<String> dirs = new ArrayList<>();
+			for (String dir : fileSystemWatch.getDir()) {
+				dirs.add(globalContext.bindProperties(dir));
+			}
+			FileSystemWatchAction fileSystemWatchAction = new FileSystemWatchAction(dirs, fileSystemWatch.getTimeout(),
 					resolveWorkerPool(fileSystemWatch.getWorkerPool()), Action.linkList(transform(globalContext, fileSystemWatch.getAction(), null)));
 			addAction(list, fileSystemWatchAction, location);
 			break;

@@ -101,6 +101,10 @@ public final class Context extends AbstractContext {
 		return _poolContext;
 	}
 
+	public GlobalContext getGlobalContext() {
+		return _poolContext.getGlobalContext();
+	}
+
 	public DocumentBuilder getDocumentBuilder() {
 		return _documentBuilder;
 	}

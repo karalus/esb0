@@ -23,6 +23,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
@@ -63,14 +64,18 @@ public class FileSystemWatchAction extends TerminalAction {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		DirWatchServiceFactory resourceFactory = context.getResourceFactory(DirWatchServiceFactory.class);
+		DirWatchServiceFactory resourceFactory = context.getGlobalContext().getResourceFactory(DirWatchServiceFactory.class);
 		WatchService watchService = resourceFactory.getResource(_dirs);
 		WatchKey watchKey = watchService.poll(_timeout, TimeUnit.MILLISECONDS);
 		if (watchKey != null) {
 			// File ready?
-			Thread.sleep(10L);
+			Thread.sleep(50L);
 			LinkedHashMap<Future<ESBMessage>, WatchEvent<?>> futures = new LinkedHashMap<>();
 			for (WatchEvent<?> watchEvent : watchKey.pollEvents()) {
+				WatchEvent.Kind<?> kind = watchEvent.kind();
+				if (kind == StandardWatchEventKinds.OVERFLOW) {
+					continue;
+				}
 				Path path = (Path) watchEvent.context();
 				Path parent = (Path) watchKey.watchable();
 				Path absolutePath = parent.resolve(path);
@@ -79,10 +84,10 @@ public class FileSystemWatchAction extends TerminalAction {
 					if (fileChannel.tryLock() != null) {
 						ESBMessage msg = new ESBMessage(BodyType.INPUT_STREAM, Channels.newInputStream(fileChannel));
 						msg.getVariables().put(INPUT_STREAM, msg.getBody());
-						msg.getVariables().put(ESBConstants.HttpMethod, watchEvent.kind().toString());
+						msg.getVariables().put(ESBConstants.HttpMethod, kind.toString());
 						msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
 						msg.getVariables().put(ESBConstants.PathInfo, path.toString());
-						logger.debug("Absolute path " + absolutePath + ", kind: " + watchEvent.kind());
+						logger.debug("Absolute path {}, kind: {}", absolutePath, kind);
 						for (;;) {
 							try {
 								futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), true), watchEvent);
@@ -100,7 +105,9 @@ public class FileSystemWatchAction extends TerminalAction {
 					logger.warn("File could not be opened" + absolutePath, e);
 				}
 			}
-			watchKey.reset();
+			if (!watchKey.reset()) {
+				resourceFactory.close(_dirs);
+			}
 			for (Future<ESBMessage> future : futures.keySet()) {
 				try {
 					InputStream is = SpawnAction.join(context, message, future).getVariable(INPUT_STREAM);

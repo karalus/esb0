@@ -147,7 +147,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	}
 
 	public Object getProperty(String key) throws NamingException {
-		return key.startsWith("java:") ? lookup(key) : System.getProperty(key);
+		return key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
 	}
 
 	public String bindProperties(String exp) throws NamingException {
