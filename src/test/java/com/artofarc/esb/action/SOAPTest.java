@@ -297,6 +297,8 @@ public class SOAPTest extends AbstractESBTest {
 		XMLProcessingArtifact staticXML = new XMLProcessingArtifact(null, staticData, "static.xml");
 		staticXML.setContent("<root>Hello World!</root>".getBytes());
       xqueryArtifact.validateInternal(getGlobalContext());
+      staticXML.setModificationTime(1);
+      getGlobalContext().getFileSystem().dehydrateArtifacts(staticData);
       TransformAction nextAction = new TransformAction(strContent);
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());
@@ -322,6 +324,8 @@ public class SOAPTest extends AbstractESBTest {
       assertTrue(module.isValidated());
       assertTrue(xqueryArtifact.getReferenced().size() > 0);
       assertTrue(xqueryArtifact.getReferenced().contains("/modules/helloworld.xqy"));
+      module.setModificationTime(1);
+      getGlobalContext().getFileSystem().dehydrateArtifacts(modules);
       TransformAction nextAction = createTransformAction(xqueryArtifact, "greetings");
       action = action.setNextAction(nextAction);
       action = action.setNextAction(new DumpAction());

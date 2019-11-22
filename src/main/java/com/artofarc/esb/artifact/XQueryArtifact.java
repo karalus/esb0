@@ -28,8 +28,6 @@ import com.artofarc.esb.resource.XQConnectionFactory;
 
 public class XQueryArtifact extends XMLProcessingArtifact {
 
-	final static String FILE_EXTENSION_XQUERY_MODULE = "xqm";
-
 	public XQueryArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
 	}
@@ -48,7 +46,10 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		preparedExpression.close();
 		// set modules to validated 
 		for (String referenced : owner.getReferenced()) {
-			owner.getArtifact(referenced).setValidated();
+			Artifact referencedArtifact = owner.getArtifact(referenced);
+			if (referencedArtifact instanceof XMLProcessingArtifact) {
+				referencedArtifact.setValidated();
+			}
 		}
 	}
 
@@ -62,14 +63,6 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 			validateXQuerySource(this, connection, XQuerySource.create(getContentAsBytes()));
 		} finally {
 			connection.close();
-		}
-	}
-
-	@Override
-	protected void clearContent() {
-		// keep modules in cache
-		if (!getExt(getName()).equals(FILE_EXTENSION_XQUERY_MODULE)) {
-			super.clearContent();
 		}
 	}
 

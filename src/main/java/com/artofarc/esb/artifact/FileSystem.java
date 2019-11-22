@@ -130,7 +130,7 @@ public class FileSystem {
 	public void parse() throws Exception {
 	}
 
-	protected final void dehydrateArtifacts(Directory base) {
+	public final void dehydrateArtifacts(Directory base) {
 		for (Artifact artifact : base.getArtifacts().values()) {
 			if (artifact instanceof Directory) {
 				dehydrateArtifacts((Directory) artifact);
@@ -173,7 +173,7 @@ public class FileSystem {
 		switch (Artifact.getExt(name)) {
 		case ServiceArtifact.FILE_EXTENSION:
 			return new ServiceArtifact(this, parent, name);
-		case "xml":
+		case XMLProcessingArtifact.FILE_EXTENSION_XML_DOC:
 			return new XMLProcessingArtifact(this, parent, name);
 		case "xsd":
 			return new XSDArtifact(this, parent, name);
@@ -181,7 +181,7 @@ public class FileSystem {
 			return new WSDLArtifact(this, parent, name);
 		case "xq":
 		case "xqy":
-		case XQueryArtifact.FILE_EXTENSION_XQUERY_MODULE:
+		case "xqm":
 			return new XQueryArtifact(this, parent, name);
 		case "xsl":
 		case "xslt":

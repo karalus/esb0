@@ -27,6 +27,8 @@ import com.artofarc.esb.context.GlobalContext;
 
 public class XMLProcessingArtifact extends Artifact {
 
+	final static String FILE_EXTENSION_XML_DOC = "xml";
+
 	public XMLProcessingArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
 	}
@@ -49,7 +51,10 @@ public class XMLProcessingArtifact extends Artifact {
 				return;
 			}
 		}
-		super.clearContent();
+		// keep XML docs in cache
+		if (!getExt(getName()).equals(FILE_EXTENSION_XML_DOC)) {
+			super.clearContent();
+		}
 	}
 
 	abstract public static class AbstractURIResolver implements URIResolver {
