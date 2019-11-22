@@ -26,4 +26,8 @@ public interface GlobalContextMXBean {
 
 	void unlockFileSystem();
 
+	void invalidatePropertyCache();
+
+	Set<String> getCachedProperties();
+
 }

@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -46,7 +46,8 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
 	private final Map<String, WorkerPool> _workerPoolMap = Collections.synchronizedMap(new HashMap<String, WorkerPool>());
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
-	
+	private final Map<String, Object> _propertyCache = new HashMap<String, Object>();
+
 	private volatile FileSystem _fileSystem;
 
 	public GlobalContext(MBeanServer mbs) {
@@ -132,7 +133,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		stopIngress();
 		// Phase 2
 		httpEndpointRegistry.close();
-		for (Entry<String, WorkerPool> entry : _workerPoolMap.entrySet()) {
+		for (Map.Entry<String, WorkerPool> entry : _workerPoolMap.entrySet()) {
 			WorkerPool workerPool = entry.getValue();
 			workerPool.close();
 			workerPool.getPoolContext().close();
@@ -146,8 +147,22 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		super.close();
 	}
 
-	public Object getProperty(String key) throws NamingException {
-		return key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
+	public synchronized Object getProperty(String key) throws NamingException {
+		if (_propertyCache.containsKey(key)) {
+			return _propertyCache.get(key);
+		} else {
+			Object property = key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
+			_propertyCache.put(key, property);
+			return property; 
+		}
+	}
+
+	public void invalidatePropertyCache() {
+		_propertyCache.clear();
+	}
+
+	public Set<String> getCachedProperties() {
+		return _propertyCache.keySet();
 	}
 
 	public String bindProperties(String exp) throws NamingException {
