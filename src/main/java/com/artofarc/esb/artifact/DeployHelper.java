@@ -93,6 +93,7 @@ public final class DeployHelper {
 				try {
 					jmsConsumer.init(globalContext);
 				} catch (Exception e) {
+					Artifact.logger.info("Could not init JMSConsumer " + jmsConsumer.getKey(), e);
 					// ignore, if JMS is down we reconnect later
 				}
 				break;

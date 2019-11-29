@@ -20,4 +20,6 @@ public interface JMSConnectionGuardMXBean {
 
 	boolean isConnected();
 
+	void reconnect();
+
 }

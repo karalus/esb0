@@ -162,9 +162,14 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		}
 
 		@Override
-		public synchronized void onException(JMSException jmsException) {
+		public void onException(JMSException jmsException) {
+			logger.warn("JMSException received", jmsException);
+			reconnect();
+		}
+
+		public synchronized void reconnect() {
 			if (_connection != null) {
-				logger.warn("Connection will be closed for " + _jmsConnectionData, jmsException);
+				logger.info("Connection will be closed for " + _jmsConnectionData);
 				try {
 					_connection.setExceptionListener(null);
 					_connection.stop();
