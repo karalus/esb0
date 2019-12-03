@@ -74,7 +74,7 @@ public final class HttpUrl {
 
 	@Override
 	public String toString() {
-		return "http://" + _host + ':' + _port;
+		return _url.getProtocol() + "://" + _host + ':' + _port;
 	}
 
 }
