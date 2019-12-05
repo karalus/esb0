@@ -18,7 +18,6 @@ package com.artofarc.esb.action;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.Map.Entry;
@@ -30,7 +29,6 @@ import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StreamUtils;
 
 public class HttpInboundAction extends Action {
 
@@ -65,10 +63,11 @@ public class HttpInboundAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
 			InputStream inputStream = execContext.getResource();
-			if (message.getBodyType() == BodyType.OUTPUT_STREAM) {
-				StreamUtils.copy(inputStream, message.<OutputStream> getBody());
+			if (message.isSink()) {
+				message.copyFrom(inputStream);
 			} else {
 				message.reset(BodyType.INPUT_STREAM, inputStream);
+				message.getBodyAsByteArray(context);
 			}
 		}
 	}

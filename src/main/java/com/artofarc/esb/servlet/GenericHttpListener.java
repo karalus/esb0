@@ -25,7 +25,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import javax.mail.Header;
-import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
@@ -93,7 +92,7 @@ public class GenericHttpListener extends HttpServlet {
 		}
 	}
 
-	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer consumerPort) throws IOException, MessagingException {
+	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer consumerPort) throws Exception {
 		// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
 		final boolean bodyPresent = request.getHeader(HTTP_HEADER_CONTENT_LENGTH) != null || request.getHeader(HTTP_HEADER_TRANSFER_ENCODING) != null;
 		ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
@@ -127,9 +126,9 @@ public class GenericHttpListener extends HttpServlet {
 		return message;
 	}
 
-	private static void parseAttachments(String contentType, ESBMessage message) throws IOException, MessagingException {
+	private static void parseAttachments(String contentType, ESBMessage message) throws Exception {
 		if (contentType != null && contentType.startsWith("multipart/")) {
-			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getUncompressedInputStream(), contentType));
+			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getBodyAsInputStream(null), contentType));
 			String start = removeQuotes(getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START));
 			message.putHeader(HTTP_HEADER_SOAP_ACTION, getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION));
 			for (int i = 0; i < mmp.getCount(); i++) {

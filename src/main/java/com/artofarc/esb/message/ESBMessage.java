@@ -296,8 +296,7 @@ public final class ESBMessage implements Cloneable {
 		return outputStream;
 	}
 
-	public InputStream getUncompressedInputStream() throws IOException {
-		InputStream inputStream = (InputStream) _body;
+	private InputStream getUncompressedInputStream(InputStream inputStream) throws IOException {
 		final String contentEncoding = removeHeader(HTTP_HEADER_CONTENT_ENCODING);
 		if (contentEncoding != null) {
 			switch (contentEncoding) {
@@ -314,8 +313,8 @@ public final class ESBMessage implements Cloneable {
 		return inputStream;
 	}
 
-	private InputStreamReader getInputStreamReader() throws IOException {
-		return new InputStreamReader(getUncompressedInputStream(), getCharset());
+	private InputStreamReader getInputStreamReader(InputStream inputStream) throws IOException {
+		return new InputStreamReader(getUncompressedInputStream(inputStream), getCharset());
 	}
 
 	public byte[] getBodyAsByteArray(Context context) throws TransformerException, IOException, XQException {
@@ -335,7 +334,7 @@ public final class ESBMessage implements Cloneable {
 		case BYTES:
 			return (byte[]) _body;
 		case INPUT_STREAM:
-			ba = StreamUtils.copy(getUncompressedInputStream());
+			ba = StreamUtils.copy(getUncompressedInputStream((InputStream) _body));
 			break;
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
@@ -399,7 +398,7 @@ public final class ESBMessage implements Cloneable {
 	public InputStream getBodyAsInputStream(Context context) throws TransformerException, IOException, XQException {
 		switch (_bodyType) {
 		case INPUT_STREAM:
-			return getUncompressedInputStream();
+			return getUncompressedInputStream((InputStream) _body);
 		case XQ_ITEM:
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			XQItem xqItem = (XQItem) _body;
@@ -415,7 +414,7 @@ public final class ESBMessage implements Cloneable {
 		case READER:
 			return (Reader) _body;
 		case INPUT_STREAM:
-			return init(BodyType.READER, getInputStreamReader(), null);
+			return init(BodyType.READER, getInputStreamReader((InputStream) _body), null);
 		case XQ_ITEM:
 			StringWriter sw = new StringWriter();
 			XQItem xqItem = (XQItem) _body;
@@ -435,7 +434,7 @@ public final class ESBMessage implements Cloneable {
 				is = new ByteArrayInputStream((byte[]) _body);
 				break;
 			case INPUT_STREAM:
-				is = getUncompressedInputStream();
+				is = getUncompressedInputStream((InputStream) _body);
 				break;
 			default:
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
@@ -463,7 +462,7 @@ public final class ESBMessage implements Cloneable {
 			_body = new ByteArrayInputStream((byte[]) _body);
 			// nobreak
 		case INPUT_STREAM:
-			return init(BodyType.INVALID, new StreamSource(getInputStreamReader()), null);
+			return init(BodyType.INVALID, new StreamSource(getInputStreamReader((InputStream) _body)), null);
 		case READER:
 			_bodyType = BodyType.INVALID;
 			return new StreamSource((Reader) _body);
@@ -619,7 +618,7 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case INPUT_STREAM:
 			_bodyType = BodyType.INVALID;
-			source = new StreamSource(getInputStreamReader());
+			source = new StreamSource(getInputStreamReader((InputStream) _body));
 			break;
 		case READER:
 			source = new StreamSource((Reader) _body);
@@ -684,10 +683,10 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case INPUT_STREAM:
 			if (isSinkEncodingdifferent()) {
-				StreamUtils.copy(getInputStreamReader(), init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
+				StreamUtils.copy(getInputStreamReader((InputStream) _body), init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
 			} else {
 				// writes compressed data through!
-				StreamUtils.copy((InputStream) _body, init(BodyType.OUTPUT_STREAM, os, _sinkEncoding));
+				StreamUtils.copy((InputStream) _body, os);
 			}
 			break;
 		case READER:
@@ -709,6 +708,19 @@ public final class ESBMessage implements Cloneable {
 			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
+		}
+	}
+
+	public void copyFrom(InputStream inputStream) throws IOException {
+		switch (_bodyType) {
+		case OUTPUT_STREAM:
+			StreamUtils.copy(getUncompressedInputStream(inputStream), (OutputStream) _body);
+			break;
+		case WRITER:
+			StreamUtils.copy(getInputStreamReader(inputStream), (Writer) _body);
+			break;
+		default:
+			throw new IllegalStateException("Message cannot be copied to: " + _bodyType);
 		}
 	}
 
