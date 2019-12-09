@@ -53,8 +53,8 @@ public class JarArtifact extends Artifact {
 	}
 
 	@Override
-	protected void validateInternal(GlobalContext globalContext) throws IOException {
-		_jar = new Jar(getContent());
+	protected void validateInternal(GlobalContext globalContext) throws Exception {
+		_jar = new Jar(getContentAsBytes());
 	}
 
 	static final class Jar {
