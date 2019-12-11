@@ -16,15 +16,17 @@
  */
 package com.artofarc.esb.artifact;
 
+import org.xml.sax.Locator;
+
 public final class Location {
 
 	private final String _serviceArtifactURI;
 	private final int _lineNumber;
 	private final Location _parent;
 
-	public Location(String serviceArtifactURI, int lineNumber) {
+	public Location(String serviceArtifactURI, Locator locator) {
 		_serviceArtifactURI = serviceArtifactURI;
-		_lineNumber = lineNumber;
+		_lineNumber = locator != null ? locator.getLineNumber() : 0;
 		_parent = null;
 	}
 

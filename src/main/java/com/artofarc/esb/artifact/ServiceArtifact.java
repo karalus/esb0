@@ -30,6 +30,8 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
 
+import org.xml.sax.Locator;
+
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.action.*;
@@ -144,7 +146,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			try {
 				transform(globalContext, list, jaxbElement);
 			} catch (Exception e) {
-				throw ReflectionUtils.convert(e, ValidationException.class, this, jaxbElement.getValue().sourceLocation().getLineNumber());
+				Locator sourceLocation = jaxbElement.getValue().sourceLocation();
+				throw ReflectionUtils.convert(e, ValidationException.class, this, sourceLocation != null ? sourceLocation.getLineNumber() : 0);
 			}
 		}
 		if (errorHandler != null) {
@@ -159,7 +162,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	}
 
 	private void transform(GlobalContext globalContext, List<Action> list, JAXBElement<? extends ActionBase> actionElement) throws Exception {
-		Location location = new Location(getURI(), actionElement.getValue().sourceLocation().getLineNumber());
+		Location location = new Location(getURI(), actionElement.getValue().sourceLocation());
 		switch (actionElement.getName().getLocalPart()) {
 		case "http": {
 			Http http = (Http) actionElement.getValue();
@@ -297,7 +300,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 						}
 					}
 				} else {
-					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either varaible or header");
+					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either variable or header");
 				}
 			}
 			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem(), false);
