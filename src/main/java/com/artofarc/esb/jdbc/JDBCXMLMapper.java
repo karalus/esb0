@@ -96,6 +96,8 @@ public final class JDBCXMLMapper {
 		if (propertiesNames.size() == 1) {
 			DatabaseMapping mapping = descriptor.getMappingForAttributeName(propertiesNames.get(0));
 			isArray = mapping.isCollectionMapping();
+			// for eclipselink 2.6.x, 2.7.0, 2.7.1
+			isArray |= mapping.getAttributeClassification() != null && List.class.isAssignableFrom(mapping.getAttributeClassification());
 		}
 		if (isArray) {
 			Object property = entity.get(propertiesNames.get(0));
@@ -129,7 +131,11 @@ public final class JDBCXMLMapper {
 				}
 			}
 			boolean isXmlType = attributes.length == 1 && attributes[0] instanceof SQLXML;
-			return root || isXmlType ? attributes[0] : connection.getConnection().createStruct(typeName.getLocalPart(), attributes);
+			try {
+				return root || isXmlType ? attributes[0] : connection.getConnection().createStruct(typeName.getLocalPart(), attributes);
+			} catch (SQLException e) {
+				throw new SQLException("Could not create Struct " + typeName.getLocalPart(), e);
+			}
 		}
 	}
 
