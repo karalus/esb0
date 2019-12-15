@@ -45,7 +45,7 @@ import com.artofarc.esb.message.ESBMessage;
 
 public abstract class JDBCAction extends Action {
 
-	private final DataSource _dataSource;
+	private final String _dsName;
 	protected final String _sql;
 	private final List<JDBCParameter> _params;
 	private final int _maxRows;
@@ -53,11 +53,14 @@ public abstract class JDBCAction extends Action {
 	protected final JDBCXMLMapper _mapper;
 
 	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, DynamicJAXBContext jaxbContext) throws NamingException {
+		if (dsName.indexOf("${") < 0) {
+			globalContext.getProperty(dsName);
+		}
 		_pipelineStop = false;
 		for (JDBCParameter param : params) {
 			_pipelineStop |= param.isBody();
 		}
-		_dataSource = globalContext.lookup(dsName);
+		_dsName = dsName;
 		_sql = sql;
 		_params = params;
 		_maxRows = maxRows;
@@ -78,7 +81,9 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		JDBCConnection connection = new JDBCConnection(_dataSource.getConnection());
+		String dsName = (String) bindVariable(_dsName, context, message);
+		DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
+		JDBCConnection connection = new JDBCConnection(dataSource.getConnection());
 		ExecutionContext execContext = new ExecutionContext(connection);
 		if (inPipeline) {
 			for (JDBCParameter param : _params) {
