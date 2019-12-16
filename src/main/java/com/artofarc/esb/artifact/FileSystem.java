@@ -361,7 +361,7 @@ public class FileSystem {
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, String uriToDelete) throws FileNotFoundException, ValidationException {
 		FileSystem copy = copy();
-		Artifact artifact = loadArtifact(copy.getRoot(), uriToDelete);
+		Artifact artifact = copy.loadArtifact(copy.getRoot(), uriToDelete);
 		if (!deleteArtifact(artifact)) {
 			throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
 		}
