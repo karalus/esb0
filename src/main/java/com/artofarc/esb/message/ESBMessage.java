@@ -383,7 +383,7 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case EXCEPTION:
 			if ("text/plain".equals(getHeader(HTTP_HEADER_CONTENT_TYPE))) {
-				// In this case message we assume that the message will not be processed as XML
+				// In this case we assume that the message will not be processed as XML
 				str = _body.toString();
 			} else {
 				str = asXMLString((Exception) _body);
@@ -464,7 +464,13 @@ public final class ESBMessage implements Cloneable {
 			_body = new ByteArrayInputStream((byte[]) _body);
 			// nobreak
 		case INPUT_STREAM:
-			return init(BodyType.INVALID, new StreamSource(getInputStreamReader((InputStream) _body)), null);
+			StreamSource source = new StreamSource();
+			if (_charset != null) {
+				source.setReader(getInputStreamReader((InputStream) _body));
+			} else {
+				source.setInputStream(getUncompressedInputStream((InputStream) _body));
+			}
+			return init(BodyType.INVALID, source, null);
 		case READER:
 			_bodyType = BodyType.INVALID;
 			return new StreamSource((Reader) _body);
