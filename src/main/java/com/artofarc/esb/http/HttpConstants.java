@@ -44,6 +44,8 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_START = "start=";
 
+	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO = "start-info=";
+
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE = "type=";
 
 	public static final String HTTP_HEADER_ACCEPT = "Accept";

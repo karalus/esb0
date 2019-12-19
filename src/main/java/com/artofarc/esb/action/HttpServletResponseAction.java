@@ -132,7 +132,10 @@ public class HttpServletResponseAction extends Action {
 		AsyncContext asyncContext = execContext.getResource();
 		message.closeBody();
 		if (_multipartResponse != null) {
-			MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + _multipartResponse + '"');
+			Entry<String, String> contentTypeEntry = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
+			String contentType = contentTypeEntry.getValue();
+			MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + _multipartResponse + "\"; "
+					+ HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
 			ByteArrayOutputStream bos = execContext.getResource2();
 			if (bos == null) {
 				bos = new ByteArrayOutputStream(ESBMessage.MTU);
@@ -140,10 +143,8 @@ public class HttpServletResponseAction extends Action {
 				message.closeBody();
 			}
 			InternetHeaders headers = new InternetHeaders();
-			Entry<String, String> contentTypeEntry = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
-			String contentType = contentTypeEntry.getValue();
 			if (!_multipartResponse.equals(contentType)) {
-				contentType = _multipartResponse + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + contentType;
+				contentType = _multipartResponse + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
 			}
 			contentTypeEntry.setValue(contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
 			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
