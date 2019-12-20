@@ -52,11 +52,12 @@ public final class JDBCParameter {
 	private final String _typeName;
 	private final int _type;
 	private final boolean _body;
+	private final boolean _attachments;
 	private final String _bindName;
 	private final Integer _truncate;
 	private final QName _xmlElement;
 
-	public JDBCParameter(int pos, String typeName, boolean body, String bindName, Integer truncate, String xmlElement) {
+	public JDBCParameter(int pos, String typeName, boolean body, boolean attachments, String bindName, Integer truncate, String xmlElement) {
 		Integer code = TYPES.get(typeName);
 		if (code == null) {
 			throw new IllegalArgumentException("Not a SQL type: " + typeName);
@@ -65,6 +66,7 @@ public final class JDBCParameter {
 		_typeName = typeName;
 		_type = code;
 		_body = body;
+		_attachments = attachments;
 		_bindName = bindName;
 		_truncate = truncate;
 		_xmlElement = xmlElement != null ? QName.valueOf(xmlElement) : null;
@@ -84,6 +86,10 @@ public final class JDBCParameter {
 
 	public boolean isBody() {
 		return _body;
+	}
+
+	public boolean isAttachments() {
+		return _attachments;
 	}
 
 	public String getBindName() {

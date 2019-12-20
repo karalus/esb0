@@ -24,7 +24,6 @@ import javax.naming.NamingException;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.xquery.XQItem;
 
-import org.eclipse.persistence.jaxb.JAXBMarshaller;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 
 import com.artofarc.esb.context.Context;
@@ -33,6 +32,7 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.jdbc.JDBCConnection;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
+import com.artofarc.esb.jdbc.JDBCXMLMapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
@@ -80,13 +80,15 @@ public class JDBCProcedureAction extends JDBCAction {
 						blob.free();
 						break;
 					case STRUCT:
-						JAXBMarshaller marshaller = _mapper.getJAXBContext().createMarshaller();
 						Object jaxbElement = _mapper.fromJDBC((Struct) cs.getObject(param.getPos()), param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-						message.marshal(context, marshaller, jaxbElement);
+						message.marshal(context, _mapper.getJAXBContext().createMarshaller(), jaxbElement);
 						break;
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
+				} else if (param.isAttachments()) {
+					Object jaxbElement = _mapper.fromJDBC((Struct) cs.getObject(param.getPos()), param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+					JDBCXMLMapper.parseAttachments(jaxbElement, message);
 				} else {
 					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));
 				}

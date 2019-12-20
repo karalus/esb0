@@ -271,7 +271,7 @@ public final class JDBCXMLMapper {
 		return value;
 	}
 
-	public JAXBElement<?> fromAttachments(ESBMessage message, String namespace, String elementName) throws Exception {
+	public JAXBElement<?> createAttachments(ESBMessage message, String namespace, String elementName) throws Exception {
 		DynamicEntity entity = createDynamicEntity(namespace, elementName, false);
 		DynamicType dynamicType = DynamicHelper.getType(entity);
 		XMLDescriptor descriptor = (XMLDescriptor) dynamicType.getDescriptor();
@@ -312,6 +312,34 @@ public final class JDBCXMLMapper {
 			}
 		}
 		throw new IllegalArgumentException("Cannot map attachments to " + elementName + " in " + namespace);
+	}
+
+	public static void parseAttachments(Object object, ESBMessage message) throws Exception {
+		@SuppressWarnings("unchecked")
+		JAXBElement<DynamicEntity> jaxbElement = (JAXBElement<DynamicEntity>) object;
+		DynamicEntity entity = jaxbElement.getValue();
+		DynamicEntity attachments = entity.get("attachments");
+		List<DynamicEntity> list = attachments.get("attachment");
+		for (DynamicEntity attachment : list) {
+			String cid = null;
+			String contentType = null;
+			byte[] content = null;
+			DynamicType dynamicType = DynamicHelper.getType(attachment);
+			for (String propertyName : dynamicType.getPropertiesNames()) {
+				switch (propertyName) {
+				case "contentId":
+					cid = attachment.get(propertyName);
+					break;
+				case "contentType":
+					contentType = attachment.get(propertyName);
+					break;
+				default:
+					content = attachment.get(propertyName);
+					break;
+				}
+			}
+			message.addAttachment(cid, contentType, content);
+		}
 	}
 
 }

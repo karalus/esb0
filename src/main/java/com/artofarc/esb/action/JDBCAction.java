@@ -199,6 +199,9 @@ public abstract class JDBCAction extends Action {
 				default:
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 				}
+			} else if (param.isAttachments()) {
+				JAXBElement<?> attachments = _mapper.createAttachments(message, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+				ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(attachments, false, conn));
 			} else {
 				Object value = resolve(message, param.getBindName(), false);
 				if (value != null) {

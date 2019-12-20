@@ -535,7 +535,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		for (int i = 0; i < jdbcParameters.size();) {
 			JdbcParameter jdbcParameter = jdbcParameters.get(i++);
 			int pos = jdbcParameter.getPos() != null ? jdbcParameter.getPos() : i;
-			params.add(new JDBCParameter(pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
+			params.add(new JDBCParameter(pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
+					jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
 		}
 		return params;
 	}

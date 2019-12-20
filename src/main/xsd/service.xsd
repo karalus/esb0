@@ -148,7 +148,8 @@
 	<element name="jdbcParameter">
 		<complexType>
 			<attribute name="pos" type="int" />
-			<attribute name="body" type="boolean" default="false"/>
+			<attribute name="body" type="boolean" default="false" />
+			<attribute name="attachments" type="boolean" default="false" />
 			<attribute name="variable" type="Name" />
 			<attribute name="type" type="Name" />
 			<attribute name="truncate" type="int" />
