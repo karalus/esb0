@@ -200,8 +200,10 @@ public abstract class JDBCAction extends Action {
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 				}
 			} else if (param.isAttachments()) {
-				JAXBElement<?> attachments = _mapper.createAttachments(message, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-				ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(attachments, false, conn));
+				if (message.getAttachments().size() > 0) {
+					JAXBElement<?> attachments = _mapper.createAttachments(message, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+					ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(attachments, false, conn));
+				}
 			} else {
 				Object value = resolve(message, param.getBindName(), false);
 				if (value != null) {

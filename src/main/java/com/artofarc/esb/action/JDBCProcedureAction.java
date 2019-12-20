@@ -87,8 +87,11 @@ public class JDBCProcedureAction extends JDBCAction {
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
 				} else if (param.isAttachments()) {
-					Object jaxbElement = _mapper.fromJDBC((Struct) cs.getObject(param.getPos()), param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-					JDBCXMLMapper.parseAttachments(jaxbElement, message);
+					Struct struct = (Struct) cs.getObject(param.getPos());
+					if (struct != null) {
+						Object jaxbElement = _mapper.fromJDBC(struct, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+						JDBCXMLMapper.parseAttachments(jaxbElement, message);
+					}
 				} else {
 					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));
 				}
