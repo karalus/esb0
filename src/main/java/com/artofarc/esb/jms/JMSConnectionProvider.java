@@ -45,7 +45,6 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 	protected final static long reconnectInterval = Long.parseLong(System.getProperty("esb0.jms.reconnectInterval", "60"));
 
 	private final PoolContext _poolContext;
-	private final HashSet<JMSSessionFactory> _jmsSessionFactories = new HashSet<>();
 
 	public JMSConnectionProvider(PoolContext poolContext) {
 		_poolContext = poolContext;
@@ -66,16 +65,12 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		return getResource(jmsConnectionData);
 	}
 
-	public Connection getConnection(JMSConnectionData jmsConnectionData) throws JMSException {
-		return getResource(jmsConnectionData).getConnection();
+	public Connection getConnection(JMSConnectionData jmsConnectionData, JMSSessionFactory jmsSessionFactory) throws JMSException {
+		return getResource(jmsConnectionData).getConnection(jmsSessionFactory);
 	}
 
 	public void registerJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer, boolean enabled) {
 		getResource(jmsConnectionData).addJMSConsumer(jmsConsumer, enabled);
-	}
-
-	public synchronized void registerJMSSessionFactory(JMSSessionFactory jmsSessionFactory) {
-		_jmsSessionFactories.add(jmsSessionFactory);
 	}
 
 	void closeSession(JMSConnectionData jmsConnectionData, Session session) throws Exception {
@@ -91,6 +86,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 	final class JMSConnectionGuard extends TimerTask implements AutoCloseable, ExceptionListener, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
 
 		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
+		private final HashSet<JMSSessionFactory> _jmsSessionFactories = new HashSet<>();
 		private final JMSConnectionData _jmsConnectionData;
 		private final String _clientID; 
 		private volatile Connection _connection;
@@ -118,7 +114,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			}
 		}
 
-		synchronized Connection getConnection() throws JMSException {
+		synchronized Connection getConnection(JMSSessionFactory jmsSessionFactory) throws JMSException {
 			if (_connection == null) {
 				if (_future == null) {
 					try {
@@ -133,6 +129,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 					throw new JMSException("Currently cannot connect using " + _jmsConnectionData);
 				}
 			}
+			_jmsSessionFactories.add(jmsSessionFactory);
 			return _connection;
 		}
 

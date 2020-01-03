@@ -36,8 +36,7 @@ public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnection
 	@Override
 	protected JMSSession createResource(JMSConnectionData jmsConnectionData, Boolean transacted) throws JMSException {
 		JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
-		Connection connection = jmsConnectionProvider.getConnection(jmsConnectionData);
-		jmsConnectionProvider.registerJMSSessionFactory(this);
+		Connection connection = jmsConnectionProvider.getConnection(jmsConnectionData, this);
 		Session session = connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE);
 		return new JMSSession(jmsConnectionProvider, jmsConnectionData, session);
 	}
