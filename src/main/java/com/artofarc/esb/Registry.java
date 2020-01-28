@@ -53,7 +53,7 @@ public class Registry extends AbstractContext {
 		}
 	}
 	
-	public void registerMBean(Object object, String postfix) {
+	public final void registerMBean(Object object, String postfix) {
 		if (_mbs != null) {
 			try {
 				_mbs.registerMBean(object, new ObjectName(OBJECT_NAME + postfix));
@@ -63,7 +63,7 @@ public class Registry extends AbstractContext {
 		}
 	}
 
-	public void unregisterMBean(String postfix) {
+	public final void unregisterMBean(String postfix) {
 		if (_mbs != null) {
 			try {
 				_mbs.unregisterMBean(new ObjectName(OBJECT_NAME + postfix));
@@ -73,7 +73,7 @@ public class Registry extends AbstractContext {
 		}
 	}
 
-	public void unregisterMBean(ObjectName name) {
+	public final void unregisterMBean(ObjectName name) {
 		try {
 			_mbs.unregisterMBean(name);
 		} catch (JMException e) {
@@ -81,23 +81,23 @@ public class Registry extends AbstractContext {
 		}
 	}
 
-	public ConsumerPort getInternalService(String uri) {
+	public final ConsumerPort getInternalService(String uri) {
 		return _services.get(uri);
 	}
 
-	public Set<String> getHttpServicePaths() {
+	public final Set<String> getHttpServicePaths() {
 		return _httpServices.keySet();
 	}
 
-	public Collection<JMSConsumer> getJMSConsumers() {
+	public final Collection<JMSConsumer> getJMSConsumers() {
 		return _jmsConsumer.values();
 	}
 
-	public Collection<TimerService> getTimerServices() {
+	public final Collection<TimerService> getTimerServices() {
 		return _timerServices.values();
 	}
 
-	public HttpConsumer getHttpService(String path) {
+	public final HttpConsumer getHttpService(String path) {
 		HttpConsumer httpService = _httpServices.get(path);
 		if (httpService == null) {
 			// TOREVIEW: Find service for a shorter path
@@ -112,58 +112,81 @@ public class Registry extends AbstractContext {
 		return httpService;
 	}
 
-	public void bindService(ConsumerPort consumerPort) {
-		ConsumerPort old = _services.put(consumerPort.getUri(), consumerPort);
+	public final void bindInternalService(ConsumerPort consumerPort) {
+		ConsumerPort oldConsumerPort = _services.put(consumerPort.getUri(), consumerPort);
 		String postfix = consumerPort.getMBeanPostfix();
-		if (old != null) {
+		if (oldConsumerPort != null) {
 			unregisterMBean(postfix);
 		}
 		registerMBean(consumerPort, postfix);
 	}
 
-	public void unbindService(ConsumerPort consumerPort) {
+	public final void unbindInternalService(ConsumerPort consumerPort) {
 		unregisterMBean(_services.remove(consumerPort.getUri()).getMBeanPostfix());
 	}
 
-	public HttpConsumer bindHttpService(String path, HttpConsumer consumerPort) {
-		HttpConsumer httpService = _httpServices.get(path);
-		if (httpService != null && !httpService.getUri().equals(consumerPort.getUri())) {
-			throw new IllegalArgumentException("A different service is already bound to this path: " + httpService.getUri());
+	private void unbindService(ConsumerPort consumerPort) {
+		if (consumerPort instanceof HttpConsumer) {
+			HttpConsumer httpService = (HttpConsumer) consumerPort;
+			_httpServices.remove(httpService.getBindPath());
+		} else if (consumerPort instanceof JMSConsumer) {
+			JMSConsumer jmsConsumer = (JMSConsumer) consumerPort;
+			_jmsConsumer.remove(jmsConsumer.getKey());
+		} else if (consumerPort instanceof TimerService) {
+			TimerService timerService = (TimerService) consumerPort;
+			_timerServices.remove(timerService.getUri());
 		}
-		bindService(consumerPort);
-		_httpServices.put(path, consumerPort);
-		return httpService;
 	}
 
-	public void unbindHttpService(String path) {
-		unbindService(_httpServices.remove(path));
+	public final ConsumerPort bindHttpService(HttpConsumer httpConsumer) {
+		ConsumerPort oldConsumerPort = _httpServices.get(httpConsumer.getBindPath());
+		if (oldConsumerPort != null) {
+			if (!oldConsumerPort.getUri().equals(httpConsumer.getUri())) {
+				throw new IllegalArgumentException("A different service is already bound to this path: " + oldConsumerPort.getUri());
+			}
+		} else {
+			oldConsumerPort = getInternalService(httpConsumer.getUri());
+			unbindService(oldConsumerPort);
+		}
+		bindInternalService(httpConsumer);
+		_httpServices.put(httpConsumer.getBindPath(), httpConsumer);
+		return oldConsumerPort;
 	}
 
-	public JMSConsumer bindJmsConsumer(JMSConsumer jmsConsumer) {
-		JMSConsumer oldJmsConsumer = _jmsConsumer.get(jmsConsumer.getKey());
-		if (oldJmsConsumer != null && !oldJmsConsumer.getUri().equals(jmsConsumer.getUri())) {
-			throw new IllegalArgumentException("A different service is already bound: " + oldJmsConsumer.getUri());
+	public final void unbindHttpService(HttpConsumer httpConsumer) {
+		unbindInternalService(_httpServices.remove(httpConsumer.getBindPath()));
+	}
+
+	public final ConsumerPort bindJmsConsumer(JMSConsumer jmsConsumer) {
+		ConsumerPort oldConsumerPort = _jmsConsumer.get(jmsConsumer.getKey());
+		if (oldConsumerPort != null) {
+			if (!oldConsumerPort.getUri().equals(jmsConsumer.getUri())) {
+				throw new IllegalArgumentException("A different service is already bound: " + oldConsumerPort.getUri());
+			}
+		} else {
+			oldConsumerPort = getInternalService(jmsConsumer.getUri());
+			unbindService(oldConsumerPort);
 		}
-		bindService(jmsConsumer);
+		bindInternalService(jmsConsumer);
 		_jmsConsumer.put(jmsConsumer.getKey(), jmsConsumer);
-		return oldJmsConsumer;
+		return oldConsumerPort;
 	}
 
-	public void unbindJmsConsumer(JMSConsumer jmsConsumer) {
-		unbindService(_jmsConsumer.remove(jmsConsumer.getKey()));
+	public final void unbindJmsConsumer(JMSConsumer jmsConsumer) {
+		unbindInternalService(_jmsConsumer.remove(jmsConsumer.getKey()));
 	}
 
-	public TimerService bindTimerService(TimerService timerService) {
+	public final TimerService bindTimerService(TimerService timerService) {
 		TimerService oldTimerService = _timerServices.put(timerService.getUri(), timerService);
-		bindService(timerService);
+		bindInternalService(timerService);
 		return oldTimerService;
 	}
 
-	public void unbindTimerService(TimerService timerService) {
-		unbindService(_timerServices.remove(timerService.getUri()));
+	public final void unbindTimerService(TimerService timerService) {
+		unbindInternalService(_timerServices.remove(timerService.getUri()));
 	}
 
-	public void stopIngress() {
+	public final void stopIngress() {
 		for (TimerService timerService : _timerServices.values()) {
 			timerService.close();
 		}

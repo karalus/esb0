@@ -26,7 +26,7 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.message.ESBMessage;
 
-public final class HttpConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.HttpConsumerMXBean {
+public final class HttpConsumer extends ConsumerPort implements com.artofarc.esb.mbean.HttpConsumerMXBean {
 
 	private final String _bindPath;
 	private final String _requiredRole;

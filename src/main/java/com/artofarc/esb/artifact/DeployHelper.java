@@ -18,6 +18,7 @@ package com.artofarc.esb.artifact;
 
 import java.util.List;
 
+import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
@@ -34,7 +35,7 @@ public final class DeployHelper {
 			switch (service.getProtocol()) {
 			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();
-				globalContext.unbindHttpService(httpConsumer.getBindPath());
+				globalContext.unbindHttpService(httpConsumer);
 				closer.closeAsync(httpConsumer);
 				break;
 			case JMS:
@@ -52,7 +53,7 @@ public final class DeployHelper {
 				closer.closeAsync(timerService);
 				break;
 			default:
-				globalContext.unbindService(service.getConsumerPort());
+				globalContext.unbindInternalService(service.getConsumerPort());
 				break;
 			}
 		}
@@ -71,21 +72,22 @@ public final class DeployHelper {
 			}
 		}
 		for (ServiceArtifact service : serviceArtifacts) {
+			ConsumerPort oldConsumerPort;
 			switch (service.getProtocol()) {
 			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();
 				httpConsumer.init(globalContext);
-				HttpConsumer oldHttpConsumer = globalContext.bindHttpService(httpConsumer.getBindPath(), httpConsumer);
+				ConsumerPort oldHttpConsumer = globalContext.bindHttpService(httpConsumer);
 				if (oldHttpConsumer != null) {
 					closer.closeAsync(oldHttpConsumer);
 				}
 				break;
 			case JMS:
 				JMSConsumer jmsConsumer = service.getConsumerPort();
-				JMSConsumer oldConsumer = globalContext.bindJmsConsumer(jmsConsumer);
-				if (oldConsumer != null) {
+				oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumer);
+				if (oldConsumerPort != null) {
 					try {
-						oldConsumer.close();
+						oldConsumerPort.close();
 					} catch (Exception e) {
 						// ignore
 					}
@@ -99,14 +101,14 @@ public final class DeployHelper {
 				break;
 			case TIMER:
 				TimerService timerService = service.getConsumerPort();
-				TimerService oldTimerService = globalContext.bindTimerService(timerService);
-				if (oldTimerService != null) {
-					closer.closeAsync(oldTimerService);
+				oldConsumerPort = globalContext.bindTimerService(timerService);
+				if (oldConsumerPort != null) {
+					closer.closeAsync(oldConsumerPort);
 				}
 				timerService.init(globalContext);
 				break;
 			default:
-				globalContext.bindService(service.getConsumerPort());
+				globalContext.bindInternalService(service.getConsumerPort());
 				break;
 			}
 		}
@@ -125,7 +127,7 @@ public final class DeployHelper {
 			serviceArtifact.validate(globalContext);
 			adminService = serviceArtifact.getConsumerPort();
 			adminService.init(globalContext);
-			globalContext.bindHttpService(adminService.getBindPath(), adminService);
+			globalContext.bindHttpService(adminService);
 		}
 	}
 

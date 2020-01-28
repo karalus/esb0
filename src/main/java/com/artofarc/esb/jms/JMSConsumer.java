@@ -33,7 +33,7 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
 
-public final class JMSConsumer extends ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.JMSConsumerMXBean {
+public final class JMSConsumer extends ConsumerPort implements com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final String _workerPool;
 	private final JMSConnectionData _jmsConnectionData;

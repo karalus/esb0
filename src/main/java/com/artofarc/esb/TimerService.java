@@ -28,7 +28,7 @@ import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
-public final class TimerService extends ConsumerPort implements AutoCloseable, Runnable, com.artofarc.esb.mbean.TimerServiceMXBean {
+public final class TimerService extends ConsumerPort implements Runnable, com.artofarc.esb.mbean.TimerServiceMXBean {
 
 	private final String _workerPoolName;
 	private final TimeUnit _timeUnit;

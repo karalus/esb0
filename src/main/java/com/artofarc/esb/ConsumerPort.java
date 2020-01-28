@@ -28,7 +28,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.ESBMessage;
 
-public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
+public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.ConsumerPortMXBean {
 
 	protected final static Logger logger = LoggerFactory.getLogger(ConsumerPort.class);
 
@@ -95,6 +95,10 @@ public class ConsumerPort implements com.artofarc.esb.mbean.ConsumerPortMXBean {
 	// For JUnit
 	public final Action setStartAction(Action... actions) {
 		return setInternalService(java.util.Arrays.asList(actions));
+	}
+
+	@Override
+	public void close() throws Exception {
 	}
 
 }
