@@ -77,9 +77,9 @@ public final class DeployHelper {
 			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();
 				httpConsumer.init(globalContext);
-				ConsumerPort oldHttpConsumer = globalContext.bindHttpService(httpConsumer);
-				if (oldHttpConsumer != null) {
-					closer.closeAsync(oldHttpConsumer);
+				oldConsumerPort = globalContext.bindHttpService(httpConsumer);
+				if (oldConsumerPort != null) {
+					closer.closeAsync(oldConsumerPort);
 				}
 				break;
 			case JMS:
@@ -108,7 +108,10 @@ public final class DeployHelper {
 				timerService.init(globalContext);
 				break;
 			default:
-				globalContext.bindInternalService(service.getConsumerPort());
+				oldConsumerPort = globalContext.bindInternalService(service.getConsumerPort());
+				if (oldConsumerPort != null) {
+					Closer.closeQuietly(oldConsumerPort);
+				}
 				break;
 			}
 		}

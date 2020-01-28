@@ -112,13 +112,20 @@ public class Registry extends AbstractContext {
 		return httpService;
 	}
 
-	public final void bindInternalService(ConsumerPort consumerPort) {
+	public final ConsumerPort bindInternalService(ConsumerPort consumerPort) {
+		ConsumerPort oldConsumerPort = bindService(consumerPort); 
+		unbindService(oldConsumerPort);
+		return oldConsumerPort;
+	}
+
+	private ConsumerPort bindService(ConsumerPort consumerPort) {
 		ConsumerPort oldConsumerPort = _services.put(consumerPort.getUri(), consumerPort);
 		String postfix = consumerPort.getMBeanPostfix();
 		if (oldConsumerPort != null) {
 			unregisterMBean(postfix);
 		}
 		registerMBean(consumerPort, postfix);
+		return oldConsumerPort;
 	}
 
 	public final void unbindInternalService(ConsumerPort consumerPort) {
@@ -148,7 +155,7 @@ public class Registry extends AbstractContext {
 			oldConsumerPort = getInternalService(httpConsumer.getUri());
 			unbindService(oldConsumerPort);
 		}
-		bindInternalService(httpConsumer);
+		bindService(httpConsumer);
 		_httpServices.put(httpConsumer.getBindPath(), httpConsumer);
 		return oldConsumerPort;
 	}
@@ -167,7 +174,7 @@ public class Registry extends AbstractContext {
 			oldConsumerPort = getInternalService(jmsConsumer.getUri());
 			unbindService(oldConsumerPort);
 		}
-		bindInternalService(jmsConsumer);
+		bindService(jmsConsumer);
 		_jmsConsumer.put(jmsConsumer.getKey(), jmsConsumer);
 		return oldConsumerPort;
 	}
@@ -176,10 +183,15 @@ public class Registry extends AbstractContext {
 		unbindInternalService(_jmsConsumer.remove(jmsConsumer.getKey()));
 	}
 
-	public final TimerService bindTimerService(TimerService timerService) {
-		TimerService oldTimerService = _timerServices.put(timerService.getUri(), timerService);
-		bindInternalService(timerService);
-		return oldTimerService;
+	public final ConsumerPort bindTimerService(TimerService timerService) {
+		ConsumerPort oldConsumerPort = _timerServices.put(timerService.getUri(), timerService);
+		if (oldConsumerPort != null) {
+			bindService(timerService);
+		} else {
+			oldConsumerPort = bindService(timerService);
+			unbindService(oldConsumerPort);
+		}
+		return oldConsumerPort;
 	}
 
 	public final void unbindTimerService(TimerService timerService) {
