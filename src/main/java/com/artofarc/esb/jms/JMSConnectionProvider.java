@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
-import javax.jms.Session;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,17 +68,25 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		return getResource(jmsConnectionData).getConnection(jmsSessionFactory);
 	}
 
+	public void unregisterJMSSessionFactory(JMSConnectionData jmsConnectionData, JMSSessionFactory jmsSessionFactory) {
+		getResource(jmsConnectionData).removeJMSSessionFactory(jmsSessionFactory);
+	}
+
 	public void registerJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer, boolean enabled) {
 		getResource(jmsConnectionData).addJMSConsumer(jmsConsumer, enabled);
 	}
 
-	void closeSession(JMSConnectionData jmsConnectionData, Session session) throws Exception {
+	public void unregisterJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer) {
+		getResource(jmsConnectionData).removeJMSConsumer(jmsConsumer);
+	}
+
+	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws Exception {
 		if (closeWithTimeout > 0) {
 			Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
 			// Oracle AQ sometimes waits forever in close()
-			closer.closeWithTimeout(session, closeWithTimeout, jmsConnectionData.toString());
+			closer.closeWithTimeout(jmsSession.getSession(), closeWithTimeout, jmsConnectionData.toString());
 		} else {
-			session.close();
+			jmsSession.getSession().close();
 		}
 	}
 
@@ -99,6 +106,10 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		synchronized void addJMSConsumer(JMSConsumer jmsConsumer, boolean enabled) {
 			_jmsConsumers.put(jmsConsumer, enabled);
+		}
+
+		synchronized void removeJMSConsumer(JMSConsumer jmsConsumer) {
+			_jmsConsumers.remove(jmsConsumer);
 		}
 
 		private void createConnection() throws JMSException {
@@ -131,6 +142,10 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			}
 			_jmsSessionFactories.add(jmsSessionFactory);
 			return _connection;
+		}
+
+		synchronized void removeJMSSessionFactory(JMSSessionFactory jmsSessionFactory) {
+			_jmsSessionFactories.remove(jmsSessionFactory);
 		}
 
 		private void closeConnection() {

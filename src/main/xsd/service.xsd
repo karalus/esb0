@@ -654,9 +654,9 @@
 									<attribute name="requiredRole" type="tns:string1" />
 									<attribute name="supportCompression" type="boolean" default="false" />
 									<attribute name="multipartResponse" type="tns:string1" />
-									<attribute name="bufferSize" type="unsignedShort" />
+									<attribute name="bufferSize" type="tns:int1" />
 									<attribute name="minPool" type="unsignedShort" default="1" />
-									<attribute name="maxPool" type="unsignedShort" default="20" />
+									<attribute name="maxPool" type="tns:int1" default="20" />
 									<attribute name="keepAlive" type="unsignedInt" default="300000" />
 								</extension>
 							</simpleContent>
@@ -675,7 +675,7 @@
 							<attribute name="password" type="string" />
 							<attribute name="subscription" type="tns:string1" />
 							<attribute name="messageSelector" type="string" />
-							<attribute name="workerCount" type="unsignedShort" default="1" />
+							<attribute name="workerCount" type="tns:int1" default="1" />
 							<attribute name="pollInterval" type="int" default="0" />
 						</complexType>
 					</element>
@@ -696,7 +696,7 @@
 			<attribute name="protocol" type="tns:Protocol" use="required" />
 			<attribute name="errorHandler" type="Name" />
 			<attribute name="enabled" type="boolean" default="true" />
-			<attribute name="version" type="unsignedShort" default="1" />
+			<attribute name="version" type="tns:int1" default="1" />
 		</complexType>
 	</element>
 	<element name="workerPool">
@@ -720,6 +720,11 @@
 	<simpleType name="string1">
 		<restriction base="string">
 			<minLength value="1" />
+		</restriction>
+	</simpleType>
+	<simpleType name="int1">
+		<restriction base="unsignedShort">
+			<minInclusive value="1" />
 		</restriction>
 	</simpleType>
 </schema>

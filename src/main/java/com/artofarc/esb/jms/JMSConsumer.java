@@ -158,6 +158,8 @@ public final class JMSConsumer extends ConsumerPort implements com.artofarc.esb.
 			jmsWorker.close();
 			jmsWorker._context.close();
 		}
+		JMSConnectionProvider jmsConnectionProvider = _jmsWorker[0]._workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
+		jmsConnectionProvider.unregisterJMSConsumer(_jmsConnectionData, this);
 	}
 
 	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws JMSException {

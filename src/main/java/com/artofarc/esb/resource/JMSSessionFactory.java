@@ -41,4 +41,13 @@ public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnection
 		return new JMSSession(jmsConnectionProvider, jmsConnectionData, session);
 	}
 
+	@Override
+	public void close() {
+		JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
+		for (JMSConnectionData jmsConnectionData : getResourceDescriptors()) {
+			jmsConnectionProvider.unregisterJMSSessionFactory(jmsConnectionData, this);
+		}
+		super.close();
+	}
+
 }

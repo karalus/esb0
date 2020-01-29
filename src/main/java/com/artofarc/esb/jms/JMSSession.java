@@ -94,7 +94,7 @@ public final class JMSSession implements AutoCloseable {
 			_temporaryQueue.delete();
 		}
 		_producers.clear();
-		_jmsConnectionProvider.closeSession(_jmsConnectionData, _session);
+		_jmsConnectionProvider.closeSession(_jmsConnectionData, this);
 	}
 
 }
