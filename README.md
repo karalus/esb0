@@ -10,7 +10,7 @@ Features:
 - Java code can be invoked dynamically if necessary e.g. for special transformations
 - Supports HTTP, JMS, JDBC, Files and [Kafka](https://kafka.apache.org/)
 - Can map between synchronous and asynchronous messages exchange patterns
-- Supports GZIP and [Fast Infoset](https://en.wikipedia.org/wiki/Fast_Infoset) encoding/decoding and (partially) MTOM/XOP
+- Supports GZIP and [Fast Infoset](https://en.wikipedia.org/wiki/Fast_Infoset) encoding/decoding and MTOM/XOP
 - Uses resource- and threadpools for effective resource utilization, thus supporting QoS per service.
 - Includes a HTTP loadbalancer component with health check for outbound HTTP traffic
 - New service flows and threadpools can be configured at runtime without service outage
@@ -21,13 +21,15 @@ Features:
 
 ### Fitness for production ###
 
-The version 1.2 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only 3s of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
+ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
+
+Current stable version is 1.5.2.
 
 ### Design goals ###
 
 Most ESB products are very heavy suites which is counterproductive for their main purpose - to act as a fast and simple service gateway to control and monitor service usage within your enterprise.
 
-ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently about 64k of size!
+ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently below 100k of size!
 
 The minimal set of features is supported based on the VETRO pattern. All basic EAI components that are needed are built-in with the exemption of stateful components (e.g. [resquencer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Resequencer.html)). As the ESB Zero does not maintain state on its own, it can be easily scaled up and runs very stable.
 
@@ -116,4 +118,4 @@ It is written in Java 7 and implements a servlet based on 3.0.1 API.
 Optional
 - For using Kafka you need the [Kafka Java Client](https://cwiki.apache.org/confluence/display/KAFKA/Clients)
 - For using ActiveMQ as JMS provider you need to include it into your Servlet Container
-- For using Oracle AQ as JMS provider refer to [aq-jndi](https://github.com/karalus/aq-jndi)
+- For using Oracle AQ or IBM MQ as JMS provider refer to [aq-jndi](https://github.com/karalus/aq-jndi)
