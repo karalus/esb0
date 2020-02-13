@@ -212,8 +212,7 @@ public final class ESBMessage implements Cloneable {
 		return result;
 	}
 
-	public void addAttachment(MimeBodyPart bodyPart) throws MessagingException {
-		String cid = bodyPart.getContentID();
+	public void addAttachment(String cid, MimeBodyPart bodyPart) {
 		// remove angle brackets (https://tools.ietf.org/html/rfc2392)
 		_attachments.put(cid.substring(1, cid.length() - 1), bodyPart);
 	}
@@ -222,8 +221,9 @@ public final class ESBMessage implements Cloneable {
 		InternetHeaders headers = new InternetHeaders();
 		headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 		MimeBodyPart part = new MimeBodyPart(headers, content);
-		part.setContentID('<' + contentID + '>');
-		addAttachment(part);
+		String cid = '<' + contentID + '>';
+		part.setContentID(cid);
+		addAttachment(cid, part);
 	}
 
 	public Charset getCharset() {

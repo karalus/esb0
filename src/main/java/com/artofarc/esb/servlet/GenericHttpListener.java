@@ -133,7 +133,8 @@ public class GenericHttpListener extends HttpServlet {
 			message.putHeader(HTTP_HEADER_SOAP_ACTION, getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION));
 			for (int i = 0; i < mmp.getCount(); i++) {
 				MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
-				if (start == null && i == 0 || start != null && start.equals(bodyPart.getContentID())) {
+				String cid = bodyPart.getContentID();
+				if (start == null && i == 0 || start != null && start.equals(cid)) {
 					for (@SuppressWarnings("unchecked")
 					Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
 						Header header = allHeaders.nextElement();
@@ -141,8 +142,11 @@ public class GenericHttpListener extends HttpServlet {
 					}
 					message.setCharset(getValueFromHttpHeader(bodyPart.getContentType(), HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream());
+				} else if (cid != null) {
+					message.addAttachment(cid, bodyPart);
 				} else {
-					message.addAttachment(bodyPart);
+					String name = removeQuotes(getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), "name="));
+					message.putVariable(name, bodyPart.getContent());
 				}
 			}
 		}
