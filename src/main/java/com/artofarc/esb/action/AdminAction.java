@@ -35,7 +35,7 @@ import com.artofarc.esb.artifact.WSDLArtifact;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.http.HttpConstants;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
@@ -85,7 +85,7 @@ public class AdminAction extends Action {
 	private static void createErrorResponse(ESBMessage message, int errorCode, String errorMessage) {
 		message.getHeaders().clear();
 		message.putVariable(ESBConstants.HttpResponseCode, errorCode);
-		if (errorMessage != null) message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/plain");
+		if (errorMessage != null) message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT);
 		message.reset(null, errorMessage);
 	}
 
@@ -103,9 +103,9 @@ public class AdminAction extends Action {
 				jsonWriter.writeArray(builder.build());
 				jsonWriter.close();
 				createResponse(message, BodyType.READER, sw.getStringReader(), "");
-				message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+				message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
-				String headerAccept = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT);
+				String headerAccept = message.getVariable(HTTP_HEADER_ACCEPT);
 				// SoapUI does not send an "Accept" header
 				if (headerAccept == null || headerAccept.contains("text/")) {
 					InputStream contentAsStream = artifact.getContentAsStream();
@@ -121,8 +121,8 @@ public class AdminAction extends Action {
 					} else {
 						createResponse(message, BodyType.INPUT_STREAM, contentAsStream, "");
 					}
-					message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
-					message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
+					message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
+					message.getHeaders().put(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
 				} else {
 					createErrorResponse(message, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, null);
 				}
@@ -154,8 +154,8 @@ public class AdminAction extends Action {
 	private static void changeConfiguration(Context context, ESBMessage message, String resource) throws Exception {
 		GlobalContext globalContext = context.getPoolContext().getGlobalContext();
 		// if a file is received then deploy it otherwise change the state of a service flow
-		if (message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_DISPOSITION) != null) {
-			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+		if (message.getHeader(HTTP_HEADER_CONTENT_DISPOSITION) != null) {
+			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 			if (contentType.startsWith("application/")) {
 				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
 				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);

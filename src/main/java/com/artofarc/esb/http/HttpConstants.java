@@ -32,6 +32,8 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 
 	public static final String HTTP_HEADER_CONTENT_DISPOSITION = "Content-Disposition";
 
+	public static final String HTTP_HEADER_CONTENT_TYPE_TEXT = "text/plain";
+
 	public static final String HTTP_HEADER_CONTENT_TYPE_JSON = "application/json";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 = "application/fastinfoset";

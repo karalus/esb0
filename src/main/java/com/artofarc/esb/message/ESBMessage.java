@@ -29,7 +29,6 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPInputStream;
@@ -155,22 +154,22 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> Entry<String, T> getHeaderEntry(String headerName) {
-		for (Entry<String, Object> entry : _headers.entrySet()) {
+	public <T> Map.Entry<String, T> getHeaderEntry(String headerName) {
+		for (Map.Entry<String, Object> entry : _headers.entrySet()) {
 			if (headerName.equalsIgnoreCase(entry.getKey())) {
-				return (Entry<String, T>) entry;
+				return (Map.Entry<String, T>) entry;
 			}
 		}
 		return null;
 	}
 
 	public <T> T getHeader(String headerName) {
-		Entry<String, T> entry = getHeaderEntry(headerName);
+		Map.Entry<String, T> entry = getHeaderEntry(headerName);
 		return entry != null ? entry.getValue() : null;
 	}
 
 	public <T> T putHeader(String headerName, T value) {
-		Entry<String, T> entry = getHeaderEntry(headerName);
+		Map.Entry<String, T> entry = getHeaderEntry(headerName);
 		if (entry != null) {
 			return entry.setValue(value);
 		}
@@ -180,7 +179,7 @@ public final class ESBMessage implements Cloneable {
 
 	@SuppressWarnings("unchecked")
 	public <T> T removeHeader(String headerName) {
-		Entry<String, T> entry = getHeaderEntry(headerName);
+		Map.Entry<String, T> entry = getHeaderEntry(headerName);
 		if (entry != null) {
 			return (T) _headers.remove(entry.getKey());
 		}
@@ -382,11 +381,12 @@ public final class ESBMessage implements Cloneable {
 			}
 			break;
 		case EXCEPTION:
-			if ("text/plain".equals(getHeader(HTTP_HEADER_CONTENT_TYPE))) {
+			Exception e = (Exception) _body;
+			if (HTTP_HEADER_CONTENT_TYPE_TEXT.equals(getHeader(HTTP_HEADER_CONTENT_TYPE))) {
 				// In this case we assume that the message will not be processed as XML
-				str = _body.toString();
+				str = e.getCause() != null ? e + "\nCause: " + e.getCause() : e.toString();
 			} else {
-				str = asXMLString((Exception) _body);
+				str = asXMLString(e);
 			}
 			break;
 		case INVALID:
@@ -428,7 +428,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Source getBodyAsSource(Context context) throws IOException, XQException {
-		Entry<String, String> contentType = getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
+		Map.Entry<String, String> contentType = getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null && isFastInfoset(contentType.getValue())) {
 			InputStream is;
 			switch (_bodyType) {
@@ -769,7 +769,7 @@ public final class ESBMessage implements Cloneable {
 			clone = new ESBMessage(BodyType.INVALID, null);
 		}
 		clone._headers.putAll(_headers);
-		for (Entry<String, Object> entry : _variables.entrySet()) {
+		for (Map.Entry<String, Object> entry : _variables.entrySet()) {
 			if (entry.getKey() == ESBConstants.initialTimestamp) {
 				clone._variables.put(ESBConstants.initialTimestampOrigin, entry.getValue());
 			} else {

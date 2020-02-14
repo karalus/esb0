@@ -35,8 +35,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.artofarc.esb.Registry;
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.GlobalContext;
 import static com.artofarc.esb.http.HttpConstants.*;
 
 import com.artofarc.esb.message.BodyType;
@@ -44,7 +44,7 @@ import com.artofarc.esb.message.ESBMessage;
 import static com.artofarc.esb.message.ESBConstants.*;
 
 /**
- * Servlet implementation class GenericHttpListener
+ * This servlet is the one and only HTTP endpoint for all services.
  */
 @WebServlet(asyncSupported = true, urlPatterns = { "/*", "/admin/ext/*", "/admin/deploy/*" })
 @MultipartConfig
@@ -56,8 +56,8 @@ public class GenericHttpListener extends HttpServlet {
 	protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// process input
 		final String pathInfo = request.getRequestURI().substring(request.getContextPath().length());
-		GlobalContext globalContext = (GlobalContext) getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
-		HttpConsumer consumerPort = globalContext.getHttpService(pathInfo);
+		Registry registry = (Registry) getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
+		HttpConsumer consumerPort = registry.getHttpService(pathInfo);
 		if (consumerPort != null) {
 			boolean secure = true;
 			if (consumerPort.getRequiredRole() != null) {
