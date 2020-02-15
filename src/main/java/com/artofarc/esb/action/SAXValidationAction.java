@@ -57,9 +57,9 @@ public class SAXValidationAction extends SAXAction {
 	}
 
 	@Override
-	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception {
 		message.setSchema(_schema);
-		XMLFilterBase xmlFilter = new XMLFilterBase(parent);
+		XMLFilterBase xmlFilter = new XMLFilterBase(parent != null ? parent : context.getSAXParser().getXMLReader());
 		xmlFilter.setContentHandler(_schema.newValidatorHandler());
 		return xmlFilter;
 	}
