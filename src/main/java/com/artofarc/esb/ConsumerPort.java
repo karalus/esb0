@@ -17,6 +17,7 @@
 package com.artofarc.esb;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.ObjectName;
 
@@ -33,11 +34,10 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	protected final static Logger logger = LoggerFactory.getLogger(ConsumerPort.class);
 
 	private final String _uri;
-
-	private List<Action> internalService;
+	private List<Action> _serviceFlow;
 	private Action _startAction;
-
 	private volatile boolean _enabled = true;
+	protected final AtomicLong _completedTaskCount = new AtomicLong();
 
 	public ConsumerPort(String uri) {
 		_uri = uri;
@@ -45,6 +45,10 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 
 	public final String getUri() {
 		return _uri;
+	}
+
+	public long getCompletedTaskCount() {
+		return _completedTaskCount.get();
 	}
 
 	public final String getMBeanPostfix() {
@@ -63,12 +67,12 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		_enabled = enable;
 	}
 
-	public final List<Action> getInternalService() {
-		return Action.cloneService(internalService);
+	public final List<Action> getServiceFlow() {
+		return Action.cloneService(_serviceFlow);
 	}
 
-	public final Action setInternalService(List<Action> service) {
-		internalService = service;
+	public final Action setServiceFlow(List<Action> service) {
+		_serviceFlow = service;
 		return _startAction = Action.linkList(service);
 	}
 
@@ -79,7 +83,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		processInternal(context, message);
 	}
 
-	public final void processInternal(Context context, ESBMessage message) throws Exception {
+	public final long processInternal(Context context, ESBMessage message) throws Exception {
 		_startAction.process(context, message);
 		if (context.getExecutionStack().size() > 0) {
 			context.getExecutionStack().clear();
@@ -90,11 +94,12 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 			context.getStackPos().clear();
 			throw new IllegalStateException("StackErrorHandler not empty");
 		}
+		return _completedTaskCount.incrementAndGet();
 	}
 
 	// For JUnit
 	public final Action setStartAction(Action... actions) {
-		return setInternalService(java.util.Arrays.asList(actions));
+		return setServiceFlow(java.util.Arrays.asList(actions));
 	}
 
 	@Override

@@ -99,8 +99,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			switch (_protocol = service.getProtocol()) {
 			case HTTP:
 				final Service.HttpBindURI httpBinding = service.getHttpBindURI();
-				_consumerPort = new HttpConsumer(getURI(), globalContext.bindProperties(httpBinding.getValue()), httpBinding.getRequiredRole(), httpBinding.getMinPool(), httpBinding.getMaxPool(),
-						httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
+				_consumerPort = new HttpConsumer(getURI(), service.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), httpBinding.getRequiredRole(), httpBinding.getMinPool(),
+						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
 				break;
 			case JMS:
 				final Service.JmsBinding jmsBinding = service.getJmsBinding();
@@ -117,7 +117,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				_consumerPort = new ConsumerPort(getURI());
 				break;
 			}
-			_consumerPort.setInternalService(list);
+			_consumerPort.setServiceFlow(list);
 			_consumerPort.setEnabled(service.isEnabled());
 		} finally {
 			_actionPipelines.clear();
@@ -406,7 +406,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			ServiceArtifact serviceArtifact = loadArtifact(internalService.getServiceURI() + '.' + FILE_EXTENSION);
 			addReference(serviceArtifact);
 			serviceArtifact.validate(globalContext);
-			addAllActions(list, serviceArtifact.getConsumerPort().getInternalService(), location);
+			addAllActions(list, serviceArtifact.getConsumerPort().getServiceFlow(), location);
 			break;
 		case "conditional":
 			Conditional conditional = (Conditional) actionElement.getValue();

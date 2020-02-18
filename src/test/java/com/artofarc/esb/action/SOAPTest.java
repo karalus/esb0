@@ -380,6 +380,7 @@ public class SOAPTest extends AbstractESBTest {
       assertEquals("demoElementRequest", message.getVariable(ESBConstants.SOAP_OPERATION));
    }
    
+   @Test
    public void testJMSConsumer() throws Exception {
    	JMSConnectionData jmsConnectionData = new JMSConnectionData(getGlobalContext(), "ConnectionFactory", null, null);
       JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData, "dynamicQueues/test1", null, null, null, null, 1, 0L);
@@ -387,7 +388,7 @@ public class SOAPTest extends AbstractESBTest {
       jmsConsumer.setStartAction(markAction);
       jmsConsumer.init(getGlobalContext());
       
-      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest1.xml"));
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
       message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       
       JMSAction jmsAction = new JMSAction(getGlobalContext(), jmsConnectionData, "dynamicQueues/test1", null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 100, false);

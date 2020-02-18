@@ -24,4 +24,6 @@ public interface ConsumerPortMXBean {
 
 	void enable(boolean enable) throws Exception;
 
+	long getCompletedTaskCount();
+
 }

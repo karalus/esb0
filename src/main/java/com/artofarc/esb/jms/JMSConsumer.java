@@ -18,7 +18,6 @@ package com.artofarc.esb.jms;
 
 import java.util.Enumeration;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.jms.*;
 import javax.naming.NamingException;
@@ -44,7 +43,6 @@ public final class JMSConsumer extends ConsumerPort implements com.artofarc.esb.
 	private final String _messageSelector;
 	private final JMSWorker[] _jmsWorker;
 	private final long _pollInterval;
-	private final AtomicLong completedTaskCount = new AtomicLong();
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName,
 			String topicName, String subscription, String messageSelector, int workerCount, long pollInterval) throws NamingException, JMSException {
@@ -97,10 +95,6 @@ public final class JMSConsumer extends ConsumerPort implements com.artofarc.esb.
 
 	public int getWorkerCount() {
 		return _jmsWorker.length;
-	}
-
-	public long getCompletedTaskCount() {
-		return completedTaskCount.get();
 	}
 
 	@Override
@@ -263,7 +257,6 @@ public final class JMSConsumer extends ConsumerPort implements com.artofarc.esb.
 					logger.info("Rolling back for " + getKey(), e);
 					_session.rollback();
 				}
-				completedTaskCount.incrementAndGet();
 			} catch (JMSException e) {
 				throw new RuntimeException(e);
 			}

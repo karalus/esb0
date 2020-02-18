@@ -696,6 +696,7 @@
 			<attribute name="protocol" type="tns:Protocol" use="required" />
 			<attribute name="errorHandler" type="Name" />
 			<attribute name="enabled" type="boolean" default="true" />
+			<attribute name="resourceLimit" type="int" default="-1" />
 			<attribute name="version" type="tns:int1" default="1" />
 		</complexType>
 	</element>

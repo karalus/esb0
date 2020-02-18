@@ -87,7 +87,13 @@ public class HttpServletResponseAction extends Action {
 			} else {
 				response.setCharacterEncoding(message.getSinkEncoding());
 				for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
-					response.setHeader(entry.getKey(), entry.getValue().toString());
+					if (entry.getValue() instanceof String) {
+						response.setHeader(entry.getKey(), (String) entry.getValue());
+					} else if (entry.getValue() instanceof Integer) {
+						response.setIntHeader(entry.getKey(), (Integer) entry.getValue());
+					} else if (entry.getValue() instanceof Long) {
+						response.setDateHeader(entry.getKey(), (Long) entry.getValue());
+					}
 				}
 				if (inPipeline) {
 					message.reset(BodyType.OUTPUT_STREAM, new PreventFlushOutputStream(response.getOutputStream()));

@@ -22,6 +22,4 @@ public interface JMSConsumerMXBean extends ConsumerPortMXBean {
 
 	int getWorkerCount();
 
-	long getCompletedTaskCount();
-
 }
