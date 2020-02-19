@@ -57,11 +57,9 @@ public class HttpServletResponseAction extends Action {
 		HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
 		ExecutionContext executionContext = new ExecutionContext(asyncContext);
 		if (message.getBodyType() == BodyType.EXCEPTION) {
-			GenericHttpListener.sendErrorResponse(response, message.<Exception> getBody());
+			GenericHttpListener.sendError(response, message.<Exception> getBody());
 		} else if (message.getVariable(ESBConstants.redirect) != null) {
 			response.sendRedirect(message.<String> getVariable(ESBConstants.redirect));
-//			response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
-//			response.setHeader("Location", message.<String> getVariable(ESBVariableConstants.redirect));
 		} else {
 			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);

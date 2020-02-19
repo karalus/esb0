@@ -47,7 +47,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		return _uri;
 	}
 
-	public long getCompletedTaskCount() {
+	public final long getCompletedTaskCount() {
 		return _completedTaskCount.get();
 	}
 

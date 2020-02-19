@@ -64,7 +64,7 @@ public class GenericHttpListener extends HttpServlet {
 				secure = request.authenticate(response);
 				if (secure && !request.isUserInRole(consumerPort.getRequiredRole())) {
 					secure = false;
-					response.sendError(HttpServletResponse.SC_FORBIDDEN, "User not in role " + consumerPort.getRequiredRole());
+					sendError(response, HttpServletResponse.SC_FORBIDDEN, "User not in role " + consumerPort.getRequiredRole());
 				}
 			}
 			if (secure) {
@@ -78,17 +78,17 @@ public class GenericHttpListener extends HttpServlet {
 								consumerPort.getContextPool().releaseContext(context);
 							}
 						} else {
-							response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
+							sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
 						}
 					} catch (Exception e) {
-						sendErrorResponse(response, e);
+						sendError(response, e);
 					}
 				} else {
-					response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
+					sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
 				}
 			}
 		} else {
-			response.sendError(HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
+			sendError(response, HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
 		}
 	}
 
@@ -152,14 +152,22 @@ public class GenericHttpListener extends HttpServlet {
 		}
 	}
 
-	public static void sendErrorResponse(HttpServletResponse response, Exception e) throws IOException {
+	public static void sendError(HttpServletResponse response, Exception e) throws IOException {
 		int httpRetCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 		if (e instanceof TimeoutException || e instanceof SocketTimeoutException) {
 			httpRetCode = HttpServletResponse.SC_GATEWAY_TIMEOUT;
 		} else if (e instanceof RejectedExecutionException) {
 			httpRetCode = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 		}
-		response.sendError(httpRetCode, e.getMessage());
+		response.setStatus(httpRetCode);
+		response.setContentType(SOAP_1_1_CONTENT_TYPE);
+		response.getWriter().print(ESBMessage.asXMLString(e));
+	}
+
+	public static void sendError(HttpServletResponse response, int sc, String message) throws IOException {
+		response.setStatus(sc);
+		response.setContentType(SOAP_1_1_CONTENT_TYPE);
+		response.getWriter().print("<message>" + message + "</message>");
 	}
 
 }
