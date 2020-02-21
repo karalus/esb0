@@ -16,10 +16,12 @@
  */
 package com.artofarc.esb.context;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -35,10 +37,12 @@ import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQConnectionFactory;
+import com.artofarc.util.StreamUtils;
 
 public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
 
-	private static final long deployTimeout = Long.parseLong(System.getProperty("esb0.deploy.timeout", "60"));
+	private static final long DEPLOY_TIMEOUT = Long.parseLong(System.getProperty("esb0.deploy.timeout", "60"));
+	private static final String GLOBALPROPERTIES = System.getProperty("esb0.globalproperties");
 
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
@@ -46,15 +50,16 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
 	private final Map<String, WorkerPool> _workerPoolMap = Collections.synchronizedMap(new HashMap<String, WorkerPool>());
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
-	private final Map<String, Object> _propertyCache = new HashMap<String, Object>();
+	private final Map<String, Object> _propertyCache = new HashMap<>();
 
 	private volatile FileSystem _fileSystem;
 
 	public GlobalContext(MBeanServer mbs) {
 		super(mbs);
 		try {
+			invalidatePropertyCache();
 			_initialContext = new InitialContext();
-		} catch (NamingException e) {
+		} catch (IOException | NamingException e) {
 			throw new RuntimeException(e);
 		}
 		_uriResolver = new XMLProcessingArtifact.AbstractURIResolver() {
@@ -89,7 +94,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 
 	public boolean lockFileSystem() {
 		try {
-			return _fileSystemLock.tryLock(deployTimeout, TimeUnit.SECONDS);
+			return _fileSystemLock.tryLock(DEPLOY_TIMEOUT, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			return false;
 		}
@@ -157,8 +162,15 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		}
 	}
 
-	public void invalidatePropertyCache() {
+	public synchronized void invalidatePropertyCache() throws IOException {
 		_propertyCache.clear();
+		if (GLOBALPROPERTIES != null) {
+			Properties properties = new Properties();
+			properties.load(StreamUtils.getResourceAsStream(GLOBALPROPERTIES));
+			for (String key : properties.stringPropertyNames()) {
+				_propertyCache.put(key, properties.getProperty(key));
+			}
+		}
 	}
 
 	public Set<String> getCachedProperties() {
