@@ -106,11 +106,11 @@ public final class HttpEndpoint {
 	}
 
 	public boolean hasSameConfig(HttpEndpoint other) {
-		return _endpoints.equals(other._endpoints) && _connectionTimeout == other._connectionTimeout && _retries == other._retries
-				&& isEqual(_checkAliveInterval, other._checkAliveInterval) && isEqual(_keepAliveInterval, other._keepAliveInterval);
+		return _endpoints.equals(other._endpoints) && _connectionTimeout == other._connectionTimeout && _retries == other._retries && isEqual(_checkAliveInterval, other._checkAliveInterval)
+				&& isEqual(_keepAliveInterval, other._keepAliveInterval) && isEqual(_basicAuthCredential, other._basicAuthCredential);
 	}
 
-	private static boolean isEqual(Integer i, Integer j) {
+	private static boolean isEqual(Object i, Object j) {
 		return i == null && j == null || i != null && i.equals(j);
 	}
 
