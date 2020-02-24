@@ -63,12 +63,9 @@ public class HttpServletResponseAction extends Action {
 		} else {
 			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
-			if (httpResponseCode == null) {
-				// Deprecated. Remove in version 2.0
-				Boolean hasFault = message.getVariable("hasFault");
-				httpResponseCode = hasFault != null && hasFault ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : HttpServletResponse.SC_OK;
+			if (httpResponseCode != null) {
+				response.setStatus(httpResponseCode.intValue());
 			}
-			response.setStatus(httpResponseCode.intValue());
 			final String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
 			if (acceptCharset != null) {
 				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset, ""));
