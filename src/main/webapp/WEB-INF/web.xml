@@ -8,6 +8,14 @@
 		<servlet-name>admin</servlet-name>
 		<jsp-file>/index.jsp</jsp-file>
 	</servlet>
+	<servlet>
+        <servlet-name>metrics</servlet-name>
+        <servlet-class>com.codahale.metrics.servlets.MetricsServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+        <servlet-name>metrics</servlet-name>
+        <url-pattern>/admin/metrics/*</url-pattern>
+	</servlet-mapping>
 	<servlet-mapping>
 		<servlet-name>admin</servlet-name>
 		<url-pattern>/admin/*</url-pattern>

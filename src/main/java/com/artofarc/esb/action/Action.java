@@ -33,6 +33,7 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.StringWriter;
 import com.artofarc.util.TimeGauge;
+import com.codahale.metrics.Timer;
 
 public abstract class Action implements Cloneable {
 
@@ -87,6 +88,9 @@ public abstract class Action implements Cloneable {
 		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
 		context.pushStackPos();
 		TimeGauge timeGauge = new TimeGauge(logger, 250L, false);
+		final Timer timer = context.getGlobalContext().getMetricRegistry().timer(_location != null ? _location.getServiceArtifactURI() : getClass().getSimpleName());
+		final Timer.Context contextm = timer.time();
+
 		timeGauge.startTimeMeasurement();
 		for (Action nextAction = this; nextAction != null;) {
 			boolean isPipeline = false;
@@ -167,6 +171,7 @@ public abstract class Action implements Cloneable {
 		}
 		context.getStackPos().poll();
 		timeGauge.stopTimeMeasurement("Finished process: %s", false, _location != null ? _location.getServiceArtifactURI() : getClass().getSimpleName());
+		contextm.stop();
 	}
 
 	// pipelining

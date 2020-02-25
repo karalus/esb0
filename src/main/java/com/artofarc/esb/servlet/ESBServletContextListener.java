@@ -90,6 +90,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 		servletContext.setAttribute(VERSION, properties.getProperty("Implementation-Version", "0.0"));
 		servletContext.setAttribute(BUILD_TIME, properties.getProperty("Build-Time", ""));
 		servletContext.setAttribute(CONTEXT, createContext(System.getProperty(ROOT, System.getenv("ESB_ROOT_DIR"))));
+		servletContext.setAttribute(com.codahale.metrics.servlets.MetricsServlet.METRICS_REGISTRY, globalContext.getMetricRegistry());		
 	}
 
 	@Override

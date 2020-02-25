@@ -29,6 +29,8 @@ import com.artofarc.esb.context.AbstractContext;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
+import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.MetricRegistry;
 
 public class Registry extends AbstractContext {
 
@@ -44,9 +46,20 @@ public class Registry extends AbstractContext {
 	private final String OBJECT_NAME = "com.artofarc.esb:type=" + getClass().getSimpleName();
 	private final ConcurrentHashMap<String, ObjectName> _registered = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
 
+	private final MetricRegistry metricRegistry = new MetricRegistry();
+	private JmxReporter builder;
+
 	public Registry(MBeanServer mbs) {
 		_mbs = mbs;
 		registerMBean(this, "");
+		if (mbs != null) {
+			builder = JmxReporter.forRegistry(metricRegistry).registerWith(mbs).inDomain("com.artofarc.esb.metrics").build();
+			builder.start();
+		}
+	}
+
+	public final MetricRegistry getMetricRegistry() {
+		return metricRegistry;
 	}
 
 	public final void registerMBean(Object object, String postfix) {
@@ -207,6 +220,9 @@ public class Registry extends AbstractContext {
 	@Override
 	public synchronized void close() {
 		super.close();
+		if (builder != null) {
+			builder.stop();
+		}
 		try {
 			for (ObjectName objectName : _registered.values()) {
 				_mbs.unregisterMBean(objectName);

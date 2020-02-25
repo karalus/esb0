@@ -147,6 +147,30 @@
 			<artifactId>FastInfoset</artifactId>
 			<version>1.2.13</version>
 		</dependency>
+		<dependency>
+		    <groupId>io.dropwizard.metrics</groupId>
+		    <artifactId>metrics-core</artifactId>
+		    <version>3.2.6</version>
+		</dependency>		
+		<dependency>
+		    <groupId>io.dropwizard.metrics</groupId>
+		    <artifactId>metrics-servlets</artifactId>
+		    <version>3.2.6</version>
+		    <exclusions>
+		    	<exclusion>
+		    		<groupId>io.dropwizard.metrics</groupId>
+		    		<artifactId>metrics-healthchecks</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>io.dropwizard.metrics</groupId>
+		    		<artifactId>metrics-jvm</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>com.papertrail</groupId>
+		    		<artifactId>profiler</artifactId>
+		    	</exclusion>
+		    </exclusions>
+		</dependency>		
 	</dependencies>
 	<build>
 		<finalName>esb0</finalName>

@@ -37,6 +37,7 @@ import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQConnectionFactory;
+import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StreamUtils;
 
 public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
@@ -157,6 +158,14 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 			return _propertyCache.get(key);
 		} else {
 			Object property = key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
+			if (property instanceof javax.sql.DataSource) {
+				// HikariCP?
+				try {
+					ReflectionUtils.eval(property, "setMetricRegistry($1)", getMetricRegistry());
+				} catch (ReflectiveOperationException e) {
+					logger.info("No HikariCP", e);
+				}
+			}
 			_propertyCache.put(key, property);
 			return property; 
 		}
