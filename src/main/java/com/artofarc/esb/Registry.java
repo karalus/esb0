@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
+import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 
 import com.artofarc.esb.context.AbstractContext;
@@ -31,32 +32,29 @@ import com.artofarc.util.Closer;
 
 public class Registry extends AbstractContext {
 
-	private static final int DEFAULT_NO_SERVICES = 64;
+	private static final int DEFAULT_NO_SERVICES = 256;
 	private static final int CONCURRENT_UPDATES = 4;
 
 	private final ConcurrentHashMap<String, ConsumerPort> _services = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
+	private final ConcurrentHashMap<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1, 0.75f, CONCURRENT_UPDATES);
+	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1, 0.75f, CONCURRENT_UPDATES);
+	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>(16, 0.75f, CONCURRENT_UPDATES);
 
 	private final MBeanServer _mbs;
 	private final String OBJECT_NAME = "com.artofarc.esb:type=" + getClass().getSimpleName();
-	
+	private final ConcurrentHashMap<String, ObjectName> _registered = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
+
 	public Registry(MBeanServer mbs) {
 		_mbs = mbs;
-		if (_mbs != null) {
-			try {
-				_mbs.registerMBean(this, new ObjectName(OBJECT_NAME));
-			} catch (JMException e) {
-				throw new RuntimeException(e);
-			}
-		}
+		registerMBean(this, "");
 	}
-	
+
 	public final void registerMBean(Object object, String postfix) {
 		if (_mbs != null) {
 			try {
-				_mbs.registerMBean(object, new ObjectName(OBJECT_NAME + postfix));
+				String name = OBJECT_NAME + postfix;
+				ObjectInstance objectInstance = _mbs.registerMBean(object, new ObjectName(name));
+				_registered.put(name, objectInstance.getObjectName());
 			} catch (JMException e) {
 				throw new RuntimeException(e);
 			}
@@ -66,18 +64,10 @@ public class Registry extends AbstractContext {
 	public final void unregisterMBean(String postfix) {
 		if (_mbs != null) {
 			try {
-				_mbs.unregisterMBean(new ObjectName(OBJECT_NAME + postfix));
+				_mbs.unregisterMBean(_registered.remove(OBJECT_NAME + postfix));
 			} catch (JMException e) {
-				// ignore
+				logger.error("unregisterMBean failed", e);
 			}
-		}
-	}
-
-	public final void unregisterMBean(ObjectName name) {
-		try {
-			_mbs.unregisterMBean(name);
-		} catch (JMException e) {
-			// ignore
 		}
 	}
 
@@ -217,15 +207,12 @@ public class Registry extends AbstractContext {
 	@Override
 	public synchronized void close() {
 		super.close();
-		if (_mbs != null) {
-			try {
-				for (ObjectName objectName : _mbs.queryNames(new ObjectName(OBJECT_NAME + ",consumerType=*,uri=*"), null)) {
-					unregisterMBean(objectName);
-				}
-				unregisterMBean(new ObjectName(OBJECT_NAME));
-			} catch (JMException e) {
-				// ignore
+		try {
+			for (ObjectName objectName : _registered.values()) {
+				_mbs.unregisterMBean(objectName);
 			}
+		} catch (JMException e) {
+			logger.warn("unregisterMBean failed", e);
 		}
 	}
 
