@@ -39,6 +39,22 @@
 		}
 %>
 </table>
+<br>RestServices:
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Path</b></td><td><b>Uri</b></td><td><b>PoolSize</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
+<%
+		for (String path : globalContext.getRESTServicePaths()) {
+		   HttpConsumer consumerPort = globalContext.getHttpService(path);
+		   %>
+		   <tr>
+		    <td><%=path%>*</td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
+		    <td><%=consumerPort.getPoolSize()%></td>
+		    <td><form method="post" action="admin/deploy<%=consumerPort.getUri()%>"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+		    <td><form action="admin/deploy<%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete this service?');"><input type="submit" value="delete"/><input type="hidden" name="delete"/></form></td>
+		   </tr>
+		   <%
+		}
+%>
+</table>
 <br>JMSServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>WorkerCount</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
 <%

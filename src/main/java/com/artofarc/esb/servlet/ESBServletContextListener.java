@@ -99,12 +99,8 @@ public final class ESBServletContextListener implements ServletContextListener, 
 
 	@Override
 	public void run() {
-		for (String path : globalContext.getHttpServicePaths()) {
-			HttpConsumer consumerPort = globalContext.getHttpService(path);
-			// check because it could be undeployed meanwhile
-			if (consumerPort != null) {
-				consumerPort.getContextPool().shrinkPool();
-			}
+		for (HttpConsumer httpConsumer : globalContext.getHttpConsumers()) {
+			httpConsumer.getContextPool().shrinkPool();
 		}
 	}
 

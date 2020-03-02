@@ -17,6 +17,7 @@
 package com.artofarc.esb;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,21 +29,22 @@ import javax.management.ObjectName;
 import com.artofarc.esb.context.AbstractContext;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
+import com.artofarc.util.BPlusTree;
 import com.artofarc.util.Closer;
 
 public class Registry extends AbstractContext {
 
 	private static final int DEFAULT_NO_SERVICES = 256;
-	private static final int CONCURRENT_UPDATES = 4;
 
-	private final ConcurrentHashMap<String, ConsumerPort> _services = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>(16, 0.75f, CONCURRENT_UPDATES);
+	private final ConcurrentHashMap<String, ConsumerPort> _services = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES);
+	private final ConcurrentHashMap<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
+	private final BPlusTree<HttpConsumer> _restServices = new BPlusTree<>();
+	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
+	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>();
 
 	private final MBeanServer _mbs;
 	private final String OBJECT_NAME = "com.artofarc.esb:type=" + getClass().getSimpleName();
-	private final ConcurrentHashMap<String, ObjectName> _registered = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
+	private final ConcurrentHashMap<String, ObjectName> _registered = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES);
 
 	public Registry(MBeanServer mbs) {
 		_mbs = mbs;
@@ -79,6 +81,16 @@ public class Registry extends AbstractContext {
 		return _httpServices.keySet();
 	}
 
+	public final List<String> getRESTServicePaths() {
+		return _restServices.getKeys();
+	}
+
+	public final List<HttpConsumer> getHttpConsumers() {
+		List<HttpConsumer> result = _restServices.getValues();
+		result.addAll(_httpServices.values());
+		return result;
+	}
+
 	public final Collection<JMSConsumer> getJMSConsumers() {
 		return _jmsConsumer.values();
 	}
@@ -90,14 +102,7 @@ public class Registry extends AbstractContext {
 	public final HttpConsumer getHttpService(String path) {
 		HttpConsumer httpService = _httpServices.get(path);
 		if (httpService == null) {
-			// TOREVIEW: Find service for a shorter path
-			for (String url : _httpServices.keySet()) {
-				if (url.endsWith("*")) {
-					if (path.startsWith(url.substring(0, url.length() - 1))) {
-						return _httpServices.get(url);
-					}
-				}
-			}
+			return _restServices.search(path);
 		}
 		return httpService;
 	}
@@ -125,7 +130,11 @@ public class Registry extends AbstractContext {
 	private void unbindService(ConsumerPort consumerPort) {
 		if (consumerPort instanceof HttpConsumer) {
 			HttpConsumer httpService = (HttpConsumer) consumerPort;
-			_httpServices.remove(httpService.getBindPath());
+			if (httpService.isWildcard()) {
+				_restServices.remove(httpService.getBindPath());
+			} else {
+				_httpServices.remove(httpService.getBindPath());
+			}
 		} else if (consumerPort instanceof JMSConsumer) {
 			JMSConsumer jmsConsumer = (JMSConsumer) consumerPort;
 			_jmsConsumer.remove(jmsConsumer.getKey());
@@ -136,7 +145,8 @@ public class Registry extends AbstractContext {
 	}
 
 	public final ConsumerPort bindHttpService(HttpConsumer httpConsumer) {
-		ConsumerPort oldConsumerPort = _httpServices.get(httpConsumer.getBindPath());
+		ConsumerPort oldConsumerPort = httpConsumer.isWildcard() ? _restServices.get(httpConsumer.getBindPath())
+				: _httpServices.get(httpConsumer.getBindPath());
 		if (oldConsumerPort != null) {
 			if (!oldConsumerPort.getUri().equals(httpConsumer.getUri())) {
 				throw new IllegalArgumentException("A different service is already bound to this path: " + oldConsumerPort.getUri());
@@ -146,12 +156,17 @@ public class Registry extends AbstractContext {
 			unbindService(oldConsumerPort);
 		}
 		bindService(httpConsumer);
-		_httpServices.put(httpConsumer.getBindPath(), httpConsumer);
+		if (httpConsumer.isWildcard()) {
+			_restServices.insert(httpConsumer.getBindPath(), httpConsumer);
+		} else {
+			_httpServices.put(httpConsumer.getBindPath(), httpConsumer);
+		}
 		return oldConsumerPort;
 	}
 
 	public final void unbindHttpService(HttpConsumer httpConsumer) {
-		unbindInternalService(_httpServices.remove(httpConsumer.getBindPath()));
+		unbindInternalService(httpConsumer.isWildcard() ? _restServices.remove(httpConsumer.getBindPath())
+				: _httpServices.remove(httpConsumer.getBindPath()));
 	}
 
 	public final ConsumerPort bindJmsConsumer(JMSConsumer jmsConsumer) {
@@ -192,7 +207,7 @@ public class Registry extends AbstractContext {
 		for (TimerService timerService : _timerServices.values()) {
 			timerService.close();
 		}
-		for (HttpConsumer httpConsumer : _httpServices.values()) {
+		for (HttpConsumer httpConsumer : getHttpConsumers()) {
 			try {
 				httpConsumer.enable(false);
 			} catch (Exception e) {

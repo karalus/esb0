@@ -17,11 +17,14 @@
 package com.artofarc.esb.mbean;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 public interface GlobalContextMXBean {
 
 	Set<String> getHttpServicePaths();
+
+	List<String> getRESTServicePaths();
 
 	boolean lockFileSystem();
 

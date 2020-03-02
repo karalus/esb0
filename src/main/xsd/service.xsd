@@ -650,13 +650,13 @@
 					<element name="httpBindURI">
 						<complexType>
 							<simpleContent>
-								<extension base="anyURI">
+								<extension base="tns:URI1">
 									<attribute name="requiredRole" type="tns:string1" />
 									<attribute name="supportCompression" type="boolean" default="false" />
 									<attribute name="multipartResponse" type="tns:string1" />
-									<attribute name="bufferSize" type="tns:int1" />
+									<attribute name="bufferSize" type="tns:positiveInt" />
 									<attribute name="minPool" type="unsignedShort" default="1" />
-									<attribute name="maxPool" type="tns:int1" default="20" />
+									<attribute name="maxPool" type="tns:positiveInt" default="20" />
 									<attribute name="keepAlive" type="unsignedInt" default="300000" />
 								</extension>
 							</simpleContent>
@@ -675,7 +675,7 @@
 							<attribute name="password" type="string" />
 							<attribute name="subscription" type="tns:string1" />
 							<attribute name="messageSelector" type="string" />
-							<attribute name="workerCount" type="tns:int1" default="1" />
+							<attribute name="workerCount" type="tns:positiveInt" default="1" />
 							<attribute name="pollInterval" type="int" default="0" />
 						</complexType>
 					</element>
@@ -697,7 +697,7 @@
 			<attribute name="errorHandler" type="Name" />
 			<attribute name="enabled" type="boolean" default="true" />
 			<attribute name="resourceLimit" type="int" default="-1" />
-			<attribute name="version" type="tns:int1" default="1" />
+			<attribute name="version" type="tns:positiveInt" default="1" />
 		</complexType>
 	</element>
 	<element name="workerPool">
@@ -723,9 +723,15 @@
 			<minLength value="1" />
 		</restriction>
 	</simpleType>
-	<simpleType name="int1">
+	<simpleType name="positiveInt">
 		<restriction base="unsignedShort">
 			<minInclusive value="1" />
+		</restriction>
+	</simpleType>
+	<simpleType name="URI1">
+		<restriction base="anyURI">
+			<minLength value="1" />
+			<pattern value="[^\*]*\*?" />
 		</restriction>
 	</simpleType>
 </schema>

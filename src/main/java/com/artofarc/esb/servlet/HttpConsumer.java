@@ -33,6 +33,7 @@ import com.artofarc.esb.message.ESBMessage;
 
 public final class HttpConsumer extends ConsumerPort implements Runnable, com.artofarc.esb.mbean.HttpConsumerMXBean {
 
+	private final boolean _wildcard;
 	private final String _bindPath;
 	private final String _requiredRole;
 	private final int _minPool, _maxPool;
@@ -44,13 +45,18 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 
 	public HttpConsumer(String uri, int resourceLimit, String bindPath, String requiredRole, int minPool, int maxPool, long keepAlive, boolean supportCompression, String multipartResponse, Integer bufferSize) {
 		super(uri);
-		_bindPath = bindPath;
+		_wildcard = bindPath.charAt(bindPath.length() - 1) == '*';
+		_bindPath = _wildcard ? bindPath.substring(0, bindPath.length() - 1) : bindPath;
 		_requiredRole = requiredRole;
 		_minPool = minPool;
 		_maxPool = maxPool;
 		_keepAlive = keepAlive;
 		_resourceLimit = resourceLimit;
 		_terminalAction = new HttpServletResponseAction(supportCompression, multipartResponse, bufferSize);
+	}
+
+	public boolean isWildcard() {
+		return _wildcard;
 	}
 
 	public String getBindPath() {

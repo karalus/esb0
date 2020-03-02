@@ -20,7 +20,11 @@ import java.util.Date;
 
 public interface HttpConsumerMXBean extends ConsumerPortMXBean {
 
+	boolean isWildcard();
+
 	String getBindPath();
+
+	String getRequiredRole();
 
 	int getPoolSize();
 

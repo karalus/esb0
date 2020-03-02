@@ -92,15 +92,15 @@ public class GenericHttpListener extends HttpServlet {
 		}
 	}
 
-	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer consumerPort) throws Exception {
+	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer httpConsumer) throws Exception {
 		// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
 		final boolean bodyPresent = request.getHeader(HTTP_HEADER_CONTENT_LENGTH) != null || request.getHeader(HTTP_HEADER_TRANSFER_ENCODING) != null;
 		ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
 		message.getVariables().put(HttpMethod, request.getMethod());
 		message.getVariables().put(ContextPath, request.getContextPath());
 		message.getVariables().put(PathInfo, pathInfo);
-		if (consumerPort.getBindPath().endsWith("*")) {
-			message.getVariables().put(appendHttpUrlPath, URLDecoder.decode(pathInfo.substring(consumerPort.getBindPath().length() - 1), "UTF-8"));
+		if (httpConsumer.isWildcard()) {
+			message.getVariables().put(appendHttpUrlPath, URLDecoder.decode(pathInfo.substring(httpConsumer.getBindPath().length()), "UTF-8"));
 		}
 		message.putVariable(QueryString, request.getQueryString());
 		message.setCharset(request.getCharacterEncoding());
