@@ -20,7 +20,7 @@ import java.util.Date;
 
 public interface HttpConsumerMXBean extends ConsumerPortMXBean {
 
-	boolean isWildcard();
+	boolean isPathMapping();
 
 	String getBindPath();
 

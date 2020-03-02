@@ -24,7 +24,7 @@ public interface GlobalContextMXBean {
 
 	Set<String> getHttpServicePaths();
 
-	List<String> getRESTServicePaths();
+	List<String> getMappedHttpServicePaths();
 
 	boolean lockFileSystem();
 

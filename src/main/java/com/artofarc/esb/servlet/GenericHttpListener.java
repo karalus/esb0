@@ -99,7 +99,7 @@ public class GenericHttpListener extends HttpServlet {
 		message.getVariables().put(HttpMethod, request.getMethod());
 		message.getVariables().put(ContextPath, request.getContextPath());
 		message.getVariables().put(PathInfo, pathInfo);
-		if (httpConsumer.isWildcard()) {
+		if (httpConsumer.isPathMapping()) {
 			message.getVariables().put(appendHttpUrlPath, URLDecoder.decode(pathInfo.substring(httpConsumer.getBindPath().length()), "UTF-8"));
 		}
 		message.putVariable(QueryString, request.getQueryString());

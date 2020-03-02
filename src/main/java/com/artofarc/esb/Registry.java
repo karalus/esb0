@@ -38,7 +38,7 @@ public class Registry extends AbstractContext {
 
 	private final ConcurrentHashMap<String, ConsumerPort> _services = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES);
 	private final ConcurrentHashMap<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
-	private final BPlusTree<HttpConsumer> _restServices = new BPlusTree<>();
+	private final BPlusTree<HttpConsumer> _mappedHttpServices = new BPlusTree<>();
 	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
 	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>();
 
@@ -81,12 +81,12 @@ public class Registry extends AbstractContext {
 		return _httpServices.keySet();
 	}
 
-	public final List<String> getRESTServicePaths() {
-		return _restServices.getKeys();
+	public final List<String> getMappedHttpServicePaths() {
+		return _mappedHttpServices.getKeys();
 	}
 
 	public final List<HttpConsumer> getHttpConsumers() {
-		List<HttpConsumer> result = _restServices.getValues();
+		List<HttpConsumer> result = _mappedHttpServices.getValues();
 		result.addAll(_httpServices.values());
 		return result;
 	}
@@ -102,7 +102,7 @@ public class Registry extends AbstractContext {
 	public final HttpConsumer getHttpService(String path) {
 		HttpConsumer httpService = _httpServices.get(path);
 		if (httpService == null) {
-			return _restServices.search(path);
+			return _mappedHttpServices.search(path);
 		}
 		return httpService;
 	}
@@ -130,8 +130,8 @@ public class Registry extends AbstractContext {
 	private void unbindService(ConsumerPort consumerPort) {
 		if (consumerPort instanceof HttpConsumer) {
 			HttpConsumer httpService = (HttpConsumer) consumerPort;
-			if (httpService.isWildcard()) {
-				_restServices.remove(httpService.getBindPath());
+			if (httpService.isPathMapping()) {
+				_mappedHttpServices.remove(httpService.getBindPath());
 			} else {
 				_httpServices.remove(httpService.getBindPath());
 			}
@@ -145,8 +145,7 @@ public class Registry extends AbstractContext {
 	}
 
 	public final ConsumerPort bindHttpService(HttpConsumer httpConsumer) {
-		ConsumerPort oldConsumerPort = httpConsumer.isWildcard() ? _restServices.get(httpConsumer.getBindPath())
-				: _httpServices.get(httpConsumer.getBindPath());
+		ConsumerPort oldConsumerPort = httpConsumer.isPathMapping() ? _mappedHttpServices.get(httpConsumer.getBindPath()) : _httpServices.get(httpConsumer.getBindPath());
 		if (oldConsumerPort != null) {
 			if (!oldConsumerPort.getUri().equals(httpConsumer.getUri())) {
 				throw new IllegalArgumentException("A different service is already bound to this path: " + oldConsumerPort.getUri());
@@ -156,8 +155,8 @@ public class Registry extends AbstractContext {
 			unbindService(oldConsumerPort);
 		}
 		bindService(httpConsumer);
-		if (httpConsumer.isWildcard()) {
-			_restServices.insert(httpConsumer.getBindPath(), httpConsumer);
+		if (httpConsumer.isPathMapping()) {
+			_mappedHttpServices.insert(httpConsumer.getBindPath(), httpConsumer);
 		} else {
 			_httpServices.put(httpConsumer.getBindPath(), httpConsumer);
 		}
@@ -165,8 +164,7 @@ public class Registry extends AbstractContext {
 	}
 
 	public final void unbindHttpService(HttpConsumer httpConsumer) {
-		unbindInternalService(httpConsumer.isWildcard() ? _restServices.remove(httpConsumer.getBindPath())
-				: _httpServices.remove(httpConsumer.getBindPath()));
+		unbindInternalService(httpConsumer.isPathMapping() ? _mappedHttpServices.remove(httpConsumer.getBindPath()) : _httpServices.remove(httpConsumer.getBindPath()));
 	}
 
 	public final ConsumerPort bindJmsConsumer(JMSConsumer jmsConsumer) {

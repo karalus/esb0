@@ -92,25 +92,25 @@ public final class BPlusTree<T> {
 
 		@SuppressWarnings("unchecked")
 		T remove(char[] key, int offset) {
-			T result = null;
 			for (ListIterator<Entry<char[], ?>> iter = _list.listIterator(); iter.hasNext();) {
 				Entry<char[], ?> entry = iter.next();
-				if (startsWith(key, entry.getKey(), offset, entry.getKey().length)) {
+				int keyLen = entry.getKey().length;
+				if (startsWith(key, entry.getKey(), offset, keyLen)) {
 					if (entry.getValue() instanceof Node) {
 						Node<T> inner = (Node<T>) entry.getValue();
-						result = inner.remove(key, entry.getKey().length);
+						T result = inner.remove(key, keyLen);
 						if (inner._list.size() == 1) {
 							// Condense
 							iter.set(inner._list.get(0));
 						}
-					} else {
+						return result;
+					} else if (keyLen == key.length) {
 						iter.remove();
-						result = (T) entry.getValue();
+						return (T) entry.getValue();
 					}
-					break;
 				}
 			}
-			return result;
+			return null;
 		}
 
 		@SuppressWarnings("unchecked")

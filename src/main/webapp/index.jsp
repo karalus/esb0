@@ -39,10 +39,10 @@
 		}
 %>
 </table>
-<br>RestServices:
+<br>HttpServices with path mapping:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Path</b></td><td><b>Uri</b></td><td><b>PoolSize</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
 <%
-		for (String path : globalContext.getRESTServicePaths()) {
+		for (String path : globalContext.getMappedHttpServicePaths()) {
 		   HttpConsumer consumerPort = globalContext.getHttpService(path);
 		   %>
 		   <tr>
