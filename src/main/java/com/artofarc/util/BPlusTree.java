@@ -82,12 +82,12 @@ public final class BPlusTree<T> {
 						node.addByLength(Collections.createEntry(key, value));
 						char[] prefix = new char[l];
 						System.arraycopy(key, 0, prefix, 0, l);
-						_list.add(Collections.createEntry(prefix, node));
+						addByLength(Collections.createEntry(prefix, node));
 						return;
 					}
 				}
 			}
-			_list.add(Collections.createEntry(key, value));
+			addByLength(Collections.createEntry(key, value));
 		}
 
 		@SuppressWarnings("unchecked")
