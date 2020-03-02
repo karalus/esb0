@@ -29,7 +29,7 @@ import javax.management.ObjectName;
 import com.artofarc.esb.context.AbstractContext;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
-import com.artofarc.util.BPlusTree;
+import com.artofarc.util.PrefixBTree;
 import com.artofarc.util.Closer;
 
 public class Registry extends AbstractContext {
@@ -38,7 +38,7 @@ public class Registry extends AbstractContext {
 
 	private final ConcurrentHashMap<String, ConsumerPort> _services = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES);
 	private final ConcurrentHashMap<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
-	private final BPlusTree<HttpConsumer> _mappedHttpServices = new BPlusTree<>();
+	private final PrefixBTree<HttpConsumer> _mappedHttpServices = new PrefixBTree<>();
 	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
 	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>();
 

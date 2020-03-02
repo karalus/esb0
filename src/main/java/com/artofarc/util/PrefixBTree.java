@@ -22,9 +22,10 @@ import java.util.ListIterator;
 import java.util.Map.Entry;
 
 /**
- * This B+Tree allows for lookup of a prefix for a key.
+ * This BTree allows for lookup of a prefix for a key.
+ * It is only better than O(log(n)) when keys have a common prefix.
  */
-public final class BPlusTree<T> {
+public final class PrefixBTree<T> {
 
 	private static boolean startsWith(char[] s, char[] p, int o, int l) {
 		if (l > s.length)
