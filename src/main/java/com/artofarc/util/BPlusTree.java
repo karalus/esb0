@@ -114,13 +114,14 @@ public final class BPlusTree<T> {
 		}
 
 		@SuppressWarnings("unchecked")
-		T search(char[] path, int offset) {
+		T search(char[] path, int offset, int minKeyLen) {
 			for (Entry<char[], ?> entry : _list) {
-				if (startsWith(path, entry.getKey(), offset, entry.getKey().length)) {
+				int keyLen = entry.getKey().length;
+				if (startsWith(path, entry.getKey(), offset, keyLen)) {
 					if (entry.getValue() instanceof Node) {
 						Node<T> inner = (Node<T>) entry.getValue();
-						return inner.search(path, entry.getKey().length);
-					} else {
+						return inner.search(path, keyLen, minKeyLen);
+					} else if (keyLen >= minKeyLen) {
 						return (T) entry.getValue();
 					}
 				}
@@ -153,11 +154,11 @@ public final class BPlusTree<T> {
 	}
 
 	public synchronized T get(String key) {
-		return search(key);
+		return _root.search(key.toCharArray(), 0, key.length());
 	}
 
 	public synchronized T search(String path) {
-		return _root.search(path.toCharArray(), 0);
+		return _root.search(path.toCharArray(), 0, 0);
 	}
 
 	private synchronized List<Entry<char[], T>> getLeaves() {
