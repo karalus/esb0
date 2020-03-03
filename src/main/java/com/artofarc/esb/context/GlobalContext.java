@@ -18,11 +18,11 @@ package com.artofarc.esb.context;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -43,15 +43,16 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 
 	private static final long DEPLOY_TIMEOUT = Long.parseLong(System.getProperty("esb0.deploy.timeout", "60"));
 	private static final String GLOBALPROPERTIES = System.getProperty("esb0.globalproperties");
+	private static final String DEFAULT_WORKER_POOL = "default";
 
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
 	private final XQConnectionFactory _xqConnectionFactory;
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
-	private final Map<String, WorkerPool> _workerPoolMap = Collections.synchronizedMap(new HashMap<String, WorkerPool>());
+	private final Map<String, WorkerPool> _workerPoolMap = new ConcurrentHashMap<>();
+	private final ReentrantLock _propertyCacheLock = new ReentrantLock();
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
-	private final Map<String, Object> _propertyCache = new HashMap<>();
-
+	private volatile Map<String, Object> _propertyCache;
 	private volatile FileSystem _fileSystem;
 
 	public GlobalContext(MBeanServer mbs) {
@@ -71,7 +72,7 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		_xqConnectionFactory = XQConnectionFactory.newInstance(_uriResolver);
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
-		putWorkerPool(null, new WorkerPool(this, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
+		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -117,11 +118,11 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	}
 
 	public WorkerPool getWorkerPool(String name) {
-		return _workerPoolMap.get(name);
+		return _workerPoolMap.get(name != null ? name : DEFAULT_WORKER_POOL);
 	}
 
 	public WorkerPool getDefaultWorkerPool() {
-		return _workerPoolMap.get(null);
+		return _workerPoolMap.get(DEFAULT_WORKER_POOL);
 	}
 
 	public void putWorkerPool(String name, WorkerPool workerPool) {
@@ -152,25 +153,33 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		super.close();
 	}
 
-	public synchronized Object getProperty(String key) throws NamingException {
+	public Object getProperty(String key) throws NamingException {
 		if (_propertyCache.containsKey(key)) {
 			return _propertyCache.get(key);
 		} else {
-			Object property = key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
-			_propertyCache.put(key, property);
-			return property; 
+			_propertyCacheLock.lock();
+			try {
+				Map<String, Object> propertyCache = new HashMap<>(_propertyCache);
+				Object property = key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
+				propertyCache.put(key, property);
+				_propertyCache = propertyCache;
+				return property; 
+			} finally {
+				_propertyCacheLock.unlock();
+			}
 		}
 	}
 
-	public synchronized void invalidatePropertyCache() throws IOException {
-		_propertyCache.clear();
+	public void invalidatePropertyCache() throws IOException {
+		Map<String, Object> propertyCache = new HashMap<>();
 		if (GLOBALPROPERTIES != null) {
 			Properties properties = new Properties();
 			properties.load(StreamUtils.getResourceAsStream(GLOBALPROPERTIES));
 			for (String key : properties.stringPropertyNames()) {
-				_propertyCache.put(key, properties.getProperty(key));
+				propertyCache.put(key, properties.getProperty(key));
 			}
 		}
+		_propertyCache = propertyCache;
 	}
 
 	public Set<String> getCachedProperties() {

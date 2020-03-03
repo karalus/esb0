@@ -20,10 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map.Entry;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This BTree allows for lookup of a prefix for a key.
- * It is only better than O(log(n)) when keys have a common prefix.
+ * It is only better than O(n) when some keys share a common prefix.
  */
 public final class PrefixBTree<T> {
 
@@ -142,27 +143,52 @@ public final class PrefixBTree<T> {
 			}
 		}
 
+		Node<T> copy() {
+			Node<T> copy = new Node<>(new ArrayList<Entry<char[], ?>>());
+			for (Entry<char[], ?> entry : _list) {
+				if (entry.getValue() instanceof Node) {
+					@SuppressWarnings("unchecked")
+					Node<T> inner = (Node<T>) entry.getValue();
+					copy._list.add(Collections.createEntry(entry.getKey(), inner.copy()));
+				} else {
+					copy._list.add(entry);
+				}
+			}
+			return copy;
+		}
+
 	}
 
-	private final Node<T> _root = new Node<>(new ArrayList<Entry<char[], ?>>());
+	// copy on write 
+	private final ReentrantLock _lock = new ReentrantLock();
+	private volatile Node<T> _root = new Node<>(new ArrayList<Entry<char[], ?>>());
 
-	public synchronized void insert(String key, T value) {
-		_root.insert(key.toCharArray(), value);
+	public void insert(String key, T value) {
+		_lock.lock();
+		Node<T> copy = _root.copy();
+		copy.insert(key.toCharArray(), value);
+		_root = copy;
+		_lock.unlock();
 	}
 
-	public synchronized T remove(String key) {
-		return _root.remove(key.toCharArray(), 0);
+	public T remove(String key) {
+		_lock.lock();
+		Node<T> copy = _root.copy();
+		T result = copy.remove(key.toCharArray(), 0);
+		_root = copy;
+		_lock.unlock();
+		return result;
 	}
 
-	public synchronized T get(String key) {
+	public T get(String key) {
 		return _root.search(key.toCharArray(), 0, key.length());
 	}
 
-	public synchronized T search(String path) {
+	public T search(String path) {
 		return _root.search(path.toCharArray(), 0, 0);
 	}
 
-	private synchronized List<Entry<char[], T>> getLeaves() {
+	private List<Entry<char[], T>> getLeaves() {
 		List<Entry<char[], T>> leaves = new ArrayList<>();
 		_root.collectLeaves(leaves);
 		return leaves;

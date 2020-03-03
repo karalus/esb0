@@ -71,8 +71,8 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		this(new PoolContext(globalContext, name), name, minThreads, maxThreads, priority, queueDepth, scheduledThreads, allowCoreThreadTimeOut);
 	}
 
-	WorkerPool(GlobalContext globalContext, int nThreads) {
-		this(new PoolContext(globalContext, null), "default", nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
+	WorkerPool(GlobalContext globalContext, String name, int nThreads) {
+		this(new PoolContext(globalContext, name), name, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
 	}
 
 	public PoolContext getPoolContext() {

@@ -218,7 +218,7 @@ public class Registry extends AbstractContext {
 	}
 
 	@Override
-	public synchronized void close() {
+	public void close() {
 		super.close();
 		try {
 			for (ObjectName objectName : _registered.values()) {
