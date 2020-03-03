@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.mbean;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -30,7 +29,7 @@ public interface GlobalContextMXBean {
 
 	void unlockFileSystem();
 
-	void invalidatePropertyCache() throws IOException;
+	void invalidatePropertyCache() throws Exception;
 
 	Set<String> getCachedProperties();
 

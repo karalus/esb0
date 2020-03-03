@@ -16,9 +16,7 @@
  */
 package com.artofarc.esb.context;
 
-import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -37,6 +35,7 @@ import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQConnectionFactory;
+import com.artofarc.util.ConcurrentResourcePool;
 import com.artofarc.util.StreamUtils;
 
 public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
@@ -50,17 +49,33 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	private final XQConnectionFactory _xqConnectionFactory;
 	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
 	private final Map<String, WorkerPool> _workerPoolMap = new ConcurrentHashMap<>();
-	private final ReentrantLock _propertyCacheLock = new ReentrantLock();
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
-	private volatile Map<String, Object> _propertyCache;
 	private volatile FileSystem _fileSystem;
+	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
+
+		@Override
+		protected void init(Map<String, Object> pool) throws Exception {
+			if (GLOBALPROPERTIES != null) {
+				Properties properties = new Properties();
+				properties.load(StreamUtils.getResourceAsStream(GLOBALPROPERTIES));
+				for (String key : properties.stringPropertyNames()) {
+					pool.put(key, properties.getProperty(key));
+				}
+			}
+		}
+
+		@Override
+		protected Object createResource(String key, Void param) throws NamingException {
+			return key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
+		}
+
+	};
 
 	public GlobalContext(MBeanServer mbs) {
 		super(mbs);
 		try {
-			invalidatePropertyCache();
 			_initialContext = new InitialContext();
-		} catch (IOException | NamingException e) {
+		} catch (NamingException e) {
 			throw new RuntimeException(e);
 		}
 		_uriResolver = new XMLProcessingArtifact.AbstractURIResolver() {
@@ -154,36 +169,15 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	}
 
 	public Object getProperty(String key) throws NamingException {
-		if (_propertyCache.containsKey(key)) {
-			return _propertyCache.get(key);
-		} else {
-			_propertyCacheLock.lock();
-			try {
-				Map<String, Object> propertyCache = new HashMap<>(_propertyCache);
-				Object property = key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
-				propertyCache.put(key, property);
-				_propertyCache = propertyCache;
-				return property; 
-			} finally {
-				_propertyCacheLock.unlock();
-			}
-		}
+		return _propertyCache.getResource(key);
 	}
 
-	public void invalidatePropertyCache() throws IOException {
-		Map<String, Object> propertyCache = new HashMap<>();
-		if (GLOBALPROPERTIES != null) {
-			Properties properties = new Properties();
-			properties.load(StreamUtils.getResourceAsStream(GLOBALPROPERTIES));
-			for (String key : properties.stringPropertyNames()) {
-				propertyCache.put(key, properties.getProperty(key));
-			}
-		}
-		_propertyCache = propertyCache;
+	public void invalidatePropertyCache() throws Exception {
+		_propertyCache.reset();
 	}
 
 	public Set<String> getCachedProperties() {
-		return _propertyCache.keySet();
+		return _propertyCache.getResourceDescriptors();
 	}
 
 	public String bindProperties(String exp) throws NamingException {

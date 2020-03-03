@@ -16,52 +16,26 @@
  */
 package com.artofarc.esb.resource;
 
-import java.util.HashMap;
-import java.util.Set;
+import com.artofarc.util.ConcurrentResourcePool;
 
-public abstract class ResourceFactory<R extends AutoCloseable, D, P, E extends Exception> implements AutoCloseable {
-
-	private final HashMap<D, R> _pool = new HashMap<>();
-
-	abstract protected R createResource(D descriptor, P param) throws E;
-
-	public final synchronized R getResource(D descriptor, P param) throws E {
-		R resource = _pool.get(descriptor);
-		if (resource == null) {
-			resource = createResource(descriptor, param);
-			_pool.put(descriptor, resource);
-		}
-		return resource;
-	}
-
-	public final R getResource(D descriptor) throws E {
-		return getResource(descriptor, null);
-	}
-
-	public final Set<D> getResourceDescriptors() {
-		return _pool.keySet();
-	}
+public abstract class ResourceFactory<R extends AutoCloseable, D, P, E extends Exception> extends ConcurrentResourcePool<R, D, P, E> implements AutoCloseable {
 
 	public final void close(D descriptor) throws Exception {
-		R resource;
-		synchronized (this) {
-			resource = _pool.remove(descriptor);
-		}
+		R resource = removeResource(descriptor);
 		if (resource != null) {
 			resource.close();
 		}
 	}
 
 	@Override
-	public synchronized void close() {
-		for (R resource : _pool.values()) {
+	public void close() {
+		for (R resource : getResources()) {
 			try {
 				resource.close();
 			} catch (Exception e) {
 				// ignore
 			}
 		}
-		_pool.clear();
 	}
 
 }

@@ -29,7 +29,7 @@ public final class HttpEndpointRegistry {
 
 	protected final static Logger logger = LoggerFactory.getLogger(HttpEndpointRegistry.class);
 
-	private final HashMap<HttpEndpoint, HttpUrlSelector> _map = new HashMap<>();
+	private final HashMap<HttpEndpoint, HttpUrlSelector> _map = new HashMap<>(128);
 	private final GlobalContext _globalContext;
 
 	public HttpEndpointRegistry(GlobalContext globalContext) {

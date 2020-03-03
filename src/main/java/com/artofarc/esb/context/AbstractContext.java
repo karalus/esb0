@@ -18,56 +18,38 @@ package com.artofarc.esb.context;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Type;
-import java.util.HashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.resource.ResourceFactory;
 
-public abstract class AbstractContext implements AutoCloseable {
+public abstract class AbstractContext extends ResourceFactory<ResourceFactory<?, ?, ?, ?>, Class<?>, AbstractContext, RuntimeException> {
 
-	protected final static Logger logger = LoggerFactory.getLogger(AbstractContext.class);
-
-	private final HashMap<Class<?>, ResourceFactory<?, ?, ?, ?>> _pool = new HashMap<>();
+	protected final static Logger logger = LoggerFactory.getLogger(Context.class);
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <RF extends ResourceFactory<?, ?, ?, ?>> RF getResourceFactory(Class<RF> rfc) {
-		ResourceFactory<?, ?, ?, ?> resourceFactory = _pool.get(rfc);
-		if (resourceFactory == null) {
-			try {
-				for (Constructor<?> constructor : rfc.getConstructors()) {
-					Type[] paramTypes = constructor.getGenericParameterTypes();
-					if (paramTypes.length == 1) {
-						if (((Class<?>) paramTypes[0]).isAssignableFrom(getClass())) {
-							resourceFactory = (ResourceFactory<?, ?, ?, ?>) constructor.newInstance(this);
-							break;
-						}
-					} else if (paramTypes.length == 0) {
-						resourceFactory = (ResourceFactory<?, ?, ?, ?>) constructor.newInstance();
-						break;
-					}
-				}
-			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
-			}
-			if (resourceFactory == null) {
-				throw new RuntimeException(getClass().getSimpleName() + ": No appropriate ctor found in " + rfc);
-			}
-			_pool.put(rfc, resourceFactory);
-		}
-		return (RF) resourceFactory;
+	public final <RF extends ResourceFactory<?, ?, ?, ?>> RF getResourceFactory(Class<RF> rfc) {
+		return (RF) getResource(rfc, this);
 	}
 
 	@Override
-	public synchronized void close() {
-		for (ResourceFactory<?, ?, ?, ?> resourceFactory : _pool.values()) {
-			try {
-				resourceFactory.close();
-			} catch (Exception e) {
-				logger.info("Exception while closing", e);
+	protected ResourceFactory<?, ?, ?, ?> createResource(Class<?> rfc, AbstractContext context) {
+		try {
+			for (Constructor<?> constructor : rfc.getConstructors()) {
+				Type[] paramTypes = constructor.getGenericParameterTypes();
+				if (paramTypes.length == 1) {
+					if (((Class<?>) paramTypes[0]).isAssignableFrom(context.getClass())) {
+						return (ResourceFactory<?, ?, ?, ?>) constructor.newInstance(context);
+					}
+				} else if (paramTypes.length == 0) {
+					return (ResourceFactory<?, ?, ?, ?>) constructor.newInstance();
+				}
 			}
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
 		}
+		throw new RuntimeException(getClass().getSimpleName() + ": No appropriate ctor found in " + rfc);
 	}
 
 }
