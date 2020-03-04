@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -90,6 +91,24 @@ public final class PrefixBTree<T> {
 				}
 			}
 			addByLength(Collections.createEntry(key, value));
+		}
+
+		@SuppressWarnings("unchecked")
+		T update(char[] key, int offset, T value) {
+			for (ListIterator<Entry<char[], ?>> iter = _list.listIterator(); iter.hasNext();) {
+				Entry<char[], ?> entry = iter.next();
+				int keyLen = entry.getKey().length;
+				if (startsWith(key, entry.getKey(), offset, keyLen)) {
+					if (entry.getValue() instanceof Node) {
+						Node<T> inner = (Node<T>) entry.getValue();
+						return inner.update(key, keyLen, value);
+					} else if (keyLen == key.length) {
+						iter.set(Collections.createEntry(key, value));
+						return (T) entry.getValue();
+					}
+				}
+			}
+			return null;
 		}
 
 		@SuppressWarnings("unchecked")
@@ -171,11 +190,39 @@ public final class PrefixBTree<T> {
 		_lock.unlock();
 	}
 
+	public T update(String key, T value) {
+		_lock.lock();
+		try {
+			T result = _root.update(key.toCharArray(), 0, value);
+			if (result == null) {
+				throw new NoSuchElementException(key);
+			}
+			return result;
+		} finally {
+			_lock.unlock();
+		}
+	}
+
+	public T upsert(String key, T value) {
+		char[] keyChars = key.toCharArray();
+		_lock.lock();
+		T result = _root.update(keyChars, 0, value);
+		if (result == null) {
+			Node<T> copy = _root.copy();
+			copy.insert(keyChars, value);
+			_root = copy;
+		}
+		_lock.unlock();
+		return result;
+	}
+
 	public T remove(String key) {
 		_lock.lock();
 		Node<T> copy = _root.copy();
 		T result = copy.remove(key.toCharArray(), 0);
-		_root = copy;
+		if (result != null) {
+			_root = copy;
+		}
 		_lock.unlock();
 		return result;
 	}

@@ -156,7 +156,7 @@ public class Registry extends AbstractContext {
 		}
 		bindService(httpConsumer);
 		if (httpConsumer.isPathMapping()) {
-			_mappedHttpServices.insert(httpConsumer.getBindPath(), httpConsumer);
+			_mappedHttpServices.upsert(httpConsumer.getBindPath(), httpConsumer);
 		} else {
 			_httpServices.put(httpConsumer.getBindPath(), httpConsumer);
 		}
