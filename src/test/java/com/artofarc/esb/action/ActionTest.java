@@ -6,6 +6,7 @@ import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.Properties;
 
 import org.junit.After;
 import org.junit.Before;
@@ -25,7 +26,7 @@ public class ActionTest {
    
    @Before
    public void createContext() throws Exception {
-      context = new Context(new GlobalContext(null).getDefaultWorkerPool().getPoolContext());
+      context = new Context(new GlobalContext(null, new Properties()).getDefaultWorkerPool().getPoolContext());
    }
 
    @After

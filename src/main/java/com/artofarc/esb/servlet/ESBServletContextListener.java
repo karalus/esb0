@@ -36,17 +36,18 @@ import com.artofarc.esb.context.GlobalContext;
 
 public final class ESBServletContextListener implements ServletContextListener, Runnable {
 
-	public static final String ADMIN_SERVLET_PATH = "/admin/deploy";
+	public static final String ADMIN_SERVLET_PATH = "admin/deploy";
 
-	public static final String VERSION = "esb0.version";
-	public static final String BUILD_TIME = "esb0.build.time";
 	public static final String CONTEXT = "esb0.context";
 	public static final String ROOT = "esb0.root";
 
 	private GlobalContext globalContext;
 
-	public GlobalContext createContext(String root) {
-		globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer());
+	public GlobalContext createContext(String root, Properties manifest) {
+		Properties properties = new Properties();
+		properties.setProperty(GlobalContext.VERSION, manifest.getProperty("Implementation-Version", "0.0"));
+		properties.setProperty(GlobalContext.BUILD_TIME, manifest.getProperty("Build-Time", ""));
+		globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer(), properties);
 		try {
 			FileSystem fileSystem;
 			if (root != null && root.contains("jdbc")) {
@@ -62,7 +63,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 			XMLCatalog.attachToFileSystem(fileSystem);
 			FileSystem.ChangeSet changeSet = fileSystem.init(globalContext);
 			DeployHelper.deployChangeSet(globalContext, changeSet);
-			DeployHelper.createAdminService(globalContext, ADMIN_SERVLET_PATH + '*');
+			DeployHelper.createAdminService(globalContext, '/' + ADMIN_SERVLET_PATH + "/*");
 		} catch (ValidationException e) {
 			globalContext.close();
 			throw new RuntimeException("Could not validate artifact " + e.getArtifactLocation(), e.getCause());
@@ -77,19 +78,17 @@ public final class ESBServletContextListener implements ServletContextListener, 
 	@Override
 	public void contextInitialized(ServletContextEvent contextEvent) {
 		ServletContext servletContext = contextEvent.getServletContext();
-		Properties properties = new Properties();
+		Properties manifest = new Properties();
 		InputStream inputStream = servletContext.getResourceAsStream("/META-INF/MANIFEST.MF");
 		if (inputStream != null) {
 			try {
-				properties.load(inputStream);
+				manifest.load(inputStream);
 				inputStream.close();
 			} catch (IOException e) {
 				// ignore
 			}
 		}
-		servletContext.setAttribute(VERSION, properties.getProperty("Implementation-Version", "0.0"));
-		servletContext.setAttribute(BUILD_TIME, properties.getProperty("Build-Time", ""));
-		servletContext.setAttribute(CONTEXT, createContext(System.getProperty(ROOT, System.getenv("ESB_ROOT_DIR"))));
+		servletContext.setAttribute(CONTEXT, createContext(System.getProperty(ROOT, System.getenv("ESB_ROOT_DIR")), manifest));
 	}
 
 	@Override
@@ -105,7 +104,7 @@ public final class ESBServletContextListener implements ServletContextListener, 
 	}
 
 	public static void main(String[] args) {
-		new ESBServletContextListener().createContext(args[0]);
+		new ESBServletContextListener().createContext(args[0], new Properties());
 	}
 
 }

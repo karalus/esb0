@@ -21,6 +21,8 @@ import java.util.Set;
 
 public interface GlobalContextMXBean {
 
+	String getVersion() throws Exception;
+
 	Set<String> getHttpServicePaths();
 
 	List<String> getMappedHttpServicePaths();

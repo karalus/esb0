@@ -40,10 +40,14 @@ import com.artofarc.util.StreamUtils;
 
 public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
 
+	public static final String VERSION = "esb0.version";
+	public static final String BUILD_TIME = "esb0.build.time";
+
 	private static final long DEPLOY_TIMEOUT = Long.parseLong(System.getProperty("esb0.deploy.timeout", "60"));
 	private static final String GLOBALPROPERTIES = System.getProperty("esb0.globalproperties");
 	private static final String DEFAULT_WORKER_POOL = "default";
 
+	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache;
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
 	private final XQConnectionFactory _xqConnectionFactory;
@@ -51,28 +55,27 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 	private final Map<String, WorkerPool> _workerPoolMap = new ConcurrentHashMap<>();
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
 	private volatile FileSystem _fileSystem;
-	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
 
-		@Override
-		protected void init(Map<String, Object> pool) throws Exception {
-			if (GLOBALPROPERTIES != null) {
-				Properties properties = new Properties();
-				properties.load(StreamUtils.getResourceAsStream(GLOBALPROPERTIES));
+	public GlobalContext(MBeanServer mbs, final Properties properties) {
+		super(mbs);
+		_propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
+
+			@Override
+			protected void init(Map<String, Object> pool) throws Exception {
+				if (GLOBALPROPERTIES != null) {
+					properties.load(StreamUtils.getResourceAsStream(GLOBALPROPERTIES));
+				}
 				for (String key : properties.stringPropertyNames()) {
 					pool.put(key, properties.getProperty(key));
 				}
 			}
-		}
 
-		@Override
-		protected Object createResource(String key, Void param) throws NamingException {
-			return key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
-		}
+			@Override
+			protected Object createResource(String key, Void param) throws NamingException {
+				return key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
+			}
 
-	};
-
-	public GlobalContext(MBeanServer mbs) {
-		super(mbs);
+		};
 		try {
 			_initialContext = new InitialContext();
 		} catch (NamingException e) {
@@ -178,6 +181,10 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 
 	public Set<String> getCachedProperties() {
 		return _propertyCache.getResourceDescriptors();
+	}
+
+	public String getVersion() throws NamingException {
+		return (String) getProperty(VERSION);
 	}
 
 	public String bindProperties(String exp) throws NamingException {

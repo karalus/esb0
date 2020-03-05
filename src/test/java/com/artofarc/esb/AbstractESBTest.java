@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.junit.After;
 import org.junit.Before;
@@ -43,7 +44,7 @@ public abstract class AbstractESBTest {
 	protected void createContext(File dir) {
    	System.setProperty("java.naming.factory.initial", "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
    	System.setProperty("java.naming.provider.url", "vm://localhost");
-		GlobalContext globalContext = new GlobalContext(null);
+		GlobalContext globalContext = new GlobalContext(null, new Properties());
 		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem());
 		XMLCatalog.attachToFileSystem(globalContext.getFileSystem());
 		context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());

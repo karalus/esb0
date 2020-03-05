@@ -87,7 +87,7 @@ public class UnwrapSOAPAction extends TransformAction {
 		if ("GET".equals(message.getVariable(HttpMethod))) {
 			String queryString = message.getVariable(QueryString);
 			if (_getWsdl && ("wsdl".equals(queryString) || "WSDL".equals(queryString))) {
-				message.getVariables().put(redirect, message.getVariable(ContextPath) + ESBServletContextListener.ADMIN_SERVLET_PATH + _wsdlUrl);
+				message.getVariables().put(redirect, message.getVariable(ContextPath) + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + _wsdlUrl);
 				return null;
 			} else if (!_soap12) {
 				throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));

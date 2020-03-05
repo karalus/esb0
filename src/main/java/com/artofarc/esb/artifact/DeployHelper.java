@@ -126,7 +126,7 @@ public final class DeployHelper {
 		if (adminService == null) {
 			Directory parent = globalContext.getFileSystem().makeDirectory("admin");
 			ServiceArtifact serviceArtifact = new ServiceArtifact(globalContext.getFileSystem(), parent, "Admin.xservice");
-			serviceArtifact.setContent("<service protocol=\"http\" version=\"1\" xmlns=\"http://www.artofarc.com/esb/service\">\n\t<httpBindURI maxPool=\"2\">/admin/deploy*</httpBindURI>\n\t<admin/>\n</service>".getBytes());
+			serviceArtifact.setContent(("<service protocol=\"http\" version=\"1\" xmlns=\"http://www.artofarc.com/esb/service\">\n\t<httpBindURI maxPool=\"2\">" + path + "</httpBindURI>\n\t<admin/>\n</service>").getBytes());
 			serviceArtifact.validate(globalContext);
 			adminService = serviceArtifact.getConsumerPort();
 			adminService.init(globalContext);

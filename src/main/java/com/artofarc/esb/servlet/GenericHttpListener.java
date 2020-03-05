@@ -46,7 +46,7 @@ import static com.artofarc.esb.message.ESBConstants.*;
 /**
  * This servlet is the one and only HTTP endpoint for all services.
  */
-@WebServlet(asyncSupported = true, urlPatterns = { "/*", "/admin/ext/*", "/admin/deploy/*" })
+@WebServlet(asyncSupported = true, urlPatterns = { "/*", "/admin/ext/*", "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + "/*" })
 @MultipartConfig
 public class GenericHttpListener extends HttpServlet {
 

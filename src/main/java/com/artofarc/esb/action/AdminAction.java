@@ -51,7 +51,7 @@ public class AdminAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		String verb = resolve(message, ESBConstants.HttpMethod, true);
-		String resource = resolve(message, ESBConstants.appendHttpUrlPath, true);
+		String resource = "/" + resolve(message, ESBConstants.appendHttpUrlPath, true);
 		switch (verb) {
 		case "GET":
 			BranchOnPathAction.parseQueryString(message);
@@ -153,8 +153,8 @@ public class AdminAction extends Action {
 
 	private static void changeConfiguration(Context context, ESBMessage message, String resource) throws Exception {
 		GlobalContext globalContext = context.getPoolContext().getGlobalContext();
-		// if a file is received then deploy it otherwise change the state of a service flow
-		if (message.getHeader(HTTP_HEADER_CONTENT_DISPOSITION) != null) {
+		// if a file is posted to root then deploy it
+		if (resource.equals("/")) {
 			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 			if (contentType.startsWith("application/")) {
 				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());

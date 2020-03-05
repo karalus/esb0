@@ -84,11 +84,11 @@ public class DeployTool {
 		StreamUtils.copy(inputStream, bos);
 		MimeMultipart mimeMultipart = createMimeMultipart(bos.toByteArray());
 		System.out.println("Provisioning server: " + server);
-		return deploy(new URL(server + "/deploy"), mimeMultipart);
+		return deploy(new URL(server), mimeMultipart);
 	}
 
 	public List<String> listFiles(String server, String path) throws IOException {
-		URL url = new URL(server + "/deploy" + path);
+		URL url = new URL(server + path);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setRequestMethod("GET");
 		//conn.setRequestProperty("Authorization", "Basic " + DatatypeConverter.printBase64Binary((username + ":" + password).getBytes()));
@@ -115,8 +115,8 @@ public class DeployTool {
 
 	public static void main(String... args) throws Exception {
 		DeployTool deployTool = new DeployTool(args[1], args[2]);
-		String serverUrl = args[0] + "/admin";
-		System.out.println(deployTool.listFiles(serverUrl, "/consumer"));
+		String serverUrl = args[0] + "/admin/deploy/";
+		System.out.println(deployTool.listFiles(serverUrl, "consumer"));
 		Boolean status;
 		try (FileInputStream inputStream = new FileInputStream(args[3])) {
 			status = deployTool.deployServer(serverUrl, inputStream);

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Properties;
 
 import javax.xml.soap.SOAPConstants;
 
@@ -40,7 +41,7 @@ public class FileSystemTest extends AbstractESBTest {
    
   @Test
    public void testStartup() {
-		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources")) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources", new Properties())) {
          ConsumerPort service = globalContext.getInternalService("/HttpService4.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/demo1");
@@ -50,7 +51,7 @@ public class FileSystemTest extends AbstractESBTest {
    
    @Test
    public void testRealService() throws Exception {
-		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources")) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources", new Properties())) {
          ConsumerPort service = globalContext.getInternalService("/example/ExampleService.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/exampleUsingport");
