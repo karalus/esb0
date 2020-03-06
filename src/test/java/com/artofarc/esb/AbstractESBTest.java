@@ -44,6 +44,7 @@ public abstract class AbstractESBTest {
 	protected void createContext(File dir) {
    	System.setProperty("java.naming.factory.initial", "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
    	System.setProperty("java.naming.provider.url", "vm://localhost");
+   	System.setProperty("esb0.httpconsumer.idletimeout", "0");
 		GlobalContext globalContext = new GlobalContext(null, new Properties());
 		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem());
 		XMLCatalog.attachToFileSystem(globalContext.getFileSystem());

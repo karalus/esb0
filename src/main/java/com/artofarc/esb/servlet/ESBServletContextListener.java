@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -34,20 +33,16 @@ import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.GlobalContext;
 
-public final class ESBServletContextListener implements ServletContextListener, Runnable {
+public final class ESBServletContextListener implements ServletContextListener {
 
 	public static final String ADMIN_SERVLET_PATH = "admin/deploy";
-
 	public static final String CONTEXT = "esb0.context";
-	public static final String ROOT = "esb0.root";
-
-	private GlobalContext globalContext;
 
 	public GlobalContext createContext(String root, Properties manifest) {
 		Properties properties = new Properties();
 		properties.setProperty(GlobalContext.VERSION, manifest.getProperty("Implementation-Version", "0.0"));
 		properties.setProperty(GlobalContext.BUILD_TIME, manifest.getProperty("Build-Time", ""));
-		globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer(), properties);
+		GlobalContext globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer(), properties);
 		try {
 			FileSystem fileSystem;
 			if (root != null && root.contains("jdbc")) {
@@ -71,7 +66,6 @@ public final class ESBServletContextListener implements ServletContextListener, 
 			globalContext.close();
 			throw new RuntimeException("Could not initialize services", e);
 		}
-		globalContext.getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
 		return globalContext;
 	}
 
@@ -88,19 +82,12 @@ public final class ESBServletContextListener implements ServletContextListener, 
 				// ignore
 			}
 		}
-		servletContext.setAttribute(CONTEXT, createContext(System.getProperty(ROOT, System.getenv("ESB_ROOT_DIR")), manifest));
+		servletContext.setAttribute(CONTEXT, createContext(System.getProperty("esb0.root", System.getenv("ESB_ROOT_DIR")), manifest));
 	}
 
 	@Override
 	public void contextDestroyed(ServletContextEvent contextEvent) {
-		globalContext.close();
-	}
-
-	@Override
-	public void run() {
-		for (HttpConsumer httpConsumer : globalContext.getHttpConsumers()) {
-			httpConsumer.getContextPool().shrinkPool();
-		}
+		((GlobalContext) contextEvent.getServletContext().getAttribute(ESBServletContextListener.CONTEXT)).close();
 	}
 
 	public static void main(String[] args) {

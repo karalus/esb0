@@ -35,15 +35,17 @@ import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQConnectionFactory;
+import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.ConcurrentResourcePool;
 import com.artofarc.util.StreamUtils;
 
-public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
+public final class GlobalContext extends Registry implements Runnable, com.artofarc.esb.mbean.GlobalContextMXBean {
 
 	public static final String VERSION = "esb0.version";
 	public static final String BUILD_TIME = "esb0.build.time";
 
-	private static final long DEPLOY_TIMEOUT = Long.parseLong(System.getProperty("esb0.deploy.timeout", "60"));
+	private static final int DEPLOY_TIMEOUT = Integer.parseInt(System.getProperty("esb0.deploy.timeout", "60"));
+	private static final int HTTPCONSUMER_IDLETIMEOUT = Integer.parseInt(System.getProperty("esb0.httpconsumer.idletimeout", "600"));
 	private static final String GLOBALPROPERTIES = System.getProperty("esb0.globalproperties");
 	private static final String DEFAULT_WORKER_POOL = "default";
 
@@ -91,6 +93,9 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
 		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
+		if (HTTPCONSUMER_IDLETIMEOUT > 0) {
+			getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, HTTPCONSUMER_IDLETIMEOUT, HTTPCONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -149,6 +154,13 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 			unregisterMBean(",group=WorkerPool,name=" + name);
 		}
 		registerMBean(workerPool, ",group=WorkerPool,name=" + name);
+	}
+
+	@Override
+	public void run() {
+		for (HttpConsumer httpConsumer : getHttpConsumers()) {
+			httpConsumer.getContextPool().shrinkPool();
+		}
 	}
 
 	@Override
