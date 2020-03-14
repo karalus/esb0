@@ -128,6 +128,28 @@ public final class ReflectionUtils {
 		}
 	}
 
+	public static Constructor<?> findAnyConstructor(Class<?> cls, Class<?>... anyOfType) throws NoSuchMethodException {
+		for (Class<?> parameterType : anyOfType) {
+			try {
+				return cls.getConstructor(parameterType);
+			} catch (NoSuchMethodException e) {
+				// continue
+			}
+		}
+		throw new NoSuchMethodException(cls + " has no ctor for any of " + Arrays.asList(anyOfType));
+	}
+
+	public static Method findAnyMethod(Class<?> cls, String method, Class<?>... anyOfType) throws NoSuchMethodException {
+		for (Class<?> parameterType : anyOfType) {
+			try {
+				return cls.getMethod(method, parameterType);
+			} catch (NoSuchMethodException e) {
+				// continue
+			}
+		}
+		throw new NoSuchMethodException(cls + " has no method " + method + " with any parameter type of " + Arrays.asList(anyOfType));
+	}
+
 	@SuppressWarnings("unchecked")
 	public static <T> T getField(Object obj, String name) {
 		try {

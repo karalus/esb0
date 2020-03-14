@@ -139,6 +139,7 @@
 						<element name="dir" type="anyURI" maxOccurs="unbounded"/>
 						<element ref="tns:action" maxOccurs="unbounded" />
 					</sequence>
+					<attribute name="move" type="anyURI" />
 					<attribute name="workerPool" type="anyURI" />
 					<attribute name="timeout" type="long" use="required" />
 				</extension>

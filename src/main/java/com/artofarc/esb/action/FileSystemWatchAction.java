@@ -21,7 +21,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
@@ -49,8 +52,10 @@ public class FileSystemWatchAction extends TerminalAction {
 	private final String _workerPool;
 	private final Action _spawn;
 	private final List<String> _dirs;
+	private final String _move;
+	private final StandardOpenOption[] _options;
 
-	public FileSystemWatchAction(List<String> dirs, long timeout, String workerPool, Action spawn) throws IOException {
+	public FileSystemWatchAction(List<String> dirs, String move, long timeout, String workerPool, Action spawn) throws IOException {
 		_timeout = timeout;
 		_workerPool = workerPool;
 		_spawn = spawn;
@@ -59,6 +64,12 @@ public class FileSystemWatchAction extends TerminalAction {
 			if (!new File(dir).isDirectory()) {
 				throw new IOException("is not an existing directory " + dir);
 			}
+		}
+		_move = move;
+		if (move != null) {
+			_options = new StandardOpenOption[] { StandardOpenOption.READ, StandardOpenOption.WRITE };
+		} else {
+			_options = new StandardOpenOption[] { StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE };
 		}
 	}
 
@@ -80,13 +91,16 @@ public class FileSystemWatchAction extends TerminalAction {
 				Path parent = (Path) watchKey.watchable();
 				Path absolutePath = parent.resolve(path);
 				try {
-					FileChannel fileChannel = FileChannel.open(absolutePath, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
+					FileChannel fileChannel = FileChannel.open(absolutePath, _options);
 					if (fileChannel.tryLock() != null) {
 						ESBMessage msg = new ESBMessage(BodyType.INPUT_STREAM, Channels.newInputStream(fileChannel));
 						msg.getVariables().put(INPUT_STREAM, msg.getBody());
 						msg.getVariables().put(ESBConstants.HttpMethod, kind.toString());
 						msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
-						msg.getVariables().put(ESBConstants.PathInfo, path.toString());
+						msg.getVariables().put(ESBConstants.PathInfo, absolutePath);
+						String filename = path.toString();
+						msg.getVariables().put(ESBConstants.filenameOrigin, filename);
+						msg.getVariables().put(ESBConstants.filename, filename);
 						logger.debug("Absolute path {}, kind: {}", absolutePath, kind);
 						for (;;) {
 							try {
@@ -110,7 +124,13 @@ public class FileSystemWatchAction extends TerminalAction {
 			}
 			for (Future<ESBMessage> future : futures.keySet()) {
 				try {
-					InputStream is = SpawnAction.join(context, message, future).getVariable(INPUT_STREAM);
+					ESBMessage msg = SpawnAction.join(context, message, future);
+					if (_move != null) {
+						Path srcPath = msg.getVariable(ESBConstants.PathInfo);
+						String destPath = (String) bindVariable(_move, context, msg);
+						Files.move(srcPath, Paths.get(destPath), StandardCopyOption.ATOMIC_MOVE);
+					}
+					InputStream is = msg.getVariable(INPUT_STREAM);
 					is.close();
 				} catch (Exception e) {
 					WatchEvent<?> watchEvent = futures.get(future);

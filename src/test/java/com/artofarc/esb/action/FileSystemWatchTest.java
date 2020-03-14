@@ -38,8 +38,18 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		File outDir = new File(dir, "out");
 		outDir.mkdir();
 		outDir.deleteOnExit();
+		File moveDir = new File(dir, "move");
+		moveDir.mkdir();
+		moveDir.deleteOnExit();
 		TimerService timerService = new TimerService(null, null, null, "seconds", 1, 0, false);
-		FileSystemWatchAction action = new FileSystemWatchAction(Arrays.asList(new String[] { inDir.getPath() }), 90l, null, new FileAction(outDir.getPath()));
+		SetMessageAction setMessageAction = new SetMessageAction(false, null, "${filenameOrigin}: ${tstmp}\n", null, null);
+		setMessageAction.addAssignment("filename", false, "log.txt", null, null);
+		setMessageAction.addAssignment("HttpMethod", false, "ENTRY_MODIFY", null, null);
+		setMessageAction.addAssignment("append", false, "true", null, null);
+		setMessageAction.addAssignment("tstmp", false, "${initialTimestamp}", "java.sql.Date", null);
+		Action actionOnFile = Action.linkList(Arrays.asList(new FileAction(outDir.getPath()), setMessageAction, new FileAction(dir.getPath())));
+		String move = null;//moveDir.getPath() + "/${filenameOrigin}";
+		FileSystemWatchAction action = new FileSystemWatchAction(Arrays.asList(new String[] { inDir.getPath() }), move, 90l, null, actionOnFile);
 		timerService.setStartAction(action);
 		timerService.init(context.getPoolContext().getGlobalContext());
 		Thread.sleep(200);
@@ -58,6 +68,9 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		assertTrue(outFile2.exists());
 		assertFalse(inFile2.exists());
 		outFile2.deleteOnExit();
+		File logFile = new File(dir, "log.txt");
+		assertTrue(logFile.exists());
+		logFile.deleteOnExit();
 		timerService.enable(false);
 	}
 

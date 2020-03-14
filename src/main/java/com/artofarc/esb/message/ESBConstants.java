@@ -68,4 +68,8 @@ public interface ESBConstants {
 
 	String Charset = "Charset";
 
+	String filename = "filename";
+
+	String filenameOrigin = "filenameOrigin";
+
 }

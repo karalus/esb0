@@ -130,7 +130,10 @@ public class GenericHttpListener extends HttpServlet {
 		if (contentType != null && contentType.startsWith("multipart/")) {
 			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getBodyAsInputStream(null), contentType));
 			String start = removeQuotes(getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START));
-			message.putHeader(HTTP_HEADER_SOAP_ACTION, getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION));
+			String soap12Action = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
+			if (soap12Action != null) {
+				message.putHeader(HTTP_HEADER_SOAP_ACTION, soap12Action);
+			}
 			for (int i = 0; i < mmp.getCount(); i++) {
 				MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
 				String cid = bodyPart.getContentID();

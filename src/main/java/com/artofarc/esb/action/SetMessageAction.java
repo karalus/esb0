@@ -101,12 +101,12 @@ public class SetMessageAction extends ForwardAction {
 			if (javaType != null) {
 				Class<?> cls = Class.forName(javaType, true, _classLoader);
 				if (method != null) {
-					_method = _expr.isEmpty() ? cls.getMethod(method) : cls.getMethod(method, String.class);
+					_method = _expr.isEmpty() ? cls.getMethod(method) : ReflectionUtils.findAnyMethod(cls, method, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
 					if ((_method.getModifiers() & Modifier.STATIC) == 0) {
 						throw new IllegalArgumentException("Method must be static: " + method);
 					}
 				} else {
-					_con = _expr.isEmpty() ? cls.getConstructor() : cls.getConstructor(String.class);
+					_con = _expr.isEmpty() ? cls.getConstructor() : ReflectionUtils.findAnyConstructor(cls, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
 				}
 			}
 		}
