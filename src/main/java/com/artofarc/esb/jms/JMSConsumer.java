@@ -176,7 +176,7 @@ public final class JMSConsumer extends ConsumerPort implements com.artofarc.esb.
 		for (@SuppressWarnings("unchecked")
 		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
 			String propertyName = propertyNames.nextElement();
-			esbMessage.getHeaders().put(propertyName, message.getObjectProperty(propertyName));
+			esbMessage.putHeader(propertyName, message.getObjectProperty(propertyName));
 		}
 	}
 

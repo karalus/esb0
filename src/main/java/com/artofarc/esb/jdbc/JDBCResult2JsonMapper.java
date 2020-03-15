@@ -52,7 +52,7 @@ public class JDBCResult2JsonMapper {
 			if (sw != null) {
 				message.reset(BodyType.READER, sw.getStringReader());
 			}
-			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 		} else if (result.getCurrentUpdateCount() >= 0) {
 			message.getVariables().put(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
 		}

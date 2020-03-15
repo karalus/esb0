@@ -83,7 +83,7 @@ public class JMSAction extends TerminalAction {
 		} else {
 			jmsMessage = session.createTextMessage(message.getBodyAsString(context));
 		}
-		for (Map.Entry<String, Object> entry : message.getHeaders().entrySet()) {
+		for (Map.Entry<String, Object> entry : message.getHeaders()) {
 			try {
 				if (entry.getKey().equals(ESBConstants.JMSCorrelationID)) {
 					jmsMessage.setJMSCorrelationID((String) entry.getValue());
@@ -95,7 +95,7 @@ public class JMSAction extends TerminalAction {
 			}
 		}
 		context.getTimeGauge().stopTimeMeasurement("JMS createMessage", true);
-		message.getHeaders().clear();
+		message.clearHeaders();
 		message.reset(BodyType.INVALID, null);
 		final long timeToLive = message.getTimeleft(_timeToLive).longValue();
 		if (_receiveFromTempQueue) {

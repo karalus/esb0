@@ -85,7 +85,7 @@ public class CacheAction extends Action {
 		if (_notWriteOnly && isValueBody()) {
 			Object key = execContext.getResource();
 			if (_cache.containsKey(key)) {
-				message.getHeaders().clear();
+				message.clearHeaders();
 				message.reset(null, _cache.get(key));
 			}
 		}

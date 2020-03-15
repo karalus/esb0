@@ -76,16 +76,16 @@ public class AdminAction extends Action {
 	}
 
 	private static void createResponse(ESBMessage message, BodyType bodyType, Object body, String pathInfo) {
-		message.getHeaders().clear();
+		message.clearHeaders();
 		message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_OK);
 		if (body == null) message.getVariables().put(ESBConstants.redirect, message.getVariable(ESBConstants.ContextPath) + "/admin" + pathInfo);
 		message.reset(bodyType, body);
 	}
 
 	private static void createErrorResponse(ESBMessage message, int errorCode, String errorMessage) {
-		message.getHeaders().clear();
+		message.clearHeaders();
 		message.putVariable(ESBConstants.HttpResponseCode, errorCode);
-		if (errorMessage != null) message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT);
+		if (errorMessage != null) message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT);
 		message.reset(null, errorMessage);
 	}
 
@@ -103,7 +103,7 @@ public class AdminAction extends Action {
 				jsonWriter.writeArray(builder.build());
 				jsonWriter.close();
 				createResponse(message, BodyType.READER, sw.getStringReader(), "");
-				message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				String headerAccept = message.getVariable(HTTP_HEADER_ACCEPT);
 				// SoapUI does not send an "Accept" header
@@ -121,8 +121,8 @@ public class AdminAction extends Action {
 					} else {
 						createResponse(message, BodyType.INPUT_STREAM, contentAsStream, "");
 					}
-					message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
-					message.getHeaders().put(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
+					message.putHeader(HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
+					message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
 				} else {
 					createErrorResponse(message, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, null);
 				}

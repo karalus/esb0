@@ -106,7 +106,7 @@ public class GenericHttpListener extends HttpServlet {
 		message.setCharset(request.getCharacterEncoding());
 		for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 			String headerName = headerNames.nextElement();
-			message.getHeaders().put(headerName, request.getHeader(headerName));
+			message.putHeader(headerName, request.getHeader(headerName));
 		}
 		message.putVariable(RemoteUser, request.getRemoteUser());
 		final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");

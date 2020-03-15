@@ -73,7 +73,7 @@ public class Json2XMLAction extends Action {
 		if (contentType != null && !contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
+		message.putHeader(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
 		return null;
 	}
 

@@ -37,14 +37,14 @@ public class HttpInboundAction extends Action {
 		HttpUrlConnectionWrapper wrapper = message.removeVariable(ESBConstants.HttpURLConnection);
 		HttpURLConnection conn = wrapper.getHttpURLConnection();
 		message.getVariables().put(ESBConstants.HttpResponseCode, conn.getResponseCode());
-		message.getHeaders().clear();
+		message.clearHeaders();
 		for (Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
 			if (entry.getKey() != null) {
 				Object value = entry.getValue();
 				if (entry.getValue().size() == 1) {
 					value = entry.getValue().get(0);
 				}
-				message.getHeaders().put(entry.getKey(), value);
+				message.putHeader(entry.getKey(), value);
 			}
 		}
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);

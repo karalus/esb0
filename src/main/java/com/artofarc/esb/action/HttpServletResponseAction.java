@@ -81,7 +81,7 @@ public class HttpServletResponseAction extends Action {
 				}
 			} else {
 				response.setCharacterEncoding(message.getSinkEncoding());
-				for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
+				for (Entry<String, Object> entry : message.getHeaders()) {
 					if (entry.getValue() instanceof String) {
 						response.setHeader(entry.getKey(), (String) entry.getValue());
 					} else if (entry.getValue() instanceof Integer) {
@@ -133,8 +133,7 @@ public class HttpServletResponseAction extends Action {
 		AsyncContext asyncContext = execContext.getResource();
 		message.closeBody();
 		if (_multipartResponse != null) {
-			Entry<String, String> contentTypeEntry = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
-			String contentType = contentTypeEntry.getValue();
+			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 			MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + _multipartResponse + "\"; "
 					+ HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
 			ByteArrayOutputStream bos = execContext.getResource2();
@@ -147,8 +146,8 @@ public class HttpServletResponseAction extends Action {
 			if (!_multipartResponse.equals(contentType)) {
 				contentType = _multipartResponse + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
 			}
-			contentTypeEntry.setValue(contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
-			for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+			for (Entry<String, Object> entry : message.getHeaders()) {
 				headers.setHeader(entry.getKey(), entry.getValue().toString());
 			}
 			MimeBodyPart part = new MimeBodyPart(headers, bos.toByteArray());

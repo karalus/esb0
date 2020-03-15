@@ -60,7 +60,7 @@ public class KafkaConsumeAction extends TerminalAction {
 			final ESBMessage msg = new ESBMessage(null, record.value());
 			msg.putVariable("record.key", record.key());
 			for (Header header : record.headers()) {
-				msg.getHeaders().put(header.key(), new String(header.value(), ESBMessage.CHARSET_DEFAULT));
+				msg.putHeader(header.key(), new String(header.value(), ESBMessage.CHARSET_DEFAULT));
 			}
 			logger.debug("Kafka Consumer Record(topic=" + record.topic() + ", partition=" + record.partition() + ", offset=" + record.offset() + ")");
 			for(;;) {

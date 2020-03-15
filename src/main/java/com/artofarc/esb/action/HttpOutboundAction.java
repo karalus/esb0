@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import java.net.HttpURLConnection;
-import java.util.Map.Entry;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -53,9 +52,9 @@ public class HttpOutboundAction extends Action {
 		if (queryString != null && queryString.length() > 0) {
 			appendHttpUrl += "?" + queryString;
 		}
-		Entry<String, String> contentType = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
+		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null) {
-			contentType.setValue(contentType.getValue() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
 		}
 		String basicAuthCredential = _httpEndpoint.getBasicAuthCredential();
 		if (basicAuthCredential != null) {
@@ -63,7 +62,7 @@ public class HttpOutboundAction extends Action {
 			message.putHeader("Authorization", "Basic " + DatatypeConverter.printBase64Binary(basicAuthCredential.getBytes()));
 		}
 		int timeout = message.getTimeleft(_readTimeout).intValue();
-		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders().entrySet(), _chunkLength);
+		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders(), _chunkLength);
 		message.getVariables().put(HttpURLOutbound, wrapper.getHttpUrl().getUrlStr());
 		HttpURLConnection conn = wrapper.getHttpURLConnection();  
 		if (inPipeline) {

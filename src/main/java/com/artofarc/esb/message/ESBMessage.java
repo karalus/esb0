@@ -26,10 +26,12 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -71,6 +73,7 @@ import static com.artofarc.esb.http.HttpConstants.*;
 
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.Collections;
 import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 import com.artofarc.util.StreamUtils;
@@ -82,6 +85,7 @@ public final class ESBMessage implements Cloneable {
 	public static final int MTU = StreamUtils.MTU;
 	private static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
 	private static final JsonGeneratorFactory JSON_GENERATOR_FACTORY;
+	private static final Map<String, String> HEADER_NAMES = new ConcurrentHashMap<>(256); 
 
 	static {
 		Map<String, Object> config = new HashMap<>();
@@ -91,7 +95,16 @@ public final class ESBMessage implements Cloneable {
 		JSON_GENERATOR_FACTORY = Json.createGeneratorFactory(config);
 	}
 
-	private final HashMap<String, Object> _headers = new HashMap<>();
+	private static String toLowerCase(String headerName) {
+		String result = HEADER_NAMES.get(headerName);
+		if (result == null) {
+			result = headerName.toLowerCase();
+			HEADER_NAMES.put(headerName, result);
+		}
+		return result;
+	}
+
+	private final HashMap<String, Map.Entry<String, Object>> _headers = new HashMap<>();
 	private final HashMap<String, Object> _variables = new HashMap<>();
 	private final HashMap<String, MimeBodyPart> _attachments = new HashMap<>();
 
@@ -111,7 +124,7 @@ public final class ESBMessage implements Cloneable {
 
 	@Override
 	public String toString() {
-		return "ESBMessage [_bodyType=" + _bodyType + ", _charsetName=" + _charset + ", _headers=" + _headers + ", _variables=" + _variables + "]";
+		return "ESBMessage [_bodyType=" + _bodyType + ", _charsetName=" + _charset + ", _headers=" + _headers.values() + ", _variables=" + _variables + "]";
 	}
 
 	@SuppressWarnings("unchecked")
@@ -141,8 +154,12 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public Map<String, Object> getHeaders() {
-		return _headers;
+	public Collection<Map.Entry<String, Object>> getHeaders() {
+		return _headers.values();
+	}
+
+	public void clearHeaders() {
+		_headers.clear();
 	}
 
 	public Map<String, Object> getVariables() {
@@ -154,36 +171,19 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> Map.Entry<String, T> getHeaderEntry(String headerName) {
-		for (Map.Entry<String, Object> entry : _headers.entrySet()) {
-			if (headerName.equalsIgnoreCase(entry.getKey())) {
-				return (Map.Entry<String, T>) entry;
-			}
-		}
-		return null;
-	}
-
 	public <T> T getHeader(String headerName) {
-		Map.Entry<String, T> entry = getHeaderEntry(headerName);
-		return entry != null ? entry.getValue() : null;
+		Map.Entry<String, Object> entry = _headers.get(toLowerCase(headerName));
+		return entry != null ? (T) entry.getValue() : null;
 	}
 
-	public <T> T putHeader(String headerName, T value) {
-		Map.Entry<String, T> entry = getHeaderEntry(headerName);
-		if (entry != null) {
-			return entry.setValue(value);
-		}
-		_headers.put(headerName, value);
-		return null;
+	public void putHeader(String headerName, Object value) {
+		_headers.put(toLowerCase(headerName), Collections.createEntry(headerName, value));
 	}
 
 	@SuppressWarnings("unchecked")
 	public <T> T removeHeader(String headerName) {
-		Map.Entry<String, T> entry = getHeaderEntry(headerName);
-		if (entry != null) {
-			return (T) _headers.remove(entry.getKey());
-		}
-		return null;
+		Map.Entry<String, ?> entry = _headers.remove(toLowerCase(headerName));
+		return entry != null ? (T) entry.getValue() : null;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -428,8 +428,8 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Source getBodyAsSource(Context context) throws IOException, XQException {
-		Map.Entry<String, String> contentType = getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null && isFastInfoset(contentType.getValue())) {
+		String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (isFastInfoset(contentType)) {
 			InputStream is;
 			switch (_bodyType) {
 			case BYTES:
@@ -441,7 +441,7 @@ public final class ESBMessage implements Cloneable {
 			default:
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
-			contentType.setValue(contentType.getValue().startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
+			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
 			return new SAXSource(context.getFastInfosetDeserializer().getFastInfosetReader(), new InputSource(is));
 		}
 		return getBodyAsSourceInternal();
@@ -779,9 +779,9 @@ public final class ESBMessage implements Cloneable {
 		return clone;
 	}
 
-	public static void dumpMap(Context context, Map<String, Object> map, Writer logWriter) throws IOException, TransformerException {
+	public static void dumpKeyValues(Context context, Collection<Map.Entry<String, Object>> keyValues, Writer logWriter) throws IOException, TransformerException {
 		logWriter.write('{');
-		for (Iterator<Map.Entry<String, Object>> iter = map.entrySet().iterator(); iter.hasNext();) {
+		for (Iterator<Map.Entry<String, Object>> iter = keyValues.iterator(); iter.hasNext();) {
 			Map.Entry<String, Object> entry = iter.next();
 			logWriter.write(entry.getKey() + "=");
 			if (entry.getValue() instanceof Node) {

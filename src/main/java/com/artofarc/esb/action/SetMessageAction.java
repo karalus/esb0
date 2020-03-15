@@ -55,7 +55,7 @@ public class SetMessageAction extends ForwardAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if (_clearAll) {
-			message.getHeaders().clear();
+			message.clearHeaders();
 		}
 		for (Assignment assignment : _assignments) {
 			if (assignment._needsBody) {

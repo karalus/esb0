@@ -211,11 +211,16 @@ public class TransformAction extends Action {
 			}
 			if (notNull) {
 				checkNext(resultSequence, assignment.name);
-				final Map<String, Object> destMap = assignment.header ? message.getHeaders() : message.getVariables();
+				final Object value;
 				if (resultSequence.getItemType().getItemKind() == XQItemType.XQITEMKIND_TEXT) {
-					destMap.put(assignment.name, resultSequence.getItemAsString(null));
+					value = resultSequence.getItemAsString(null);
 				} else {
-					destMap.put(assignment.name, resultSequence.getObject());
+					value = resultSequence.getObject();
+				}
+				if (assignment.header) {
+					message.putHeader(assignment.name, value);
+				} else {
+					message.getVariables().put(assignment.name, value);
 				}
 			}
 		}

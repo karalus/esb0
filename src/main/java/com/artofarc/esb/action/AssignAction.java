@@ -79,7 +79,7 @@ public class AssignAction extends TransformAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if (_clearAll) {
-			message.getHeaders().clear();
+			message.clearHeaders();
 		}
 		return super.prepare(context, message, inPipeline);
 	}

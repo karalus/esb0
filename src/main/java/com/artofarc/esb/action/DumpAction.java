@@ -42,11 +42,11 @@ public class DumpAction extends TerminalAction {
 		super.execute(context, resource, message, nextActionIsPipelineStop);
 		StringWriter writer = new StringWriter();
 		writer.write("Headers: ");
-		ESBMessage.dumpMap(context, message.getHeaders(), writer);
+		ESBMessage.dumpKeyValues(context, message.getHeaders(), writer);
 		logger.info(writer.toString());
 		writer.reset();
 		writer.write("Variables: ");
-		ESBMessage.dumpMap(context, message.getVariables(), writer);
+		ESBMessage.dumpKeyValues(context, message.getVariables().entrySet(), writer);
 		logger.info(writer.toString());
 		writer.reset();
 		if (message.getBodyType() != BodyType.INVALID) {

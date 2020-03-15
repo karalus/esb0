@@ -98,10 +98,7 @@ public class FileSystemWatchAction extends TerminalAction {
 						msg.getVariables().put(ESBConstants.HttpMethod, kind.toString());
 						msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
 						msg.getVariables().put(ESBConstants.PathInfo, absolutePath);
-						String filename = path.toString();
-						msg.getVariables().put(ESBConstants.filenameOrigin, filename);
-						msg.getVariables().put(ESBConstants.filename, filename);
-						logger.debug("Absolute path {}, kind: {}", absolutePath, kind);
+						msg.getVariables().put(ESBConstants.filename, path.toString());
 						for (;;) {
 							try {
 								futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), true), watchEvent);

@@ -50,7 +50,7 @@ public class KafkaProduceAction extends TerminalAction {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 		@SuppressWarnings("rawtypes")
 		ProducerRecord record = new ProducerRecord<>(_topic, _partition, message.getVariable("record.key"), _binary ? message.getBodyAsByteArray(context) : message.getBodyAsString(context));
-		for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
+		for (Entry<String, Object> entry : message.getHeaders()) {
 			String value = entry.getValue().toString();
 			record.headers().add(entry.getKey(), value.getBytes(ESBMessage.CHARSET_DEFAULT));
 		}

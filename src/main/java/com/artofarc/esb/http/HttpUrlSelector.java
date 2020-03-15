@@ -21,8 +21,8 @@ import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -153,11 +153,11 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
+	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
 		return connectTo(httpEndpoint, timeout, method, appendUrl, headers, chunkLength, httpEndpoint.getRetries());
 	}
 
-	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Set<Entry<String, Object>> headers, Integer chunkLength, int retryCount) throws IOException {
+	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, int retryCount) throws IOException {
 		if (activeCount == 0) {
 			throw new ConnectException("No active url");
 		}
@@ -190,7 +190,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	private HttpURLConnection connectTo(HttpUrl httpUrl, int timeout, String method, String appendUrl, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
+	private HttpURLConnection connectTo(HttpUrl httpUrl, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
 		URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setConnectTimeout(_httpEndpoint.getConnectionTimeout());

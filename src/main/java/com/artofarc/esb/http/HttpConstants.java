@@ -54,6 +54,8 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 
 	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
 
+	public static final String HTTP_HEADER_RETRY_AFTER = "Retry-After";
+
 	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
 
 	public static String getValueFromHttpHeader(String httpHeader, String key) {

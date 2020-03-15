@@ -43,12 +43,13 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		moveDir.deleteOnExit();
 		TimerService timerService = new TimerService(null, null, null, "seconds", 1, 0, false);
 		SetMessageAction setMessageAction = new SetMessageAction(false, null, "${filenameOrigin}: ${tstmp}\n", null, null);
+		setMessageAction.addAssignment("filenameOrigin", false, "${filename}", null, null);
 		setMessageAction.addAssignment("filename", false, "log.txt", null, null);
 		setMessageAction.addAssignment("HttpMethod", false, "ENTRY_MODIFY", null, null);
 		setMessageAction.addAssignment("append", false, "true", null, null);
 		setMessageAction.addAssignment("tstmp", false, "${initialTimestamp}", "java.sql.Date", null);
 		Action actionOnFile = Action.linkList(Arrays.asList(new FileAction(outDir.getPath()), setMessageAction, new FileAction(dir.getPath())));
-		String move = null;//moveDir.getPath() + "/${filenameOrigin}";
+		String move = moveDir.getPath() + "/${filenameOrigin}";
 		FileSystemWatchAction action = new FileSystemWatchAction(Arrays.asList(new String[] { inDir.getPath() }), move, 90l, null, actionOnFile);
 		timerService.setStartAction(action);
 		timerService.init(context.getPoolContext().getGlobalContext());

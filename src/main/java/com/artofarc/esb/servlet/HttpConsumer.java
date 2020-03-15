@@ -82,11 +82,11 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 		if (_resourceLimit > 0 && getCompletedTaskCount() >= _resourceLimit) {
 			message.reset(BodyType.STRING, "Resource limit exhausted");
 			message.getVariables().put(ESBConstants.HttpResponseCode, javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-			message.getHeaders().clear();
-			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT);
+			message.clearHeaders();
+			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT);
 			ScheduledFuture<?> scheduledFuture = _scheduledFuture;
 			if (scheduledFuture != null) {
-				message.getHeaders().put("Retry-After", (int) scheduledFuture.getDelay(TimeUnit.SECONDS));
+				message.putHeader(HttpConstants.HTTP_HEADER_RETRY_AFTER, (int) scheduledFuture.getDelay(TimeUnit.SECONDS));
 			}
 			_terminalAction.process(context, message);
 		} else {

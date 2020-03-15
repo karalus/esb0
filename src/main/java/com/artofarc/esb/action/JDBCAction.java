@@ -116,7 +116,7 @@ public abstract class JDBCAction extends Action {
 		if (!_pipelineStop) {
 			JDBCResult result = executeStatement(context, execContext, message);
 			if (result.hasComplexContent()) {
-				message.getHeaders().clear();
+				message.clearHeaders();
 			}
 		}
 		return execContext;
@@ -129,7 +129,7 @@ public abstract class JDBCAction extends Action {
 		if (_pipelineStop) {
 			JDBCResult result = executeStatement(context, execContext, message);
 			if (result.hasComplexContent()) {
-				message.getHeaders().clear();
+				message.clearHeaders();
 			}
 		}
 		try (JDBCConnection connection = execContext.getResource(); JDBCResult result = execContext.getResource3()) {

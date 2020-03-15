@@ -59,8 +59,8 @@ public class FileSystemTest extends AbstractESBTest {
          // Call
          ESBMessage message = new ESBMessage(BodyType.BYTES, ConfigServiceTest.readFile("src/test/resources/SOAPRequest.xml"));
          message.getVariables().put(ESBConstants.HttpMethod, "POST");
-         message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
-         message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
+         message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+         message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
          message.getVariables().put("hasFault", false);
          try {
             PoolContext poolContext = globalContext.getDefaultWorkerPool().getPoolContext();

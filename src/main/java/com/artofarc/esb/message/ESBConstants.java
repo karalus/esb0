@@ -70,6 +70,4 @@ public interface ESBConstants {
 
 	String filename = "filename";
 
-	String filenameOrigin = "filenameOrigin";
-
 }

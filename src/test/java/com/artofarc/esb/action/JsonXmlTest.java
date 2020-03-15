@@ -35,7 +35,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	@Test
 	public void testXML2JsonInPipeline() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/SOAPRequest.xml"));
-		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
 		Action action = createUnwrapSOAPAction(false, false);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
@@ -48,7 +48,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	@Test
 	public void testXML2Json() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/MessageHeader.xml"));
-		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
 		Action action = new XML2JsonAction(jaxbContext, null, true, new HashMap<String, String>(), null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
@@ -59,7 +59,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	@Test
 	public void testJson2XML() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "{\"messageHeader\":{\"senderFQN\":\"usingPort1\",\"messageId\":\"M-bc5fd683-334f-4709-8c15-943c32baea89\",\"processInstanceId\":\"P-96181ac5-41f4-4ce5-bc95-111fe253c11d\"}}");
-		//message.getHeaders().put(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+		//message.putHeader(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
 		Action action = new Json2XMLAction(jaxbContext, null, true, false, null, urisToPrefixes, null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
@@ -70,7 +70,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	@Test
 	public void testXML2Json2XML() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/MessageHeader.xml"));
-		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
 		Action action = new XML2JsonAction(jaxbContext, null, true, new HashMap<String, String>(), null, true);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
@@ -83,7 +83,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	public void testXML2Json_1() throws Exception {
       XSDArtifact xsd = fileSystem.getArtifact("de.aoa.xsd.demo.v1.xsd");
 		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/RequestBody.xml"));
-		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
 		HashMap<String, String> urisToPrefixes = new HashMap<String, String>();
 		urisToPrefixes.put("http://aoa.de/xsd/demo/v1/", "");
 		urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "ei1");
@@ -98,7 +98,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	public void testJson2XML_1() throws Exception {
       XSDArtifact xsd = fileSystem.getArtifact("de.aoa.xsd.demo.v1.xsd");
 		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/RESTRequest.json"));
-		message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "application/json; charset=\"utf-8\"");
+		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "application/json; charset=\"utf-8\"");
 		urisToPrefixes.clear();
 		urisToPrefixes.put("http://aoa.de/xsd/demo/v1/", "");
 		urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "ei1");
