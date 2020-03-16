@@ -8,10 +8,10 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Properties;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
@@ -20,20 +20,11 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
 
 
-public class ActionTest {
-   
-   private Context context;
+public class ActionTest extends AbstractESBTest {
    
    @Before
    public void createContext() throws Exception {
       context = new Context(new GlobalContext(null, new Properties()).getDefaultWorkerPool().getPoolContext());
-   }
-
-   @After
-   public void closeContext() throws Exception {
-      if (context != null) {
-         context.close();
-      }
    }
 
    @Test
@@ -120,7 +111,7 @@ public class ActionTest {
    @Test
    public void testSetMessage() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), "${body}", "java.lang.String", null);
+      SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), "${body}", "java.lang.String", null);
 		action.addAssignment("int", true, "42", "java.lang.Integer", null);
 		action.addAssignment("bool", true, "true", "java.lang.Boolean", "parseBoolean");
 		action.addAssignment("now", true, "", "java.lang.System", "currentTimeMillis");
@@ -130,8 +121,15 @@ public class ActionTest {
 		action.addAssignment("timeInMillis", false, "${calendar.getTimeInMillis}", null, null);
 		action.addAssignment("_addr", false, "", "java.net.InetAddress", "getLocalHost");
 		action.addAssignment("hostname", false, "${_addr.getHostName}", null, null);
+		action.addAssignment("date", false, "", "java.util.Date", null);
+		action.addAssignment("_dateVoid", false, "${date.setTime(timeInMillis)}", null, null);
+		action.addAssignment("_formatter", false, "", "java.util.Formatter", null);
+		action.addAssignment("formattedInt", false, "${_formatter.format('%04d',int).toString}", null, null);
+		action.addAssignment("_formatter", false, "${formatter.close}", null, null);
+		action.setNextAction(action);
    	action.setNextAction(new DumpAction());
    	action.process(context, message);
+   	assertEquals("0042", message.getVariable("formattedInt"));
    	assertEquals(42, message.getHeader("int"));
    	assertEquals(true, message.getHeader("bool"));
    	assertTrue(message.getHeader("now") instanceof Long);

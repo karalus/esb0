@@ -16,6 +16,7 @@
  */
 package com.artofarc.util;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -26,18 +27,33 @@ import java.util.StringTokenizer;
 
 public final class ReflectionUtils {
 
-	@SuppressWarnings("unchecked")
-	public static <T> T eval(Object root, String path, Object... params) throws ReflectiveOperationException {
-		StringTokenizer tokenizer1 = new StringTokenizer(path, ".");
-		while (tokenizer1.hasMoreTokens()) {
-			String part = tokenizer1.nextToken();
-			StringTokenizer tokenizer2 = new StringTokenizer(part, "(,)");
-			String methodName = tokenizer2.nextToken();
-			List<Object> args = new ArrayList<>();
-			while (tokenizer2.hasMoreTokens()) {
-				String argName = tokenizer2.nextToken();
+	public interface ParamResolver<E extends Exception> {
+		Object resolve(String param) throws E;
+	}
+
+	public static <T> T eval(Object root, String path, final Object... params) throws ReflectiveOperationException {
+		ParamResolver<ReflectiveOperationException> paramResolver = params.length == 0 ? null : new ParamResolver<ReflectiveOperationException>() {
+
+			@Override
+			public Object resolve(String argName) {
 				int argPos = Integer.parseInt(argName.substring(1)) - 1;
-				args.add(params[argPos]);
+				return params[argPos];
+			}
+		};
+		return eval(root, path, paramResolver);
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T, E extends Exception> T eval(Object root, String path, ParamResolver<E> paramResolver) throws ReflectiveOperationException, E {
+		StringTokenizer tokenizerChain = new StringTokenizer(path, ".");
+		while (tokenizerChain.hasMoreTokens()) {
+			String part = tokenizerChain.nextToken();
+			StringTokenizer tokenizerMethod = new StringTokenizer(part, "(,)");
+			String methodName = tokenizerMethod.nextToken();
+			List<Object> args = new ArrayList<>();
+			while (tokenizerMethod.hasMoreTokens()) {
+				String argName = tokenizerMethod.nextToken();
+				args.add(paramResolver.resolve(argName));
 			}
 			Method method = findMethod(root.getClass().getDeclaredMethods(), methodName, args);
 			if (method == null) {
@@ -55,16 +71,38 @@ public final class ReflectionUtils {
 	private static Method findMethod(Method[] methods, String methodName, List<Object> args) {
 		outer: for (Method method : methods) {
 			Class<?>[] parameterTypes = method.getParameterTypes();
-			if (parameterTypes.length == args.size() && isMatch(method.getName(), methodName, args.size())) {
+			if (parameterTypes.length <= args.size() && isMatch(method.getName(), methodName, args.size())) {
 				for (int i = 0; i < parameterTypes.length; ++i) {
-					if (args.get(i) != null && !parameterTypes[i].isInstance(args.get(i))) {
+					Class<?> parameterType = parameterTypes[i];
+					boolean last = i == parameterTypes.length - 1;
+					if (last && method.isVarArgs()) {
+						parameterType = parameterType.getComponentType();
+						int varArgsLength = args.size() - i;
+						Object[] varArgs = (Object[]) Array.newInstance(parameterType, varArgsLength);
+						for (int j = 0; j < varArgsLength; ++j) {
+							Object arg = args.get(i + j);
+							if (isNotAssignable(parameterType, arg)) {
+								continue outer;
+							}
+							varArgs[j] = arg;
+						}
+						args.set(i, varArgs);
+						return method;
+					} else if (isNotAssignable(parameterType, args.get(i))) {
 						continue outer;
 					}
+				}
+				if (args.size() > parameterTypes.length) {
+					continue;
 				}
 				return method;
 			}
 		}
 		return null;
+	}
+
+	private static boolean isNotAssignable(Class<?> parameterType, Object arg) {
+		return parameterType.isPrimitive() ? arg == null : arg != null && !parameterType.isInstance(arg);
 	}
 
 	private static boolean isMatch(String name, String methodName, int argssize) {

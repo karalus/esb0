@@ -129,7 +129,7 @@ public class SetMessageAction extends ForwardAction {
 			if (_header) {
 				message.putHeader(_name, convert(value));
 			} else {
-				message.getVariables().put(_name, convert(value));
+				message.putVariable(_name, convert(value));
 			}
 		}
 	}

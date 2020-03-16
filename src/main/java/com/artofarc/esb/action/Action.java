@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -32,6 +31,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWriter;
 import com.artofarc.util.TimeGauge;
 
@@ -242,7 +242,7 @@ public abstract class Action implements Cloneable {
 		return startAction;
 	}
 
-	protected final Object bindVariable(String exp, Context context, ESBMessage message) throws Exception {
+	protected final Object bindVariable(String exp, Context context, final ESBMessage message) throws Exception {
 		StringBuilder builder = new StringBuilder();
 		for (int pos = 0;;) {
 			int i = exp.indexOf("${", pos);
@@ -270,12 +270,15 @@ public abstract class Action implements Cloneable {
 			if (value == null && !standalone) {
 				throw new ExecutionException(this, "name could not be resolved: " + name);
 			}
-			while (k >= 0) {
-				int l = path.indexOf('.', ++k);
-				String fragment = l < 0 ? path.substring(k) : path.substring(k, l);
-				Method method = value.getClass().getMethod(fragment);
-				value = method.invoke(value);
-				k = l;
+			if (k >= 0) {
+				ReflectionUtils.ParamResolver<ExecutionException> paramResolver = path.indexOf('(', k) < 0 ? null : new ReflectionUtils.ParamResolver<ExecutionException>() {
+
+					@Override
+					public Object resolve(String param) throws ExecutionException {
+						return param.charAt(0) == '\'' ? param.substring(1, param.length() - 1) : Action.this.resolve(message, param, true);
+					}
+				};
+				value = ReflectionUtils.eval(value, path.substring(k), paramResolver);
 			}
 			if (standalone) {
 				return value;						
