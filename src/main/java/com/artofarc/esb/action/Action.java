@@ -275,7 +275,13 @@ public abstract class Action implements Cloneable {
 
 					@Override
 					public Object resolve(String param) throws ExecutionException {
-						return param.charAt(0) == '\'' ? param.substring(1, param.length() - 1) : Action.this.resolve(message, param, true);
+						char firstChar = param.charAt(0);
+						if (firstChar == '\'') {
+							return param.substring(1, param.length() - 1);
+						} else if (Character.isDigit(firstChar)) {
+							return new Integer(param);
+						}
+						return Action.this.resolve(message, param, true);
 					}
 				};
 				value = ReflectionUtils.eval(value, path.substring(k), paramResolver);

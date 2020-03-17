@@ -86,16 +86,17 @@ public final class ReflectionUtils {
 							}
 							varArgs[j] = arg;
 						}
-						args.set(i, varArgs);
-						return method;
+						args.set(i++, varArgs);
+						for (; i < args.size(); ++i) {
+							args.remove(i);
+						}
 					} else if (isNotAssignable(parameterType, args.get(i))) {
 						continue outer;
 					}
 				}
-				if (args.size() > parameterTypes.length) {
-					continue;
+				if (args.size() == parameterTypes.length) {
+					return method;
 				}
-				return method;
 			}
 		}
 		return null;
