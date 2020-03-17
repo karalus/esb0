@@ -52,10 +52,10 @@ public class FileSystemWatchAction extends TerminalAction {
 	private final String _workerPool;
 	private final Action _spawn;
 	private final List<String> _dirs;
-	private final String _move;
+	private final String _move, _moveOnError;
 	private final StandardOpenOption[] _options;
 
-	public FileSystemWatchAction(List<String> dirs, String move, long timeout, String workerPool, Action spawn) throws IOException {
+	public FileSystemWatchAction(List<String> dirs, String move, String moveOnError, long timeout, String workerPool, Action spawn) throws IOException {
 		_timeout = timeout;
 		_workerPool = workerPool;
 		_spawn = spawn;
@@ -66,7 +66,8 @@ public class FileSystemWatchAction extends TerminalAction {
 			}
 		}
 		_move = move;
-		if (move != null) {
+		_moveOnError = moveOnError;
+		if (move != null || moveOnError != null) {
 			_options = new StandardOpenOption[] { StandardOpenOption.READ, StandardOpenOption.WRITE };
 		} else {
 			_options = new StandardOpenOption[] { StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE };
@@ -81,7 +82,7 @@ public class FileSystemWatchAction extends TerminalAction {
 		if (watchKey != null) {
 			// File ready?
 			Thread.sleep(50L);
-			LinkedHashMap<Future<ESBMessage>, WatchEvent<?>> futures = new LinkedHashMap<>();
+			LinkedHashMap<Future<ESBMessage>, ESBMessage> futures = new LinkedHashMap<>();
 			for (WatchEvent<?> watchEvent : watchKey.pollEvents()) {
 				WatchEvent.Kind<?> kind = watchEvent.kind();
 				if (kind == StandardWatchEventKinds.OVERFLOW) {
@@ -101,7 +102,7 @@ public class FileSystemWatchAction extends TerminalAction {
 						msg.getVariables().put(ESBConstants.filename, path.toString());
 						for (;;) {
 							try {
-								futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), true), watchEvent);
+								futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), true), msg);
 								break;
 							} catch (RejectedExecutionException e) {
 								logger.warn("Could not spawn to worker pool " + _workerPool);
@@ -120,18 +121,22 @@ public class FileSystemWatchAction extends TerminalAction {
 				resourceFactory.close(_dirs);
 			}
 			for (Future<ESBMessage> future : futures.keySet()) {
+				ESBMessage msg = futures.get(future);
+				Path srcPath = msg.getVariable(ESBConstants.PathInfo);
 				try {
-					ESBMessage msg = SpawnAction.join(context, message, future);
+					SpawnAction.join(context, message, future);
 					if (_move != null) {
-						Path srcPath = msg.getVariable(ESBConstants.PathInfo);
 						String destPath = (String) bindVariable(_move, context, msg);
 						Files.move(srcPath, Paths.get(destPath), StandardCopyOption.ATOMIC_MOVE);
 					}
-					InputStream is = msg.getVariable(INPUT_STREAM);
-					is.close();
 				} catch (Exception e) {
-					WatchEvent<?> watchEvent = futures.get(future);
-					logger.error("Exception processing watchEvent " + watchEvent.context(), e);
+					logger.error("Exception processing file " + srcPath, e);
+					if (_moveOnError != null) {
+						String destPath = (String) bindVariable(_moveOnError, context, msg);
+						Files.move(srcPath, Paths.get(destPath), StandardCopyOption.ATOMIC_MOVE);
+					}
+				} finally {
+					msg.<InputStream> getVariable(INPUT_STREAM).close();
 				}
 			}
 		}

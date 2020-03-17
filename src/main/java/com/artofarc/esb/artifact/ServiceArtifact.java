@@ -217,7 +217,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			for (String dir : fileSystemWatch.getDir()) {
 				dirs.add(globalContext.bindProperties(dir));
 			}
-			FileSystemWatchAction fileSystemWatchAction = new FileSystemWatchAction(dirs, fileSystemWatch.getMove(), fileSystemWatch.getTimeout(),
+			FileSystemWatchAction fileSystemWatchAction = new FileSystemWatchAction(dirs, fileSystemWatch.getMove(), fileSystemWatch.getMoveOnError(), fileSystemWatch.getTimeout(),
 					resolveWorkerPool(fileSystemWatch.getWorkerPool()), Action.linkList(transform(globalContext, fileSystemWatch.getAction(), null)));
 			addAction(list, fileSystemWatchAction, location);
 			break;

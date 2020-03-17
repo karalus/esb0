@@ -49,8 +49,9 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		setMessageAction.addAssignment("append", false, "true", null, null);
 		setMessageAction.addAssignment("tstmp", false, "${initialTimestamp}", "java.sql.Date", null);
 		Action actionOnFile = Action.linkList(Arrays.asList(new FileAction(outDir.getPath()), setMessageAction, new FileAction(dir.getPath())));
-		String move = moveDir.getPath() + "/${filenameOrigin}";
-		FileSystemWatchAction action = new FileSystemWatchAction(Arrays.asList(new String[] { inDir.getPath() }), move, 90l, null, actionOnFile);
+		actionOnFile.setErrorHandler(new DumpAction());
+		String move = null; //moveDir.getPath() + "/${filenameOrigin}";
+		FileSystemWatchAction action = new FileSystemWatchAction(Arrays.asList(new String[] { inDir.getPath() }), move, null, 90l, null, actionOnFile);
 		timerService.setStartAction(action);
 		timerService.init(context.getPoolContext().getGlobalContext());
 		Thread.sleep(200);
