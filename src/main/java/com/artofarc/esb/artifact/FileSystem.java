@@ -170,10 +170,10 @@ public class FileSystem {
 		// Mac OSX
 		if (name.startsWith("._"))
 			return null;
-		switch (Artifact.getExt(name)) {
+		switch (StreamUtils.getExt(name)) {
 		case ServiceArtifact.FILE_EXTENSION:
 			return new ServiceArtifact(this, parent, name);
-		case XMLProcessingArtifact.FILE_EXTENSION_XML_DOC:
+		case StreamUtils.FILE_EXTENSION_XML_DOC:
 			return new XMLProcessingArtifact(this, parent, name);
 		case "xsd":
 			return new XSDArtifact(this, parent, name);

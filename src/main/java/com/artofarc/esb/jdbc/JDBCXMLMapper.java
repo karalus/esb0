@@ -338,7 +338,7 @@ public final class JDBCXMLMapper {
 					break;
 				}
 			}
-			message.addAttachment(cid, contentType, content);
+			message.addAttachment(cid, contentType, content, null);
 		}
 	}
 

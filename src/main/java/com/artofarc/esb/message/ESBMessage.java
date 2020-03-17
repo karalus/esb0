@@ -41,7 +41,6 @@ import javax.json.Json;
 import javax.json.stream.JsonGenerator;
 import javax.json.stream.JsonGeneratorFactory;
 import javax.mail.MessagingException;
-import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -216,13 +215,9 @@ public final class ESBMessage implements Cloneable {
 		_attachments.put(cid.substring(1, cid.length() - 1), bodyPart);
 	}
 
-	public void addAttachment(String contentID, String contentType, byte[] content) throws MessagingException {
-		InternetHeaders headers = new InternetHeaders();
-		headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
-		MimeBodyPart part = new MimeBodyPart(headers, content);
+	public void addAttachment(String contentID, String contentType, byte[] content, String filename) throws MessagingException {
 		String cid = '<' + contentID + '>';
-		part.setContentID(cid);
-		addAttachment(cid, part);
+		addAttachment(cid, MimeHelper.createMimeBodyPart(cid, contentType, content, filename));
 	}
 
 	public Charset getCharset() {

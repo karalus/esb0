@@ -20,8 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
-import javax.mail.internet.InternetHeaders;
-import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
@@ -33,7 +31,9 @@ import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.servlet.GenericHttpListener;
+import com.artofarc.util.StreamUtils;
 
 public class HttpServletResponseAction extends Action {
 
@@ -90,10 +90,11 @@ public class HttpServletResponseAction extends Action {
 						response.setDateHeader(entry.getKey(), (Long) entry.getValue());
 					}
 				}
+				// prevent flushing to avoid "transfer encoding chunked" on small responses
 				if (inPipeline) {
-					message.reset(BodyType.OUTPUT_STREAM, new PreventFlushOutputStream(response.getOutputStream()));
+					message.reset(BodyType.OUTPUT_STREAM, new StreamUtils.PreventFlushOutputStream(response.getOutputStream()));
 				} else if (message.getBodyType() != BodyType.INVALID) {
-					message.writeTo(new PreventFlushOutputStream(response.getOutputStream()), context);
+					message.writeTo(new StreamUtils.PreventFlushOutputStream(response.getOutputStream()), context);
 				}
 				if (message.getAttachments().size() > 0) {
 					logger.warn("Message has attachments");
@@ -133,54 +134,13 @@ public class HttpServletResponseAction extends Action {
 		AsyncContext asyncContext = execContext.getResource();
 		message.closeBody();
 		if (_multipartResponse != null) {
-			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-			MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + _multipartResponse + "\"; "
-					+ HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
 			ByteArrayOutputStream bos = execContext.getResource2();
-			if (bos == null) {
-				bos = new ByteArrayOutputStream(ESBMessage.MTU);
-				message.writeTo(bos, context);
-				message.closeBody();
-			}
-			InternetHeaders headers = new InternetHeaders();
-			if (!_multipartResponse.equals(contentType)) {
-				contentType = _multipartResponse + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
-			}
-			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
-			for (Entry<String, Object> entry : message.getHeaders()) {
-				headers.setHeader(entry.getKey(), entry.getValue().toString());
-			}
-			MimeBodyPart part = new MimeBodyPart(headers, bos.toByteArray());
-			mmp.addBodyPart(part);
-			for (MimeBodyPart bodyPart : message.getAttachments().values()) {
-				mmp.addBodyPart(bodyPart);
-			}
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartResponse, bos);
 			HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
 			response.setContentType(mmp.getContentType());
 			mmp.writeTo(response.getOutputStream());
 		}
 		asyncContext.complete();
-	}
-
-	/**
-	 * prevent flushing to avoid "transfer encoding chunked" on small responses
-	 */
-	static final class PreventFlushOutputStream extends java.io.FilterOutputStream {
-
-		PreventFlushOutputStream(java.io.OutputStream out) {
-			super(out);
-		}
-
-		@Override
-		public void write(byte b[], int off, int len) throws java.io.IOException {
-			out.write(b, off, len);
-		}
-
-		@Override
-		public void flush() {
-			// don't flush, wait until close()
-		}
-
 	}
 
 }

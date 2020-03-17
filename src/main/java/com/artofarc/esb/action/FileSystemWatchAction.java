@@ -36,13 +36,19 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import javax.mail.MessagingException;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.resource.DirWatchServiceFactory;
+import com.artofarc.util.StreamUtils;
 
 public class FileSystemWatchAction extends TerminalAction {
 
@@ -94,12 +100,12 @@ public class FileSystemWatchAction extends TerminalAction {
 				try {
 					FileChannel fileChannel = FileChannel.open(absolutePath, _options);
 					if (fileChannel.tryLock() != null) {
-						ESBMessage msg = new ESBMessage(BodyType.INPUT_STREAM, Channels.newInputStream(fileChannel));
-						msg.getVariables().put(INPUT_STREAM, msg.getBody());
-						msg.getVariables().put(ESBConstants.HttpMethod, kind.toString());
+						InputStream inputStream = Channels.newInputStream(fileChannel);
+						ESBMessage msg = createESBMessage(inputStream, path.toString());
+						msg.getVariables().put(INPUT_STREAM, inputStream);
+						msg.getVariables().put(ESBConstants.FileEventKind, kind.toString());
 						msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
 						msg.getVariables().put(ESBConstants.PathInfo, absolutePath);
-						msg.getVariables().put(ESBConstants.filename, path.toString());
 						for (;;) {
 							try {
 								futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), true), msg);
@@ -140,6 +146,31 @@ public class FileSystemWatchAction extends TerminalAction {
 				}
 			}
 		}
+	}
+
+	private static ESBMessage createESBMessage(InputStream inputStream, String filename) throws IOException, MessagingException {
+		ESBMessage msg;
+		if ("zip".equals(StreamUtils.getExt(filename))) {
+			msg = new ESBMessage(BodyType.INVALID, null);
+			try (ZipInputStream zis = new ZipInputStream(inputStream)) {
+				ZipEntry entry;
+				while ((entry = zis.getNextEntry()) != null) {
+					if (!entry.isDirectory()) {
+						int i = entry.getName().lastIndexOf('/');
+						String name = i < 0 ? entry.getName() : entry.getName().substring(i + 1);
+						if (StreamUtils.FILE_EXTENSION_XML_DOC.equals(StreamUtils.getExt(name))) {
+							msg.reset(BodyType.BYTES, StreamUtils.copy(zis));
+						} else {
+							msg.addAttachment(name, MimeHelper.guessContentTypeFromName(name), StreamUtils.copy(zis), name);
+						}
+					}
+				}
+			}
+		} else {
+			msg = new ESBMessage(BodyType.INPUT_STREAM, inputStream);
+		}
+		msg.getVariables().put(ESBConstants.filename, filename);
+		return msg;
 	}
 
 }

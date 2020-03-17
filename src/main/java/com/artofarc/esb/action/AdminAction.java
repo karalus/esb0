@@ -39,6 +39,7 @@ import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.util.StreamUtils;
 import com.artofarc.util.StringWriter;
 
@@ -156,7 +157,7 @@ public class AdminAction extends Action {
 		// if a file is posted to root then deploy it
 		if (resource.equals("/")) {
 			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-			if (contentType.startsWith("application/")) {
+			if ("bin".equals(MimeHelper.getFileExtension(contentType))) {
 				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
 				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
 				deployChangeset(globalContext, changeSet, message, "");

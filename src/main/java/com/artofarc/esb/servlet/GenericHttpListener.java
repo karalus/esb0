@@ -24,10 +24,6 @@ import java.util.Enumeration;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import javax.mail.Header;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -41,6 +37,8 @@ import static com.artofarc.esb.http.HttpConstants.*;
 
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.MimeHelper;
+
 import static com.artofarc.esb.message.ESBConstants.*;
 
 /**
@@ -116,7 +114,7 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(ClientCertificate, certs[0]);
 		}
 		if (bodyPresent) {
-			parseAttachments(request.getContentType(), message);
+			MimeHelper.parseMultipart(null, message, request.getContentType());
 		}
 		// copy into variable for HttpServletResponseAction
 		message.putVariable(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));
@@ -124,35 +122,6 @@ public class GenericHttpListener extends HttpServlet {
 		message.putVariable(HTTP_HEADER_ACCEPT, message.removeHeader(HTTP_HEADER_ACCEPT));
 		message.getVariables().put(AsyncContext, request.startAsync());
 		return message;
-	}
-
-	private static void parseAttachments(String contentType, ESBMessage message) throws Exception {
-		if (contentType != null && contentType.startsWith("multipart/")) {
-			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getBodyAsInputStream(null), contentType));
-			String start = removeQuotes(getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START));
-			String soap12Action = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
-			if (soap12Action != null) {
-				message.putHeader(HTTP_HEADER_SOAP_ACTION, soap12Action);
-			}
-			for (int i = 0; i < mmp.getCount(); i++) {
-				MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
-				String cid = bodyPart.getContentID();
-				if (start == null && i == 0 || start != null && start.equals(cid)) {
-					for (@SuppressWarnings("unchecked")
-					Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
-						Header header = allHeaders.nextElement();
-						message.putHeader(header.getName(), header.getValue());
-					}
-					message.setCharset(getValueFromHttpHeader(bodyPart.getContentType(), HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
-					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream());
-				} else if (cid != null) {
-					message.addAttachment(cid, bodyPart);
-				} else {
-					String name = removeQuotes(getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), "name="));
-					message.putVariable(name, bodyPart.getContent());
-				}
-			}
-		}
 	}
 
 	public static void sendError(HttpServletResponse response, Exception e) throws IOException {

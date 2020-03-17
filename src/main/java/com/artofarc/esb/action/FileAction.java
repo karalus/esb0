@@ -16,15 +16,22 @@
  */
 package com.artofarc.esb.action;
 
+import static com.artofarc.esb.http.HttpConstants.HTTP_HEADER_CONTENT_TYPE;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.MimeHelper;
+import com.artofarc.util.StreamUtils;
 
 public class FileAction extends TerminalAction {
 
@@ -43,16 +50,36 @@ public class FileAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
-		File file = new File(_destDir, message.<String> getVariable(ESBConstants.filename));
-		String method = message.getVariable(ESBConstants.HttpMethod);
+		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		String filename = message.getVariable(ESBConstants.filename);
+		String fileExtension = contentType != null ? "." + MimeHelper.getFileExtension(contentType) : "";
+		boolean zip = Boolean.parseBoolean(String.valueOf(message.getVariable("zip")));
+		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
+		String method = message.getVariable(ESBConstants.FileEventKind);
 		boolean append = false;
 		switch (method) {
 		case "ENTRY_MODIFY":
 			append = Boolean.parseBoolean(String.valueOf(message.getVariable("append")));
 		case "ENTRY_CREATE":
+			if (append && zip) {
+				throw new ExecutionException(this, "zip and append is not supported, yet");
+			}
 			FileOutputStream fileOutputStream = new FileOutputStream(file, append);
 			context.getTimeGauge().startTimeMeasurement();
-			message.writeRawTo(fileOutputStream, context);
+			if (zip) {
+				ZipOutputStream zos = new ZipOutputStream(fileOutputStream);
+				zos.putNextEntry(new ZipEntry(filename + fileExtension));
+				message.writeRawTo(zos, context);
+				for (Iterator<String> iter = message.getAttachments().keySet().iterator(); iter.hasNext();) {
+					String cid = iter.next();
+					zos.putNextEntry(new ZipEntry(filename + "-" + cid));
+					StreamUtils.copy(message.getAttachments().get(cid).getInputStream(), zos);
+					iter.remove();
+				}
+				zos.close();
+			} else {
+				message.writeRawTo(fileOutputStream, context);
+			}
 			fileOutputStream.close();
 			context.getTimeGauge().stopTimeMeasurement("write file %s", false, file);
 			break;

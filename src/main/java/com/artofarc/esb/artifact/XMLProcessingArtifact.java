@@ -24,10 +24,9 @@ import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.StreamUtils;
 
 public class XMLProcessingArtifact extends Artifact {
-
-	final static String FILE_EXTENSION_XML_DOC = "xml";
 
 	public XMLProcessingArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -52,7 +51,7 @@ public class XMLProcessingArtifact extends Artifact {
 			}
 		}
 		// keep XML docs in cache
-		if (!getExt(getName()).equals(FILE_EXTENSION_XML_DOC)) {
+		if (!StreamUtils.getExt(getName()).equals(StreamUtils.FILE_EXTENSION_XML_DOC)) {
 			super.clearContent();
 		}
 	}

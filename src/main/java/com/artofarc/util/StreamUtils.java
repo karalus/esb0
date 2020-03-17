@@ -23,6 +23,30 @@ public final class StreamUtils {
 
 	public static final int MTU = Integer.parseInt(System.getProperty("esb0.internalMTU", "4096"));
 
+	public static final String FILE_EXTENSION_XML_DOC = "xml";
+
+	public static final class PreventFlushOutputStream extends FilterOutputStream {
+
+		public PreventFlushOutputStream(OutputStream out) {
+			super(out);
+		}
+
+		@Override
+		public void write(byte b[], int off, int len) throws IOException {
+			out.write(b, off, len);
+		}
+
+		@Override
+		public void flush() {
+			// don't flush, wait until close()
+		}
+
+		@Override
+		public void close() throws IOException {
+			out.close();
+		}
+	}
+
 	public static void copy(InputStream is, OutputStream os) throws IOException {
 		final byte[] buffer = new byte[MTU];
 		int len;
@@ -94,6 +118,16 @@ public final class StreamUtils {
 		}
 		is.close();
 		return result.toString();
+	}
+
+	public static String getExt(String name) {
+		int i = name.lastIndexOf('.');
+		return i < 0 ? "" : name.substring(i + 1);
+	}
+
+	public static String stripExt(String name) {
+		int i = name.lastIndexOf('.');
+		return i > 0 ? name.substring(0, i) : name;
 	}
 
 }

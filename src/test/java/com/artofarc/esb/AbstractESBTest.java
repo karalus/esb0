@@ -69,7 +69,7 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static HttpOutboundAction createHttpOutboundAction(String url) throws MalformedURLException {
-		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis()), 60000, null);
+		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis()), 60000, null, null);
 	}
 
 	protected static AssignAction createAssignAction(String varName, String expression, String... bindNames) {

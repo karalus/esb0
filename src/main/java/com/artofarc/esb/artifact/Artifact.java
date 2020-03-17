@@ -79,16 +79,6 @@ public abstract class Artifact {
 		}
 	}
 
-	public static String stripExt(String name) {
-		int i = name.lastIndexOf('.');
-		return i > 0 ? name.substring(0, i) : name;
-	}
-
-	public static String getExt(String name) {
-		int i = name.lastIndexOf('.');
-		return i < 0 ? "" : name.substring(i + 1);
-	}
-
 	public final Collection<String> getReferenced() {
 		return _referenced;
 	}

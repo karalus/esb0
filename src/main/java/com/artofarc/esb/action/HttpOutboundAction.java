@@ -16,16 +16,21 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 
+import javax.mail.internet.MimeMultipart;
 import javax.xml.bind.DatatypeConverter;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
+
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrlSelector;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.MimeHelper;
+
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
 
@@ -34,16 +39,17 @@ public class HttpOutboundAction extends Action {
 	private final HttpEndpoint _httpEndpoint;
 	private final Integer _readTimeout;
 	private final Integer _chunkLength;
+	private final String _multipartRequest;
 
-	public HttpOutboundAction(HttpEndpoint httpEndpoint, int readTimeout, Integer chunkLength) {
+	public HttpOutboundAction(HttpEndpoint httpEndpoint, int readTimeout, Integer chunkLength, String multipartRequest) {
 		_httpEndpoint = httpEndpoint;
 		_readTimeout = readTimeout;
 		_chunkLength = chunkLength;
+		_multipartRequest = multipartRequest;
 		_pipelineStop = true;
 	}
 
-	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+	private HttpUrlSelector.HttpUrlConnectionWrapper createHttpURLConnection(Context context, ESBMessage message, String contentType) throws Exception {
 		HttpUrlSelector httpUrlSelector = context.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
@@ -52,9 +58,8 @@ public class HttpOutboundAction extends Action {
 		if (queryString != null && queryString.length() > 0) {
 			appendHttpUrl += "?" + queryString;
 		}
-		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null) {
-			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 		}
 		String basicAuthCredential = _httpEndpoint.getBasicAuthCredential();
 		if (basicAuthCredential != null) {
@@ -64,21 +69,49 @@ public class HttpOutboundAction extends Action {
 		int timeout = message.getTimeleft(_readTimeout).intValue();
 		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders(), _chunkLength);
 		message.getVariables().put(HttpURLOutbound, wrapper.getHttpUrl().getUrlStr());
-		HttpURLConnection conn = wrapper.getHttpURLConnection();  
-		if (inPipeline) {
-			message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
-		} else {
-			if (!message.isEmpty()) {
-				message.writeTo(conn.getOutputStream(), context);
-			}
-		}
-		return new ExecutionContext(wrapper);
+		return wrapper;
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		if (_multipartRequest != null) {
+			if (inPipeline) {
+				ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
+				message.reset(BodyType.OUTPUT_STREAM, bos);
+				return new ExecutionContext(bos); 
+			}
+			return null;
+		} else {
+			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+			if (contentType != null) {
+				contentType += ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
+			}
+			HttpUrlSelector.HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentType);
+			HttpURLConnection conn = wrapper.getHttpURLConnection();
+			if (inPipeline) {
+				message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
+			} else {
+				if (!message.isEmpty()) {
+					message.writeTo(conn.getOutputStream(), context);
+				}
+			}
+			return new ExecutionContext(wrapper); 
+		}
+	}
+
+	@Override
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		message.closeBody();
-		message.getVariables().put(HttpURLConnection, resource.getResource());
+		HttpUrlSelector.HttpUrlConnectionWrapper wrapper;
+		if (_multipartRequest != null) {
+			ByteArrayOutputStream bos = execContext.getResource();
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartRequest, bos);
+			wrapper = createHttpURLConnection(context, message, mmp.getContentType());
+			mmp.writeTo(wrapper.getHttpURLConnection().getOutputStream());
+		} else {
+			wrapper = execContext.getResource();
+		}
+		message.getVariables().put(HttpURLConnection, wrapper);
 	}
 
 }

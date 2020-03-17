@@ -57,6 +57,7 @@
 							</complexType>
 						</element>
 					</sequence>
+					<attribute name="multipartRequest" type="tns:string1" />
 					<attribute name="username" type="string" />
 					<attribute name="password" type="string" />
 					<attribute name="connectionTimeout" type="int" default="10000" />
