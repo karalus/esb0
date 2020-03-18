@@ -51,7 +51,7 @@ public class XMLProcessingArtifact extends Artifact {
 			}
 		}
 		// keep XML docs in cache
-		if (!IOUtils.getExt(getName()).equals(IOUtils.FILE_EXTENSION_XML_DOC)) {
+		if (!IOUtils.getExt(getName()).equals("xml")) {
 			super.clearContent();
 		}
 	}

@@ -31,7 +31,6 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.util.IOUtils;
 
 public final class MimeHelper {
 
@@ -115,7 +114,7 @@ public final class MimeHelper {
 	 */
 	public static String getFileExtension(String contentType) {
 		if (isSOAP11(contentType) || isSOAP12(contentType)) {
-			return IOUtils.FILE_EXTENSION_XML_DOC;
+			return "xml";
 		}
 		if (contentType.startsWith(APPLICATION)) {
 			String ext = contentType.substring(APPLICATION.length());

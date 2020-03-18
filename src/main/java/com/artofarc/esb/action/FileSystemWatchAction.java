@@ -81,6 +81,11 @@ public class FileSystemWatchAction extends TerminalAction {
 	}
 
 	@Override
+	protected long getThreshold() {
+		return Long.MAX_VALUE;
+	}
+
+	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		DirWatchServiceFactory resourceFactory = context.getGlobalContext().getResourceFactory(DirWatchServiceFactory.class);
 		WatchService watchService = resourceFactory.getResource(_dirs);
@@ -158,7 +163,7 @@ public class FileSystemWatchAction extends TerminalAction {
 					if (!entry.isDirectory()) {
 						int i = entry.getName().lastIndexOf('/');
 						String name = i < 0 ? entry.getName() : entry.getName().substring(i + 1);
-						if (IOUtils.FILE_EXTENSION_XML_DOC.equals(IOUtils.getExt(name))) {
+						if ("xml".equals(IOUtils.getExt(name))) {
 							msg.reset(BodyType.BYTES, IOUtils.copy(zis));
 						} else {
 							msg.addAttachment(name, MimeHelper.guessContentTypeFromName(name), IOUtils.copy(zis), name);

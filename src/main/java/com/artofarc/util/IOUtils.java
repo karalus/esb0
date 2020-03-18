@@ -23,8 +23,6 @@ public final class IOUtils {
 
 	public static final int MTU = Integer.parseInt(System.getProperty("esb0.internalMTU", "4096"));
 
-	public static final String FILE_EXTENSION_XML_DOC = "xml";
-
 	public static final class PreventFlushOutputStream extends FilterOutputStream {
 
 		public PreventFlushOutputStream(OutputStream out) {

@@ -167,13 +167,13 @@ public class FileSystem {
 	}
 
 	protected final Artifact createArtifact(Directory parent, String name) {
-		// Mac OSX
-		if (name.startsWith("._"))
+		// Ignore files starting with dot (important for Mac OSX)
+		if (name.startsWith("."))
 			return null;
 		switch (IOUtils.getExt(name)) {
 		case ServiceArtifact.FILE_EXTENSION:
 			return new ServiceArtifact(this, parent, name);
-		case IOUtils.FILE_EXTENSION_XML_DOC:
+		case "xml":
 			return new XMLProcessingArtifact(this, parent, name);
 		case "xsd":
 			return new XSDArtifact(this, parent, name);

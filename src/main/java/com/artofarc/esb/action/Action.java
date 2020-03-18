@@ -79,6 +79,10 @@ public abstract class Action implements Cloneable {
 		logger.info(stringWriter.toString());
 	}
 
+	protected long getThreshold() {
+		return 250L;
+	}
+
 	/**
 	 * The ESB0 execution engine. TODO: Increase comprehensibility.
 	 */
@@ -87,7 +91,7 @@ public abstract class Action implements Cloneable {
 		List<ExecutionContext> resources = new ArrayList<>();
 		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
 		context.pushStackPos();
-		TimeGauge timeGauge = new TimeGauge(logger, 250L, false);
+		TimeGauge timeGauge = new TimeGauge(logger, getThreshold(), false);
 		timeGauge.startTimeMeasurement();
 		for (Action nextAction = this; nextAction != null;) {
 			boolean isPipeline = false;

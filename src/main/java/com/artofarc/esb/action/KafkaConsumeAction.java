@@ -50,6 +50,11 @@ public class KafkaConsumeAction extends TerminalAction {
 	}
 
 	@Override
+	protected long getThreshold() {
+		return Long.MAX_VALUE;
+	}
+
+	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		KafkaConsumerFactory kafkaConsumerFactory = context.getResourceFactory(KafkaConsumerFactory.class);
 		Consumer<?, ?> consumer = kafkaConsumerFactory.getResource(_properties, _topics);
