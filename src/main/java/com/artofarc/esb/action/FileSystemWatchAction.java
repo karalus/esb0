@@ -108,7 +108,7 @@ public class FileSystemWatchAction extends TerminalAction {
 						msg.getVariables().put(ESBConstants.PathInfo, absolutePath);
 						for (;;) {
 							try {
-								futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), true), msg);
+								futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), false, true), msg);
 								break;
 							} catch (RejectedExecutionException e) {
 								logger.warn("Could not spawn to worker pool " + _workerPool);
@@ -130,7 +130,7 @@ public class FileSystemWatchAction extends TerminalAction {
 				ESBMessage msg = futures.get(future);
 				Path srcPath = msg.getVariable(ESBConstants.PathInfo);
 				try {
-					SpawnAction.join(context, message, future);
+					SpawnAction.join(context, message, future, false);
 					if (_move != null) {
 						String destPath = (String) bindVariable(_move, context, msg);
 						Files.move(srcPath, Paths.get(destPath), StandardCopyOption.ATOMIC_MOVE);

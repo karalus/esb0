@@ -65,7 +65,7 @@ public class KafkaConsumeAction extends TerminalAction {
 			logger.debug("Kafka Consumer Record(topic=" + record.topic() + ", partition=" + record.partition() + ", offset=" + record.offset() + ")");
 			for(;;) {
 				try {
-					futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), true), record);
+					futures.put(SpawnAction.submit(context, msg, _workerPool, _spawn, Collections.<Action> emptyList(), false, true), record);
 					break;
 				} catch (RejectedExecutionException e) {
 					logger.warn("Could not spawn to worker pool " + _workerPool);
@@ -75,7 +75,7 @@ public class KafkaConsumeAction extends TerminalAction {
 		}
 		for (Future<ESBMessage> future : futures.keySet()) {
 			try {
-				SpawnAction.join(context, message, future);
+				SpawnAction.join(context, message, future, false);
 			} catch (Exception e) {
 				ConsumerRecord<?, ?> record = futures.get(future);
 				logger.error("Exception processing record from topic " + record.topic() + " in partition " + record.partition() + " with offset " + record.offset(), e);

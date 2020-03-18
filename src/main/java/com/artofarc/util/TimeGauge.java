@@ -59,7 +59,7 @@ public final class TimeGauge implements AutoCloseable {
 		final long diff = (endTS - startTS) / 1000000L;
 		if (diff >= _threshold && isLogEnabled()) {
 			if (args.length > 0) text = String.format(text, args);
-			log(String.format(text, args) + " took " + diff / 1000. + "s");
+			log(text + " took " + diff / 1000. + "s");
 		}
 		if (restart) {
 			_measuredPoints.push(endTS);

@@ -43,13 +43,15 @@ public final class Collections {
 		return result;
 	}
 
-	public static <T> List<T> newList(Collection<T> coll, boolean move) {
-		if (move) {
-			ArrayList<T> list = new ArrayList<>(coll);
-			coll.clear();
-			return list;
+	public static <T> List<T> newList(Collection<T> coll, boolean empty, boolean move) {
+		if (empty) {
+			return java.util.Collections.emptyList();
 		}
-		return java.util.Collections.emptyList();
+		ArrayList<T> list = new ArrayList<>(coll);
+		if (move) {
+			coll.clear();
+		}
+		return list;
 	}
 
 	public static <T> T[] toArray(Collection<T> list) {
