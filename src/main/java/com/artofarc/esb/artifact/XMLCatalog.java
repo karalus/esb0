@@ -34,7 +34,7 @@ import org.xml.sax.InputSource;
 
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.SAXTransformerFactoryHelper;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public final class XMLCatalog {
 
@@ -45,7 +45,7 @@ public final class XMLCatalog {
 		try {
 			{
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "xml.xsd");
-				xsdArtifact.setContent(StreamUtils.copy(StreamUtils.getResourceAsStream("xml.xsd")));
+				xsdArtifact.setContent(IOUtils.copy(IOUtils.getResourceAsStream("xml.xsd")));
 			}
 			XPath xPath = XPathFactory.newInstance().newXPath();
 			Transformer transformer = SAXTransformerFactoryHelper.newTransformer();
@@ -53,14 +53,14 @@ public final class XMLCatalog {
 			// TODO: Works only with document/literal WSDL style and messageParts referring to elements
 			String exp = "/*/*[local-name()='complexType' and @name='Body']/*/*/@processContents";
 			{
-				Attr attr = evaluate(xPath, exp, StreamUtils.getResourceAsStream("soap11.xsd"));
+				Attr attr = evaluate(xPath, exp, IOUtils.getResourceAsStream("soap11.xsd"));
 				attr.setValue("strict");
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "soap11.xsd");
 				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
 			}
 			xPath.reset();
 			{
-				Attr attr = evaluate(xPath, exp, StreamUtils.getResourceAsStream("soap12.xsd"));
+				Attr attr = evaluate(xPath, exp, IOUtils.getResourceAsStream("soap12.xsd"));
 				attr.setValue("strict");
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, parent, "soap12.xsd");
 				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));

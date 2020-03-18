@@ -24,7 +24,7 @@ import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public class XMLProcessingArtifact extends Artifact {
 
@@ -51,7 +51,7 @@ public class XMLProcessingArtifact extends Artifact {
 			}
 		}
 		// keep XML docs in cache
-		if (!StreamUtils.getExt(getName()).equals(StreamUtils.FILE_EXTENSION_XML_DOC)) {
+		if (!IOUtils.getExt(getName()).equals(IOUtils.FILE_EXTENSION_XML_DOC)) {
 			super.clearContent();
 		}
 	}

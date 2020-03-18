@@ -19,7 +19,7 @@ package com.artofarc.util;
 import java.io.*;
 import java.util.Formatter;
 
-public final class StreamUtils {
+public final class IOUtils {
 
 	public static final int MTU = Integer.parseInt(System.getProperty("esb0.internalMTU", "4096"));
 
@@ -78,7 +78,7 @@ public final class StreamUtils {
 	}
 
 	public static InputStream getResourceAsStream(String name) throws FileNotFoundException {
-		InputStream stream = StreamUtils.class.getClassLoader().getResourceAsStream(name);
+		InputStream stream = IOUtils.class.getClassLoader().getResourceAsStream(name);
 		if (stream == null) {
 			throw new FileNotFoundException(name + " must be in classpath");
 		}

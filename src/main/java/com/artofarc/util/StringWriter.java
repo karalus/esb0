@@ -21,7 +21,7 @@ public final class StringWriter extends java.io.Writer {
 	private final StringBuilder builder;
 
 	public StringWriter() {
-		builder = new StringBuilder(StreamUtils.MTU);
+		builder = new StringBuilder(IOUtils.MTU);
 	}
 
 	@Override

@@ -30,7 +30,7 @@ import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public abstract class AbstractESBTest {
 
@@ -65,7 +65,7 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static byte[] readFile(String fileName) throws IOException {
-		return StreamUtils.readFile(new File(fileName));
+		return IOUtils.readFile(new File(fileName));
 	}
 
 	protected static HttpOutboundAction createHttpOutboundAction(String url) throws MalformedURLException {

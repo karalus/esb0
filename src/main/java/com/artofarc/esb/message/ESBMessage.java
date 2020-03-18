@@ -75,13 +75,13 @@ import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.Collections;
 import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 import com.artofarc.util.StringWriter;
 
 public final class ESBMessage implements Cloneable {
 
 	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
-	public static final int MTU = StreamUtils.MTU;
+	public static final int MTU = IOUtils.MTU;
 	private static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
 	private static final JsonGeneratorFactory JSON_GENERATOR_FACTORY;
 	private static final Map<String, String> HEADER_NAMES = new ConcurrentHashMap<>(256); 
@@ -330,7 +330,7 @@ public final class ESBMessage implements Cloneable {
 		case BYTES:
 			return (byte[]) _body;
 		case INPUT_STREAM:
-			ba = StreamUtils.copy(getUncompressedInputStream((InputStream) _body));
+			ba = IOUtils.copy(getUncompressedInputStream((InputStream) _body));
 			break;
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
@@ -371,7 +371,7 @@ public final class ESBMessage implements Cloneable {
 			if (_body instanceof com.artofarc.util.StringReader) {
 				str = _body.toString();
 			} else {
-				StreamUtils.copy((Reader) _body, sw = new StringWriter());
+				IOUtils.copy((Reader) _body, sw = new StringWriter());
 				str = sw.toString();
 			}
 			break;
@@ -686,14 +686,14 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case INPUT_STREAM:
 			if (isSinkEncodingdifferent()) {
-				StreamUtils.copy(getInputStreamReader((InputStream) _body), init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
+				IOUtils.copy(getInputStreamReader((InputStream) _body), init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
 			} else {
 				// writes compressed data through!
-				StreamUtils.copy((InputStream) _body, os);
+				IOUtils.copy((InputStream) _body, os);
 			}
 			break;
 		case READER:
-			StreamUtils.copy((Reader) _body, init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncoding()), null));
+			IOUtils.copy((Reader) _body, init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncoding()), null));
 			break;
 		case XQ_SEQUENCE:
 			XQSequence xqSequence = (XQSequence) _body;
@@ -717,10 +717,10 @@ public final class ESBMessage implements Cloneable {
 	public void copyFrom(InputStream inputStream) throws IOException {
 		switch (_bodyType) {
 		case OUTPUT_STREAM:
-			StreamUtils.copy(getUncompressedInputStream(inputStream), (OutputStream) _body);
+			IOUtils.copy(getUncompressedInputStream(inputStream), (OutputStream) _body);
 			break;
 		case WRITER:
-			StreamUtils.copy(getInputStreamReader(inputStream), (Writer) _body);
+			IOUtils.copy(getInputStreamReader(inputStream), (Writer) _body);
 			break;
 		default:
 			throw new IllegalStateException("Message cannot be copied to: " + _bodyType);

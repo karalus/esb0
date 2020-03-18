@@ -40,7 +40,7 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 import com.artofarc.util.StringWriter;
 
 public class AdminAction extends Action {
@@ -111,7 +111,7 @@ public class AdminAction extends Action {
 				if (headerAccept == null || headerAccept.contains("text/")) {
 					InputStream contentAsStream = artifact.getContentAsStream();
 					if (artifact instanceof WSDLArtifact) {
-						String content = new String(StreamUtils.copy(contentAsStream), ESBMessage.CHARSET_DEFAULT);
+						String content = new String(IOUtils.copy(contentAsStream), ESBMessage.CHARSET_DEFAULT);
 						contentAsStream.close();
 						try {
 							content = (String) bindVariable(content, null, message);

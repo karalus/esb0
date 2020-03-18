@@ -31,7 +31,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public class FileAction extends TerminalAction {
 
@@ -73,7 +73,7 @@ public class FileAction extends TerminalAction {
 				for (Iterator<String> iter = message.getAttachments().keySet().iterator(); iter.hasNext();) {
 					String cid = iter.next();
 					zos.putNextEntry(new ZipEntry(filename + "-" + cid));
-					StreamUtils.copy(message.getAttachments().get(cid).getInputStream(), zos);
+					IOUtils.copy(message.getAttachments().get(cid).getInputStream(), zos);
 					iter.remove();
 				}
 				zos.close();

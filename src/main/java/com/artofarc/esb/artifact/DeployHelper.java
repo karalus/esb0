@@ -25,7 +25,7 @@ import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public final class DeployHelper {
 
@@ -59,7 +59,7 @@ public final class DeployHelper {
 			}
 		}
 		for (WorkerPoolArtifact workerPoolArtifact : changeSet.getWorkerPoolArtifacts()) {
-			String name = StreamUtils.stripExt(workerPoolArtifact.getURI());
+			String name = IOUtils.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
 			WorkerPool oldWorkerPool = globalContext.getWorkerPool(name);
 			if (oldWorkerPool != null) {

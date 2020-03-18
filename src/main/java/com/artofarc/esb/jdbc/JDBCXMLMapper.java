@@ -50,7 +50,7 @@ import org.eclipse.persistence.oxm.mappings.XMLCompositeObjectMapping;
 import org.w3c.dom.Node;
 
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public final class JDBCXMLMapper {
 
@@ -300,7 +300,7 @@ public final class JDBCXMLMapper {
 							attachment.set(propertyName, mimeBodyPart.getContentType());
 							break;
 						default:
-							attachment.set(propertyName, StreamUtils.copy(mimeBodyPart.getInputStream()));
+							attachment.set(propertyName, IOUtils.copy(mimeBodyPart.getInputStream()));
 							break;
 						}
 					}

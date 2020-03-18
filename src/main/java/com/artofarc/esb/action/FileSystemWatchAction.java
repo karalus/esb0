@@ -48,7 +48,7 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.resource.DirWatchServiceFactory;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public class FileSystemWatchAction extends TerminalAction {
 
@@ -150,7 +150,7 @@ public class FileSystemWatchAction extends TerminalAction {
 
 	private static ESBMessage createESBMessage(InputStream inputStream, String filename) throws IOException, MessagingException {
 		ESBMessage msg;
-		if ("zip".equals(StreamUtils.getExt(filename))) {
+		if ("zip".equals(IOUtils.getExt(filename))) {
 			msg = new ESBMessage(BodyType.INVALID, null);
 			try (ZipInputStream zis = new ZipInputStream(inputStream)) {
 				ZipEntry entry;
@@ -158,10 +158,10 @@ public class FileSystemWatchAction extends TerminalAction {
 					if (!entry.isDirectory()) {
 						int i = entry.getName().lastIndexOf('/');
 						String name = i < 0 ? entry.getName() : entry.getName().substring(i + 1);
-						if (StreamUtils.FILE_EXTENSION_XML_DOC.equals(StreamUtils.getExt(name))) {
-							msg.reset(BodyType.BYTES, StreamUtils.copy(zis));
+						if (IOUtils.FILE_EXTENSION_XML_DOC.equals(IOUtils.getExt(name))) {
+							msg.reset(BodyType.BYTES, IOUtils.copy(zis));
 						} else {
-							msg.addAttachment(name, MimeHelper.guessContentTypeFromName(name), StreamUtils.copy(zis), name);
+							msg.addAttachment(name, MimeHelper.guessContentTypeFromName(name), IOUtils.copy(zis), name);
 						}
 					}
 				}

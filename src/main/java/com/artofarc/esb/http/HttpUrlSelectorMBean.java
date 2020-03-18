@@ -29,4 +29,6 @@ public interface HttpUrlSelectorMBean {
 
 	int getInUseTotal();
 
+	long getTotalConnectionsCount();
+
 }

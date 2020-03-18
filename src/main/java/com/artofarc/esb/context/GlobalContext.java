@@ -37,7 +37,7 @@ import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.ConcurrentResourcePool;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public final class GlobalContext extends Registry implements Runnable, com.artofarc.esb.mbean.GlobalContextMXBean {
 
@@ -65,7 +65,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			@Override
 			protected void init(Map<String, Object> pool) throws Exception {
 				if (GLOBALPROPERTIES != null) {
-					properties.load(StreamUtils.getResourceAsStream(GLOBALPROPERTIES));
+					properties.load(IOUtils.getResourceAsStream(GLOBALPROPERTIES));
 				}
 				for (String key : properties.stringPropertyNames()) {
 					pool.put(key, properties.getProperty(key));

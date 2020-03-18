@@ -18,7 +18,7 @@ package com.artofarc.esb.artifact;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.ReflectionUtils;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -71,7 +71,7 @@ public class FileSystem {
 
 	protected byte[] reloadContent(String uri) throws Exception {
 		try (InputStream contentAsStream = createInputStream(uri)) {
-			return StreamUtils.copy(contentAsStream);
+			return IOUtils.copy(contentAsStream);
 		}
 	}
 
@@ -170,10 +170,10 @@ public class FileSystem {
 		// Mac OSX
 		if (name.startsWith("._"))
 			return null;
-		switch (StreamUtils.getExt(name)) {
+		switch (IOUtils.getExt(name)) {
 		case ServiceArtifact.FILE_EXTENSION:
 			return new ServiceArtifact(this, parent, name);
-		case StreamUtils.FILE_EXTENSION_XML_DOC:
+		case IOUtils.FILE_EXTENSION_XML_DOC:
 			return new XMLProcessingArtifact(this, parent, name);
 		case "xsd":
 			return new XSDArtifact(this, parent, name);
@@ -433,7 +433,7 @@ public class FileSystem {
 					Artifact old = getArtifact(entry.getName());
 					Artifact artifact = createArtifact(dir, name);
 					if (artifact != null) {
-						artifact.setContent(StreamUtils.copy(zis));
+						artifact.setContent(IOUtils.copy(zis));
 						artifact.setModificationTime(entry.getTime());
 						artifact.setCrc(entry.getCrc());
 						if (old != null) {

@@ -25,7 +25,7 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.zip.CRC32;
 
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public class FileSystemDir extends FileSystem {
 
@@ -67,7 +67,7 @@ public class FileSystemDir extends FileSystem {
 			} else {
 				Artifact artifact = createArtifact(base, name);
 				if (artifact != null) {
-					artifact.setContent(StreamUtils.readFile(file));
+					artifact.setContent(IOUtils.readFile(file));
 					artifact.setModificationTime(file.lastModified());
 					crc.update(artifact.getContent());
 					artifact.setCrc(crc.getValue());

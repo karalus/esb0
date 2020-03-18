@@ -21,7 +21,7 @@ import java.io.ByteArrayInputStream;
 public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 
 	public ByteArrayOutputStream() {
-		super(StreamUtils.MTU);
+		super(IOUtils.MTU);
 	}
 
 	public ByteArrayInputStream getByteArrayInputStream() {

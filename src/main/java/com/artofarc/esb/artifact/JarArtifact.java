@@ -23,7 +23,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public class JarArtifact extends Artifact {
 
@@ -70,7 +70,7 @@ public class JarArtifact extends Artifact {
 				ZipEntry entry;
 				while ((entry = zis.getNextEntry()) != null) {
 					if (!entry.isDirectory()) {
-						_entries.put(entry.getName(), CACHE_JARS_UNZIPPED ? StreamUtils.copy(zis) : null);
+						_entries.put(entry.getName(), CACHE_JARS_UNZIPPED ? IOUtils.copy(zis) : null);
 					}
 				}
 			}
@@ -88,7 +88,7 @@ public class JarArtifact extends Artifact {
 					ZipEntry entry;
 					while ((entry = zis.getNextEntry()) != null) {
 						if (entry.getName().equals(filename)) {
-							return StreamUtils.copy(zis);
+							return IOUtils.copy(zis);
 						}
 					}
 				}

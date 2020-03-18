@@ -31,7 +31,7 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public final class MimeHelper {
 
@@ -39,7 +39,7 @@ public final class MimeHelper {
 	private static final String APPLICATION = "application/";
 	private static final String TEXT = "text/";
 
-	public static MimeBodyPart createMimeBodyPart(String contentID, String contentType, byte[] content, String filename) throws MessagingException {
+	static MimeBodyPart createMimeBodyPart(String contentID, String contentType, byte[] content, String filename) throws MessagingException {
 		InternetHeaders headers = new InternetHeaders();
 		headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 		MimeBodyPart part = new MimeBodyPart(headers, content);
@@ -109,13 +109,13 @@ public final class MimeHelper {
 	public static String guessContentTypeFromName(String fname) {
 		return java.net.URLConnection.guessContentTypeFromName(fname);
 	}
-	
+
 	/**
 	 * This is very rudimentary, but using http://tika.apache.org/ is overdone.
 	 */
 	public static String getFileExtension(String contentType) {
 		if (isSOAP11(contentType) || isSOAP12(contentType)) {
-			return StreamUtils.FILE_EXTENSION_XML_DOC;
+			return IOUtils.FILE_EXTENSION_XML_DOC;
 		}
 		if (contentType.startsWith(APPLICATION)) {
 			String ext = contentType.substring(APPLICATION.length());

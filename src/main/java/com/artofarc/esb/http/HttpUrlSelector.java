@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.AttributeChangeNotification;
 import javax.management.MBeanNotificationInfo;
@@ -67,18 +68,16 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	}
 
 	private HttpEndpoint _httpEndpoint;
-
 	private final WorkerPool _workerPool;
 	private final int size;
 	private final int[] weight;
 	private final boolean[] active;
 	private final AtomicIntegerArray inUse;
-
 	private int pos;
 	private volatile int activeCount;
-	private long sequenceNumber;
-
+	private long _sequenceNumber;
 	private ScheduledFuture<?> _future;
+	private final AtomicLong _totalConnectionsCount = new AtomicLong();
 
 	public HttpUrlSelector(HttpEndpoint httpEndpoint, WorkerPool workerPool) {
 		super(workerPool.getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
@@ -125,7 +124,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 					_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _httpEndpoint.getCheckAliveInterval(), _httpEndpoint.getCheckAliveInterval(), TimeUnit.SECONDS);
 				}
 			}
-			sendNotification(new AttributeChangeNotification(this, ++sequenceNumber, System.currentTimeMillis(), "Endpoint state changed", "active[" + pos + "]", "boolean", old, b));
+			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Endpoint state changed", "active[" + pos + "]", "boolean", old, b));
 		}
 	}
 
@@ -206,6 +205,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
 		}
 		conn.connect();
+		_totalConnectionsCount.incrementAndGet();
 		return conn;
 	}
 
@@ -234,6 +234,10 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			total += inUse.get(i);
 		}
 		return total; 
+	}
+
+	public long getTotalConnectionsCount() {
+		return _totalConnectionsCount.get();
 	}
 
 }

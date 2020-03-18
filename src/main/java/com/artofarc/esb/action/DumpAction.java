@@ -22,7 +22,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 import com.artofarc.util.StringWriter;
 
 public class DumpAction extends TerminalAction {
@@ -64,7 +64,7 @@ public class DumpAction extends TerminalAction {
 					}
 				}
 				if (_binary) {
-					logger.info("Body(" + message.getCharset() + "):\n" + StreamUtils.convertToHexDump(message.getBodyAsInputStream(context)));
+					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(message.getBodyAsInputStream(context)));
 				} else {
 					logger.info("Body:\n" + message.getBodyAsString(context));
 				}

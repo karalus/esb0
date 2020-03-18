@@ -33,7 +33,7 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.servlet.GenericHttpListener;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public class HttpServletResponseAction extends Action {
 
@@ -92,9 +92,9 @@ public class HttpServletResponseAction extends Action {
 				}
 				// prevent flushing to avoid "transfer encoding chunked" on small responses
 				if (inPipeline) {
-					message.reset(BodyType.OUTPUT_STREAM, new StreamUtils.PreventFlushOutputStream(response.getOutputStream()));
+					message.reset(BodyType.OUTPUT_STREAM, new IOUtils.PreventFlushOutputStream(response.getOutputStream()));
 				} else if (message.getBodyType() != BodyType.INVALID) {
-					message.writeTo(new StreamUtils.PreventFlushOutputStream(response.getOutputStream()), context);
+					message.writeTo(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), context);
 				}
 				if (message.getAttachments().size() > 0) {
 					logger.warn("Message has attachments");

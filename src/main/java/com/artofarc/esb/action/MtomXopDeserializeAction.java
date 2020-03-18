@@ -27,7 +27,7 @@ import org.w3c.dom.Node;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 /**
  * Deserialize XOP package. This implementation is memory exhaustive and should be optimized by using stream decoder.
@@ -60,7 +60,7 @@ public class MtomXopDeserializeAction extends TransformAction {
 			String cid = iter.next();
 			Element attachment = (Element) rootNode.appendChild(document.createElement("attachment"));
 			attachment.setAttribute("cid", "cid:" + cid);
-			byte[] ba = StreamUtils.copy(message.getAttachments().get(cid).getInputStream());
+			byte[] ba = IOUtils.copy(message.getAttachments().get(cid).getInputStream());
 			iter.remove();
 			attachment.setTextContent(DatatypeConverter.printBase64Binary(ba));
 		}

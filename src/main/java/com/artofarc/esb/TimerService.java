@@ -50,6 +50,10 @@ public final class TimerService extends ConsumerPort implements Runnable, com.ar
 		_fixedDelay = fixedDelay;
 	}
 
+	public TimeUnit getTimeUnit() {
+		return _timeUnit;
+	}
+
 	@Override
 	public void init(GlobalContext globalContext) {
 		_workerPool = globalContext.getWorkerPool(_workerPoolName);

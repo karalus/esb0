@@ -47,7 +47,7 @@ import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Collections;
 import com.artofarc.util.ReflectionUtils;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 import com.artofarc.util.WSDL4JUtil;
 
 public class ServiceArtifact extends AbstractServiceArtifact {
@@ -496,7 +496,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		if (workerPool != null) {
 			WorkerPoolArtifact workerPoolArtifact = loadArtifact(workerPool + '.' + WorkerPoolArtifact.FILE_EXTENSION);
 			addReference(workerPoolArtifact);
-			return StreamUtils.stripExt(workerPoolArtifact.getURI());
+			return IOUtils.stripExt(workerPoolArtifact.getURI());
 		} else {
 			return null;
 		}
