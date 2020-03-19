@@ -30,6 +30,7 @@ import org.eclipse.persistence.oxm.MediaType;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
+
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.StringWriter;
@@ -64,9 +65,10 @@ public class XML2JsonAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String type = parseContentType(message.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
-		if (type != null && !isSOAP11(type) && !isSOAP12(type)) {
-			throw new ExecutionException(this, "Unexpected Content-Type: " + message.<String>getHeader(HTTP_HEADER_CONTENT_TYPE));
+		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		String type = parseContentType(contentType);
+		if (isNotSOAP(type)) {
+			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		message.removeHeader(HTTP_HEADER_CONTENT_LENGTH);
 		message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);

@@ -8,14 +8,15 @@ Features:
 - Service flows can make use of XPath 2.0, XQuery 3.1 and XSLT 3.0 interchangeably within one streaming pipeline
 - For accessing data inside of JSON we use [JSON Pointer](https://tools.ietf.org/html/rfc6901) (Message transformation with JSON data can be done with XSLT or XQuery)
 - Java code can be invoked dynamically if necessary e.g. for special transformations
-- Supports HTTP, JMS, JDBC, Files and [Kafka](https://kafka.apache.org/)
+- Supports HTTP(S), JMS, JDBC, Files and [Kafka](https://kafka.apache.org/)
 - Can map between synchronous and asynchronous messages exchange patterns
 - Supports GZIP and [Fast Infoset](https://en.wikipedia.org/wiki/Fast_Infoset) encoding/decoding and MTOM/XOP
-- Uses resource- and threadpools for effective resource utilization, thus supporting QoS per service.
-- Includes a HTTP loadbalancer component with health check for outbound HTTP traffic
-- New service flows and threadpools can be configured at runtime without service outage
+- Uses resource- and thread pools for effective resource utilization, thus supporting QoS per service.
+- Includes a HTTP load balancer component with health check for outbound HTTP traffic
+- New service flows and thread pools can be configured at runtime without service outage
 - Is performant like a network component. Can act at the speed of a reverse proxy (only few millis penalty) even when processing XML.
 - Outperforms most other Service Gateways when XML processing is needed.
+- Small memory requirements. Even with 32MB heap you can run service flows. 
 - Simple REST admin services to deploy and control service flows
 - JMX support, i.e. MBeans for remote monitoring & management
 
@@ -72,7 +73,7 @@ Even in a Kubernetes environment where endpoint virtualization and load balancin
 
 You need to have [Maven](http://maven.apache.org/) and [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html) installed.
 
-ESB Zero build has been tested with Maven 3.5.2 and JDK8.
+ESB Zero build has been tested with Maven 3.5.x and JDK8.
 
 From version 1.4 on Java 8 is required at runtime.
 
@@ -81,7 +82,7 @@ From version 1.4 on Java 8 is required at runtime.
 ### How to deploy ###
 
 ESB Zero requires a Java Servlet Container conforming to the servlet 3.0 API. 
-It has been tested with Tomcat 8 and 8.5, Wildfly, Jetty 9.0.0. and JBoss EAP 7.1.
+It has been tested with Tomcat 8 and 8.5, Wildfly, Jetty 9 and JBoss EAP 7.x.
 
 ESB Zero needs one directory to retrieve service flows and other artifacts from and persist to.
 Per default it is expected to have a folder named "esb_root" in the user home folder (of the user running the servlet container).
@@ -90,7 +91,12 @@ In a cluster setup it is also possible to use a DB(via JNDI DataSource) for stor
 
 Note: This folder can be empty but it must exist!
 
-If you are using JMS or JDBC actions within your flows you'll need to configure JMS-Providers and/or Datasources in your Servlet Container. These resources will be used by JNDI lookup.
+If you are using JMS or JDBC actions within your flows you'll need to configure JMS-Providers and/or Datasources in your Servlet Container. These resources will be acquired by JNDI lookup.
+For JDBC there is special support for Oracle built in (e.g. handling java.sql.Array), but any other DB works as well.
+JMS-Providers being successfully used in productive environments are ActiveMQ, Oracle AQ, TIBCO EMS, IBM MQ.
+
+Note: Some JMS Providers do not offer ootb JNDI Integration (e.g. Oracle AQ) or deliver a RAR which only enables heavy weight EJB MDBs.
+To get them available via JNDI in your servlet container of choice you can use a simple ObjectFactoryAdapter provided here [aq-jndi](https://github.com/karalus/aq-jndi).
 
 Deploy it in your servlet container of choice.
 
@@ -98,7 +104,7 @@ Test if the admin UI is accessible: http://localhost:8080/esb0/admin
 
 ### Working with the sources ###
 
-The GIT repository contains old Eclipse project files for working with Eclipse 3.7.2.
+The GIT repository contains Eclipse project files for working with Eclipse from version 3.7.2 till recent.
 
 Any other IDE will also do since there is nothing special about it:
 1) Either you use a maven project import wizard
@@ -111,8 +117,8 @@ It is written in Java 7 and implements a servlet based on 3.0.1 API.
 
 - For WSDL parsing [WSDL4J](https://sourceforge.net/projects/wsdl4j/) is used.
 - For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/9.8/)
-- For conversion between XML and JSON [MOXy](http://www.eclipse.org/eclipselink/documentation/2.7/moxy/json002.htm) is used.
-- FastInfoset support is implemented using "com.sun.xml.fastinfoset".
+- For conversion between XML and JSON [MOXy](https://www.eclipse.org/eclipselink/documentation/2.7/moxy/json002.htm) is used.
+- FastInfoset support is implemented using [metro-fi](https://github.com/javaee/metro-fi).
 - Logging is done with [SLF4J](https://www.slf4j.org/). Optionally combined with [Logback](https://logback.qos.ch/) it gives the best performance.
 
 Optional

@@ -377,8 +377,8 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case EXCEPTION:
 			Exception e = (Exception) _body;
-			if (HTTP_HEADER_CONTENT_TYPE_TEXT.equals(getHeader(HTTP_HEADER_CONTENT_TYPE))) {
-				// In this case we assume that the message will not be processed as XML
+			String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
+			if (isNotSOAP(contentType)) {
 				str = e.getCause() != null ? e + "\nCause: " + e.getCause() : e.toString();
 			} else {
 				str = asXMLString(e);
@@ -392,6 +392,9 @@ public final class ESBMessage implements Cloneable {
 		return init(BodyType.STRING, str, null);
 	}
 
+	/**
+	 * @param context Can be null if we don't expect BodyType DOM
+	 */
 	public InputStream getBodyAsInputStream(Context context) throws TransformerException, IOException, XQException {
 		switch (_bodyType) {
 		case INPUT_STREAM:
@@ -740,7 +743,9 @@ public final class ESBMessage implements Cloneable {
 		return (ESBMessage) super.clone();
 	}
 
-	// Should be the context of the Thread receiving this copy
+	/**
+	 * @param context Should be the context of the Thread receiving this copy
+	 */
 	public ESBMessage copy(Context context, boolean withBody) throws Exception {
 		final ESBMessage clone;
 		if (withBody) {

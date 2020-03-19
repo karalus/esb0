@@ -56,7 +56,9 @@ public class GenericHttpListener extends HttpServlet {
 		final String pathInfo = request.getRequestURI().substring(request.getContextPath().length());
 		Registry registry = (Registry) getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
 		HttpConsumer consumerPort = registry.getHttpService(pathInfo);
-		if (consumerPort != null) {
+		if (consumerPort == null) {
+			sendError(response, HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
+		} else {
 			boolean secure = true;
 			if (consumerPort.getRequiredRole() != null) {
 				secure = request.authenticate(response);
@@ -85,8 +87,6 @@ public class GenericHttpListener extends HttpServlet {
 					sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
 				}
 			}
-		} else {
-			sendError(response, HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
 		}
 	}
 
@@ -114,7 +114,7 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(ClientCertificate, certs[0]);
 		}
 		if (bodyPresent) {
-			MimeHelper.parseMultipart(null, message, request.getContentType());
+			MimeHelper.parseMultipart(message, request.getContentType());
 		}
 		// copy into variable for HttpServletResponseAction
 		message.putVariable(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));

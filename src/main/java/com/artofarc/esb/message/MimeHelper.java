@@ -74,10 +74,10 @@ public final class MimeHelper {
 		return mmp;
 	}
 
-	public static boolean parseMultipart(Context context, ESBMessage message, String contentType) throws Exception {
+	public static boolean parseMultipart(ESBMessage message, String contentType) throws Exception {
 		final boolean isMultipart = contentType != null && contentType.startsWith("multipart/");
 		if (isMultipart) {
-			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getBodyAsInputStream(context), contentType));
+			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getBodyAsInputStream(null), contentType));
 			String start = removeQuotes(getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START));
 			String soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
 			if (soapAction != null) {

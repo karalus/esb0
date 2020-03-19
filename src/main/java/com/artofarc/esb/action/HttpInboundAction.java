@@ -56,7 +56,7 @@ public class HttpInboundAction extends Action {
 			inputStream = new java.io.ByteArrayInputStream(new byte[0]);
 		} 
 		message.reset(BodyType.INPUT_STREAM, inputStream);
-		if (MimeHelper.parseMultipart(context, message, contentType)) {
+		if (MimeHelper.parseMultipart(message, contentType)) {
 			inputStream.close();
 			inputStream = message.getBody();
 		}

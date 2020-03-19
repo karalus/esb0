@@ -94,4 +94,8 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 		return contentType != null && (contentType.startsWith(SOAP_1_2_CONTENT_TYPE) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
 	}
 
+	public static boolean isNotSOAP(String contentType) {
+		return contentType != null && !(isSOAP11(contentType) || isSOAP12(contentType));
+	}
+
 }
