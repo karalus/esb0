@@ -20,8 +20,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import javax.mail.internet.MimeBodyPart;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -68,10 +71,11 @@ public class FileAction extends TerminalAction {
 					try (ZipOutputStream zos = new ZipOutputStream(fileOutputStream)) {
 						zos.putNextEntry(new ZipEntry(filename + fileExtension));
 						message.writeRawTo(zos, context);
-						for (Iterator<String> iter = message.getAttachments().keySet().iterator(); iter.hasNext();) {
-							String cid = iter.next();
-							zos.putNextEntry(new ZipEntry(filename + '-' + cid));
-							IOUtils.copy(message.getAttachments().get(cid).getInputStream(), zos);
+						for (Iterator<Map.Entry<String, MimeBodyPart>> iter = message.getAttachments().entrySet().iterator(); iter.hasNext();) {
+							Map.Entry<String, MimeBodyPart> entry = iter.next();
+							String name = MimeHelper.getDispositionName(entry.getValue());
+							zos.putNextEntry(new ZipEntry(name != null ? name : entry.getKey()));
+							IOUtils.copy(entry.getValue().getInputStream(), zos);
 							iter.remove();
 						}
 					}

@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -165,7 +166,9 @@ public class TransformAction extends Action {
 			}
 		}
 		for (Map.Entry<QName, Map.Entry<XQItemType, Boolean>> entry : _bindings.entrySet()) {
-			bind(entry.getKey().getLocalPart(), entry.getKey(), entry.getValue().getKey(), entry.getValue().getValue(), xqExpression, message);
+			QName name = entry.getKey();
+			Map.Entry<XQItemType, Boolean> typeDecl = entry.getValue();
+			bind(name.getLocalPart(), name, typeDecl.getKey(), typeDecl.getValue(), xqExpression, message);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
 		XQResultSequence resultSequence = xqExpression.executeQuery();
@@ -190,7 +193,11 @@ public class TransformAction extends Action {
 		Object value = resolve(message, bindName, true);
 		if (value != null) {
 			try {
-				xqExpression.bindObject(qName, value, type);
+				if (type != null && type.getItemKind() == XQItemType.XQITEMKIND_DOCUMENT) {
+					xqExpression.bindDocument(qName, (Reader) value, null, type);
+				} else {
+					xqExpression.bindObject(qName, value, type);
+				}
 			} catch (XQException e) {
 				throw new ExecutionException(this, "binding " + bindName + " failed", e);
 			}
@@ -259,7 +266,8 @@ public class TransformAction extends Action {
 			// unbind (large) documents so that they can be garbage collected
 			xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 			for (Map.Entry<QName, Map.Entry<XQItemType, Boolean>> entry : _bindings.entrySet()) {
-				if (entry.getValue() == null || entry.getValue().getKey().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
+				Map.Entry<XQItemType, Boolean> typeDecl = entry.getValue();
+				if (typeDecl == null || typeDecl.getKey().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
 					xqExpression.bindString(entry.getKey(), "", null);
 				}
 			}

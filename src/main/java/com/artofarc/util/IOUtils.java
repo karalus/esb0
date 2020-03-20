@@ -21,7 +21,7 @@ import java.util.Formatter;
 
 public final class IOUtils {
 
-	public static final int MTU = Integer.parseInt(System.getProperty("esb0.internalMTU", "4096"));
+	public static final int MTU = Integer.parseInt(System.getProperty("esb0.internalMTU", "8192"));
 
 	public static final class PreventFlushOutputStream extends FilterOutputStream {
 

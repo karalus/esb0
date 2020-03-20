@@ -16,8 +16,6 @@
  */
 package com.artofarc.esb.message;
 
-import static com.artofarc.esb.http.HttpConstants.*;
-
 import java.io.ByteArrayOutputStream;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -31,6 +29,7 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 
 import com.artofarc.esb.context.Context;
+import static com.artofarc.esb.http.HttpConstants.*;
 
 public final class MimeHelper {
 
@@ -38,15 +37,19 @@ public final class MimeHelper {
 	private static final String APPLICATION = "application/";
 	private static final String TEXT = "text/";
 
-	static MimeBodyPart createMimeBodyPart(String contentID, String contentType, byte[] content, String filename) throws MessagingException {
+	static MimeBodyPart createMimeBodyPart(String contentID, String contentType, byte[] content, String name) throws MessagingException {
 		InternetHeaders headers = new InternetHeaders();
 		headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 		MimeBodyPart part = new MimeBodyPart(headers, content);
 		part.setContentID(contentID);
-		if (filename != null) {
-			part.setFileName(filename);
+		if (name != null) {
+			part.setDisposition(MimeBodyPart.ATTACHMENT + "; " + HTTP_HEADER_CONTENT_PARAMETER_NAME + '"' + name + '"');
 		}
 		return part;
+	}
+
+	public static String getDispositionName(MimeBodyPart bodyPart) throws MessagingException {
+		return removeQuotes(getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), HTTP_HEADER_CONTENT_PARAMETER_NAME));
 	}
 
 	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
@@ -97,16 +100,15 @@ public final class MimeHelper {
 				} else if (cid != null) {
 					message.addAttachment(cid, bodyPart);
 				} else {
-					String name = removeQuotes(getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), "name="));
-					message.putVariable(name, bodyPart.getContent());
+					message.putVariable(getDispositionName(bodyPart), bodyPart.getContent());
 				}
 			}
 		}
 		return isMultipart;
 	}
 
-	public static String guessContentTypeFromName(String fname) {
-		return java.net.URLConnection.guessContentTypeFromName(fname);
+	public static String guessContentTypeFromName(String filename) {
+		return java.net.URLConnection.guessContentTypeFromName(filename);
 	}
 
 	/**

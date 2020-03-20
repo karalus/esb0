@@ -50,6 +50,8 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE = "type=";
 
+	public static final String HTTP_HEADER_CONTENT_PARAMETER_NAME = "name=";
+
 	public static final String HTTP_HEADER_ACCEPT = "Accept";
 
 	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
@@ -59,11 +61,13 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
 
 	public static String getValueFromHttpHeader(String httpHeader, String key) {
-		int i = httpHeader.indexOf(key);
-		if (i >= 0) {
-			i += key.length();
-			int j = httpHeader.indexOf(';', i);
-			return j < 0 ? httpHeader.substring(i) : httpHeader.substring(i, j);
+		if (httpHeader != null) {
+			int i = httpHeader.indexOf(key);
+			if (i >= 0) {
+				i += key.length();
+				int j = httpHeader.indexOf(';', i);
+				return j < 0 ? httpHeader.substring(i) : httpHeader.substring(i, j);
+			}
 		}
 		return null;
 	}
@@ -73,11 +77,9 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 	}
 
 	public static String parseContentType(String contentType) {
-		if (contentType != null) {
-			String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
-			if (type != null) {
-				contentType = removeQuotes(type);
-			}
+		String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
+		if (type != null) {
+			contentType = removeQuotes(type);
 		}
 		return contentType;
 	}
