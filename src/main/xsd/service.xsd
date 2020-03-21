@@ -231,28 +231,28 @@
 			</extension>
 		</complexContent>
 	</complexType>
-	<complexType name="assign">
-		<complexContent>
-			<extension base="tns:AssignBase">
-				<sequence>
-					<element name="assignment" maxOccurs="unbounded">
-						<complexType>
-							<simpleContent>
-								<extension base="tns:XQDecl">
-									<attribute name="variable" type="Name" />
-									<attribute name="header" type="Name" />
-								</extension>
-							</simpleContent>
-						</complexType>
-					</element>
-					<element name="body" type="tns:string1" minOccurs="0"/>
-				</sequence>
-				<attribute name="clearAll" type="boolean" default="false" />
-			</extension>
-		</complexContent>
-	</complexType>
-	<element name="assign" type="tns:assign" substitutionGroup="tns:action"/>
-	<element name="assignHeaders" type="tns:assign" substitutionGroup="tns:action"/>
+	<element name="assign" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:AssignBase">
+					<sequence>
+						<element name="assignment" maxOccurs="unbounded">
+							<complexType>
+								<simpleContent>
+									<extension base="tns:XQDecl">
+										<attribute name="variable" type="Name" />
+										<attribute name="header" type="Name" />
+									</extension>
+								</simpleContent>
+							</complexType>
+						</element>
+						<element name="body" type="tns:string1" minOccurs="0"/>
+					</sequence>
+					<attribute name="clearAll" type="boolean" default="false" />
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
 	<element name="xml2json" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>

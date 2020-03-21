@@ -53,6 +53,7 @@ import com.artofarc.util.WSDL4JUtil;
 public class ServiceArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "xservice";
+	private static final boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
 
 	private Protocol _protocol;
 	private ConsumerPort _consumerPort;
@@ -275,8 +276,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			addAction(list, processJsonAction, location);
 			break;
 		}
-		case "assign":
-		case "assignHeaders": {
+		case "assign": {
 			Assign assign = (Assign) actionElement.getValue();
 			List<AssignAction.Assignment> assignments = new ArrayList<>();
 			for (Assign.Assignment assignment : assign.getAssignment()) {
@@ -284,22 +284,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					assignments.add(new AssignAction.Assignment(assignment.getVariable(), false, assignment.getValue(), assignment.isNullable(), assignment.getType()));
 				} else if (assignment.getHeader() != null) {
 					assignments.add(new AssignAction.Assignment(assignment.getHeader(), true, assignment.getValue(), assignment.isNullable(), assignment.getType()));
-					// TO BE REMOVED: Ugly hack to compensate for old buggy service flows
-					if (assignment.getValue().equals("$MEP")) {
-						if (!containsBindName(assign.getBindName(), "MEP")) {
-							XQDecl bindName = new XQDecl();
-							bindName.setValue("MEP");
-							assign.getBindName().add(bindName);
-							logger.warn("Missing bindName MEP in AssignHeaders. Patched " + getURI());
-						}
-					} else if (assignment.getValue().contains("$header/")) {
-						if (!containsBindName(assign.getBindName(), "header")) {
-							XQDecl bindName = new XQDecl();
-							bindName.setValue("header");
-							assign.getBindName().add(bindName);
-							logger.warn("Missing bindName header in AssignHeaders. Patched " + getURI());
-						}
-					}
 				} else {
 					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either variable or header");
 				}
@@ -386,11 +370,17 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(validate.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()), validate.getContextItem());
-			if (validate.getExpression() != "." && !validate.getExpression().equals("*")) {
-				XQueryArtifact.validateXQuerySource(this, getConnection(), validateAction.getXQuery());
+			boolean complexExpression = validate.getExpression() != "." && !validate.getExpression().equals("*");
+			if (complexExpression || !USE_SAX_VALIDATION) {
+				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()), validate.getContextItem());
+				if (complexExpression) {
+					XQueryArtifact.validateXQuerySource(this, getConnection(), validateAction.getXQuery());
+				}
+				addAction(list, validateAction, location);
+			} else {
+				SAXValidationAction action = new SAXValidationAction(schemaArtifact.getSchema());
+				addAction(list, action, location);
 			}
-			addAction(list, validateAction, location);
 			break;
 		}
 		case "actionPipelineRef": {
@@ -511,15 +501,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		} else {
 			return null;
 		}
-	}
-
-	private static boolean containsBindName(List<XQDecl> bindNames, String name) {
-		for (XQDecl bindName : bindNames) {
-			if (bindName.getValue().equals(name)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private static Collection<Entry<String, String>> createNsDecls(List<NsDecl> nsDecls) {
