@@ -17,6 +17,7 @@
 package com.artofarc.esb.message;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -34,7 +35,7 @@ public final class Attachments2XmlIterator implements Iterator<String> {
 
 	private final Iterator<Entry<String, MimeBodyPart>> _iterator;
 	private final boolean _remove;
-	private boolean _first = true, _last = true, _open;
+	private int _state;
 	private Entry<String, MimeBodyPart> _entry;
 
 	public Attachments2XmlIterator(ESBMessage message, boolean remove) {
@@ -44,41 +45,37 @@ public final class Attachments2XmlIterator implements Iterator<String> {
 
 	@Override
 	public boolean hasNext() {
-		return _last || _iterator.hasNext();
+		return _state < 4;
 	}
 
 	@Override
 	public String next() {
-		if (_first) {
-			_first = false;
+		switch (_state++) {
+		case 0:
 			return "<attachments>";
-		}
-		if (_entry == null) {
+		case 1:
 			if (_iterator.hasNext()) {
 				_entry = _iterator.next();
-				_open = true;
 				return "<attachment cid=\"cid:" + _entry.getKey() + "\">";
 			}
-		} else if (_open) {
-			_open = false;
-			try {
-				byte[] ba = IOUtils.copy(_entry.getValue().getInputStream());
-				return DatatypeConverter.printBase64Binary(ba);
+			_state = 4;
+			return "</attachments>";
+		case 2:
+			try (InputStream is = _entry.getValue().getInputStream()) {
+				if (_remove) {
+					_iterator.remove();
+				}
+				_entry = null;
+				return DatatypeConverter.printBase64Binary(IOUtils.copy(is));
 			} catch (IOException | MessagingException e) {
 				throw new RuntimeException(e);
 			}
-		} else {
-			if (_remove) {
-				_iterator.remove();
-			}
-			_entry = null;
+		case 3:
+			_state = 1;
 			return "</attachment>";
+		default:
+			throw new NoSuchElementException();
 		}
-		if (_last) {
-			_last = false;
-			return "</attachments>";
-		}
-		throw new NoSuchElementException();
 	}
 
 	@Override

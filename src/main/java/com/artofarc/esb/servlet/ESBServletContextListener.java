@@ -87,7 +87,10 @@ public final class ESBServletContextListener implements ServletContextListener {
 
 	@Override
 	public void contextDestroyed(ServletContextEvent contextEvent) {
-		((GlobalContext) contextEvent.getServletContext().getAttribute(ESBServletContextListener.CONTEXT)).close();
+		GlobalContext globalContext = (GlobalContext) contextEvent.getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
+		if (globalContext != null) {
+			globalContext.close();
+		}
 	}
 
 	public static void main(String[] args) {
