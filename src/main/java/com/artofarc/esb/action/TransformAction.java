@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.xml.namespace.QName;
+import javax.xml.transform.Source;
 import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQDataFactory;
 import javax.xml.xquery.XQException;
@@ -194,7 +194,7 @@ public class TransformAction extends Action {
 		if (value != null) {
 			try {
 				if (type != null && type.getItemKind() == XQItemType.XQITEMKIND_DOCUMENT) {
-					xqExpression.bindDocument(qName, (Reader) value, null, type);
+					xqExpression.bindDocument(qName, (Source) value, type);
 				} else {
 					xqExpression.bindObject(qName, value, type);
 				}

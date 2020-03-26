@@ -16,11 +16,12 @@
  */
 package com.artofarc.esb.action;
 
+import javax.xml.transform.sax.SAXSource;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.message.Attachments2XmlIterator;
+import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.Token2Reader;
 
 /**
  * Deserialize XOP package.
@@ -47,8 +48,7 @@ public class MtomXopDeserializeAction extends TransformAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Token2Reader token2Reader = new Token2Reader(new Attachments2XmlIterator(message, true));
-		message.putVariable("attachments", token2Reader);
+		message.putVariable("attachments", new SAXSource(new Attachments2SAX(message, true), null));
 		return super.prepare(context, message, inPipeline);
 	}
 
