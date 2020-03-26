@@ -240,4 +240,8 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		return _totalConnectionsCount.get();
 	}
 
+	public int getActiveCount() {
+		return activeCount;
+	}
+
 }

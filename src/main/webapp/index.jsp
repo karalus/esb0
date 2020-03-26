@@ -102,11 +102,12 @@
 %>
 </table>
 <br>HttpEndpoints:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Addresses</b></td><td><b>Total in use</b></td><td><b>Total connections</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Addresses</b></td><td><b>Active</b></td><td><b>Total in use</b></td><td><b>Total connections</b></td></tr> 
 <%
 		for (Map.Entry<HttpEndpoint, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
+			HttpUrlSelector httpUrl = entry.getValue();
 		   %>
-		   <tr><td><%=entry.getKey().getName()%></td><td><%=entry.getKey().getHttpUrls()%></td><td><%=entry.getValue() != null ? entry.getValue().getInUseTotal() : "N/A"%></td><td><%=entry.getValue() != null ? entry.getValue().getTotalConnectionsCount() : "N/A"%></td></tr>
+		   <tr><td><%=entry.getKey().getName()%></td><td><%=entry.getKey().getHttpUrls()%></td><td><%=httpUrl != null ? httpUrl.getActiveCount() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getInUseTotal() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getTotalConnectionsCount() : "N/A"%></td></tr>
 		   <%
 		}
 %>
