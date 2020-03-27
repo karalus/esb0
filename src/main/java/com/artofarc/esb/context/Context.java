@@ -44,6 +44,8 @@ import com.artofarc.util.TimeGauge;
 
 public final class Context extends AbstractContext {
 
+	public static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
+
 	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
 	private static final SAXParserFactory SAX_PARSER_FACTORY = SAXParserFactory.newInstance();
 
@@ -75,6 +77,7 @@ public final class Context extends AbstractContext {
 		try {
 			_transformer = SAXTransformerFactoryHelper.newTransformer();
 			_transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+			_transformer.setOutputProperty(OutputKeys.INDENT, XML_OUTPUT_INDENT);
 			// With Saxon connections are not limited so we will never get an Exception
 			_xqConnection = poolContext.getGlobalContext().getXQConnectionFactory().getConnection();
 		} catch (TransformerConfigurationException | XQException e) {

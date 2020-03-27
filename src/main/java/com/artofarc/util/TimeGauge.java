@@ -16,7 +16,7 @@
  */
 package com.artofarc.util;
 
-import java.util.Stack;
+import java.util.ArrayDeque;
 
 import org.slf4j.Logger;
 
@@ -25,7 +25,7 @@ public final class TimeGauge implements AutoCloseable {
 	private final Logger _logger; 
 	private final boolean _debug;
 	private final long _threshold;
-	private final Stack<Long> _measuredPoints = new Stack<>();
+	private final ArrayDeque<Long> _measuredPoints = new ArrayDeque<>();
 
 	public TimeGauge(Logger logger, long threshold, boolean debug) {
 		_logger = logger;

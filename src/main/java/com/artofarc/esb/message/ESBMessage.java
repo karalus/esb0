@@ -82,7 +82,7 @@ public final class ESBMessage implements Cloneable {
 
 	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
 	public static final int MTU = IOUtils.MTU;
-	private static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
+
 	private static final JsonGeneratorFactory JSON_GENERATOR_FACTORY;
 	private static final Map<String, String> HEADER_NAMES = new ConcurrentHashMap<>(256); 
 
@@ -252,7 +252,7 @@ public final class ESBMessage implements Cloneable {
 	public Properties getSinkProperties() {
 		Properties props = new Properties();
 		props.setProperty(OutputKeys.ENCODING, getSinkEncoding());
-		props.setProperty(OutputKeys.INDENT, XML_OUTPUT_INDENT);
+		props.setProperty(OutputKeys.INDENT, Context.XML_OUTPUT_INDENT);
 		return props;
 	}
 

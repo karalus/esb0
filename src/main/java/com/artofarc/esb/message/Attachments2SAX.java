@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
+import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
 
 import org.xml.sax.InputSource;
@@ -49,15 +50,15 @@ public final class Attachments2SAX extends XMLFilterBase {
 	public void parse(InputSource source) throws SAXException {
 		AttributesImpl atts = new AttributesImpl();
 		getContentHandler().startDocument();
-		getContentHandler().startElement("", "attachments", "attachments", atts);
+		getContentHandler().startElement(XMLConstants.NULL_NS_URI, "attachments", "attachments", atts);
 		while (_iterator.hasNext()) {
 			Entry<String, MimeBodyPart> entry = _iterator.next();
 			if (atts.getLength() == 0) {
-				atts.addAttribute("", "cid", "cid", "CDATA", "cid:" + entry.getKey());
+				atts.addAttribute(XMLConstants.NULL_NS_URI, "cid", "cid", "CDATA", "cid:" + entry.getKey());
 			} else {
-				atts.setAttribute(0, "", "cid", "cid", "CDATA", "cid:" + entry.getKey());
+				atts.setAttribute(0, XMLConstants.NULL_NS_URI, "cid", "cid", "CDATA", "cid:" + entry.getKey());
 			}
-			getContentHandler().startElement("", "attachment", "attachment", atts);
+			getContentHandler().startElement(XMLConstants.NULL_NS_URI, "attachment", "attachment", atts);
 			char[] ca;
 			try (InputStream is = entry.getValue().getInputStream()) {
 				if (_remove) {
@@ -70,9 +71,9 @@ public final class Attachments2SAX extends XMLFilterBase {
 				throw new SAXException(e);
 			}
 			getContentHandler().characters(ca, 0, ca.length);
-			getContentHandler().endElement("", "attachment", "attachment");
+			getContentHandler().endElement(XMLConstants.NULL_NS_URI, "attachment", "attachment");
 		}
-		getContentHandler().endElement("", "attachments", "attachments");
+		getContentHandler().endElement(XMLConstants.NULL_NS_URI, "attachments", "attachments");
 		getContentHandler().endDocument();
 	}
 
