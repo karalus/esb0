@@ -33,7 +33,7 @@ import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
 import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.SAXTransformerFactoryHelper;
+import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.IOUtils;
 
 public final class XMLCatalog {
@@ -48,7 +48,7 @@ public final class XMLCatalog {
 				xsdArtifact.setContent(IOUtils.copy(IOUtils.getResourceAsStream("xml.xsd")));
 			}
 			XPath xPath = XPathFactory.newInstance().newXPath();
-			Transformer transformer = SAXTransformerFactoryHelper.newTransformer();
+			Transformer transformer = JAXPFactoryHelper.newTransformer();
 			// Elements below Body must be strictly validated, with lax we don't detect some kind of errors
 			// TODO: Works only with document/literal WSDL style and messageParts referring to elements
 			String exp = "/*/*[local-name()='complexType' and @name='Body']/*/*/@processContents";

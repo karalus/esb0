@@ -43,7 +43,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
 
-import com.artofarc.util.SAXTransformerFactoryHelper;
+import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.WSDL4JUtil;
 
 public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
@@ -86,7 +86,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		_allBindings = definition.getAllBindings();
 		_namespace.set(definition.getTargetNamespace());
 		latestImportURI = null;
-		Transformer transformer = SAXTransformerFactoryHelper.newTransformer();
+		Transformer transformer = JAXPFactoryHelper.newTransformer();
 		List<Source> sources = new ArrayList<>();
 		if (WSDL4JUtil.hasSOAP11Binding(_allBindings)) {
 			XSDArtifact soap11 = loadArtifact(XMLCatalog.PATH + "/soap11.xsd");

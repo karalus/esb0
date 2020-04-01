@@ -45,7 +45,7 @@ import org.xml.sax.InputSource;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.SAXTransformerFactoryHelper;
+import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.IOUtils;
 
 public abstract class SchemaArtifact extends Artifact {
@@ -58,7 +58,7 @@ public abstract class SchemaArtifact extends Artifact {
 
 	static {
 		try {
-			_templates = SAXTransformerFactoryHelper.createSAXTransformerFactory().newTemplates(new StreamSource(IOUtils.getResourceAsStream("prepareMOXy.xslt")));
+			_templates = JAXPFactoryHelper.createSAXTransformerFactory().newTemplates(new StreamSource(IOUtils.getResourceAsStream("prepareMOXy.xslt")));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

@@ -22,7 +22,7 @@ import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.stream.StreamSource;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.util.SAXTransformerFactoryHelper;
+import com.artofarc.util.JAXPFactoryHelper;
 
 public class XSLTArtifact extends XMLProcessingArtifact {
 
@@ -46,7 +46,7 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws TransformerConfigurationException {
 		// Needs an individual SAXTransformerFactory to track the use of imports/includes
-		SAXTransformerFactory saxTransformerFactory = SAXTransformerFactoryHelper.createSAXTransformerFactory();
+		SAXTransformerFactory saxTransformerFactory = JAXPFactoryHelper.createSAXTransformerFactory();
 		saxTransformerFactory.setURIResolver(new ArtifactURIResolver(this));
 		_templates = saxTransformerFactory.newTemplates(new StreamSource(getContentAsStream()));
 		saxTransformerFactory.setURIResolver(null);
