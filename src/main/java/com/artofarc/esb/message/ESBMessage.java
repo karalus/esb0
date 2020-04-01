@@ -689,10 +689,14 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case INPUT_STREAM:
 			if (isSinkEncodingdifferent()) {
-				IOUtils.copy(getInputStreamReader((InputStream) _body), init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
+				try (Reader reader = getInputStreamReader((InputStream) _body)) {
+					IOUtils.copy(reader, init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
+				}
 			} else {
 				// writes compressed data through!
-				IOUtils.copy((InputStream) _body, os);
+				try (InputStream inputStream = (InputStream) _body) {
+					IOUtils.copy(inputStream, os);
+				}
 			}
 			break;
 		case READER:

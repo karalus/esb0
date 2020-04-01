@@ -175,7 +175,9 @@
 	   </table>
 	   <%
 	   	if (a.getContentType().startsWith("text/")) {
-	   		String content = new String(com.artofarc.util.IOUtils.copy(a.getContentAsStream())).replace("&", "&amp;");
+	   		java.io.InputStream inputStream = a.getContentAsStream();
+	   		String content = new String(com.artofarc.util.IOUtils.copy(inputStream)).replace("&", "&amp;");
+	   		inputStream.close();
 	   %>
 			<br>
 			<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + pathInfo%>" enctype="text/plain" method="POST">
