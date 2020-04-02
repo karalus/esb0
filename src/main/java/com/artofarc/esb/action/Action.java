@@ -39,6 +39,8 @@ public abstract class Action implements Cloneable {
 
 	protected final static Logger logger = LoggerFactory.getLogger(Action.class);
 
+	private final static long threshold = Long.parseLong(System.getProperty("esb0.timeGauge.threshold", "250"));
+
 	protected Action _nextAction;
 	protected Action _errorHandler;
 	private Location _location;
@@ -80,7 +82,7 @@ public abstract class Action implements Cloneable {
 	}
 
 	protected long getThreshold() {
-		return 250L;
+		return threshold;
 	}
 
 	/**

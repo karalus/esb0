@@ -32,8 +32,13 @@ import javax.xml.transform.sax.TransformerHandler;
 
 import org.xml.sax.SAXException;
 
+/**
+ * In this millennium XML processors should be namespace aware by default.
+ * We also want to cache factory lookup.
+ */
 public final class JAXPFactoryHelper {
 
+	private static final boolean SECURE_PROCESSING = Boolean.parseBoolean(System.getProperty("esb0.jaxp.secure-processing", "true"));
 	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
 	private static final SAXParserFactory SAX_PARSER_FACTORY = SAXParserFactory.newInstance();
 	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
@@ -43,11 +48,11 @@ public final class JAXPFactoryHelper {
 		DOCUMENT_BUILDER_FACTORY.setNamespaceAware(true);
 		SAX_PARSER_FACTORY.setNamespaceAware(true);
 		try {
-			SAX_PARSER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+			SAX_PARSER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
 			if (transformerFactory.getFeature(SAXTransformerFactory.FEATURE)) {
 				SAX_TRANSFORMER_FACTORY = (SAXTransformerFactory) transformerFactory;
-				SAX_TRANSFORMER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+				SAX_TRANSFORMER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 				conSAXTransformerFactory = SAX_TRANSFORMER_FACTORY.getClass().getConstructor();
 			} else {
 				throw new RuntimeException("Cannot be casted to SAXTransformerFactory: " + transformerFactory.getClass());
@@ -76,7 +81,7 @@ public final class JAXPFactoryHelper {
 	public static SAXTransformerFactory createSAXTransformerFactory() {
 		try {
 			SAXTransformerFactory saxTransformerFactory = conSAXTransformerFactory.newInstance();
-			saxTransformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+			saxTransformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 			return saxTransformerFactory;
 		} catch (TransformerConfigurationException | ReflectiveOperationException e) {
 			throw new RuntimeException(e);
