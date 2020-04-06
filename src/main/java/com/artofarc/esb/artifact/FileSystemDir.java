@@ -82,7 +82,9 @@ public class FileSystemDir extends FileSystem {
 		for (Map.Entry<String, ChangeType> entry : _changes.entrySet()) {
 			File file = new File(_anchorDir, entry.getKey());
 			if (entry.getValue() == ChangeType.DELETE) {
-				file.delete();
+				if (!file.delete() && file.exists()) {
+					logger.error("Could not delete " + file);
+				}
 			} else {
 				Artifact artifact = getArtifact(entry.getKey());
 				if (artifact instanceof Directory) {
