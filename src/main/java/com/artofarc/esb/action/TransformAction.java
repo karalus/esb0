@@ -117,7 +117,12 @@ public class TransformAction extends Action {
 				} else {
 					// type cannot be determined statically, take sample from message
 					Object value = resolve(message, bindName.getValue(), true);
-					XQItemType itemType = value != null ? xqDataFactory.createItemFromObject(value, null).getItemType() : xqDataFactory.createItemType();
+					XQItemType itemType = null;
+					if (value != null) {
+						itemType = xqDataFactory.createItemFromObject(value, null).getItemType();
+					} else {
+						logger.warn("No value provided. Could not determine type for " + bindName.getValue());
+					}
 					_bindings.put(qName, Collections.createEntry(itemType, bindName.isNullable()));
 				}
 			}
@@ -267,7 +272,7 @@ public class TransformAction extends Action {
 			xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 			for (Map.Entry<QName, Map.Entry<XQItemType, Boolean>> entry : _bindings.entrySet()) {
 				Map.Entry<XQItemType, Boolean> typeDecl = entry.getValue();
-				if (typeDecl == null || typeDecl.getKey().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
+				if (typeDecl.getKey() == null || typeDecl.getKey().getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
 					xqExpression.bindString(entry.getKey(), "", null);
 				}
 			}
