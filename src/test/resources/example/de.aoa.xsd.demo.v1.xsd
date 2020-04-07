@@ -22,8 +22,9 @@
 		<xs:sequence>
 			<xs:element type="xs:string" name="para1" />
 			<xs:element type="xs:string" name="para2" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:any minOccurs="0" maxOccurs="1" processContents="skip" namespace="##other"/>
+			<xs:element minOccurs="0" type="xs:string" name="para5" />
 		</xs:sequence>
-
 	</xs:complexType>
 	<xs:complexType name="demoRespType">
 		<xs:sequence>

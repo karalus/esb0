@@ -29,6 +29,7 @@ import javax.wsdl.Definition;
 import javax.wsdl.Import;
 import javax.wsdl.Types;
 import javax.wsdl.extensions.schema.Schema;
+import javax.wsdl.extensions.schema.SchemaImport;
 import javax.wsdl.xml.WSDLLocator;
 import javax.xml.bind.JAXBException;
 import javax.xml.namespace.QName;
@@ -123,6 +124,20 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				_lastSchemaElement = new DOMSource(element, getURI());
 				sources.add(_lastSchemaElement);
 				schemas.put(targetNamespace, XMLCatalog.toByteArray(_lastSchemaElement, transformer));
+				processSchema(schema, sources);
+			}
+		}
+	}
+
+	private void processSchema(Schema schema, List<Source> sources) throws TransformerException {
+		@SuppressWarnings("unchecked")
+		Map<String, List<SchemaImport>> imports = schema.getImports();
+		for (List<SchemaImport> value : imports.values()) {
+			for (SchemaImport schemaImport : value) {
+				Schema referencedSchema = schemaImport.getReferencedSchema();
+				System.out.println("Adding " + schemaImport.getSchemaLocationURI());
+				sources.add(new DOMSource(referencedSchema.getElement(), schemaImport.getSchemaLocationURI()));
+				processSchema(referencedSchema, sources);
 			}
 		}
 	}
@@ -151,7 +166,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	protected WSDLArtifactResourceResolver getResolver() {
+	public WSDLArtifactResourceResolver getResolver() {
 		return new WSDLArtifactResourceResolver(this);
 	}
 	

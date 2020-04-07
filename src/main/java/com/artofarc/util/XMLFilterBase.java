@@ -16,6 +16,8 @@
  */
 package com.artofarc.util;
 
+import org.xml.sax.SAXNotRecognizedException;
+import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLFilterImpl;
 
@@ -31,6 +33,14 @@ public class XMLFilterBase extends XMLFilterImpl {
 	@Override
 	public void setFeature(String name, boolean value) {
 		// Don't throw SAXNotRecognizedException, we assume that the feature "namespace" is standard anyways
+	}
+
+	@Override
+	public void setProperty(String name, Object value) throws SAXNotRecognizedException, SAXNotSupportedException {
+		// Don't throw SAXNotRecognizedException when parent is null, this takes to much performance
+		if (getParent() != null) {
+			getParent().setProperty(name, value);
+		}
 	}
 
 }

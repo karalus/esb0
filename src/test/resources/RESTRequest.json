@@ -1,13 +1,30 @@
 {
    "demoElementRequest" : {
       "ei1.messageHeader" : {
-         "ei1.senderFQN" : "usingPort1",
+         "@att1" : "Hallo",
+      "ei1.senderFQN" : {
+      	 "@key" : 42,
+         "value" : "usingPort1"
+      },
          "ei1.messageId" : "M-b6ce48e2-e85e-42f6-800f-52668405aafa",
-         "ei1.processInstanceId" : "P-0cdbb3bf-44b8-4c35-9ccb-48d1fed38417"
+         "ei1.expectedResponseTimeInMillis" : 30000,
+         "ei1.processInstanceId" : "P-0cdbb3bf-44b8-4c35-9ccb-48d1fed38417",
+         "ei1.property" : {
+	         "ei1.propertyListItem" : [ {
+	            "ei1.key" : "key1",
+	            "ei1.value" : "value1"
+	         }, {
+	            "ei1.key" : "key2",
+	            "ei1.value" : "value2"
+	         } ],
+	         "value" : [ "Blah", "Foo" ]
+	      }
       },
       "payload" : {
          "para1" : "Param1",
-         "para2" : [ "Test", "Test", "Test", "Test" ]
+         "para2" : [ "Test", "Test", "Test", "Test" ],
+         "para3" : "Param3",
+         "para5" : "Param5"
       }
    }
 }

@@ -147,7 +147,7 @@ public abstract class SchemaArtifact extends Artifact {
 
 	protected abstract XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException;
 
-	protected SchemaArtifactResolver getResolver() {
+	public SchemaArtifactResolver getResolver() {
 		return new SchemaArtifactResolver(this);
 	}
 

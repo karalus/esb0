@@ -53,7 +53,7 @@ public final class TimeGauge implements AutoCloseable {
 		_measuredPoints.pop();
 	}
 
-	public void stopTimeMeasurement(String text, boolean restart, Object... args) {
+	public long stopTimeMeasurement(String text, boolean restart, Object... args) {
 		final long endTS = System.nanoTime();
 		final long startTS = _measuredPoints.pop();
 		final long diff = (endTS - startTS) / 1000000L;
@@ -64,6 +64,7 @@ public final class TimeGauge implements AutoCloseable {
 		if (restart) {
 			_measuredPoints.push(endTS);
 		}
+		return diff;
 	}
 
 	@Override

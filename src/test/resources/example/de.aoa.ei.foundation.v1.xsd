@@ -62,7 +62,7 @@
 				Der Offset fuer den Timestamp
 			</xs:documentation>
 		</xs:annotation>
-		<xs:restriction base="xs:integer">
+		<xs:restriction base="xs:long">
 			<xs:minInclusive value="0"/>
 		</xs:restriction>
 	</xs:simpleType>
@@ -80,7 +80,7 @@
 		</xs:restriction>
 	</xs:simpleType>
 	<!-- ****************************************************************** -->
-	<xs:simpleType name="senderFQNType">
+	<xs:complexType name="senderFQNType">
 		<xs:annotation>
 			<xs:documentation>
 				Der voll-qualifizierte Name des Senders.
@@ -91,14 +91,12 @@
 				und http://myregexp.com/signedJar.html)
 			</xs:documentation>
 		</xs:annotation>
-		<xs:restriction base="xs:string">
-			<xs:whiteSpace value="collapse"/>
-			<xs:minLength value="5"/>
-			<xs:maxLength value="255"/>
-		<!--  <xs:pattern value="[a-z][\.a-z]{0,63}([A-Za-z][\-a-zA-Z_0-9]{0,15}):([A-Za-z][\-a-zA-Z_0-9]{0,31}):([A-Za-z][\-a-zA-Z_0-9]{0,31})"/>
-			-->
-		</xs:restriction>
-	</xs:simpleType>
+			<xs:simpleContent>
+				<xs:extension base="xs:string">
+					<xs:attribute name="key" type="xs:int"/>
+				</xs:extension>
+			</xs:simpleContent>
+	</xs:complexType >
 	<!-- ****************************************************************** -->
 	<xs:element name="messageHeader" type="tns:messageHeaderType"/>
 	<!-- ****************************************************************** -->
@@ -209,11 +207,14 @@
 				</xs:annotation>
 			</xs:element>
 		</xs:sequence>
+		<xs:anyAttribute namespace="##any"/>
 	</xs:complexType>
 	<!-- ****************************************************************** -->
-	<xs:complexType name="propertyListType">
+	<xs:complexType name="propertyListType" mixed="true">
 		<xs:sequence>
-			<xs:element name="propertyListItem" type="tns:propertyListItemType" minOccurs="0" maxOccurs="unbounded"/>
+		<xs:choice  minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="propertyListItem" type="tns:propertyListItemType"/>
+		</xs:choice>
 		</xs:sequence>
 	</xs:complexType>
 	<xs:complexType name="propertyListItemType">
