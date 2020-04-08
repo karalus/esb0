@@ -46,7 +46,7 @@ public final class JMSSession implements AutoCloseable {
 		for (Destination destination : _producers.keySet()) {
 			if (destination instanceof Queue) {
 				Queue queue = (Queue) destination;
-				if (queue.getQueueName().equals(queueName)) {
+				if (queueName.equals(queue.getQueueName())) {
 					return queue;
 				}
 			}
@@ -58,7 +58,7 @@ public final class JMSSession implements AutoCloseable {
 		for (Destination destination : _producers.keySet()) {
 			if (destination instanceof Topic) {
 				Topic topic = (Topic) destination;
-				if (topic.getTopicName().equals(topicName)) {
+				if (topicName.equals(topic.getTopicName())) {
 					return topic;
 				}
 			}
