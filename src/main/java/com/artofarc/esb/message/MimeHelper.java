@@ -53,7 +53,7 @@ public final class MimeHelper {
 	}
 
 	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
-		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
 		MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START + '"' + ROOTPART
 				+ "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
 		if (bos == null) {
