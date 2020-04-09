@@ -277,7 +277,7 @@ public final class Json2XmlTransformer {
 										ch.startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 									}
 								} else {
-									if (!_xsomHelper.isLastElementComplex()) {
+									if (_xsomHelper.getComplexType() == null) {
 										throw new SAXException("Expected complex type: " + new QName(uri, keyName));
 									}
 									simpleContent = _xsomHelper.getSimpleType() != null;

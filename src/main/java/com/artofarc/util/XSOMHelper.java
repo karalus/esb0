@@ -125,7 +125,8 @@ public final class XSOMHelper {
 		public String wildcard(XSWildcard wc) {
 			if (wc.acceptsNamespace(XMLConstants.NULL_NS_URI)) {
 				return XMLConstants.NULL_NS_URI;
-			} else if (wc.acceptsNamespace(wc.getOwnerSchema().getTargetNamespace())) {
+			}
+			if (wc.acceptsNamespace(wc.getOwnerSchema().getTargetNamespace())) {
 				return wc.getOwnerSchema().getTargetNamespace();
 			}
 			throw new IllegalArgumentException("Could not guess namespace");
@@ -326,8 +327,8 @@ public final class XSOMHelper {
 		_any = false;
 	}
 
-	public boolean isLastElementComplex() {
-		return _complexType != null;
+	public XSComplexType getComplexType() {
+		return _complexType;
 	}
 
 	public XSComplexType getCurrentComplexType() {

@@ -144,7 +144,7 @@ public final class Xml2JsonTransformer {
 						}
 					}
 				} else {
-					complex = _xsomHelper.isLastElementComplex();
+					complex = _xsomHelper.getComplexType() != null;
 					final XSSimpleType simpleType = _xsomHelper.getSimpleType();
 					primitiveType = simpleType != null ? XSOMHelper.getJsonType(simpleType) : null;
 				}
