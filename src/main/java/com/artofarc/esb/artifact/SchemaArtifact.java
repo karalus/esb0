@@ -42,10 +42,12 @@ import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.JAXPFactoryHelper;
+import com.sun.xml.xsom.XSSchemaSet;
 import com.artofarc.util.IOUtils;
 
 public abstract class SchemaArtifact extends Artifact {
@@ -77,6 +79,7 @@ public abstract class SchemaArtifact extends Artifact {
 	protected final AtomicReference<String> _namespace = new AtomicReference<>();
 	protected volatile Schema _schema;
 	protected DynamicJAXBContext _jaxbContext;
+	protected XSSchemaSet _schemaSet;
 
 	protected SchemaArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -134,6 +137,8 @@ public abstract class SchemaArtifact extends Artifact {
 	 * We assume that always the same {@link ClassLoader} is used.
 	 */
 	public abstract DynamicJAXBContext getJAXBContext(ClassLoader classLoader) throws JAXBException, IOException;
+	
+	public abstract XSSchemaSet getXSSchemaSet() throws SAXException;
 
 	@Override
 	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {
@@ -181,7 +186,7 @@ public abstract class SchemaArtifact extends Artifact {
 				// Strip xs:enumeration because of MOXy bug 552902
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				_templates.newTransformer().transform(new StreamSource(artifact.getContentAsStream(), artifact.getURI()), new StreamResult(bos));
-				InputSource is = new InputSource(bos.getByteArrayInputStream());
+				InputSource is = new InputSource(artifact.getContentAsStream());
 				is.setSystemId(systemId);
 				return is;
 			} catch (Exception e) {

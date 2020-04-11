@@ -40,8 +40,10 @@ import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
 import com.artofarc.esb.jdbc.JDBCXMLMapper;
+import com.artofarc.esb.jdbc.XML2JDBCMapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.sun.xml.xsom.XSSchemaSet;
 
 public abstract class JDBCAction extends Action {
 
@@ -51,8 +53,9 @@ public abstract class JDBCAction extends Action {
 	private final int _maxRows;
 	private final Integer _timeout;
 	protected final JDBCXMLMapper _mapper;
+	protected XSSchemaSet _schemaSet;
 
-	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, DynamicJAXBContext jaxbContext) throws NamingException {
+	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, DynamicJAXBContext jaxbContext, XSSchemaSet schemaSet) throws NamingException {
 		if (dsName.indexOf("${") < 0) {
 			globalContext.getProperty(dsName);
 		}
@@ -66,6 +69,7 @@ public abstract class JDBCAction extends Action {
 		_maxRows = maxRows;
 		_timeout = timeout;
 		_mapper = jaxbContext != null ? new JDBCXMLMapper(jaxbContext) : null;
+		_schemaSet = schemaSet;
 		checkParameters(params);
 	}
 
@@ -186,6 +190,10 @@ public abstract class JDBCAction extends Action {
 					}
 					break;
 				case STRUCT:
+					XML2JDBCMapper mapper = new XML2JDBCMapper(_schemaSet, conn);
+					message.writeTo(new SAXResult(mapper), context);
+					ps.setObject(param.getPos(), mapper.getObject());
+					// deprecated
 					Unmarshaller unmarshaller = _mapper.getJAXBContext().createUnmarshaller();
 					Object root = message.unmarshal(context, unmarshaller);
 					if (root instanceof DynamicEntity) {

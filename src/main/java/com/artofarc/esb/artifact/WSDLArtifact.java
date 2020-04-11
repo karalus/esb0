@@ -29,7 +29,6 @@ import javax.wsdl.Definition;
 import javax.wsdl.Import;
 import javax.wsdl.Types;
 import javax.wsdl.extensions.schema.Schema;
-import javax.wsdl.extensions.schema.SchemaImport;
 import javax.wsdl.xml.WSDLLocator;
 import javax.xml.bind.JAXBException;
 import javax.xml.namespace.QName;
@@ -43,17 +42,20 @@ import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.WSDL4JUtil;
+import com.sun.xml.xsom.XSSchemaSet;
+import com.sun.xml.xsom.parser.XSOMParser;
 
 public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	private volatile Map<QName, Binding> _allBindings;
 	private DOMSource _lastSchemaElement;
+	private final HashMap<String, byte[]> _schemas = new HashMap<>();
 	// only used during validation
 	private String latestImportURI;
-	private final HashMap<String, byte[]> schemas = new HashMap<>();
 
 	public WSDLArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -65,6 +67,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		clone._allBindings = _allBindings;
 		clone._jaxbContext = _jaxbContext;
 		clone._lastSchemaElement = _lastSchemaElement;
+		clone._schemas.putAll(_schemas);
 		clone._schema = _schema;
 		clone._grammars = _grammars;
 		clone._namespace.set(getNamespace());
@@ -109,12 +112,6 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		return sources.toArray(new Source[sources.size()]);
 	}
 
-	@Override
-	public void clearContent() {
-		super.clearContent();
-		schemas.clear();
-	}
-
 	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws TransformerException {
 		Types types = definition.getTypes();
 		if (types != null) {
@@ -123,23 +120,24 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				String targetNamespace = element.getAttribute("targetNamespace");
 				_lastSchemaElement = new DOMSource(element, getURI());
 				sources.add(_lastSchemaElement);
-				schemas.put(targetNamespace, XMLCatalog.toByteArray(_lastSchemaElement, transformer));
-				processSchema(schema, sources);
+				_schemas.put(targetNamespace, XMLCatalog.toByteArray(_lastSchemaElement, transformer));
 			}
 		}
 	}
 
-	private void processSchema(Schema schema, List<Source> sources) throws TransformerException {
-		@SuppressWarnings("unchecked")
-		Map<String, List<SchemaImport>> imports = schema.getImports();
-		for (List<SchemaImport> value : imports.values()) {
-			for (SchemaImport schemaImport : value) {
-				Schema referencedSchema = schemaImport.getReferencedSchema();
-				System.out.println("Adding " + schemaImport.getSchemaLocationURI());
-				sources.add(new DOMSource(referencedSchema.getElement(), schemaImport.getSchemaLocationURI()));
-				processSchema(referencedSchema, sources);
+	@Override
+	public XSSchemaSet getXSSchemaSet() throws SAXException {
+		if (_schemaSet == null) {
+			XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
+			xsomParser.setEntityResolver(getResolver());
+			for (byte[] schemaContent : _schemas.values()) {
+				InputSource is = new InputSource(new ByteArrayInputStream(schemaContent));
+				is.setSystemId(getURI());
+				xsomParser.parse(is);
 			}
+			_schemaSet = xsomParser.getResult();
 		}
+		return _schemaSet;
 	}
 
 	@Override
@@ -183,7 +181,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				if (wsdlArtifact == null) {
 					throw new IllegalStateException("Reference has already been cleared");
 				}
-				return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(wsdlArtifact.schemas.get(namespaceURI)));
+				return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(wsdlArtifact._schemas.get(namespaceURI)));
 			} else {
 				return super.resolveResource(type, namespaceURI, publicId, systemId, baseURI);
 			}

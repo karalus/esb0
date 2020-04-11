@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.*;
 import static java.sql.Types.*;
-import java.util.GregorianCalendar;
 
 import javax.json.stream.JsonGenerator;
 import javax.xml.bind.DatatypeConverter;
@@ -100,13 +99,13 @@ public class JDBCResult2JsonMapper {
 				case TIMESTAMP:
 					Timestamp timestamp = resultSet.getTimestamp(i);
 					if (checkNotNull(resultSet, json)) {
-						json.write(DatatypeConverter.printDateTime(convert(timestamp)));
+						json.write(DatatypeConverter.printDateTime(JDBCParameter.convert(timestamp)));
 					}
 					break;
 				case DATE:
 					Date date = resultSet.getDate(i);
 					if (checkNotNull(resultSet, json)) {
-						json.write(DatatypeConverter.printDate(convert(date)));
+						json.write(DatatypeConverter.printDate(JDBCParameter.convert(date)));
 					}
 					break;
 				case BLOB:
@@ -151,12 +150,6 @@ public class JDBCResult2JsonMapper {
 		} else {
 			return true;
 		}
-	}
-
-	private static GregorianCalendar convert(java.util.Date date) {
-		GregorianCalendar gc = new GregorianCalendar(JDBCParameter.TIME_ZONE);
-		gc.setTime(date);
-		return gc;
 	}
 
 }

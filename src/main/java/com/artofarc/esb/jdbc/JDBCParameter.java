@@ -20,6 +20,8 @@ import java.lang.reflect.Field;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
@@ -46,6 +48,12 @@ public final class JDBCParameter {
 		CODES = Collections.inverseMap(TYPES.entrySet(), true);
 		String timezone = System.getProperty("esb0.jdbc.mapper.timezone");
 		TIME_ZONE = timezone != null ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault();
+	}
+
+	static Calendar convert(Date date) {
+		Calendar calendar = new GregorianCalendar(TIME_ZONE);
+		calendar.setTime(date);
+		return calendar;
 	}
 
 	private final int _pos;

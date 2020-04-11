@@ -16,8 +16,15 @@
  */
 package com.artofarc.esb.action;
 
-import java.sql.*;
-import static java.sql.Types.*;
+import static java.sql.Types.BLOB;
+import static java.sql.Types.CLOB;
+import static java.sql.Types.SQLXML;
+import static java.sql.Types.STRUCT;
+
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.SQLXML;
+import java.sql.Struct;
 import java.util.List;
 
 import javax.naming.NamingException;
@@ -29,19 +36,21 @@ import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.jdbc.JDBC2XMLMapper;
 import com.artofarc.esb.jdbc.JDBCConnection;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.jdbc.JDBCXMLMapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.sun.xml.xsom.XSSchemaSet;
 
 public class JDBCProcedureAction extends JDBCAction {
 
 	private final List<JDBCParameter> _outParams;
 
-	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout, DynamicJAXBContext jaxbContext) throws NamingException {
-		super(globalContext, dsName, sql, inParams, maxRows, timeout, jaxbContext);
+	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout, DynamicJAXBContext jaxbContext, XSSchemaSet schemaSet) throws NamingException {
+		super(globalContext, dsName, sql, inParams, maxRows, timeout, jaxbContext, schemaSet);
 		checkParameters(outParams);
 		_outParams = outParams;
 	}
@@ -80,6 +89,10 @@ public class JDBCProcedureAction extends JDBCAction {
 						blob.free();
 						break;
 					case STRUCT:
+						JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+						SAXSource saxSource = new SAXSource(mapper.createParser((Struct) cs.getObject(param.getPos())), null);
+						message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
+						// deprecated
 						Object jaxbElement = _mapper.fromJDBC((Struct) cs.getObject(param.getPos()), param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
 						message.marshal(context, _mapper.getJAXBContext().createMarshaller(), jaxbElement);
 						break;

@@ -49,6 +49,7 @@ import com.artofarc.util.Collections;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.WSDL4JUtil;
+import com.sun.xml.xsom.XSSchemaSet;
 
 public class ServiceArtifact extends AbstractServiceArtifact {
 
@@ -230,14 +231,16 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				addAction(list, new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, jdbcProcedure.isJoin()), location);
 			}
 			org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext jaxbContext = null;
+			XSSchemaSet schemaSet = null;
 			if (jdbcProcedure.getSchemaURI() != null) {
 				SchemaArtifact schemaArtifact = loadArtifact(jdbcProcedure.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
 				jaxbContext = schemaArtifact.getJAXBContext(resolveClassLoader(globalContext, jdbcProcedure.getClassLoader()));
+				schemaSet = schemaArtifact.getXSSchemaSet();
 			}
 			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
-					.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jaxbContext), location);
+					.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jaxbContext, schemaSet), location);
 			break;
 		}
 		case "jdbc": {
