@@ -35,6 +35,7 @@ import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.jdbc.JDBCAttachments;
 import com.artofarc.esb.jdbc.JDBCConnection;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
@@ -46,6 +47,8 @@ import com.artofarc.esb.message.ESBMessage;
 import com.sun.xml.xsom.XSSchemaSet;
 
 public abstract class JDBCAction extends Action {
+
+	protected static final boolean useMOXy = Boolean.parseBoolean(System.getProperty("esb0.moxy", "false"));	
 
 	private final String _dsName;
 	protected final String _sql;
@@ -190,18 +193,20 @@ public abstract class JDBCAction extends Action {
 					}
 					break;
 				case STRUCT:
-					XML2JDBCMapper mapper = new XML2JDBCMapper(_schemaSet, conn);
-					message.writeTo(new SAXResult(mapper), context);
-					ps.setObject(param.getPos(), mapper.getObject());
-					// deprecated
-					Unmarshaller unmarshaller = _mapper.getJAXBContext().createUnmarshaller();
-					Object root = message.unmarshal(context, unmarshaller);
-					if (root instanceof DynamicEntity) {
-						DynamicEntity entity = (DynamicEntity) root;
-						ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(entity, true, conn));
+					if (useMOXy) {
+						Unmarshaller unmarshaller = _mapper.getJAXBContext().createUnmarshaller();
+						Object root = message.unmarshal(context, unmarshaller);
+						if (root instanceof DynamicEntity) {
+							DynamicEntity entity = (DynamicEntity) root;
+							ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(entity, true, conn));
+						} else {
+							JAXBElement<?> jaxbElement = (JAXBElement<?>) root;
+							ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(jaxbElement, false, conn));
+						}
 					} else {
-						JAXBElement<?> jaxbElement = (JAXBElement<?>) root;
-						ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(jaxbElement, false, conn));
+						XML2JDBCMapper mapper = new XML2JDBCMapper(_schemaSet, conn);
+						message.writeTo(new SAXResult(mapper), context);
+						ps.setObject(param.getPos(), mapper.getObject());
 					}
 					break;
 				default:
@@ -209,8 +214,13 @@ public abstract class JDBCAction extends Action {
 				}
 			} else if (param.isAttachments()) {
 				if (message.getAttachments().size() > 0) {
-					JAXBElement<?> attachments = _mapper.createAttachments(message, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-					ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(attachments, false, conn));
+					if (useMOXy) {
+						JAXBElement<?> attachments = _mapper.createAttachments(message, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+						ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(attachments, false, conn));
+					} else {
+						JDBCAttachments jdbcAttachments = new JDBCAttachments(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+						ps.setObject(param.getPos(), jdbcAttachments.createAttachments(message, conn));
+					}
 				}
 			} else {
 				Object value = resolve(message, param.getBindName(), false);

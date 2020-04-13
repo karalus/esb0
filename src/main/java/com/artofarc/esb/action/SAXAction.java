@@ -83,12 +83,11 @@ public abstract class SAXAction extends Action {
 			SAXSource saxSource = (SAXSource) source;
 			parent = saxSource.getXMLReader();
 		}
-		XMLFilterBase xmlFilter = createXMLFilter(context, message, parent);
 		InputSource inputSource = SAXSource.sourceToInputSource(source);
 		if (inputSource == null) {
 			throw new IllegalStateException("Message is invalid");			
 		}
-		return new SAXSource(xmlFilter, inputSource);
+		return new SAXSource(createXMLFilter(context, message, parent), inputSource);
 	}
 
 	@Override
@@ -121,7 +120,8 @@ public abstract class SAXAction extends Action {
 			} else {
 				StringWriter sw = new StringWriter();
 				context.getIdenticalTransformer().transform(execContext.<SAXSource> getResource(), new StreamResult(sw));
-				message.reset(BodyType.STRING, sw.toString());
+				message.reset(BodyType.READER, sw.getStringReader());
+//				message.reset(BodyType.STRING, sw.toString());
 			}
 		}
 	}

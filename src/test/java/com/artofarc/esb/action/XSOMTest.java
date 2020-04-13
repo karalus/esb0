@@ -165,6 +165,7 @@ public class XSOMTest extends AbstractESBTest {
 		byteStream.reset();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", true, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
+		//transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
 		
@@ -310,7 +311,9 @@ public class XSOMTest extends AbstractESBTest {
 	public void testXMLSample() throws Exception {
 		XSSchemaSet schemaSet = createXSSchemaSet();
 		XmlSampleGenerator generator = new XmlSampleGenerator(schemaSet, "{http://aoa.de/xsd/demo/v1/}demoElementRequest");
-		generator.go();
+		Transformer transformer = context.getIdenticalTransformer();
+		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+		transformer.transform(new SAXSource(generator, null),  new StreamResult(System.out));
 	}
 	
 	

@@ -37,6 +37,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.jdbc.JDBC2XMLMapper;
+import com.artofarc.esb.jdbc.JDBCAttachments;
 import com.artofarc.esb.jdbc.JDBCConnection;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
@@ -89,12 +90,14 @@ public class JDBCProcedureAction extends JDBCAction {
 						blob.free();
 						break;
 					case STRUCT:
-						JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-						SAXSource saxSource = new SAXSource(mapper.createParser((Struct) cs.getObject(param.getPos())), null);
-						message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
-						// deprecated
-						Object jaxbElement = _mapper.fromJDBC((Struct) cs.getObject(param.getPos()), param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-						message.marshal(context, _mapper.getJAXBContext().createMarshaller(), jaxbElement);
+						if (useMOXy) {
+							Object jaxbElement = _mapper.fromJDBC((Struct) cs.getObject(param.getPos()), param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+							message.marshal(context, _mapper.getJAXBContext().createMarshaller(), jaxbElement);
+						} else {
+							JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+							SAXSource saxSource = new SAXSource(mapper.createParser((Struct) cs.getObject(param.getPos())), null);
+							message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
+						}
 						break;
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
@@ -102,8 +105,13 @@ public class JDBCProcedureAction extends JDBCAction {
 				} else if (param.isAttachments()) {
 					Struct struct = (Struct) cs.getObject(param.getPos());
 					if (struct != null) {
-						Object jaxbElement = _mapper.fromJDBC(struct, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-						JDBCXMLMapper.parseAttachments(jaxbElement, message);
+						if (useMOXy) {
+							Object jaxbElement = _mapper.fromJDBC(struct, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+							JDBCXMLMapper.parseAttachments(jaxbElement, message);
+						} else {
+							JDBCAttachments jdbcAttachments = new JDBCAttachments(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+							jdbcAttachments.parseAttachments(struct, message);
+						}
 					}
 				} else {
 					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));

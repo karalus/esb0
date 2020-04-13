@@ -94,7 +94,8 @@ public final class JDBC2XMLMapper {
 		}
 
 		private void parse(Struct struct) throws SAXException, SQLException, IOException {
-			XSTerm term = matchElementWithComplexType(struct.getSQLTypeName());
+			XSTerm term = _xsomHelper.matchElement(null, null);
+			_xsomHelper.checkComplexType(struct.getSQLTypeName());
 			final ContentHandler ch = getContentHandler();
 			final String _uri = term.apply(XSOMHelper.GetNamespace);
 			final String _name = term.apply(XSOMHelper.GetName);
@@ -105,7 +106,8 @@ public final class JDBC2XMLMapper {
 					parse(inner);
 				} else if (attribute instanceof Array) {
 					Array inner = (Array) attribute;
-					term = matchElementWithComplexType(JDBCConnection.getSQLTypeName(inner));
+					term = _xsomHelper.matchElement(null, null);
+					_xsomHelper.checkComplexType(JDBCConnection.getSQLTypeName(inner));
 					String uri = term.apply(XSOMHelper.GetNamespace);
 					String name = term.apply(XSOMHelper.GetName);
 					ch.startElement(uri, name, name, _atts);
@@ -149,18 +151,6 @@ public final class JDBC2XMLMapper {
 			}
 			ch.endElement(_uri, _name, _name);
 			_xsomHelper.endComplex();
-		}
-
-		private XSTerm matchElementWithComplexType(String sqlTypeName) throws SAXException {
-			final XSTerm term = _xsomHelper.matchElement(null, null);
-			final XSComplexType complexType = _xsomHelper.getComplexType();
-			if (complexType == null) {
-				throw new SAXException("Expected complex type for " + sqlTypeName);
-			}
-			if (!sqlTypeName.equals(complexType.getName())) {
-				throw new SAXException("Expected complex type " + sqlTypeName + ", but got " + complexType.getName());
-			}
-			return term;
 		}
 
 		private void writeValue(Object attribute) throws SAXException, SQLException {

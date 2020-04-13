@@ -38,8 +38,6 @@ import org.xml.sax.helpers.AttributesImpl;
 import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSAttributeUse;
-import com.sun.xml.xsom.XSComplexType;
-import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSTerm;
 import com.sun.xml.xsom.XSWildcard;
@@ -49,15 +47,15 @@ public final class Json2XmlTransformer {
 	private static final boolean VALIDATE_PREFIXES = false;
 	private static final JsonParserFactory jsonParserFactory = Json.createParserFactory(null);
 
+	private final XSSchemaSet _schemaSet;
 	private final boolean _createDocumentEvents;
 	private final boolean _includeRoot;
-	private final QName _rootElement;
-	private final XSComplexType _complexType;
+	private final String _rootUri, _rootName;
 	private final Map<String, String> _prefixMap, _nsMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
-	static <V> Map<V, String> inverseMap(Collection<Map.Entry<String, V>> entrySet) {
+	public static <V> Map<V, String> inverseMap(Collection<Map.Entry<String, V>> entrySet) {
 		Map<V, String> result = new HashMap<>();
 		for (Map.Entry<String, V> entry : entrySet) {
 			String old = result.get(entry.getValue());
@@ -70,13 +68,21 @@ public final class Json2XmlTransformer {
 
 	public Json2XmlTransformer(XSSchemaSet schemaSet, boolean createDocumentEvents, String rootElement, boolean includeRoot, Map<String, String> prefixMap) {
 		if (schemaSet == null) {
-			schemaSet = XSOMHelper.anySchema;
-			rootElement = "root";
+			_schemaSet = XSOMHelper.anySchema;
+			_rootUri = XMLConstants.NULL_NS_URI;
+			_rootName = "root";
+		} else {
+			_schemaSet = schemaSet;
+			if (rootElement != null) {
+				QName _rootElement = QName.valueOf(rootElement);
+				_rootUri = _rootElement.getNamespaceURI();
+				_rootName = _rootElement.getLocalPart();
+			} else {
+				_rootUri = null;
+				_rootName = null;
+			}
 		}
-		_rootElement = QName.valueOf(rootElement);
 		_includeRoot = includeRoot;
-		XSElementDecl element = schemaSet.getElementDecl(_rootElement.getNamespaceURI(), _rootElement.getLocalPart());
-		_complexType = element.getType().asComplexType();
 		_prefixMap = prefixMap;
 		_nsMap = prefixMap != null ? inverseMap(prefixMap.entrySet()) : null;
 		_createDocumentEvents = createDocumentEvents;
@@ -150,87 +156,13 @@ public final class Json2XmlTransformer {
 	// Not thread safe
 	private final class Parser extends XMLFilterBase {
 		
-		final XSOMHelper _xsomHelper = new XSOMHelper(_complexType);
 		final ArrayDeque<Element> _stack = new ArrayDeque<>();
 		final AttributesImpl _atts = new AttributesImpl();
 
+		XSOMHelper xsomHelper;
 		String keyName, uri;
 		boolean attribute, simpleContent;
 		int any = -1;
-
-		private void writeValue(String value, String type) throws SAXException {
-			if (attribute) {
-				XSAttributeUse attributeUse = _xsomHelper.getAttributeUse(uri, keyName);
-				if (attributeUse != null) {
-					uri = attributeUse.getDecl().getTargetNamespace();
-				} else {
-					XSWildcard wildcard = _xsomHelper.getAttributeWildcard();
-					if (wildcard != null) {
-						if (uri == null) {
-							uri = XMLConstants.NULL_NS_URI;
-						}
-						if (!wildcard.acceptsNamespace(uri)) {
-							throw new SAXException("Wildcard attribute does not accept namespace: " + uri);
-						}
-					} else {
-						throw new SAXException("Attribute not valid: " + new QName(uri, keyName));
-					}
-				}
-				_atts.addAttribute(uri, keyName, createQName(uri, keyName), "CDATA", value);
-			} else {
-				final ContentHandler ch = getContentHandler();
-				if ((simpleContent || any >= 0) && valueWrapper.equals(keyName)) {
-					simpleContent = true;
-					ch.characters(value.toCharArray(), 0, value.length());
-				} else if (_xsomHelper.getCurrentComplexType().isMixed() && valueWrapper.equals(keyName)) {
-					ch.characters(value.toCharArray(), 0, value.length());
-				} else {
-					uri = _xsomHelper.matchElement(uri, keyName).apply(XSOMHelper.GetNamespace);
-					if (_xsomHelper.isLastElementAny()) {
-						if (any < 0) {
-							any = _stack.size();
-						}
-					} else {
-						if (_xsomHelper.getSimpleType() == null) {
-							throw new SAXException("Expected simple type: " + new QName(uri, keyName));
-						}
-					}
-					final String qName = createQName(uri, keyName);
-					if (value != null) {
-						if (any >= 0 && type != null) {
-							if (any == _stack.size()) {
-								ch.startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
-							}
-							_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", type);
-						}
-						ch.startElement(uri, keyName, qName, _atts);
-						ch.characters(value.toCharArray(), 0, value.length());
-						ch.endElement(uri, keyName, qName);
-						if (any >= 0 && type != null) {
-							_atts.clear();
-							if(any == _stack.size()) {
-								ch.endPrefixMapping("xsi");
-							}
-						}
-					} else if (any >= 0 || _xsomHelper.matchElement(uri, keyName).asElementDecl().isNillable()) {
-						ch.startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
-						_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil", "xsi:nil", "CDATA", "true");
-						ch.startElement(uri, keyName, qName, _atts);
-						ch.endElement(uri, keyName, qName);
-						_atts.clear();
-						ch.endPrefixMapping("xsi");
-					}
-					if (!_xsomHelper.isInArray()) {
-						keyName = null;
-						if (_stack.size() == any) {
-							any = -1;
-							_xsomHelper.endAny();
-						}
-					}
-				}
-			}
-			uri = null;
-		}
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
@@ -251,36 +183,47 @@ public final class Json2XmlTransformer {
 				while (jsonParser.hasNext()) {
 					switch (jsonParser.next()) {
 					case START_OBJECT:
-						if (keyName == null && !_xsomHelper.isInArray()) {
+						if (keyName == null && (xsomHelper == null || !xsomHelper.isInArray())) {
 							// assume where on root
 							if (_includeRoot) {
 								continue;
 							} else {
-								keyName = _rootElement.getLocalPart();
-								uri = _rootElement.getNamespaceURI();
+								keyName = _rootName;
+								uri = _rootUri;
+								xsomHelper = new XSOMHelper(_schemaSet.getElementDecl(uri, keyName).getType().asComplexType());
 							}
 						} else {
 							if (_includeRoot && _stack.isEmpty()) {
-								if (!keyName.equals(_rootElement.getLocalPart())) {
-									throw new SAXException("JSON must start with: " + _rootElement.getLocalPart());
+								if (_rootName != null) {
+									if (!_rootName.equals(keyName)) {
+										throw new SAXException("JSON must start with: " + _rootName);
+									}
+									uri = _rootUri;
+								} else {
+									if (_prefixMap != null) {
+										uri = _prefixMap.get(XMLConstants.DEFAULT_NS_PREFIX);
+									}
+									if (uri == null) {
+										uri = XMLConstants.NULL_NS_URI;
+									}
 								}
-								uri = _rootElement.getNamespaceURI();
+								xsomHelper = new XSOMHelper(_schemaSet.getElementDecl(uri, keyName).getType().asComplexType());
 							} else {
-								XSTerm term = _xsomHelper.matchElement(uri, keyName);
+								XSTerm term = xsomHelper.matchElement(uri, keyName);
 								uri = term.apply(XSOMHelper.GetNamespace);
 								if (keyName == null) {
 									keyName = term.apply(XSOMHelper.GetName);
 								}
-								if (_xsomHelper.isLastElementAny()) {
+								if (xsomHelper.isLastElementAny()) {
 									if (any < 0) {
 										any = _stack.size();
 										ch.startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 									}
 								} else {
-									if (_xsomHelper.getComplexType() == null) {
+									if (xsomHelper.getComplexType() == null) {
 										throw new SAXException("Expected complex type: " + new QName(uri, keyName));
 									}
-									simpleContent = _xsomHelper.getSimpleType() != null;
+									simpleContent = xsomHelper.getSimpleType() != null;
 								}
 							}
 						}
@@ -295,14 +238,14 @@ public final class Json2XmlTransformer {
 								if (simpleContent) {
 									simpleContent = false;
 								} else {
-									_xsomHelper.endComplex();
+									xsomHelper.endComplex();
 								}
 							} else if (_stack.size() <= any) {
 								if (_stack.size() == any) {
 									ch.endPrefixMapping("xsi");
 								}
 								any = -1;
-								_xsomHelper.endAny();
+								xsomHelper.endAny();
 							}
 							e = null;
 						}
@@ -310,7 +253,7 @@ public final class Json2XmlTransformer {
 					case START_ARRAY:
 						break;
 					case END_ARRAY:
-						_xsomHelper.endArray();
+						xsomHelper.endArray();
 						break;
 					case KEY_NAME:
 						keyName = jsonParser.getString();
@@ -357,6 +300,80 @@ public final class Json2XmlTransformer {
 				}
 			}
 			if (_createDocumentEvents) ch.endDocument();
+		}
+
+		private void writeValue(String value, String type) throws SAXException {
+			if (attribute) {
+				XSAttributeUse attributeUse = xsomHelper.getAttributeUse(uri, keyName);
+				if (attributeUse != null) {
+					uri = attributeUse.getDecl().getTargetNamespace();
+				} else {
+					XSWildcard wildcard = xsomHelper.getAttributeWildcard();
+					if (wildcard != null) {
+						if (uri == null) {
+							uri = XMLConstants.NULL_NS_URI;
+						}
+						if (!wildcard.acceptsNamespace(uri)) {
+							throw new SAXException("Wildcard attribute does not accept namespace: " + uri);
+						}
+					} else {
+						throw new SAXException("Attribute not valid: " + new QName(uri, keyName));
+					}
+				}
+				_atts.addAttribute(uri, keyName, createQName(uri, keyName), "CDATA", value);
+			} else {
+				final ContentHandler ch = getContentHandler();
+				if ((simpleContent || any >= 0) && valueWrapper.equals(keyName)) {
+					simpleContent = true;
+					ch.characters(value.toCharArray(), 0, value.length());
+				} else if (xsomHelper.getCurrentComplexType().isMixed() && valueWrapper.equals(keyName)) {
+					ch.characters(value.toCharArray(), 0, value.length());
+				} else {
+					uri = xsomHelper.matchElement(uri, keyName).apply(XSOMHelper.GetNamespace);
+					if (xsomHelper.isLastElementAny()) {
+						if (any < 0) {
+							any = _stack.size();
+						}
+					} else {
+						if (xsomHelper.getSimpleType() == null) {
+							throw new SAXException("Expected simple type: " + new QName(uri, keyName));
+						}
+					}
+					final String qName = createQName(uri, keyName);
+					if (value != null) {
+						if (any >= 0 && type != null) {
+							if (any == _stack.size()) {
+								ch.startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+							}
+							_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", type);
+						}
+						ch.startElement(uri, keyName, qName, _atts);
+						ch.characters(value.toCharArray(), 0, value.length());
+						ch.endElement(uri, keyName, qName);
+						if (any >= 0 && type != null) {
+							_atts.clear();
+							if(any == _stack.size()) {
+								ch.endPrefixMapping("xsi");
+							}
+						}
+					} else if (any >= 0 || xsomHelper.matchElement(uri, keyName).asElementDecl().isNillable()) {
+						ch.startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+						_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil", "xsi:nil", "CDATA", "true");
+						ch.startElement(uri, keyName, qName, _atts);
+						ch.endElement(uri, keyName, qName);
+						_atts.clear();
+						ch.endPrefixMapping("xsi");
+					}
+					if (!xsomHelper.isInArray()) {
+						keyName = null;
+						if (_stack.size() == any) {
+							any = -1;
+							xsomHelper.endAny();
+						}
+					}
+				}
+			}
+			uri = null;
 		}
 	}
 

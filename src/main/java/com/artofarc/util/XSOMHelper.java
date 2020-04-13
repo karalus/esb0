@@ -332,7 +332,7 @@ public final class XSOMHelper {
 	}
 
 	public XSComplexType getCurrentComplexType() {
-		return _currentGroup.owner;
+		return _currentGroup != null ? _currentGroup.owner : _complexType;
 	}
 
 	public XSSimpleType getSimpleType() {
@@ -378,6 +378,15 @@ public final class XSOMHelper {
 
 	public void endAny() {
 		nextParticle();
+	}
+
+	public void checkComplexType(String typeName) throws SAXException {
+		if (_complexType == null) {
+			throw new SAXException("Expected complex type for " + typeName);
+		}
+		if (!typeName.equals(_complexType.getName())) {
+			throw new SAXException("Expected complex type " + typeName + ", but got " + _complexType.getName());
+		}
 	}
 
 	public static String getJsonType(XSSimpleType simpleType) {

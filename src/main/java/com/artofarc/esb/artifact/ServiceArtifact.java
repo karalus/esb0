@@ -291,7 +291,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either variable or header");
 				}
 			}
-			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()), assign.getBindName(), assign.getContextItem(), false);
+			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), false);
 			XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;
@@ -301,8 +301,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			addAction(list, new XML2JsonAction(schemaArtifact.getJAXBContext(null), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
-				Collections.inverseMap(createNsDecls(xml2Json.getNsDecl()), true), xml2Json.isValidate() ? schemaArtifact.getSchema() : null, xml2Json.isFormattedOutput()), location);
+			addAction(list, new XML2JsonAction(schemaArtifact.getJAXBContext(null), schemaArtifact.getXSSchemaSet(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
+				createNsDecls(xml2Json.getNsDecl()), xml2Json.isValidate() ? schemaArtifact.getSchema() : null, xml2Json.isFormattedOutput()), location);
 			break;
 		}
 		case "json2xml": {
@@ -310,8 +310,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			addAction(list, new Json2XMLAction(schemaArtifact.getJAXBContext(null), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.isCaseInsensitive(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
-				Collections.inverseMap(createNsDecls(json2Xml.getNsDecl()), true), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()), location);
+			addAction(list, new Json2XMLAction(schemaArtifact.getJAXBContext(null), schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.isCaseInsensitive(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
+				createNsDecls(json2Xml.getNsDecl()), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()), location);
 			break;
 		}
 		case "transform": {
@@ -375,7 +375,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			schemaArtifact.validate(globalContext);
 			boolean complexExpression = validate.getExpression() != "." && !validate.getExpression().equals("*");
 			if (complexExpression || !USE_SAX_VALIDATION) {
-				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()), validate.getContextItem());
+				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem());
 				if (complexExpression) {
 					XQueryArtifact.validateXQuerySource(this, getConnection(), validateAction.getXQuery());
 				}
@@ -404,7 +404,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "conditional":
 			Conditional conditional = (Conditional) actionElement.getValue();
-			ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()),
+			ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(),
 				conditional.getBindName(), conditional.getContextItem(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
 			XQueryArtifact.validateXQuerySource(this, getConnection(), conditionalAction.getXQuery());
 			addAction(list, conditionalAction, location);
@@ -506,13 +506,13 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 	}
 
-	private static Collection<Entry<String, String>> createNsDecls(List<NsDecl> nsDecls) {
+	private static HashMap<String, String> createNsDecls(List<NsDecl> nsDecls) {
 		HashMap<String, String> result = new HashMap<>();
 		for (NsDecl nsDecl : nsDecls) {
 			String prefix = nsDecl.getPrefix();
 			result.put(prefix != null ? prefix : "", nsDecl.getNamespace());
 		}
-		return result.entrySet();
+		return result;
 	}
 
 	private static List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) {
