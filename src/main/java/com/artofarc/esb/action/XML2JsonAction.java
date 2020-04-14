@@ -49,9 +49,8 @@ public class XML2JsonAction extends Action {
 	private final Boolean _jsonIncludeRoot;
 	private final Map<String, String> _urisToPrefixes;
 	private final Schema _schema;
-	private final Boolean _formattedOutput;
 
-	public XML2JsonAction(DynamicJAXBContext jaxbContext, XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, Map<String, String> prefixMap, Schema schema, boolean formattedOutput) {
+	public XML2JsonAction(DynamicJAXBContext jaxbContext, XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, Map<String, String> prefixMap, Schema schema) {
 		_pipelineStop = true;
 		_jaxbContext = jaxbContext;
 		if (type != null) {
@@ -67,7 +66,6 @@ public class XML2JsonAction extends Action {
 		_jsonIncludeRoot = jsonIncludeRoot;
 		_urisToPrefixes = prefixMap != null ? Collections.inverseMap(prefixMap.entrySet(), true) : null;
 		_schema = schema;
-		_formattedOutput = formattedOutput;
 		_xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, type, jsonIncludeRoot, prefixMap);
 	}
 
@@ -104,7 +102,6 @@ public class XML2JsonAction extends Action {
 			jsonMarshaller.setProperty(MarshallerProperties.JSON_INCLUDE_ROOT, _jsonIncludeRoot);
 			jsonMarshaller.setProperty(MarshallerProperties.NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
 			jsonMarshaller.setProperty(MarshallerProperties.JSON_ATTRIBUTE_PREFIX, "@");
-			jsonMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, _formattedOutput);
 			if (message.isSink()) {
 				jsonMarshaller.marshal(root, message.getBodyAsSinkResult(context));
 			} else {

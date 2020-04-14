@@ -116,12 +116,11 @@ public abstract class SAXAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
 			if (message.isSink()) {
-				context.getIdenticalTransformer().transform(execContext.<SAXSource> getResource(), message.getBodyAsSinkResult(context));
+				context.getIdenticalTransformer().transform(execContext.<Source> getResource(), message.getBodyAsSinkResult(context));
 			} else {
 				StringWriter sw = new StringWriter();
-				context.getIdenticalTransformer().transform(execContext.<SAXSource> getResource(), new StreamResult(sw));
+				context.getIdenticalTransformer().transform(execContext.<Source> getResource(), new StreamResult(sw));
 				message.reset(BodyType.READER, sw.getStringReader());
-//				message.reset(BodyType.STRING, sw.toString());
 			}
 		}
 	}

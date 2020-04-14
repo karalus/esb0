@@ -18,10 +18,8 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import javax.wsdl.Binding;
@@ -45,7 +43,6 @@ import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
-import com.artofarc.util.Collections;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.WSDL4JUtil;
@@ -302,7 +299,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
 			addAction(list, new XML2JsonAction(schemaArtifact.getJAXBContext(null), schemaArtifact.getXSSchemaSet(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
-				createNsDecls(xml2Json.getNsDecl()), xml2Json.isValidate() ? schemaArtifact.getSchema() : null, xml2Json.isFormattedOutput()), location);
+				createNsDecls(xml2Json.getNsDecl()), xml2Json.isValidate() ? schemaArtifact.getSchema() : null), location);
 			break;
 		}
 		case "json2xml": {
@@ -310,8 +307,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			addAction(list, new Json2XMLAction(schemaArtifact.getJAXBContext(null), schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.isCaseInsensitive(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
-				createNsDecls(json2Xml.getNsDecl()), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isFormattedOutput()), location);
+			addAction(list, new Json2XMLAction(schemaArtifact.getJAXBContext(null), schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
+				createNsDecls(json2Xml.getNsDecl()), json2Xml.isValidate() ? schemaArtifact.getSchema() : null), location);
 			break;
 		}
 		case "transform": {

@@ -24,14 +24,14 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
 import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.validation.Schema;
+import javax.xml.xquery.XQItem;
 
 import org.eclipse.persistence.dynamic.DynamicEntity;
 import org.eclipse.persistence.jaxb.UnmarshallerProperties;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.oxm.MediaType;
-import org.xml.sax.InputSource;
+import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -39,27 +39,25 @@ import com.artofarc.esb.json.Json2XmlTransformer;
 
 import static com.artofarc.esb.http.HttpConstants.*;
 
-import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.Collections;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.XMLFilterBase;
 import com.sun.xml.xsom.XSSchemaSet;
 
-public class Json2XMLAction extends Action {
+public class Json2XMLAction extends SAXAction {
 
 	static final boolean useMOXy = Boolean.parseBoolean(System.getProperty("esb0.moxy", "false"));	
 
 	private final DynamicJAXBContext _jaxbContext;
 	private final Json2XmlTransformer _json2xml; 
 	private final Class<DynamicEntity> _type;
-	private final Boolean _jsonIncludeRoot, _caseInsensitive;
+	private final Boolean _jsonIncludeRoot;
 	private final Map<String, String> _urisToPrefixes;
 	private final Schema _schema;
-	private final Boolean _formattedOutput;
 	private final QName _xmlElement;
 
 	@SuppressWarnings("unchecked")
-	public Json2XMLAction(DynamicJAXBContext jaxbContext, XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, boolean caseInsensitive, String xmlElement, Map<String, String> prefixMap, Schema schema, boolean formattedOutput) {
+	public Json2XMLAction(DynamicJAXBContext jaxbContext, XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, String xmlElement, Map<String, String> prefixMap, Schema schema) {
 		_pipelineStop = useMOXy;
 		_jaxbContext = jaxbContext;
 		if (type != null) {
@@ -74,10 +72,8 @@ public class Json2XMLAction extends Action {
 		}
 		_xmlElement = xmlElement != null ? QName.valueOf(xmlElement) : null;
 		_jsonIncludeRoot = jsonIncludeRoot;
-		_caseInsensitive = caseInsensitive;
 		_urisToPrefixes = Collections.inverseMap(prefixMap.entrySet(), useMOXy);
 		_schema = schema;
-		_formattedOutput = formattedOutput;
 		_json2xml = new Json2XmlTransformer(schemaSet, true, xmlElement, type, jsonIncludeRoot, prefixMap);
 	}
 
@@ -91,13 +87,7 @@ public class Json2XMLAction extends Action {
 		if (useMOXy) {
 			return null;
 		} else {
-			InputSource inputSource = SAXSource.sourceToInputSource(message.getBodyAsSource(context));
-			if (inputSource == null) {
-				throw new IllegalStateException("Message is invalid");			
-			}
-			SAXSource source = new SAXSource(_json2xml.createParser(), inputSource);
-			message.reset(BodyType.SOURCE, source);
-			return new ExecutionContext(source);
+			return super.prepare(context, message, inPipeline);
 		}
 	}
 
@@ -108,7 +98,6 @@ public class Json2XMLAction extends Action {
 			Unmarshaller jsonUnmarshaller = _jaxbContext.createUnmarshaller();
 			jsonUnmarshaller.setProperty(UnmarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
 			jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_INCLUDE_ROOT, _jsonIncludeRoot);
-			jsonUnmarshaller.setProperty(UnmarshallerProperties.UNMARSHALLING_CASE_INSENSITIVE, _caseInsensitive);
 			jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
 			jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_ATTRIBUTE_PREFIX, "@");
 			Object root;
@@ -132,7 +121,6 @@ public class Json2XMLAction extends Action {
 			}
 			try {
 				if (nextActionIsPipelineStop) {
-					marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, _formattedOutput);
 					marshaller.marshal(root, message.getBodyAsSinkResult(context));
 				} else {
 					message.marshal(context, marshaller, root);
@@ -143,17 +131,21 @@ public class Json2XMLAction extends Action {
 				context.getTimeGauge().stopTimeMeasurement("Marshal Java --> XML", false);
 			}
 		} else {
-			if (nextActionIsPipelineStop) {
-				if (message.isSink()) {
-					context.getIdenticalTransformer().transform(execContext.<SAXSource> getResource(), message.getBodyAsSinkResult(context));
-				} else {
-					StringWriter sw = new StringWriter();
-					context.getIdenticalTransformer().transform(execContext.<SAXSource> getResource(), new StreamResult(sw));
-					message.reset(BodyType.READER, sw.getStringReader());
-					//message.reset(BodyType.STRING, sw.toString());
-				}
-			}
+			super.execute(context, execContext, message, nextActionIsPipelineStop);
 		}
+	}
+
+	@Override
+	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) {
+		throw new IllegalArgumentException("JSON expected, got XQItem");
+	}
+
+	@Override
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
+		if (parent != null) {
+			throw new IllegalArgumentException("JSON expected: parent must be null");
+		}
+		return _json2xml.createParser();
 	}
 
 }

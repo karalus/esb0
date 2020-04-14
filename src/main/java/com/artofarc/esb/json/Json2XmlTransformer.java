@@ -28,7 +28,6 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.AttributesImpl;
 
 import com.artofarc.util.Collections;
@@ -88,16 +87,16 @@ public final class Json2XmlTransformer {
 		_createDocumentEvents = createDocumentEvents;
 	}
 
-	public XMLReader createParser() {
+	public XMLFilterBase createParser() {
 		return new Parser();
 	}
 
 	private static final class Source implements Locator {
 
-		private final JsonParser jsonParser;
-		private final InputSource _source;
+		final JsonParser jsonParser;
+		final InputSource _source;
 
-		private Source(InputSource source) throws SAXException {
+		Source(InputSource source) throws SAXException {
 			if (source.getByteStream() != null) {
 				if (source.getEncoding() != null) {
 					jsonParser = JsonFactoryHelper.JSON_PARSER_FACTORY.createParser(source.getByteStream(), Charset.forName(source.getEncoding()));
