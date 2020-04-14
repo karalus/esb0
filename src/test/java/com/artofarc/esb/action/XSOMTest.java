@@ -23,7 +23,6 @@ import org.xml.sax.InputSource;
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.XmlSampleGenerator;
 import com.artofarc.esb.artifact.XSDArtifact;
-import com.artofarc.esb.json.Json2XmlParser;
 import com.artofarc.esb.json.Json2XmlTransformer;
 import com.artofarc.esb.json.Xml2JsonTransformer;
 import com.artofarc.util.JAXPFactoryHelper;
@@ -122,13 +121,6 @@ public class XSOMTest extends AbstractESBTest {
 		System.out.println(indent + qName);
 	}
 
-	@Test
-	public void testJSON() throws Exception {
-		Transformer transformer = context.getIdenticalTransformer();
-		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		transformer.transform(new SAXSource(new Json2XmlParser(true), new InputSource(new ByteArrayInputStream(readFile("src/test/resources/RESTRequest.json")))), new StreamResult(System.out));
-	}
-
 	private XSSchemaSet createXSSchemaSet() throws Exception {
 		XSDArtifact xsdArtifact1 = new XSDArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "de.aoa.xsd.demo.v1.xsd");
 		xsdArtifact1.setContent(readFile("src/test/resources/example/de.aoa.xsd.demo.v1.xsd"));
@@ -157,13 +149,13 @@ public class XSOMTest extends AbstractESBTest {
 		
 		Transformer transformer = context.getIdenticalTransformer();
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", true, map);
+		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, true, map);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest.json"));
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		StringWriter writer = new StringWriter();
 		byteStream.reset();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", true, map);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, true, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		//transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), result);
@@ -193,13 +185,13 @@ public class XSOMTest extends AbstractESBTest {
 		
 		Transformer transformer = context.getIdenticalTransformer();
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", true, map);
+		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, true, map);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest_AnyComplex.json"));
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		StringWriter writer = new StringWriter();
 		byteStream.reset();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", true, map);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, true, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
@@ -227,13 +219,13 @@ public class XSOMTest extends AbstractESBTest {
 		
 		Transformer transformer = context.getIdenticalTransformer();
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", false, map);
+		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, false, map);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest_woRoot.json"));
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		byteStream.reset();
 		StringWriter writer = new StringWriter();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", false, map);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
@@ -255,13 +247,13 @@ public class XSOMTest extends AbstractESBTest {
 	public void testJSON2XMLwoSchema() throws Exception {
 		Transformer transformer = context.getIdenticalTransformer();
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		Json2XmlTransformer json2xml = new Json2XmlTransformer(null, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", false, null);
+		Json2XmlTransformer json2xml = new Json2XmlTransformer(null, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, false, null);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest.json"));
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		StringWriter writer = new StringWriter();
 		byteStream.reset();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", false, null);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, null);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
@@ -283,13 +275,13 @@ public class XSOMTest extends AbstractESBTest {
 	public void testJSON2XMLwoSchemaAnyComplex() throws Exception {
 		Transformer transformer = context.getIdenticalTransformer();
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		Json2XmlTransformer json2xml = new Json2XmlTransformer(null, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", false, null);
+		Json2XmlTransformer json2xml = new Json2XmlTransformer(null, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, false, null);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest_AnyComplex.json"));
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		StringWriter writer = new StringWriter();
 		byteStream.reset();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", false, null);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, null);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);

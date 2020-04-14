@@ -37,9 +37,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
-import javax.json.Json;
 import javax.json.stream.JsonGenerator;
-import javax.json.stream.JsonGeneratorFactory;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
 import javax.xml.bind.JAXBElement;
@@ -64,6 +62,7 @@ import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQSequence;
 
 import org.w3c.dom.Node;
+import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -76,6 +75,7 @@ import com.artofarc.util.Collections;
 import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 import com.artofarc.util.IOUtils;
+import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.StringWriter;
 
 public final class ESBMessage implements Cloneable {
@@ -83,16 +83,7 @@ public final class ESBMessage implements Cloneable {
 	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
 	public static final int MTU = IOUtils.MTU;
 
-	private static final JsonGeneratorFactory JSON_GENERATOR_FACTORY;
 	private static final Map<String, String> HEADER_NAMES = new ConcurrentHashMap<>(256); 
-
-	static {
-		Map<String, Object> config = new HashMap<>();
-		if (Boolean.parseBoolean(System.getProperty("esb0.jsonPrettyPrinting"))) {
-			config.put(JsonGenerator.PRETTY_PRINTING, true);
-		}
-		JSON_GENERATOR_FACTORY = Json.createGeneratorFactory(config);
-	}
 
 	private static String toLowerCase(String headerName) {
 		String result = HEADER_NAMES.get(headerName);
@@ -599,9 +590,9 @@ public final class ESBMessage implements Cloneable {
 		switch (_bodyType) {
 		case OUTPUT_STREAM:
 			_body = getCompressedOutputStream((OutputStream) _body);
-			return JSON_GENERATOR_FACTORY.createGenerator((OutputStream) _body, getSinkEncodingCharset());
+			return JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator((OutputStream) _body, getSinkEncodingCharset());
 		case WRITER:
-			return JSON_GENERATOR_FACTORY.createGenerator((Writer) _body);
+			return JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator((Writer) _body);
 		default:
 			throw new IllegalStateException("Message cannot be converted to JsonGenerator: " + _bodyType);
 		}
@@ -649,7 +640,27 @@ public final class ESBMessage implements Cloneable {
 		transformer.transform(source, result);
 	}
 
-	public void writeTo(Result result, Context context) throws TransformerException, XQException, IOException {
+	public void writeToSAX(ContentHandler contentHandler, Context context) throws XQException, TransformerException, IOException {
+		switch (_bodyType) {
+		case XQ_SEQUENCE:
+			XQSequence xqSequence = (XQSequence) _body;
+			if (xqSequence.next()) {
+				init(BodyType.XQ_ITEM, xqSequence.getItem(), null);
+			} else {
+				throw new IllegalStateException("Message already consumed");
+			}
+			// nobreak
+		case XQ_ITEM:
+			XQItem xqItem = (XQItem) _body;
+			xqItem.writeItemToSAX(contentHandler);
+			break;
+		default:
+			context.getIdenticalTransformer().transform(getBodyAsSource(context), new SAXResult(contentHandler));
+			break;
+		}
+	}
+
+	public void writeTo(Result result, Context context) throws XQException, TransformerException, IOException {
 		if (_bodyType == BodyType.XQ_ITEM) {
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItemToResult(result);
@@ -673,7 +684,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public void writeRawTo(OutputStream os, Context context) throws TransformerException, IOException, XQException {
+	public void writeRawTo(OutputStream os, Context context) throws XQException, TransformerException, IOException {
 		switch (_bodyType) {
 		case DOM:
 			transform(context.getIdenticalTransformer(), new StreamResult(new OutputStreamWriter(os, getSinkEncoding())));

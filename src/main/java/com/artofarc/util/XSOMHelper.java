@@ -19,6 +19,7 @@ package com.artofarc.util;
 import java.io.StringReader;
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.Map.Entry;
 
 import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
@@ -178,15 +179,16 @@ public final class XSOMHelper {
 		}
 	}
 
-	private final ArrayDeque<ArrayDeque<Group>> stack = new ArrayDeque<>();
+	private final ArrayDeque<Entry<String, ArrayDeque<Group>>> stack = new ArrayDeque<>();
 
 	private XSComplexType _complexType;
 	private Group _currentGroup, _nextGroup;
+	private String _nextType;
 	private XSSimpleType _simpleType;
 	private boolean _any, _required;
 
 	public XSOMHelper(XSComplexType complexType) {
-		expandGroup(_complexType = complexType);
+		expandGroup(_complexType = complexType, null);
 	}
 
 	public int getLevel() {
@@ -195,15 +197,19 @@ public final class XSOMHelper {
 
 	private void saveCurrent() {
 		if (_currentGroup != null && _currentGroup.hasNext()) {
-			ArrayDeque<Group> context = stack.peek();
-			context.push(_currentGroup);
+			Entry<String, ArrayDeque<Group>> context = stack.peek();
+			context.getValue().push(_currentGroup);
 		}
 	}
 
-	private void expandGroup(XSComplexType complexType) {
+	private void expandGroup(XSComplexType complexType, XSElementDecl element) {
 		final XSContentType contentType = complexType.getContentType();
 		final XSParticle particle = contentType.asParticle();
 		if (particle != null) {
+			_nextType = complexType.getName();
+			if (_nextType == null) {
+				_nextType = "Anonymous type in " + element.getName();
+			}
 			_nextGroup = new Group(complexType, particle, particle.getTerm().asModelGroup());
 		} else {
 			_simpleType = contentType.asSimpleType();
@@ -229,7 +235,7 @@ public final class XSOMHelper {
 	public XSTerm matchElement(String uri, String localName) throws SAXException {
 		if (_nextGroup != null) {
 			saveCurrent();
-			stack.push(new ArrayDeque<Group>());
+			stack.push(Collections.createEntry(_nextType, new ArrayDeque<Group>()));
 			_currentGroup = _nextGroup;
 			_nextGroup = null;
 		}
@@ -299,16 +305,17 @@ public final class XSOMHelper {
 		if (_currentGroup != null && _currentGroup.hasNext()) {
 			_currentGroup.nextChild();
 		} else {
-			for (ArrayDeque<Group> context = stack.peek(); context != null;) {
-				_currentGroup = context.peek();
+			for (Entry<String, ArrayDeque<Group>> context = stack.peek(); context != null;) {
+				_currentGroup = context.getValue().peek();
 				if (_currentGroup == null) {
-					stack.pop();
+					context = stack.pop();
+//					System.out.println("Dropping context for " + context.getKey());
 					context = stack.peek();
 				} else {
 					if (_currentGroup.hasNext()) {
 						break;
 					} else {
-						context.pop();
+						context.getValue().pop();
 					}
 				}
 			}
@@ -320,7 +327,7 @@ public final class XSOMHelper {
 		_complexType = type.asComplexType();
 		if (type.isComplexType()) {
 			_simpleType = null;
-			expandGroup(_complexType);
+			expandGroup(_complexType, element);
 		} else {
 			_simpleType = type.asSimpleType();
 		}
@@ -368,16 +375,19 @@ public final class XSOMHelper {
 	}
 
 	public void endComplex() {
-		// TODO: pop should work
-		stack.poll();
-		final ArrayDeque<Group> context = stack.peek();
+		Entry<String, ArrayDeque<Group>> context = stack.pop();
+//		System.out.println("Dropping context for " + context.getKey());
+		context = stack.peek();
 		if (context != null) {
-			_currentGroup = context.poll();
+			_currentGroup = context.getValue().poll();
 		}
 	}
 
 	public void endAny() {
-		nextParticle();
+		if (_currentGroup != null && _currentGroup.hasNext()) {
+			_currentGroup.nextChild();
+		}
+		_complexType = null;
 	}
 
 	public void checkComplexType(String typeName) throws SAXException {

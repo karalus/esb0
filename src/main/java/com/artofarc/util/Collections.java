@@ -30,6 +30,9 @@ public final class Collections {
 		return new AbstractMap.SimpleImmutableEntry<>(key, value);
 	}
 
+	/**
+	 * @param unique If true throw an Exception in case of a collision else return empty map.
+	 */
 	public static <K, V> Map<V, K> inverseMap(Collection<Map.Entry<K, V>> entrySet, boolean unique) {
 		Map<V, K> result = new HashMap<>();
 		for (Map.Entry<K, V> entry : entrySet) {
@@ -38,6 +41,20 @@ public final class Collections {
 					throw new IllegalArgumentException("Value is not unique: " + entry.getValue());
 				} 
 				return java.util.Collections.emptyMap();
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * In case of a collision keep the shortest key.
+	 */
+	public static <V> Map<V, String> inverseMap(Collection<Map.Entry<String, V>> entrySet) {
+		Map<V, String> result = new HashMap<>();
+		for (Map.Entry<String, V> entry : entrySet) {
+			String old = result.get(entry.getValue());
+			if (old == null || old.length() > entry.getKey().length()) {
+				result.put(entry.getValue(), entry.getKey());
 			}
 		}
 		return result;

@@ -21,15 +21,11 @@ import java.util.Map;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.namespace.QName;
-import javax.xml.transform.sax.SAXResult;
 import javax.xml.validation.Schema;
-import javax.xml.xquery.XQItem;
-import javax.xml.xquery.XQSequence;
 
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 import org.eclipse.persistence.oxm.MediaType;
-import org.xml.sax.ContentHandler;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -45,7 +41,7 @@ import com.sun.xml.xsom.XSSchemaSet;
 
 public class XML2JsonAction extends Action {
 
-	private static final boolean useMOXy = Boolean.parseBoolean(System.getProperty("esb0.moxy", "true"));	
+	private static final boolean useMOXy = Boolean.parseBoolean(System.getProperty("esb0.moxy", "false"));	
 
 	private final DynamicJAXBContext _jaxbContext;
 	private final Xml2JsonTransformer _xml2JsonTransformer;
@@ -72,7 +68,7 @@ public class XML2JsonAction extends Action {
 		_urisToPrefixes = prefixMap != null ? Collections.inverseMap(prefixMap.entrySet(), true) : null;
 		_schema = schema;
 		_formattedOutput = formattedOutput;
-		_xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", jsonIncludeRoot, prefixMap);
+		_xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, type, jsonIncludeRoot, prefixMap);
 	}
 
 	@Override
@@ -119,23 +115,7 @@ public class XML2JsonAction extends Action {
 			context.getTimeGauge().stopTimeMeasurement("Marshal Java --> JSON", false);
 		} else {
 			StringWriter sw = new StringWriter();
-			ContentHandler ch = _xml2JsonTransformer.createTransformerHandler(sw);
-			switch (message.getBodyType()) {
-			case XQ_SEQUENCE:
-				XQSequence xqSequence = (XQSequence) message.getBody();
-				if (!xqSequence.next()) {
-					throw new IllegalStateException("Message already consumed");
-				}
-				xqSequence.getItem().writeItemToSAX(ch);
-				break;
-			case XQ_ITEM:
-				XQItem xqItem = message.getBody();
-				xqItem.writeItemToSAX(ch);
-				break;
-			default:
-				context.getIdenticalTransformer().transform(message.getBodyAsSource(context), new SAXResult(ch));
-				break;
-			}
+			message.writeToSAX(_xml2JsonTransformer.createTransformerHandler(sw), context);
 			message.reset(BodyType.READER, sw.getStringReader());
 		}
 	}

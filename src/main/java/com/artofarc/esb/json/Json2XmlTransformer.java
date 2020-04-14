@@ -18,13 +18,9 @@ package com.artofarc.esb.json;
 
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
-import javax.json.Json;
 import javax.json.stream.JsonParser;
-import javax.json.stream.JsonParserFactory;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
 
@@ -35,9 +31,13 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.AttributesImpl;
 
+import com.artofarc.util.Collections;
+import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSAttributeUse;
+import com.sun.xml.xsom.XSComplexType;
+import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSTerm;
 import com.sun.xml.xsom.XSWildcard;
@@ -45,46 +45,46 @@ import com.sun.xml.xsom.XSWildcard;
 public final class Json2XmlTransformer {
 
 	private static final boolean VALIDATE_PREFIXES = false;
-	private static final JsonParserFactory jsonParserFactory = Json.createParserFactory(null);
 
 	private final XSSchemaSet _schemaSet;
 	private final boolean _createDocumentEvents;
 	private final boolean _includeRoot;
 	private final String _rootUri, _rootName;
+	private final XSComplexType _complexType;
 	private final Map<String, String> _prefixMap, _nsMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
-	public static <V> Map<V, String> inverseMap(Collection<Map.Entry<String, V>> entrySet) {
-		Map<V, String> result = new HashMap<>();
-		for (Map.Entry<String, V> entry : entrySet) {
-			String old = result.get(entry.getValue());
-			if (old == null || old.length() > entry.getKey().length()) {
-				result.put(entry.getValue(), entry.getKey());
-			}
-		}
-		return result;
-	}
-
-	public Json2XmlTransformer(XSSchemaSet schemaSet, boolean createDocumentEvents, String rootElement, boolean includeRoot, Map<String, String> prefixMap) {
+	public Json2XmlTransformer(XSSchemaSet schemaSet, boolean createDocumentEvents, String rootElement, String type, boolean includeRoot, Map<String, String> prefixMap) {
 		if (schemaSet == null) {
 			_schemaSet = XSOMHelper.anySchema;
 			_rootUri = XMLConstants.NULL_NS_URI;
 			_rootName = "root";
+			_complexType = _schemaSet.getElementDecl(_rootUri, _rootName).getType().asComplexType();
 		} else {
 			_schemaSet = schemaSet;
 			if (rootElement != null) {
 				QName _rootElement = QName.valueOf(rootElement);
 				_rootUri = _rootElement.getNamespaceURI();
 				_rootName = _rootElement.getLocalPart();
+				XSElementDecl elementDecl = schemaSet.getElementDecl(_rootUri, _rootName);
+				if (elementDecl != null) {
+					_complexType = elementDecl.getType().asComplexType();
+				} else if (type != null) {
+					QName _type = QName.valueOf(type);
+					_complexType = schemaSet.getComplexType(_type.getNamespaceURI(), _type.getLocalPart());
+				} else {
+					_complexType = null;
+				}
 			} else {
 				_rootUri = null;
 				_rootName = null;
+				_complexType = null;
 			}
 		}
 		_includeRoot = includeRoot;
 		_prefixMap = prefixMap;
-		_nsMap = prefixMap != null ? inverseMap(prefixMap.entrySet()) : null;
+		_nsMap = prefixMap != null ? Collections.inverseMap(prefixMap.entrySet()) : null;
 		_createDocumentEvents = createDocumentEvents;
 	}
 
@@ -100,12 +100,12 @@ public final class Json2XmlTransformer {
 		private Source(InputSource source) throws SAXException {
 			if (source.getByteStream() != null) {
 				if (source.getEncoding() != null) {
-					jsonParser = jsonParserFactory.createParser(source.getByteStream(), Charset.forName(source.getEncoding()));
+					jsonParser = JsonFactoryHelper.JSON_PARSER_FACTORY.createParser(source.getByteStream(), Charset.forName(source.getEncoding()));
 				} else {
-					jsonParser = jsonParserFactory.createParser(source.getByteStream());
+					jsonParser = JsonFactoryHelper.JSON_PARSER_FACTORY.createParser(source.getByteStream());
 				}
 			} else if (source.getCharacterStream() != null) {
-				jsonParser = jsonParserFactory.createParser(source.getCharacterStream());
+				jsonParser = JsonFactoryHelper.JSON_PARSER_FACTORY.createParser(source.getCharacterStream());
 			} else {
 				throw new SAXException("InputSource must provide a stream");
 			}
@@ -134,13 +134,14 @@ public final class Json2XmlTransformer {
 	}
 
 	private static final class Element {
+
+		final String uri, localName, qName;
+
 		Element(String uri, String localName, String qName) {
 			this.uri = uri;
 			this.localName = localName;
 			this.qName = qName;
 		}
-
-		final String uri, localName, qName;
 	}
 
 	private String createQName(String uri, String localName) {
@@ -155,14 +156,19 @@ public final class Json2XmlTransformer {
 
 	// Not thread safe
 	private final class Parser extends XMLFilterBase {
-		
+
 		final ArrayDeque<Element> _stack = new ArrayDeque<>();
 		final AttributesImpl _atts = new AttributesImpl();
+		final ArrayDeque<String> _arrays = new ArrayDeque<>();
 
 		XSOMHelper xsomHelper;
 		String keyName, uri;
 		boolean attribute, simpleContent;
 		int any = -1;
+
+		private void initXSOMHelper() {
+			xsomHelper = new XSOMHelper(_complexType != null ? _complexType : _schemaSet.getElementDecl(uri, keyName).getType().asComplexType());
+		}
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
@@ -184,13 +190,13 @@ public final class Json2XmlTransformer {
 					switch (jsonParser.next()) {
 					case START_OBJECT:
 						if (keyName == null && (xsomHelper == null || !xsomHelper.isInArray())) {
-							// assume where on root
+							// assume we are on root node
 							if (_includeRoot) {
 								continue;
 							} else {
 								keyName = _rootName;
 								uri = _rootUri;
-								xsomHelper = new XSOMHelper(_schemaSet.getElementDecl(uri, keyName).getType().asComplexType());
+								initXSOMHelper();
 							}
 						} else {
 							if (_includeRoot && _stack.isEmpty()) {
@@ -207,18 +213,18 @@ public final class Json2XmlTransformer {
 										uri = XMLConstants.NULL_NS_URI;
 									}
 								}
-								xsomHelper = new XSOMHelper(_schemaSet.getElementDecl(uri, keyName).getType().asComplexType());
+								initXSOMHelper();
 							} else {
+								if (keyName == null) {
+									keyName = _arrays.peek();
+								}
 								XSTerm term = xsomHelper.matchElement(uri, keyName);
 								uri = term.apply(XSOMHelper.GetNamespace);
-								if (keyName == null) {
-									keyName = term.apply(XSOMHelper.GetName);
-								}
 								if (xsomHelper.isLastElementAny()) {
 									if (any < 0) {
 										any = _stack.size();
 										ch.startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
-									}
+									} 
 								} else {
 									if (xsomHelper.getComplexType() == null) {
 										throw new SAXException("Expected complex type: " + new QName(uri, keyName));
@@ -241,19 +247,23 @@ public final class Json2XmlTransformer {
 									xsomHelper.endComplex();
 								}
 							} else if (_stack.size() <= any) {
-								if (_stack.size() == any) {
+								if (_stack.size() < any || !xsomHelper.isInArray()) {
 									ch.endPrefixMapping("xsi");
+									any = -1;
+									xsomHelper.endAny();
 								}
-								any = -1;
-								xsomHelper.endAny();
 							}
 							e = null;
 						}
 						break;
 					case START_ARRAY:
+						_arrays.push(keyName);
 						break;
 					case END_ARRAY:
-						xsomHelper.endArray();
+						_arrays.pop();
+						if (any < 0) {
+							xsomHelper.endArray();
+						}
 						break;
 					case KEY_NAME:
 						keyName = jsonParser.getString();
@@ -323,6 +333,9 @@ public final class Json2XmlTransformer {
 				_atts.addAttribute(uri, keyName, createQName(uri, keyName), "CDATA", value);
 			} else {
 				final ContentHandler ch = getContentHandler();
+				if (keyName == null) {
+					keyName = _arrays.peek();
+				}
 				if ((simpleContent || any >= 0) && valueWrapper.equals(keyName)) {
 					simpleContent = true;
 					ch.characters(value.toCharArray(), 0, value.length());
@@ -365,7 +378,6 @@ public final class Json2XmlTransformer {
 						ch.endPrefixMapping("xsi");
 					}
 					if (!xsomHelper.isInArray()) {
-						keyName = null;
 						if (_stack.size() == any) {
 							any = -1;
 							xsomHelper.endAny();
@@ -373,6 +385,7 @@ public final class Json2XmlTransformer {
 					}
 				}
 			}
+			keyName = null;
 			uri = null;
 		}
 	}

@@ -47,7 +47,7 @@ import com.sun.xml.xsom.XSSchemaSet;
 
 public class Json2XMLAction extends Action {
 
-	static final boolean useMOXy = Boolean.parseBoolean(System.getProperty("esb0.moxy", "true"));	
+	static final boolean useMOXy = Boolean.parseBoolean(System.getProperty("esb0.moxy", "false"));	
 
 	private final DynamicJAXBContext _jaxbContext;
 	private final Json2XmlTransformer _json2xml; 
@@ -78,7 +78,7 @@ public class Json2XMLAction extends Action {
 		_urisToPrefixes = Collections.inverseMap(prefixMap.entrySet(), useMOXy);
 		_schema = schema;
 		_formattedOutput = formattedOutput;
-		_json2xml = new Json2XmlTransformer(schemaSet, true, xmlElement, jsonIncludeRoot, prefixMap);
+		_json2xml = new Json2XmlTransformer(schemaSet, true, xmlElement, type, jsonIncludeRoot, prefixMap);
 	}
 
 	@Override

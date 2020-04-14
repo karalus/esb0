@@ -21,70 +21,57 @@ import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.Map;
 
-import javax.json.Json;
 import javax.json.stream.JsonGenerator;
-import javax.json.stream.JsonGeneratorFactory;
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.namespace.QName;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.artofarc.util.Collections;
+import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSAttributeUse;
 import com.sun.xml.xsom.XSComplexType;
-import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
 
 public final class Xml2JsonTransformer {
 
-	private static final JsonGeneratorFactory JSON_GENERATOR_FACTORY;
-
-	static {
-		HashMap<String, Object> config = new HashMap<>();
-		if (Boolean.parseBoolean(System.getProperty("esb0.jsonPrettyPrinting", "true"))) {
-			config.put(JsonGenerator.PRETTY_PRINTING, true);
-		}
-		JSON_GENERATOR_FACTORY = Json.createGeneratorFactory(config);
-	}
-
 	private final XSSchemaSet _schemaSet;
+	private final XSComplexType _complexType;
 	private final boolean _includeRoot;
 	private final Map<String, String> _nsMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
-	public Xml2JsonTransformer(XSSchemaSet schemaSet, String rootElement, boolean includeRoot, Map<String, String> prefixMap) {
-		if (schemaSet == null) {
-			_schemaSet = XSOMHelper.anySchema;
-			rootElement = "root";
+	public Xml2JsonTransformer(XSSchemaSet schemaSet, String type, boolean includeRoot, Map<String, String> prefixMap) {
+		_schemaSet = schemaSet != null ? schemaSet : XSOMHelper.anySchema;
+		if (type != null) {
+			QName _type = QName.valueOf(type);
+			_complexType = schemaSet.getComplexType(_type.getNamespaceURI(), _type.getLocalPart());
 		} else {
-			_schemaSet = schemaSet;
+			_complexType = null;
 		}
 		_includeRoot = includeRoot;
-		_nsMap = prefixMap != null ? Json2XmlTransformer.inverseMap(prefixMap.entrySet()) : null;
-	}
-
-	public ContentHandler createTransformerHandler(JsonGenerator jsonGenerator) {
-		return new TransformerHandler(jsonGenerator);
+		_nsMap = prefixMap != null ? Collections.inverseMap(prefixMap.entrySet()) : null;
 	}
 
 	public ContentHandler createTransformerHandler(Writer writer) {
-		return new TransformerHandler(JSON_GENERATOR_FACTORY.createGenerator(writer));
+		return new TransformerHandler(JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(writer));
 	}
 
 	public ContentHandler createTransformerHandler(OutputStream outputStream) {
-		return new TransformerHandler(JSON_GENERATOR_FACTORY.createGenerator(outputStream));
+		return new TransformerHandler(JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(outputStream));
 	}
 
 	public ContentHandler createTransformerHandler(OutputStream outputStream, Charset charset) {
-		return new TransformerHandler(JSON_GENERATOR_FACTORY.createGenerator(outputStream, charset));
+		return new TransformerHandler(JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(outputStream, charset));
 	}
 
 	private final class TransformerHandler extends DefaultHandler {
@@ -123,8 +110,7 @@ public final class Xml2JsonTransformer {
 			int attsLength = atts.getLength();
 			if (root) {
 				root = false;
-				XSElementDecl element = _schemaSet.getElementDecl(uri, localName);
-				xsomHelper = new XSOMHelper(element.getType().asComplexType());
+				xsomHelper = new XSOMHelper(_complexType != null ? _complexType : _schemaSet.getElementDecl(uri, localName).getType().asComplexType());
 				if (!_includeRoot) {
 					++level;
 					return;
@@ -197,11 +183,16 @@ public final class Xml2JsonTransformer {
 			}
 			++level;
 		}
-		
+
 		@Override
 		public void endElement(String uri, String localName, String qName) {
-			if (openKey != null && primitiveType == null) {
-				primitiveType = "string";
+			if (openKey != null) {
+				if (primitiveType == null) {
+					primitiveType = "string";
+				}
+				if (openKey != valueWrapper) {
+					complex = false;
+				}
 			}
 			if (primitiveType != null) {
 				if (openKey != null) {
@@ -216,9 +207,9 @@ public final class Xml2JsonTransformer {
 						jsonGenerator.writeEnd();
 						xsomHelper.endArray();
 					}
-				} 
+				}
 				if (_builder.length() > 0) {
-					if (anyLevel < 0 ) {
+					if (anyLevel < 0) {
 						final XSComplexType currentComplexType = xsomHelper.getCurrentComplexType();
 						if (currentComplexType != null && currentComplexType.isMixed()) {
 							jsonGenerator.writeStartArray(valueWrapper);
@@ -226,16 +217,20 @@ public final class Xml2JsonTransformer {
 							jsonGenerator.writeEnd();
 						}
 					} else {
-						jsonGenerator.write(valueWrapper, _builder.toString());
+						if (_builder.toString().trim().length() > 0) {
+							jsonGenerator.write(valueWrapper, _builder.toString());
+						}
 					}
 				}
-				xsomHelper.endComplex();
+				if (anyLevel < 0 || level == anyLevel) {
+					xsomHelper.endComplex();
+				}
 			}
 			if (complex || primitiveType == null) {
 				debug("end " + localName);
 				jsonGenerator.writeEnd();
 			}
-			if (anyLevel == --level) {
+			if (anyLevel == level--) {
 				anyLevel = -1;
 				xsomHelper.endAny();
 			}
@@ -314,7 +309,7 @@ public final class Xml2JsonTransformer {
 				break;
 			}
 		}
-		
+
 	}
 
 	private static void debug(String s) {
