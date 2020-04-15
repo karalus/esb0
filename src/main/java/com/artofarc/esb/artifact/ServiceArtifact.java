@@ -107,7 +107,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case JMS:
 				final Service.JmsBinding jmsBinding = service.getJmsBinding();
 				JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
-				_consumerPort = new JMSConsumer(globalContext, getURI(), jmsBinding.getWorkerPool(), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
+				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
 						jmsBinding.getTopicName(), jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval());
 				break;
 			case TIMER:
