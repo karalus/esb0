@@ -95,7 +95,7 @@ public class JDBCProcedureAction extends JDBCAction {
 							message.marshal(context, _mapper.getJAXBContext().createMarshaller(), jaxbElement);
 						} else {
 							JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-							SAXSource saxSource = new SAXSource(mapper.createParser((Struct) cs.getObject(param.getPos())), null);
+							SAXSource saxSource = new SAXSource(mapper.createParser(context, (Struct) cs.getObject(param.getPos())), null);
 							message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
 						}
 						break;

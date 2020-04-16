@@ -305,6 +305,28 @@ public final class XSOMHelper {
 		return null;
 	}
 
+	public boolean isInComplex() {
+		if (_nextGroup != null && _nextGroup.hasNext()) {
+			return true;
+		} else if (_currentGroup != null && _currentGroup.hasNext()) {
+			return true;
+		} else {
+			for (Entry<String, ArrayDeque<Group>> context = stack.peek(); context != null;) {
+				_currentGroup = context.getValue().peek();
+				if (_currentGroup == null) {
+					return false;
+				} else {
+					if (_currentGroup.hasNext()) {
+						return true;
+					} else {
+						context.getValue().pop();
+					}
+				}
+			}
+			return false;
+		}
+	}
+
 	private void nextParticle() {
 		if (_currentGroup != null && _currentGroup.hasNext()) {
 			_currentGroup.nextChild();
@@ -325,7 +347,7 @@ public final class XSOMHelper {
 			}
 		}
 	}
-
+	
 	private void processElement(XSElementDecl element) {
 		final XSType type = element.getType();
 		_complexType = type.asComplexType();
@@ -379,11 +401,15 @@ public final class XSOMHelper {
 	}
 
 	public void endComplex() {
-		Entry<String, ArrayDeque<Group>> context = stack.pop();
-//		System.out.println("Dropping context for " + context.getKey());
-		context = stack.peek();
-		if (context != null) {
-			_currentGroup = context.getValue().poll();
+		if (_nextGroup != null) {
+			_nextGroup = null;
+		} else {
+			Entry<String, ArrayDeque<Group>> context = stack.pop();
+//			System.out.println("Dropping context for " + context.getKey());
+			context = stack.peek();
+			if (context != null) {
+				_currentGroup = context.getValue().poll();
+			}
 		}
 	}
 

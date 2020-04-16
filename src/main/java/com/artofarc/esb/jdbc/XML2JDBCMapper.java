@@ -34,6 +34,7 @@ import org.xml.sax.helpers.DefaultHandler;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
+import com.sun.xml.xsom.XSTerm;
 
 public final class XML2JDBCMapper extends DefaultHandler {
 
@@ -55,6 +56,9 @@ public final class XML2JDBCMapper extends DefaultHandler {
 		final ArrayList<Object> objects = new ArrayList<>();
 
 		Object create(JDBCConnection connection) throws SAXException {
+			if (name == null) {
+				return objects.get(0);
+			}
 			try {
 				if (array) {
 					return connection.createArray(name, objects.toArray());
@@ -78,6 +82,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
+		_builder.setLength(0);
 		if (delegate != null) {
 			delegate.startElement(uri, localName, qName, atts);
 			++anyLevel;
@@ -88,26 +93,35 @@ public final class XML2JDBCMapper extends DefaultHandler {
 			xsomHelper = new XSOMHelper(_schemaSet.getElementDecl(uri, localName));
 			complex = true;
 		} else {
-			xsomHelper.matchElement(uri, localName);
-			if (xsomHelper.isLastElementAny()) {
-				_stack.pop();
-				try {
-					SQLXML sqlxml = _connection.getConnection().createSQLXML();
-					delegate = sqlxml.setResult(SAXResult.class).getHandler();
-					DBObject dbObject = _stack.peek();
-					dbObject.objects.add(sqlxml);
-				} catch (SQLException e) {
-					throw new SAXException(e);
+			for (;;) {
+				XSTerm term = xsomHelper.matchElement(uri, null);
+				if (xsomHelper.isLastElementAny()) {
+					_stack.pop();
+					try {
+						SQLXML sqlxml = _connection.getConnection().createSQLXML();
+						delegate = sqlxml.setResult(SAXResult.class).getHandler();
+						DBObject dbObject = _stack.peek();
+						dbObject.objects.add(sqlxml);
+					} catch (SQLException e) {
+						throw new SAXException(e);
+					}
+					delegate.startDocument();
+					delegate.startElement(uri, localName, qName, atts);
+					anyLevel = 1;
+					return;
 				}
-				delegate.startDocument();
-				delegate.startElement(uri, localName, qName, atts);
-				anyLevel = 1;
-				return;
-			} else {
-				complex = xsomHelper.getComplexType() != null;
-				final XSSimpleType simpleType = xsomHelper.getSimpleType();
-				primitiveType = simpleType != null ? XSOMHelper.getJsonType(simpleType) : null;
+				if (localName.equals(term.apply(XSOMHelper.GetName))) {
+					break;
+				} else {
+					_stack.peek().objects.add(null);
+					if (xsomHelper.getComplexType() != null) {
+						xsomHelper.endComplex();
+					}
+				}
 			}
+			complex = xsomHelper.getComplexType() != null;
+			final XSSimpleType simpleType = xsomHelper.getSimpleType();
+			primitiveType = simpleType != null ? XSOMHelper.getJsonType(simpleType) : null;
 		}
 		if (xsomHelper.isStartArray()) {
 			_stack.peek().array = true;
@@ -131,10 +145,24 @@ public final class XML2JDBCMapper extends DefaultHandler {
 			return;
 		}
 		if (primitiveType == null) {
-			object = _stack.pop().create(_connection);
 			if (xsomHelper.isInArray()) {
+				while (xsomHelper.endArray());
 				xsomHelper.endArray();
+			} else {
+				while (xsomHelper.isInComplex()) {
+					xsomHelper.matchElement(uri, null);
+					if (xsomHelper.isStartArray()) {
+						_stack.peek().array = true;
+						while (xsomHelper.endArray());
+						xsomHelper.endArray();
+						xsomHelper.endComplex();
+					} else {
+						_stack.peek().objects.add(null);
+					}
+				}
+				xsomHelper.endComplex();
 			}
+			object = _stack.pop().create(_connection);
 		} else {
 			final String s = _builder.toString();
 			switch (primitiveType) {
