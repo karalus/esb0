@@ -187,8 +187,12 @@ public final class XSOMHelper {
 	private XSSimpleType _simpleType;
 	private boolean _any, _required;
 
-	public XSOMHelper(XSComplexType complexType) {
-		expandGroup(_complexType = complexType, null);
+	public XSOMHelper(XSComplexType complexType, XSElementDecl elementDecl) {
+		expandGroup(_complexType = complexType != null ? complexType : elementDecl.getType().asComplexType(), elementDecl);
+	}
+
+	public XSOMHelper(XSElementDecl elementDecl) {
+		expandGroup(_complexType = elementDecl.getType().asComplexType(), elementDecl);
 	}
 
 	public int getLevel() {

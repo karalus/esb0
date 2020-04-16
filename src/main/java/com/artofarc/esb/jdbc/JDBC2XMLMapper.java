@@ -35,7 +35,6 @@ import org.xml.sax.helpers.AttributesImpl;
 
 import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.XSOMHelper;
-import com.sun.xml.xsom.XSComplexType;
 import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
@@ -44,11 +43,10 @@ import com.sun.xml.xsom.XSTerm;
 public final class JDBC2XMLMapper {
 
 	private final String _rootUri, _rootName;
-	private final XSComplexType _complexType;
+	private final XSElementDecl _element;
 
 	public JDBC2XMLMapper(XSSchemaSet schemaSet, String rootUri, String rootName) {
-		XSElementDecl element = schemaSet.getElementDecl(_rootUri = rootUri, _rootName = rootName);
-		_complexType = element.getType().asComplexType();
+		_element = schemaSet.getElementDecl(_rootUri = rootUri, _rootName = rootName);
 	}
 
 	public XMLReader createParser(Struct struct) {
@@ -59,7 +57,7 @@ public final class JDBC2XMLMapper {
 	private final class Parser extends XMLFilterBase {
 
 		final Struct _struct;
-		final XSOMHelper _xsomHelper = new XSOMHelper(_complexType);
+		final XSOMHelper _xsomHelper = new XSOMHelper(_element);
 		final AttributesImpl _atts = new AttributesImpl();
 
 		Parser(Struct struct) {

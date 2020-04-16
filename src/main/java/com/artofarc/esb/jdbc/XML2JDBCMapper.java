@@ -32,7 +32,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.artofarc.util.XSOMHelper;
-import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
 
@@ -86,8 +85,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 		}
 		if (root) {
 			root = false;
-			XSElementDecl element = _schemaSet.getElementDecl(uri, localName);
-			xsomHelper = new XSOMHelper(element.getType().asComplexType());
+			xsomHelper = new XSOMHelper(_schemaSet.getElementDecl(uri, localName));
 			complex = true;
 		} else {
 			xsomHelper.matchElement(uri, localName);

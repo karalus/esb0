@@ -110,7 +110,7 @@ public final class Xml2JsonTransformer {
 			int attsLength = atts.getLength();
 			if (root) {
 				root = false;
-				xsomHelper = new XSOMHelper(_complexType != null ? _complexType : _schemaSet.getElementDecl(uri, localName).getType().asComplexType());
+				xsomHelper = new XSOMHelper(_complexType, _schemaSet.getElementDecl(uri, localName));
 				if (!_includeRoot) {
 					++level;
 					return;

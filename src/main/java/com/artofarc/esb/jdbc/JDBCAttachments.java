@@ -40,15 +40,16 @@ import com.sun.xml.xsom.XSSchemaSet;
 
 public final class JDBCAttachments {
 
+	private final XSElementDecl _element;
 	private final XSComplexType _complexType;
 
 	public JDBCAttachments(XSSchemaSet schemaSet, String rootUri, String rootName) {
-		XSElementDecl element = schemaSet.getElementDecl(rootUri, rootName);
-		_complexType = element.getType().asComplexType();
+		_element = schemaSet.getElementDecl(rootUri, rootName);
+		_complexType = _element.getType().asComplexType();
 	}
 
 	public void parseAttachments(Struct struct, ESBMessage message) throws SAXException, SQLException, MessagingException {
-		XSOMHelper xsomHelper = new XSOMHelper(_complexType);
+		XSOMHelper xsomHelper = new XSOMHelper(_complexType, _element);
 		xsomHelper.checkComplexType(struct.getSQLTypeName());
 		xsomHelper.matchElement(null, "attachments");
 		Object[] attachments = struct.getAttributes();
@@ -73,7 +74,7 @@ public final class JDBCAttachments {
 	}
 
 	public Struct createAttachments(ESBMessage message, JDBCConnection connection) throws SAXException, SQLException, MessagingException, IOException {
-		XSOMHelper xsomHelper = new XSOMHelper(_complexType);
+		XSOMHelper xsomHelper = new XSOMHelper(_complexType, _element);
 		xsomHelper.matchElement(null, "attachments");
 		String sqlTypeNameAttachments = xsomHelper.getComplexType().getName();
 		xsomHelper.matchElement(null, "attachment");

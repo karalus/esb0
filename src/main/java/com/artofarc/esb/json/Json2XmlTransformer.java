@@ -49,6 +49,7 @@ public final class Json2XmlTransformer {
 	private final boolean _createDocumentEvents;
 	private final boolean _includeRoot;
 	private final String _rootUri, _rootName;
+	private final XSElementDecl elementDecl;
 	private final XSComplexType _complexType;
 	private final Map<String, String> _prefixMap, _nsMap;
 	private final String attributePrefix = "@";
@@ -59,6 +60,7 @@ public final class Json2XmlTransformer {
 			_schemaSet = XSOMHelper.anySchema;
 			_rootUri = XMLConstants.NULL_NS_URI;
 			_rootName = "root";
+			elementDecl = _schemaSet.getElementDecl(_rootUri, _rootName);
 			_complexType = _schemaSet.getElementDecl(_rootUri, _rootName).getType().asComplexType();
 		} else {
 			_schemaSet = schemaSet;
@@ -66,7 +68,7 @@ public final class Json2XmlTransformer {
 				QName _rootElement = QName.valueOf(rootElement);
 				_rootUri = _rootElement.getNamespaceURI();
 				_rootName = _rootElement.getLocalPart();
-				XSElementDecl elementDecl = schemaSet.getElementDecl(_rootUri, _rootName);
+				elementDecl = schemaSet.getElementDecl(_rootUri, _rootName);
 				if (elementDecl != null) {
 					_complexType = elementDecl.getType().asComplexType();
 				} else if (type != null) {
@@ -78,6 +80,7 @@ public final class Json2XmlTransformer {
 			} else {
 				_rootUri = null;
 				_rootName = null;
+				elementDecl = null;
 				_complexType = null;
 			}
 		}
@@ -165,10 +168,6 @@ public final class Json2XmlTransformer {
 		boolean attribute, simpleContent;
 		int any = -1;
 
-		private void initXSOMHelper() {
-			xsomHelper = new XSOMHelper(_complexType != null ? _complexType : _schemaSet.getElementDecl(uri, keyName).getType().asComplexType());
-		}
-
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
 			final ContentHandler ch = getContentHandler();
@@ -195,7 +194,7 @@ public final class Json2XmlTransformer {
 							} else {
 								keyName = _rootName;
 								uri = _rootUri;
-								initXSOMHelper();
+								xsomHelper = new XSOMHelper(_complexType, _schemaSet.getElementDecl(uri, keyName));
 							}
 						} else {
 							if (_includeRoot && _stack.isEmpty()) {
@@ -212,7 +211,7 @@ public final class Json2XmlTransformer {
 										uri = XMLConstants.NULL_NS_URI;
 									}
 								}
-								initXSOMHelper();
+								xsomHelper = new XSOMHelper(_complexType, _schemaSet.getElementDecl(uri, keyName));
 							} else {
 								if (keyName == null) {
 									keyName = _arrays.peek();

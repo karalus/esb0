@@ -37,13 +37,12 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 
 	private final ArrayDeque<QName> stack = new ArrayDeque<>();
 	private final QName _rootElement;
-	private final XSComplexType _complexType;
+	private final XSElementDecl _element;
 	private LexicalHandler lexicalHandler;
 
 	public XmlSampleGenerator(XSSchemaSet schemaSet, String rootElement) {
 		_rootElement = QName.valueOf(rootElement);
-		XSElementDecl element = schemaSet.getElementDecl(_rootElement.getNamespaceURI(), _rootElement.getLocalPart());
-		_complexType = element.getType().asComplexType();
+		_element = schemaSet.getElementDecl(_rootElement.getNamespaceURI(), _rootElement.getLocalPart());
 	}
 
 	@Override
@@ -67,7 +66,7 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 		if (ch == null) {
 			throw new SAXException("ContentHandler not set");
 		}
-		final XSOMHelper xsomHelper = new XSOMHelper(_complexType);
+		final XSOMHelper xsomHelper = new XSOMHelper(_element);
 		final AttributesImpl atts = new AttributesImpl();
 		ch.startDocument();
 		ch.startElement(_rootElement.getNamespaceURI(), _rootElement.getLocalPart(), _rootElement.getLocalPart(), atts);
