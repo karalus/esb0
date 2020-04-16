@@ -17,12 +17,14 @@
 package com.artofarc.esb.jdbc;
 
 import java.math.BigDecimal;
+import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Timestamp;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 
+import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.transform.sax.SAXResult;
 
@@ -120,8 +122,17 @@ public final class XML2JDBCMapper extends DefaultHandler {
 				}
 			}
 			complex = xsomHelper.getComplexType() != null;
-			final XSSimpleType simpleType = xsomHelper.getSimpleType();
-			primitiveType = simpleType != null ? XSOMHelper.getJsonType(simpleType) : null;
+			final int index = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
+			if (index >= 0 && DatatypeConverter.parseBoolean(atts.getValue(index))) {
+				if (complex) {
+					xsomHelper.endComplex();
+					complex = false;
+				}
+				primitiveType = "nil";
+			} else {
+				final XSSimpleType simpleType = xsomHelper.getSimpleType();
+				primitiveType = simpleType != null ? XSOMHelper.getJsonType(simpleType) : null;
+			}
 		}
 		if (xsomHelper.isStartArray()) {
 			_stack.peek().array = true;
@@ -185,7 +196,13 @@ public final class XML2JDBCMapper extends DefaultHandler {
 				object = null;
 				break;
 			case "base64Binary":
-				object = DatatypeConverter.parseBase64Binary(s);
+				try {
+					Blob blob = _connection.getConnection().createBlob();
+					blob.setBytes(1, DatatypeConverter.parseBase64Binary(s));
+					object = blob;
+				} catch (SQLException e) {
+					throw new SAXException(e);
+				}
 				break;
 			case "date":
 			case "dateTime":
