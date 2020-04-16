@@ -32,7 +32,7 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
 
-public final class JMSConsumer extends ConsumerPort implements com.artofarc.esb.mbean.JMSConsumerMXBean {
+public final class JMSConsumer extends ConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final String _workerPool;
 	private final JMSConnectionData _jmsConnectionData;
@@ -90,11 +90,19 @@ public final class JMSConsumer extends ConsumerPort implements com.artofarc.esb.
 		String key = _jmsConnectionData.toString() + '|' + getDestinationName();
 		if (_subscription != null) key += '|' + _subscription;
 		if (_messageSelector != null) key += '|' + _messageSelector;
+		if (_workerPool != null) {
+			key += '@' + _workerPool;
+		}
 		return key;
 	}
 
 	public int getWorkerCount() {
 		return _jmsWorker.length;
+	}
+
+	@Override
+	public int compareTo(JMSConsumer o) {
+		return getKey().compareTo(o.getKey());
 	}
 
 	@Override

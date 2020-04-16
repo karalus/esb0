@@ -26,9 +26,9 @@
 <br>HttpServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Path</b></td><td><b>Uri</b></td><td><b>PoolSize</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
 <%
-		List<String> list = new ArrayList<String>(globalContext.getHttpServicePaths());
-		Collections.sort(list);
-		for (String path : list) {
+		List<String> paths = new ArrayList<String>(globalContext.getHttpServicePaths());
+		Collections.sort(paths);
+		for (String path : paths) {
 		   HttpConsumer consumerPort = globalContext.getHttpService(path);
 		   %>
 		   <tr>
@@ -62,7 +62,9 @@
 <br>JMSServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>WorkerCount</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
 <%
-		for (JMSConsumer jmsConsumer : globalContext.getJMSConsumers()) {
+		List<JMSConsumer> jmsConsumers = new ArrayList<JMSConsumer>(globalContext.getJMSConsumers());
+		Collections.sort(jmsConsumers);
+		for (JMSConsumer jmsConsumer : jmsConsumers) {
 		   %>
 		   <tr>
 		    <td><%=jmsConsumer.getKey()%></td>
