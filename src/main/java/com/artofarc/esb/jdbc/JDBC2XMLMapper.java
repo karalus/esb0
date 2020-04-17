@@ -143,10 +143,12 @@ public final class JDBC2XMLMapper {
 					SAXSource saxSource = sqlxml.getSource(SAXSource.class);
 					XMLReader xmlReader = saxSource.getXMLReader();
 					if (xmlReader == null) {
+						// Oracle does not deliver a XMLReader
 						xmlReader = _context.getSAXParser().getXMLReader();
 					}
 					xmlReader.setContentHandler(this);
 					xmlReader.parse(saxSource.getInputSource());
+					sqlxml.free();
 					ch.endElement(uri, name, name);
 					_xsomHelper.endAny();
 				} else if (attribute != null) {

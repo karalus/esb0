@@ -98,11 +98,11 @@ public final class XML2JDBCMapper extends DefaultHandler {
 			for (;;) {
 				XSTerm term = xsomHelper.matchElement(uri, null);
 				if (xsomHelper.isLastElementAny()) {
-					_stack.pop();
+					DBObject dbObject = _stack.peek();
+					dbObject.name = null;
 					try {
 						SQLXML sqlxml = _connection.getConnection().createSQLXML();
 						delegate = sqlxml.setResult(SAXResult.class).getHandler();
-						DBObject dbObject = _stack.peek();
 						dbObject.objects.add(sqlxml);
 					} catch (SQLException e) {
 						throw new SAXException(e);
@@ -206,7 +206,12 @@ public final class XML2JDBCMapper extends DefaultHandler {
 				break;
 			case "date":
 			case "dateTime":
-				object = new Timestamp(DatatypeConverter.parseDateTime(s).getTimeInMillis());
+				if (s.isEmpty()) {
+					// Special logic for compatibility with Oracle DatabaseAdapter
+					object = null;
+				} else {
+					object = new Timestamp(DatatypeConverter.parseDateTime(s).getTimeInMillis());
+				}
 				break;
 			default:
 				object = s;
