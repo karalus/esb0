@@ -24,7 +24,7 @@ Features:
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.5.2.
+Current stable version is 1.6.0.
 
 ### Design goals ###
 
@@ -73,7 +73,7 @@ Even in a Kubernetes environment where endpoint virtualization and load balancin
 
 You need to have [Maven](http://maven.apache.org/) and [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html) installed.
 
-ESB Zero build has been tested with Maven 3.5.x and JDK8.
+ESB Zero build has been tested with Maven 3.6.x and JDK8.
 
 From version 1.4 on Java 8 is required at runtime.
 
@@ -116,8 +116,8 @@ There are only very few dependencies:
 It is written in Java 7 and implements a servlet based on 3.0.1 API.
 
 - For WSDL parsing [WSDL4J](https://sourceforge.net/projects/wsdl4j/) is used.
-- For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/9.8/)
-- For conversion between XML and JSON [MOXy](https://www.eclipse.org/eclipselink/documentation/2.7/moxy/json002.htm) is used.
+- For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/)
+- The XML-Artifacts for service flows are instantiated via [JAXB](https://javaee.github.io/jaxb-v2/)
 - FastInfoset support is implemented using [metro-fi](https://github.com/javaee/metro-fi).
 - Logging is done with [SLF4J](https://www.slf4j.org/). Optionally combined with [Logback](https://logback.qos.ch/) it gives the best performance.
 

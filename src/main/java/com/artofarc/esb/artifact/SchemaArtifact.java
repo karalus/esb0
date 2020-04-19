@@ -16,9 +16,7 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.ref.WeakReference;
@@ -28,16 +26,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.xml.bind.JAXBException;
 import javax.xml.transform.Source;
-import javax.xml.transform.Templates;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.EntityResolver;
@@ -45,40 +37,17 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.JAXPFactoryHelper;
 import com.sun.xml.xsom.XSSchemaSet;
-import com.artofarc.util.IOUtils;
 
 public abstract class SchemaArtifact extends Artifact {
 
 	public static final String FILE_SCHEMA = "file://";
 
 	protected static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
-	private static final String JAXB_BINDINGS = System.getProperty("esb0.moxy.jaxb.bindings");
-	private static final Templates _templates;
-
-	static {
-		try {
-			_templates = JAXPFactoryHelper.createSAXTransformerFactory().newTemplates(new StreamSource(IOUtils.getResourceAsStream("prepareMOXy.xslt")));
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected static Map<String, Object> getDynamicJAXBContextProperties() throws IOException {
-		if (JAXB_BINDINGS != null) {
-			Map<String, Object> properties = new HashMap<>();
-			properties.put(DynamicJAXBContextFactory.EXTERNAL_BINDINGS_KEY, new StreamSource(new FileInputStream(JAXB_BINDINGS), JAXB_BINDINGS));
-			return properties;
-		}
-		return null;
-	}
 
 	protected Map<String, Object> _grammars = cacheXSGrammars ? new HashMap<String, Object>() : null;
 	protected final AtomicReference<String> _namespace = new AtomicReference<>();
 	protected volatile Schema _schema;
-	protected DynamicJAXBContext _jaxbContext;
 	protected XSSchemaSet _schemaSet;
 
 	protected SchemaArtifact(FileSystem fileSystem, Directory parent, String name) {
@@ -99,7 +68,7 @@ public abstract class SchemaArtifact extends Artifact {
 			_grammars.clear();
 			_namespace.set(null);
 		}
-		_jaxbContext = null;
+		_schemaSet = null;
 		super.invalidate();
 	}
 
@@ -133,11 +102,6 @@ public abstract class SchemaArtifact extends Artifact {
 		}
 	}
 
-	/**
-	 * We assume that always the same {@link ClassLoader} is used.
-	 */
-	public abstract DynamicJAXBContext getJAXBContext(ClassLoader classLoader) throws JAXBException, IOException;
-	
 	public abstract XSSchemaSet getXSSchemaSet() throws SAXException;
 
 	@Override
@@ -152,7 +116,7 @@ public abstract class SchemaArtifact extends Artifact {
 
 	protected abstract XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException;
 
-	public SchemaArtifactResolver getResolver() {
+	protected SchemaArtifactResolver getResolver() {
 		return new SchemaArtifactResolver(this);
 	}
 
@@ -183,13 +147,10 @@ public abstract class SchemaArtifact extends Artifact {
 					artifact = schemaArtifact.loadArtifact(uri.getPath());
 				}
 				lastUri = uri;
-				// Strip xs:enumeration because of MOXy bug 552902
-				ByteArrayOutputStream bos = new ByteArrayOutputStream();
-				_templates.newTransformer().transform(new StreamSource(artifact.getContentAsStream(), artifact.getURI()), new StreamResult(bos));
 				InputSource is = new InputSource(artifact.getContentAsStream());
 				is.setSystemId(systemId);
 				return is;
-			} catch (Exception e) {
+			} catch (java.net.URISyntaxException | FileNotFoundException e) {
 				throw new RuntimeException(e);
 			}
 		}

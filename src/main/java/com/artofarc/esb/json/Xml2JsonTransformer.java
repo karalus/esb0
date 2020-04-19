@@ -101,6 +101,7 @@ public final class Xml2JsonTransformer {
 
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
+			System.out.println("start: " + localName);
 			_builder.setLength(0);
 			if (openKey != null) {
 				debug("start deferred " + openKey);

@@ -227,17 +227,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			if (jdbcProcedure.getWorkerPool() != null) {
 				addAction(list, new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, jdbcProcedure.isJoin()), location);
 			}
-			org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext jaxbContext = null;
 			XSSchemaSet schemaSet = null;
 			if (jdbcProcedure.getSchemaURI() != null) {
 				SchemaArtifact schemaArtifact = loadArtifact(jdbcProcedure.getSchemaURI());
 				addReference(schemaArtifact);
 				schemaArtifact.validate(globalContext);
-				jaxbContext = schemaArtifact.getJAXBContext(resolveClassLoader(globalContext, jdbcProcedure.getClassLoader()));
 				schemaSet = schemaArtifact.getXSSchemaSet();
 			}
 			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
-					.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jaxbContext, schemaSet), location);
+					.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), schemaSet), location);
 			break;
 		}
 		case "jdbc": {
@@ -298,7 +296,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			addAction(list, new XML2JsonAction(schemaArtifact.getJAXBContext(null), schemaArtifact.getXSSchemaSet(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
+			addAction(list, new XML2JsonAction(schemaArtifact.getXSSchemaSet(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
 				createNsDecls(xml2Json.getNsDecl()), xml2Json.isValidate() ? schemaArtifact.getSchema() : null), location);
 			break;
 		}
@@ -307,7 +305,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			addAction(list, new Json2XMLAction(schemaArtifact.getJAXBContext(null), schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
+			addAction(list, new Json2XMLAction(schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
 				createNsDecls(json2Xml.getNsDecl()), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isStreaming()), location);
 			break;
 		}

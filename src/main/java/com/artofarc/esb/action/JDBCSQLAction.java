@@ -32,7 +32,7 @@ import com.artofarc.esb.message.ESBMessage;
 public class JDBCSQLAction extends JDBCAction {
 
 	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout) throws NamingException {
-		super(globalContext, dsName, sql, params, maxRows, timeout, null, null);
+		super(globalContext, dsName, sql, params, maxRows, timeout, null);
 		if (sql != null) {
 			int count = 0;
 			for (int i = sql.length(); i > 0;) {

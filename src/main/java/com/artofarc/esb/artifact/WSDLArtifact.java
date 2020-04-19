@@ -18,7 +18,6 @@ package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,15 +29,12 @@ import javax.wsdl.Import;
 import javax.wsdl.Types;
 import javax.wsdl.extensions.schema.Schema;
 import javax.wsdl.xml.WSDLLocator;
-import javax.xml.bind.JAXBException;
 import javax.xml.namespace.QName;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
@@ -52,7 +48,6 @@ import com.sun.xml.xsom.parser.XSOMParser;
 public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	private volatile Map<QName, Binding> _allBindings;
-	private DOMSource _lastSchemaElement;
 	private final HashMap<String, byte[]> _schemas = new HashMap<>();
 	// only used during validation
 	private String latestImportURI;
@@ -65,8 +60,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	protected WSDLArtifact clone(FileSystem fileSystem, Directory parent) {
 		WSDLArtifact clone = initClone(new WSDLArtifact(fileSystem, parent, getName()));
 		clone._allBindings = _allBindings;
-		clone._jaxbContext = _jaxbContext;
-		clone._lastSchemaElement = _lastSchemaElement;
+		clone._schemaSet = _schemaSet;
 		clone._schemas.putAll(_schemas);
 		clone._schema = _schema;
 		clone._grammars = _grammars;
@@ -118,9 +112,9 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 			for (Schema schema : WSDL4JUtil.getExtensibilityElements(types, Schema.class)) {
 				Element element = schema.getElement();
 				String targetNamespace = element.getAttribute("targetNamespace");
-				_lastSchemaElement = new DOMSource(element, getURI());
-				sources.add(_lastSchemaElement);
-				_schemas.put(targetNamespace, XMLCatalog.toByteArray(_lastSchemaElement, transformer));
+				DOMSource schemaElement = new DOMSource(element, getURI());
+				sources.add(schemaElement);
+				_schemas.put(targetNamespace, XMLCatalog.toByteArray(schemaElement, transformer));
 			}
 		}
 	}
@@ -141,16 +135,6 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	public DynamicJAXBContext getJAXBContext(ClassLoader classLoader) throws JAXBException, IOException {
-		if (_jaxbContext == null && _lastSchemaElement != null) {
-			// TODO: This just works when the WSDL contains the one schema with the elements used in messages
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(_lastSchemaElement, getResolver(), classLoader, getDynamicJAXBContextProperties());
-			_lastSchemaElement = null;
-		}
-		return _jaxbContext;
-	}
-
-	@Override
 	protected XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException {
 		SchemaArtifact base = this;
 		if (baseURI != null) {
@@ -164,7 +148,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	public WSDLArtifactResourceResolver getResolver() {
+	protected WSDLArtifactResourceResolver getResolver() {
 		return new WSDLArtifactResourceResolver(this);
 	}
 	

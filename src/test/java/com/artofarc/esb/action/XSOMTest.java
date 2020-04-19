@@ -4,11 +4,9 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
-import java.util.Set;
 
 import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
-import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.sax.SAXResult;
@@ -25,12 +23,9 @@ import com.artofarc.esb.XmlSampleGenerator;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.json.Json2XmlTransformer;
 import com.artofarc.esb.json.Xml2JsonTransformer;
-import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.StringWriter;
 import com.artofarc.util.TimeGauge;
 import com.sun.xml.xsom.*;
-import com.sun.xml.xsom.parser.SchemaDocument;
-import com.sun.xml.xsom.parser.XSOMParser;
 
 
 public class XSOMTest extends AbstractESBTest {
@@ -57,19 +52,7 @@ public class XSOMTest extends AbstractESBTest {
 		xsdArtifact1.validate(getGlobalContext());
 		assertTrue(xsdArtifact2.isValidated());
 
-		SAXParserFactory factory = SAXParserFactory.newInstance();
-		factory.setNamespaceAware(true);
-		XSOMParser xsomParser = new XSOMParser(factory);
-		xsomParser.setEntityResolver(xsdArtifact1.getResolver());
-		InputSource is = new InputSource(xsdArtifact1.getContentAsStream());
-		is.setSystemId(xsdArtifact1.getURI());
-		xsomParser.parse(is);
-		Set<SchemaDocument> documents = xsomParser.getDocuments();
-		assertEquals(3, documents.size());
-//		for (SchemaDocument schemaDocument : documents) {
-//			System.out.println(schemaDocument.getTargetNamespace());
-//		}
-		XSSchemaSet schemaSet = xsomParser.getResult();
+		XSSchemaSet schemaSet = xsdArtifact2.getXSSchemaSet();
 		XSElementDecl messageHeader = schemaSet.getElementDecl(xsdArtifact2.getNamespace(), "messageHeader");
 		XSComplexType type = messageHeader.getType().asComplexType();
 		print(type, "");
@@ -130,14 +113,7 @@ public class XSOMTest extends AbstractESBTest {
 		xsdArtifact1.validate(getGlobalContext());
 		assertTrue(xsdArtifact2.isValidated());
 
-		XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
-		xsomParser.setEntityResolver(xsdArtifact1.getResolver());
-		InputSource is = new InputSource(xsdArtifact1.getContentAsStream());
-		is.setSystemId(xsdArtifact1.getURI());
-		xsomParser.parse(is);
-		Set<SchemaDocument> documents = xsomParser.getDocuments();
-		assertEquals(3, documents.size());
-		return xsomParser.getResult();
+		return xsdArtifact1.getXSSchemaSet();
 	}
 	
 	@Test

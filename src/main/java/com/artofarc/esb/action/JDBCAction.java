@@ -24,13 +24,8 @@ import java.util.List;
 
 import javax.naming.NamingException;
 import javax.sql.DataSource;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.TransformerHandler;
-
-import org.eclipse.persistence.dynamic.DynamicEntity;
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -40,7 +35,6 @@ import com.artofarc.esb.jdbc.JDBCConnection;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
-import com.artofarc.esb.jdbc.JDBCXMLMapper;
 import com.artofarc.esb.jdbc.XML2JDBCMapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
@@ -48,17 +42,14 @@ import com.sun.xml.xsom.XSSchemaSet;
 
 public abstract class JDBCAction extends Action {
 
-	protected static final boolean useMOXy = Boolean.parseBoolean(System.getProperty("esb0.moxy", "false"));	
-
 	private final String _dsName;
 	protected final String _sql;
 	private final List<JDBCParameter> _params;
 	private final int _maxRows;
 	private final Integer _timeout;
-	protected final JDBCXMLMapper _mapper;
 	protected XSSchemaSet _schemaSet;
 
-	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, DynamicJAXBContext jaxbContext, XSSchemaSet schemaSet) throws NamingException {
+	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, XSSchemaSet schemaSet) throws NamingException {
 		if (dsName.indexOf("${") < 0) {
 			globalContext.getProperty(dsName);
 		}
@@ -71,13 +62,12 @@ public abstract class JDBCAction extends Action {
 		_params = params;
 		_maxRows = maxRows;
 		_timeout = timeout;
-		_mapper = jaxbContext != null ? new JDBCXMLMapper(jaxbContext) : null;
 		_schemaSet = schemaSet;
 		checkParameters(params);
 	}
 
 	protected final void checkParameters(List<JDBCParameter> params) {
-		if (_mapper == null) {
+		if (_schemaSet == null) {
 			for (JDBCParameter jdbcParameter : params) {
 				if (jdbcParameter.getType() == STRUCT) {
 					throw new IllegalArgumentException("When using parameter type STRUCT, a schema is mandatory");
@@ -193,34 +183,17 @@ public abstract class JDBCAction extends Action {
 					}
 					break;
 				case STRUCT:
-					if (useMOXy) {
-						Unmarshaller unmarshaller = _mapper.getJAXBContext().createUnmarshaller();
-						Object root = message.unmarshal(context, unmarshaller);
-						if (root instanceof DynamicEntity) {
-							DynamicEntity entity = (DynamicEntity) root;
-							ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(entity, true, conn));
-						} else {
-							JAXBElement<?> jaxbElement = (JAXBElement<?>) root;
-							ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(jaxbElement, false, conn));
-						}
-					} else {
-						XML2JDBCMapper mapper = new XML2JDBCMapper(_schemaSet, conn);
-						message.writeTo(new SAXResult(mapper), context);
-						ps.setObject(param.getPos(), mapper.getObject());
-					}
+					XML2JDBCMapper mapper = new XML2JDBCMapper(_schemaSet, conn);
+					message.writeTo(new SAXResult(mapper), context);
+					ps.setObject(param.getPos(), mapper.getObject());
 					break;
 				default:
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 				}
 			} else if (param.isAttachments()) {
 				if (message.getAttachments().size() > 0) {
-					if (useMOXy) {
-						JAXBElement<?> attachments = _mapper.createAttachments(message, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-						ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(attachments, false, conn));
-					} else {
-						JDBCAttachments jdbcAttachments = new JDBCAttachments(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-						ps.setObject(param.getPos(), jdbcAttachments.createAttachments(message, conn));
-					}
+					JDBCAttachments jdbcAttachments = new JDBCAttachments(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+					ps.setObject(param.getPos(), jdbcAttachments.createAttachments(message, conn));
 				}
 			} else {
 				Object value = resolve(message, param.getBindName(), false);

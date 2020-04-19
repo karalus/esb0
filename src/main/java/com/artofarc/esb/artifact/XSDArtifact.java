@@ -17,13 +17,9 @@
 package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 
-import javax.xml.bind.JAXBException;
 import javax.xml.transform.stream.StreamSource;
 
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -40,7 +36,7 @@ public class XSDArtifact extends SchemaArtifact {
 	@Override
 	protected XSDArtifact clone(FileSystem fileSystem, Directory parent) {
 		XSDArtifact clone = initClone(new XSDArtifact(fileSystem, parent, getName()));
-		clone._jaxbContext = _jaxbContext;
+		clone._schemaSet = _schemaSet;
 		clone._schema = _schema;
 		clone._grammars = _grammars;
 		clone._namespace.set(getNamespace());
@@ -49,14 +45,6 @@ public class XSDArtifact extends SchemaArtifact {
 
 	protected final StreamSource getStreamSource() {
 		return new StreamSource(getContentAsStream(), getURI());
-	}
-
-	@Override
-	public DynamicJAXBContext getJAXBContext(ClassLoader classLoader) throws JAXBException, IOException {
-		if (_jaxbContext == null) {
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getStreamSource(), getResolver(), classLoader, getDynamicJAXBContextProperties());
-		}
-		return _jaxbContext;
 	}
 
 	@Override
