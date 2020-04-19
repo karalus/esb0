@@ -280,6 +280,7 @@
 					<attribute name="jsonIncludeRoot" type="boolean" default="true" />
 					<attribute name="xmlElement" type="tns:string1" />
 					<attribute name="validate" type="boolean" default="true" />
+					<attribute name="streaming" type="boolean" />
 				</extension>
 			</complexContent>
 		</complexType>

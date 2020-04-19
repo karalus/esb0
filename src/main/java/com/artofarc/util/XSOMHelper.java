@@ -32,8 +32,6 @@ import com.sun.xml.xsom.visitor.XSTermFunction;
 
 public final class XSOMHelper {
 
-	private static final boolean IGNORE_SEQUENCE = Boolean.parseBoolean(System.getProperty("esb0.xsomHelper.ignoreSequence"));
-
 	static final class Group {
 
 		private Group(XSComplexType owner, XSParticle particle, XSModelGroup modelGroup) {
@@ -41,7 +39,7 @@ public final class XSOMHelper {
 			this.required = particle.getMinOccurs().signum() != 0;
 			this.repeated = particle.isRepeated();
 			this.modelGroup = modelGroup;
-			this.all = modelGroup.getCompositor() == XSModelGroup.ALL || IGNORE_SEQUENCE && modelGroup.getCompositor() == XSModelGroup.SEQUENCE && modelGroup.getSize() > 1;
+			this.all = modelGroup.getCompositor() == XSModelGroup.ALL;
 		}
 
 		final XSComplexType owner;
@@ -267,7 +265,11 @@ public final class XSOMHelper {
 				if (term.isElementDecl()) {
 					final XSElementDecl element = term.asElementDecl();
 					if ((localName == null || element.getName().equals(localName)) && (uri == null || element.getTargetNamespace().equals(uri))) {
-						foundParticle();
+						if (localName != null) {
+							foundParticle();
+						} else {
+							nextParticle();
+						}
 						processElement(element);
 						return element;
 					}
@@ -347,8 +349,10 @@ public final class XSOMHelper {
 		_currentGroup.found();
 		nextParticle();
 		Entry<String, ArrayDeque<Group>> context = stack.peek();
-		for (Group group : context.getValue()) {
-			group.found();
+		if (context != null) {
+			for (Group group : context.getValue()) {
+				group.found();
+			}
 		}
 	}
 
@@ -422,6 +426,7 @@ public final class XSOMHelper {
 	}
 
 	public boolean endArray() {
+		_nextGroup = null;
 		return _currentGroup.endArray();
 	}
 

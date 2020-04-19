@@ -65,7 +65,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	public void testJson2XML() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "{\"messageHeader\":{\"senderFQN\":\"usingPort1\",\"messageId\":\"M-bc5fd683-334f-4709-8c15-943c32baea89\",\"processInstanceId\":\"P-96181ac5-41f4-4ce5-bc95-111fe253c11d\"}}");
 		//message.putHeader(HttpOutboundAction.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
-		Action action = new Json2XMLAction(jaxbContext, schemaSet, null, true, null, urisToPrefixes, null);
+		Action action = new Json2XMLAction(jaxbContext, schemaSet, null, true, null, urisToPrefixes, null, null);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new DumpAction());
@@ -84,7 +84,7 @@ public class JsonXmlTest extends AbstractESBTest {
 		}
 		urisToPrefixes.put("ns0", "http://aoa.de/ei/foundation/v1");
 //		action = action.setNextAction(new DumpAction());
-		action = action.setNextAction(new Json2XMLAction(jaxbContext, schemaSet, null, true, null, urisToPrefixes, null));
+		action = action.setNextAction(new Json2XMLAction(jaxbContext, schemaSet, null, true, null, urisToPrefixes, null, null));
 		action = action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
 	}
@@ -114,7 +114,7 @@ public class JsonXmlTest extends AbstractESBTest {
 		urisToPrefixes.put("http://aoa.de/xsd/demo/v1/", "");
 		urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "ei1");
 		// demoElementRequest xmlns="http://aoa.de/ei/foundation/v1"
-		Json2XMLAction action = new Json2XMLAction(xsd.getJAXBContext(null), xsd.getXSSchemaSet(), "{http://aoa.de/xsd/demo/v1/}demoType", true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", urisToPrefixes, null);
+		Json2XMLAction action = new Json2XMLAction(xsd.getJAXBContext(null), xsd.getXSSchemaSet(), "{http://aoa.de/xsd/demo/v1/}demoType", true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", urisToPrefixes, null, null);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action.setNextAction(new DumpAction() {});

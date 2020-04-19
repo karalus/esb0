@@ -46,7 +46,8 @@ import com.sun.xml.xsom.XSSchemaSet;
 
 public class Json2XMLAction extends SAXAction {
 
-	static final boolean useMOXy = Boolean.parseBoolean(System.getProperty("esb0.moxy", "false"));	
+	static final boolean useMOXy = Boolean.parseBoolean(System.getProperty("esb0.moxy", "false"));
+	private static final boolean useStreaming = Boolean.parseBoolean(System.getProperty("esb0.json2xml.streaming", "true"));
 
 	private final DynamicJAXBContext _jaxbContext;
 	private final Json2XmlTransformer _json2xml; 
@@ -54,10 +55,11 @@ public class Json2XMLAction extends SAXAction {
 	private final Boolean _jsonIncludeRoot;
 	private final Map<String, String> _urisToPrefixes;
 	private final Schema _schema;
+	private final boolean _streaming;
 	private final QName _xmlElement;
 
 	@SuppressWarnings("unchecked")
-	public Json2XMLAction(DynamicJAXBContext jaxbContext, XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, String xmlElement, Map<String, String> prefixMap, Schema schema) {
+	public Json2XMLAction(DynamicJAXBContext jaxbContext, XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, String xmlElement, Map<String, String> prefixMap, Schema schema, Boolean streaming) {
 		_pipelineStop = useMOXy;
 		_jaxbContext = jaxbContext;
 		if (type != null) {
@@ -74,6 +76,7 @@ public class Json2XMLAction extends SAXAction {
 		_jsonIncludeRoot = jsonIncludeRoot;
 		_urisToPrefixes = Collections.inverseMap(prefixMap.entrySet(), useMOXy);
 		_schema = schema;
+		_streaming = streaming != null ? streaming : useStreaming;
 		_json2xml = new Json2XmlTransformer(schemaSet, true, xmlElement, type, jsonIncludeRoot, prefixMap);
 	}
 
@@ -145,7 +148,7 @@ public class Json2XMLAction extends SAXAction {
 		if (parent != null) {
 			throw new IllegalArgumentException("JSON expected: parent must be null");
 		}
-		return _json2xml.createParser();
+		return _streaming ? _json2xml.createStreamingParser() : _json2xml.createParser();
 	}
 
 }

@@ -19,12 +19,14 @@ package com.artofarc.util;
 import java.util.HashMap;
 
 import javax.json.Json;
+import javax.json.JsonReaderFactory;
 import javax.json.stream.JsonGenerator;
 import javax.json.stream.JsonGeneratorFactory;
 import javax.json.stream.JsonParserFactory;
 
 public final class JsonFactoryHelper {
 
+	public static final JsonReaderFactory JSON_READER_FACTORY = Json.createReaderFactory(null);
 	public static final JsonParserFactory JSON_PARSER_FACTORY = Json.createParserFactory(null);
 	public static final JsonGeneratorFactory JSON_GENERATOR_FACTORY;
 

@@ -22,7 +22,7 @@
       },
       "payload" : {
          "para1" : "Param1",
-         "para2" : [ "Test", "Test", "Test", "Test" ],
+         "para2" : [ "Test1", "Test2", "Test3", "Test4" ],
          "para3" : "Param3",
          "para5" : "Param5"
       }

@@ -308,7 +308,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
 			addAction(list, new Json2XMLAction(schemaArtifact.getJAXBContext(null), schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
-				createNsDecls(json2Xml.getNsDecl()), json2Xml.isValidate() ? schemaArtifact.getSchema() : null), location);
+				createNsDecls(json2Xml.getNsDecl()), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isStreaming()), location);
 			break;
 		}
 		case "transform": {
