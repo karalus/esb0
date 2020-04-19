@@ -49,7 +49,6 @@ public final class Json2XmlTransformer {
 	private final boolean _createDocumentEvents;
 	private final boolean _includeRoot;
 	private final String _rootUri, _rootName;
-	private final XSElementDecl elementDecl;
 	private final XSComplexType _complexType;
 	private final Map<String, String> _prefixMap, _nsMap;
 	private final String attributePrefix = "@";
@@ -60,7 +59,6 @@ public final class Json2XmlTransformer {
 			_schemaSet = XSOMHelper.anySchema;
 			_rootUri = XMLConstants.NULL_NS_URI;
 			_rootName = "root";
-			elementDecl = _schemaSet.getElementDecl(_rootUri, _rootName);
 			_complexType = _schemaSet.getElementDecl(_rootUri, _rootName).getType().asComplexType();
 		} else {
 			_schemaSet = schemaSet;
@@ -68,7 +66,7 @@ public final class Json2XmlTransformer {
 				QName _rootElement = QName.valueOf(rootElement);
 				_rootUri = _rootElement.getNamespaceURI();
 				_rootName = _rootElement.getLocalPart();
-				elementDecl = schemaSet.getElementDecl(_rootUri, _rootName);
+				XSElementDecl elementDecl = schemaSet.getElementDecl(_rootUri, _rootName);
 				if (elementDecl != null) {
 					_complexType = elementDecl.getType().asComplexType();
 				} else if (type != null) {
@@ -80,7 +78,6 @@ public final class Json2XmlTransformer {
 			} else {
 				_rootUri = null;
 				_rootName = null;
-				elementDecl = null;
 				_complexType = null;
 			}
 		}
@@ -235,6 +232,9 @@ public final class Json2XmlTransformer {
 						uri = null;
 						break;
 					case END_OBJECT:
+						if (e != null) {
+							ch.startElement(e.uri, e.localName, e.qName, _atts);
+						}
 						e = _stack.poll();
 						if (e != null) {
 							ch.endElement(e.uri, e.localName, e.qName);
@@ -359,7 +359,9 @@ public final class Json2XmlTransformer {
 							_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", type);
 						}
 						ch.startElement(uri, keyName, qName, _atts);
-						ch.characters(value.toCharArray(), 0, value.length());
+						if (value.length() > 0) {
+							ch.characters(value.toCharArray(), 0, value.length());
+						}
 						ch.endElement(uri, keyName, qName);
 						if (any >= 0 && type != null) {
 							_atts.clear();
