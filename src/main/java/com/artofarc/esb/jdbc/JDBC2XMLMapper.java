@@ -30,14 +30,13 @@ import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.sax.SAXSource;
 
-import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.AttributesImpl;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.util.XMLFilterBase;
+import com.artofarc.util.XMLParserBase;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSSchemaSet;
@@ -64,7 +63,7 @@ public final class JDBC2XMLMapper {
 	}
 
 	// Not thread safe
-	private final class Parser extends XMLFilterBase {
+	private final class Parser extends XMLParserBase {
 
 		final Struct _struct;
 		final Context _context;
@@ -72,6 +71,7 @@ public final class JDBC2XMLMapper {
 		final AttributesImpl _atts = new AttributesImpl();
 
 		Parser(Context context, Struct struct) {
+			super(true, null, null);
 			_struct = struct;
 			_context = context;
 		}
@@ -88,28 +88,23 @@ public final class JDBC2XMLMapper {
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
-			final ContentHandler ch = getContentHandler();
-			if (ch == null) {
-				throw new SAXException("ContentHandler not set");
-			}
-			ch.startDocument();
-			ch.startElement(_rootUri, _rootName, _rootName, _atts);
+			super.startDocument();
+			startElement(_rootUri, _rootName, _rootName, _atts);
 			try {
 				parse(_struct);
 			} catch (SQLException | IOException | ParserConfigurationException e) {
 				throw new SAXException(e);
 			}
-			ch.endElement(_rootUri, _rootName, _rootName);
-			ch.endDocument();
+			endElement(_rootUri, _rootName, _rootName);
+			super.endDocument();
 		}
 
 		private void parse(Struct struct) throws SAXException, SQLException, IOException, ParserConfigurationException {
 			XSTerm term = _xsomHelper.matchElement(null, null);
 			_xsomHelper.checkComplexType(struct.getSQLTypeName());
-			final ContentHandler ch = getContentHandler();
 			final String _uri = term.apply(XSOMHelper.GetNamespace);
 			final String _name = term.apply(XSOMHelper.GetName);
-			ch.startElement(_uri, _name, _name, _atts);
+			startElement(_uri, _name, _name, _atts);
 			for (Object attribute : struct.getAttributes()) {
 				if (attribute instanceof Struct) {
 					Struct inner = (Struct) attribute;
@@ -120,7 +115,7 @@ public final class JDBC2XMLMapper {
 					_xsomHelper.checkComplexType(JDBCConnection.getSQLTypeName(inner));
 					String uri = term.apply(XSOMHelper.GetNamespace);
 					String name = term.apply(XSOMHelper.GetName);
-					ch.startElement(uri, name, name, _atts);
+					startElement(uri, name, name, _atts);
 					term = _xsomHelper.matchElement(null, null);
 					if (!_xsomHelper.isStartArray()) {
 						throw new SAXException("Expected array in " + _xsomHelper.getCurrentComplexType().getName());
@@ -132,7 +127,7 @@ public final class JDBC2XMLMapper {
 							writeValue(element);
 						}
 					}
-					ch.endElement(uri, name, name);
+					endElement(uri, name, name);
 					_xsomHelper.endArray();
 				} else if (attribute instanceof SQLXML) {
 					term = _xsomHelper.matchElement(null, null);
@@ -145,7 +140,7 @@ public final class JDBC2XMLMapper {
 					if (!_xsomHelper.isLastElementAny()) {
 						throw new SAXException("Expected any type for " + name);
 					}
-					ch.startElement(uri, name, name, _atts);
+					startElement(uri, name, name, _atts);
 					SQLXML sqlxml = (SQLXML) attribute;
 					SAXSource saxSource = sqlxml.getSource(SAXSource.class);
 					XMLReader xmlReader = saxSource.getXMLReader();
@@ -156,7 +151,7 @@ public final class JDBC2XMLMapper {
 					xmlReader.setContentHandler(this);
 					xmlReader.parse(saxSource.getInputSource());
 					sqlxml.free();
-					ch.endElement(uri, name, name);
+					endElement(uri, name, name);
 					_xsomHelper.endAny();
 				} else if (attribute != null) {
 					writeValue(attribute);
@@ -168,12 +163,12 @@ public final class JDBC2XMLMapper {
 						if (_xsomHelper.isLastElementRequired() && term.asElementDecl().isNillable()) {
 							String uri = term.apply(XSOMHelper.GetNamespace);
 							String name = term.apply(XSOMHelper.GetName);
-							ch.startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 							_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil", "xsi:nil", "CDATA", "true");
-							ch.startElement(uri, name, name, _atts);
-							ch.endElement(uri, name, name);
+							startElement(uri, name, name, _atts);
+							endElement(uri, name, name);
 							_atts.clear();
-							ch.endPrefixMapping("xsi");
+							endPrefixMapping("xsi");
 						}
 						if (_xsomHelper.getComplexType() != null) {
 							_xsomHelper.endComplex();
@@ -181,12 +176,11 @@ public final class JDBC2XMLMapper {
 					}
 				}
 			}
-			ch.endElement(_uri, _name, _name);
+			endElement(_uri, _name, _name);
 			_xsomHelper.endComplex();
 		}
 
 		private void writeValue(Object attribute) throws SAXException, SQLException {
-			final ContentHandler ch = getContentHandler();
 			final XSTerm term = _xsomHelper.matchElement(null, null);
 			final XSSimpleType simpleType = _xsomHelper.getSimpleType();
 			if (simpleType == null) {
@@ -194,7 +188,7 @@ public final class JDBC2XMLMapper {
 			}
 			final String uri = term.apply(XSOMHelper.GetNamespace);
 			final String name = term.apply(XSOMHelper.GetName);
-			ch.startElement(uri, name, name, _atts);
+			startElement(uri, name, name, _atts);
 			String value;
 			switch (XSOMHelper.getJsonType(simpleType)) {
 			case "base64Binary":
@@ -212,8 +206,8 @@ public final class JDBC2XMLMapper {
 				value = attribute.toString();
 				break;
 			}
-			ch.characters(value.toCharArray(), 0, value.length());
-			ch.endElement(uri, name, name);
+			characters(value);
+			endElement(uri, name, name);
 		}
 
 	}
