@@ -178,7 +178,7 @@
 	   <%
 	   	if (a.getContentType().startsWith("text/")) {
 	   		java.io.InputStream inputStream = a.getContentAsStream();
-	   		String content = new String(com.artofarc.util.IOUtils.copy(inputStream)).replace("&", "&amp;");
+	   		String content = new String(com.artofarc.util.IOUtils.copy(inputStream), "UTF-8").replace("&", "&amp;");
 	   		inputStream.close();
 	   %>
 			<br>

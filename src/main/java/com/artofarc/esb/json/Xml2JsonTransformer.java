@@ -101,10 +101,8 @@ public final class Xml2JsonTransformer {
 
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-			System.out.println("start: " + localName);
 			_builder.setLength(0);
 			if (openKey != null) {
-				debug("start deferred " + openKey);
 				jsonGenerator.writeStartObject(openKey);
 				openKey = null;
 			}
@@ -148,12 +146,10 @@ public final class Xml2JsonTransformer {
 				}
 			}
 			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
-				debug("endArray on " + key);
 				jsonGenerator.writeEnd();
 				xsomHelper.endArray();
 			}
 			if (anyLevel < 0 && xsomHelper.isStartArray()) {
-				debug("startArray " + key);
 				jsonGenerator.writeStartArray(key);
 			} else {
 				if (anyLevel >= 0 || !xsomHelper.isMiddleOfArray()) {
@@ -166,7 +162,6 @@ public final class Xml2JsonTransformer {
 				--attsLength;
 			}
 			if (attsLength > 0 || complex && anyLevel < 0) {
-				debug("start " + key);
 				if (openKey != null) {
 					jsonGenerator.writeStartObject(openKey);
 				} else {
@@ -204,7 +199,6 @@ public final class Xml2JsonTransformer {
 			} else {
 				if (anyLevel < 0) {
 					if (xsomHelper.isInArray()) {
-						debug("endArray+ on " + localName);
 						jsonGenerator.writeEnd();
 						xsomHelper.endArray();
 					}
@@ -228,7 +222,6 @@ public final class Xml2JsonTransformer {
 				}
 			}
 			if (complex || primitiveType == null) {
-				debug("end " + localName);
 				jsonGenerator.writeEnd();
 			}
 			if (anyLevel == level--) {
@@ -311,10 +304,6 @@ public final class Xml2JsonTransformer {
 			}
 		}
 
-	}
-
-	private static void debug(String s) {
-//		System.out.println(s);
 	}
 
 }
