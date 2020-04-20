@@ -41,7 +41,6 @@ import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSSchemaSet;
 
 public class JDBCProcedureAction extends JDBCAction {
@@ -63,8 +62,8 @@ public class JDBCProcedureAction extends JDBCAction {
 			CallableStatement cs = conn.getConnection().prepareCall(sql);
 			for (JDBCParameter param : _outParams) {
 				if (param.getXmlElement() != null) {
-					XSElementDecl elementDecl = _schemaSet.getElementDecl(param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-					cs.registerOutParameter(param.getPos(), param.getType(), elementDecl.getType().getName());
+					JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
+					cs.registerOutParameter(param.getPos(), param.getType(), mapper.getTypeName());
 				} else {
 					cs.registerOutParameter(param.getPos(), param.getType());
 				}
@@ -89,7 +88,7 @@ public class JDBCProcedureAction extends JDBCAction {
 						blob.free();
 						break;
 					case STRUCT:
-						JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+						JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
 						SAXSource saxSource = new SAXSource(mapper.createParser(context, (Struct) cs.getObject(param.getPos())), null);
 						message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
 						break;

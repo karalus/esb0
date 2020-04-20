@@ -26,6 +26,7 @@ import java.util.Date;
 
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.sax.SAXSource;
 
@@ -48,8 +49,14 @@ public final class JDBC2XMLMapper {
 	private final String _rootUri, _rootName;
 	private final XSElementDecl _element;
 
-	public JDBC2XMLMapper(XSSchemaSet schemaSet, String rootUri, String rootName) {
-		_element = schemaSet.getElementDecl(_rootUri = rootUri, _rootName = rootName);
+	public JDBC2XMLMapper(XSSchemaSet schemaSet, QName rootElement) {
+		_element = schemaSet.getElementDecl(_rootUri = rootElement.getNamespaceURI(), _rootName = rootElement.getLocalPart());
+	}
+
+	public String getTypeName() throws SAXException {
+		XSOMHelper xsomHelper = new XSOMHelper(_element);
+		xsomHelper.matchElement(null, null);
+		return xsomHelper.getComplexType().getName();
 	}
 
 	public XMLReader createParser(Context context, Struct struct) {
