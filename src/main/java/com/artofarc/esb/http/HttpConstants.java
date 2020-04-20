@@ -16,7 +16,28 @@
  */
 package com.artofarc.esb.http;
 
-public class HttpConstants implements javax.xml.soap.SOAPConstants {
+public class HttpConstants {
+
+	/**
+	 * The namespace identifier for the SOAP 1.1 envelope.
+	 */
+	public static final String URI_NS_SOAP_1_1_ENVELOPE = "http://schemas.xmlsoap.org/soap/envelope/";
+
+	/**
+	 * The namespace identifier for the SOAP 1.2 envelope.
+	 */
+	public static final String URI_NS_SOAP_1_2_ENVELOPE = "http://www.w3.org/2003/05/soap-envelope";
+
+	/**
+	 * The media type of the <code>Content-Type</code> MIME header in SOAP 1.1.
+	 */
+	public static final String SOAP_1_1_CONTENT_TYPE = "text/xml";
+
+	/**
+	 * The media type of the <code>Content-Type</code> MIME header in SOAP 1.2.
+	 */
+	public static final String SOAP_1_2_CONTENT_TYPE = "application/soap+xml";
+
 
 	public static final String HTTP_HEADER_ACCEPT_CHARSET = "Accept-Charset";
 

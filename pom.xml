@@ -25,7 +25,6 @@
 	<properties>
 		<project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mmz</maven.build.timestamp.format>
-		<jettyVersion>9.0.0.v20130308</jettyVersion>
 	</properties>
 	<scm>
 		<url>scm:git:git@github.com:karalus/esb0.git</url>
@@ -77,7 +76,7 @@
 		<dependency>
 			<groupId>org.apache.activemq</groupId>
 			<artifactId>activemq-all</artifactId>
-			<version>5.14.5</version>
+			<version>5.15.12</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -117,6 +116,19 @@
 			<artifactId>xsom</artifactId>
 			<version>2.3.2</version>
 		</dependency>
+		<dependency>
+		    <groupId>com.sun.xml.ws</groupId>
+		    <artifactId>jaxws-ri</artifactId>
+		    <version>2.3.2</version>
+		    <type>pom</type>
+		    <scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.10.3</version>
+		    <scope>test</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<finalName>esb0</finalName>
@@ -141,7 +153,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>jaxb2-maven-plugin</artifactId>
-				<version>2.3.1</version>
+				<version>2.5.0</version>
 				<executions>
 					<execution>
 						<id>xjc</id>
@@ -151,7 +163,6 @@
 					</execution>
 				</executions>
 				<configuration>
-					<generateEpisode>false</generateEpisode>
 					<locale>en</locale>
 					<sources>
                     	<source>src/main/xsd/service.xsd</source>
@@ -163,7 +174,7 @@
 			</plugin>
 			<plugin>
 			    <artifactId>maven-war-plugin</artifactId>
-				<version>2.2</version>
+				<version>3.2.3</version>
 			    <configuration>
 			        <archive>
 			            <manifest>
@@ -175,11 +186,6 @@
 			        </archive>
 			    </configuration>
 			</plugin>			
-			<!--  plugin>
-				<groupId>org.eclipse.jetty</groupId>
-				<artifactId>jetty-maven-plugin</artifactId>
-				<version>${jettyVersion}</version>
-			</plugin-->
 		</plugins>
 		<resources>
 			<resource>

@@ -54,7 +54,7 @@ public class FileAction extends TerminalAction {
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 		String filename = message.getVariable(ESBConstants.filename);
 		String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(contentType) : "";
-		boolean zip = Boolean.parseBoolean(String.valueOf(message.getVariable("zip")));
+		boolean zip = Boolean.parseBoolean(String.valueOf(message.<String> getVariable("zip")));
 		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
 		String method = message.getVariable(ESBConstants.FileEventKind);
 		boolean append = false;

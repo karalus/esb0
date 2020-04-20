@@ -73,7 +73,7 @@ Even in a Kubernetes environment where endpoint virtualization and load balancin
 
 You need to have [Maven](http://maven.apache.org/) and [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html) installed.
 
-ESB Zero build has been tested with Maven 3.6.x and JDK8.
+ESB Zero build is using Maven 3.6.x and has been tested with Oracle JDK8 and OpenJDK 11.
 
 From version 1.4 on Java 8 is required at runtime.
 
@@ -84,12 +84,15 @@ From version 1.4 on Java 8 is required at runtime.
 ESB Zero requires a Java Servlet Container conforming to the servlet 3.0 API. 
 It has been tested with Tomcat 8 and 8.5, Wildfly, Jetty 9 and JBoss EAP 7.x.
 
+__Note__: The current ESB0 version 1.7 only works with JBoss EAP 7.1 when the JBoss provided module javax.json is excluded in the Jboss deployment descriptor.
+JBoss EAP 7.2 has been tested with Oracle JDK8 and OpenJDK 11.
+
 ESB Zero needs one directory to retrieve service flows and other artifacts from and persist to.
 Per default it is expected to have a folder named "esb_root" in the user home folder (of the user running the servlet container).
 Either create an empty directory with name "esb_root" there or set environment variable ESB_ROOT_DIR to an existing folder of your choice.
 In a cluster setup it is also possible to use a DB(via JNDI DataSource) for storing/retrieving service artifacts if you cannot go for a cluster file system.
 
-Note: This folder can be empty but it must exist!
+__Note__: This folder can be empty but it must exist!
 
 If you are using JMS or JDBC actions within your flows you'll need to configure JMS-Providers and/or Datasources in your Servlet Container. These resources will be acquired by JNDI lookup.
 For JDBC there is special support for Oracle built in (e.g. handling java.sql.Array), but any other DB works as well.

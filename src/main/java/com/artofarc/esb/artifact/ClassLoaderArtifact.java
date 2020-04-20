@@ -55,7 +55,7 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 			classLoaderArtifact.validate(globalContext);
 			_fileSystemClassLoader = new FileSystemClassLoader(jars, classLoaderArtifact.getFileSystemClassLoader());
 		} else {
-			_fileSystemClassLoader = new FileSystemClassLoader(jars, getClass().getClassLoader());
+			_fileSystemClassLoader = new FileSystemClassLoader(jars, globalContext.getClassLoader());
 		}
 	}
 

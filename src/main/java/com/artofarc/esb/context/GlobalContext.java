@@ -49,6 +49,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private static final String GLOBALPROPERTIES = System.getProperty("esb0.globalproperties");
 	private static final String DEFAULT_WORKER_POOL = "default";
 
+	private final ClassLoader _classLoader;
 	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache;
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
@@ -58,8 +59,9 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
 	private volatile FileSystem _fileSystem;
 
-	public GlobalContext(MBeanServer mbs, final Properties properties) {
+	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, final Properties properties) {
 		super(mbs);
+		_classLoader = classLoader;
 		_propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
 
 			@Override
@@ -96,6 +98,10 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		if (HTTPCONSUMER_IDLETIMEOUT > 0) {
 			getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, HTTPCONSUMER_IDLETIMEOUT, HTTPCONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
 		}
+	}
+
+	public ClassLoader getClassLoader() {
+		return _classLoader;
 	}
 
 	@SuppressWarnings("unchecked")

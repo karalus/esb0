@@ -497,7 +497,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			classLoaderArtifact.validate(globalContext);
 			return classLoaderArtifact.getFileSystemClassLoader();
 		} else {
-			return null;
+			return globalContext.getClassLoader();
 		}
 	}
 

@@ -41,7 +41,7 @@ public class FileSystemTest extends AbstractESBTest {
    
   @Test
    public void testStartup() {
-		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources", new Properties())) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createContext(getClass().getClassLoader(), "src/test/resources", new Properties())) {
          ConsumerPort service = globalContext.getInternalService("/HttpService4.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/demo1");
@@ -51,7 +51,7 @@ public class FileSystemTest extends AbstractESBTest {
    
    @Test
    public void testRealService() throws Exception {
-		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources", new Properties())) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createContext(getClass().getClassLoader(), "src/test/resources", new Properties())) {
          ConsumerPort service = globalContext.getInternalService("/example/ExampleService.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/exampleUsingport");

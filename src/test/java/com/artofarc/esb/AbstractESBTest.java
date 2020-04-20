@@ -49,7 +49,7 @@ public abstract class AbstractESBTest {
 		System.setProperty("java.naming.factory.initial", "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
 		System.setProperty("java.naming.provider.url", "vm://localhost");
 		System.setProperty("esb0.httpconsumer.idletimeout", "0");
-		GlobalContext globalContext = new GlobalContext(null, new Properties());
+		GlobalContext globalContext = new GlobalContext(getClass().getClassLoader(), null, new Properties());
 		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem());
 		XMLCatalog.attachToFileSystem(globalContext.getFileSystem());
 		context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());

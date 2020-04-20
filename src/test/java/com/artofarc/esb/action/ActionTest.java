@@ -24,7 +24,7 @@ public class ActionTest extends AbstractESBTest {
    
    @Before
    public void createContext() throws Exception {
-      context = new Context(new GlobalContext(null, new Properties()).getDefaultWorkerPool().getPoolContext());
+      context = new Context(new GlobalContext(getClass().getClassLoader(), null, new Properties()).getDefaultWorkerPool().getPoolContext());
    }
 
    @Test
@@ -130,7 +130,7 @@ public class ActionTest extends AbstractESBTest {
    	action.setNextAction(new DumpAction());
    	action.process(context, message);
    	assertEquals("0042", message.getVariable("formattedInt"));
-   	assertEquals(42, message.getHeader("int"));
+   	assertEquals(null, Integer.valueOf(42), message.getHeader("int"));
    	assertEquals(true, message.getHeader("bool"));
    	assertTrue(message.getHeader("now") instanceof Long);
    	assertTrue(message.getHeader("id") instanceof String);
@@ -162,7 +162,7 @@ public class ActionTest extends AbstractESBTest {
    	action.process(context, message);
    	assertEquals("esb0", message.getVariable("result"));
    	assertEquals(true, message.getVariable("boolresult"));
-   	assertEquals(1L, message.getVariable("numresult"));
+   	assertEquals(null, Long.valueOf(1), message.getVariable("numresult"));
    	assertTrue(message.getVariable("decresult") instanceof BigDecimal);
    	assertEquals("baz", message.getHeader("h1"));
    	assertEquals(msgStr, message.getVariable("whole"));

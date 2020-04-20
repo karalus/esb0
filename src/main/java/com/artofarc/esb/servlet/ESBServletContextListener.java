@@ -38,11 +38,11 @@ public final class ESBServletContextListener implements ServletContextListener {
 	public static final String ADMIN_SERVLET_PATH = "admin/deploy";
 	public static final String CONTEXT = "esb0.context";
 
-	public GlobalContext createContext(String root, Properties manifest) {
+	public GlobalContext createContext(ClassLoader classLoader, String root, Properties manifest) {
 		Properties properties = new Properties();
 		properties.setProperty(GlobalContext.VERSION, manifest.getProperty("Implementation-Version", "0.0"));
 		properties.setProperty(GlobalContext.BUILD_TIME, manifest.getProperty("Build-Time", ""));
-		GlobalContext globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer(), properties);
+		GlobalContext globalContext = new GlobalContext(classLoader, java.lang.management.ManagementFactory.getPlatformMBeanServer(), properties);
 		try {
 			FileSystem fileSystem;
 			if (root != null && root.contains("jdbc")) {
@@ -82,7 +82,7 @@ public final class ESBServletContextListener implements ServletContextListener {
 				// ignore
 			}
 		}
-		servletContext.setAttribute(CONTEXT, createContext(System.getProperty("esb0.root", System.getenv("ESB_ROOT_DIR")), manifest));
+		servletContext.setAttribute(CONTEXT, createContext(servletContext.getClassLoader(), System.getProperty("esb0.root", System.getenv("ESB_ROOT_DIR")), manifest));
 	}
 
 	@Override
@@ -94,7 +94,7 @@ public final class ESBServletContextListener implements ServletContextListener {
 	}
 
 	public static void main(String[] args) {
-		new ESBServletContextListener().createContext(args[0], new Properties());
+		new ESBServletContextListener().createContext(ESBServletContextListener.class.getClassLoader(), args[0], new Properties());
 	}
 
 }
