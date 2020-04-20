@@ -12,9 +12,11 @@ import java.util.Properties;
 import org.junit.After;
 import org.junit.Before;
 
+import com.artofarc.esb.action.Action;
 import com.artofarc.esb.action.AssignAction;
 import com.artofarc.esb.action.ExecutionException;
 import com.artofarc.esb.action.HttpOutboundAction;
+import com.artofarc.esb.action.SAXValidationAction;
 import com.artofarc.esb.action.TransformAction;
 import com.artofarc.esb.action.UnwrapSOAPAction;
 import com.artofarc.esb.action.ValidateAction;
@@ -34,6 +36,8 @@ import com.artofarc.util.IOUtils;
 
 public abstract class AbstractESBTest {
 
+	private static final boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
+
 	protected Context context;
 
 	@Before
@@ -42,9 +46,9 @@ public abstract class AbstractESBTest {
 	}
 
 	protected void createContext(File dir) {
-   	System.setProperty("java.naming.factory.initial", "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
-   	System.setProperty("java.naming.provider.url", "vm://localhost");
-   	System.setProperty("esb0.httpconsumer.idletimeout", "0");
+		System.setProperty("java.naming.factory.initial", "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
+		System.setProperty("java.naming.provider.url", "vm://localhost");
+		System.setProperty("esb0.httpconsumer.idletimeout", "0");
 		GlobalContext globalContext = new GlobalContext(null, new Properties());
 		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem());
 		XMLCatalog.attachToFileSystem(globalContext.getFileSystem());
@@ -102,8 +106,8 @@ public abstract class AbstractESBTest {
 		return assignments;
 	}
 
-	protected static ValidateAction createValidateAction(SchemaArtifact schemaArtifact) {
-		return new ValidateAction(schemaArtifact.getSchema(), ".", null, null);
+	protected static Action createValidateAction(SchemaArtifact schemaArtifact) {
+		return USE_SAX_VALIDATION ? new SAXValidationAction(schemaArtifact.getSchema()) : new ValidateAction(schemaArtifact.getSchema(), ".", null, null);
 	}
 
 	protected static UnwrapSOAPAction createUnwrapSOAPAction(boolean soap12, boolean singlePart) {

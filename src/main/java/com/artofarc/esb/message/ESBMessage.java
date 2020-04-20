@@ -40,11 +40,6 @@ import java.util.zip.InflaterInputStream;
 import javax.json.stream.JsonGenerator;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.UnmarshallerHandler;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -65,6 +60,7 @@ import org.w3c.dom.Node;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
@@ -72,7 +68,6 @@ import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.Collections;
-import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.JsonFactoryHelper;
@@ -477,65 +472,6 @@ public final class ESBMessage implements Cloneable {
 		return xml;
 	}
 
-	public Object unmarshal(Context context, Unmarshaller unmarshaller) throws XQException, IOException, TransformerException, JAXBException {
-		// Needed because neither Saxon DOM Element nor Saxon XMLStreamReader work with MOXy
-		UnmarshallerHandler unmarshallerHandler;
-		switch (_bodyType) {
-		case XQ_SEQUENCE:
-			XQSequence xqSequence = (XQSequence) _body;
-			if (!xqSequence.next()) {
-				throw new IllegalStateException("Message already consumed");
-			}
-			_body = context.getXQDataFactory().createItem(xqSequence.getItem());
-			// nobreak
-		case XQ_ITEM:
-			_bodyType = BodyType.INVALID;
-			XQItem xqItem = (XQItem) _body;
-			unmarshallerHandler = unmarshaller.getUnmarshallerHandler();
-			xqItem.writeItemToSAX(unmarshallerHandler);
-			return unmarshallerHandler.getResult();
-		case DOM:
-			unmarshallerHandler = unmarshaller.getUnmarshallerHandler();
-			context.getIdenticalTransformer().transform(new DOMSource((Node) _body), new SAXResult(unmarshallerHandler));
-			return unmarshallerHandler.getResult();
-		default:
-			return unmarshaller.unmarshal(getBodyAsSource(context));
-		}
-	}
-
-	public <T> JAXBElement<T> unmarshal(Context context, Unmarshaller unmarshaller, Class<T> declaredType) throws XQException, IOException, JAXBException {
-		switch (_bodyType) {
-		case XQ_SEQUENCE:
-			XQSequence xqSequence = (XQSequence) _body;
-			if (!xqSequence.next()) {
-				throw new IllegalStateException("Message already consumed");
-			}
-			_body = context.getXQDataFactory().createItem(xqSequence.getItem());
-			// nobreak
-		case XQ_ITEM:
-			_bodyType = BodyType.INVALID;
-			XQItem xqItem = (XQItem) _body;
-			return unmarshaller.unmarshal(xqItem.getItemAsStream(), declaredType);
-		default:
-			return unmarshaller.unmarshal(getBodyAsSource(context), declaredType);
-		}
-	}
-
-	public void marshal(Context context, final Marshaller marshaller, final Object jaxbElement) throws XQException {
-		SAXSource source = new SAXSource(new XMLFilterBase() {
-
-			@Override
-			public void parse(InputSource source) throws SAXException {
-				try {
-					marshaller.marshal(jaxbElement, getContentHandler());
-				} catch (JAXBException e) {
-					throw new SAXException(e);
-				}
-			}
-		}, null);
-		init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(source, null), null);
-	}
-
 	public boolean isSink() {
 		return _bodyType == BodyType.RESULT || _bodyType == BodyType.OUTPUT_STREAM || _bodyType == BodyType.WRITER;
 	}
@@ -640,7 +576,7 @@ public final class ESBMessage implements Cloneable {
 		transformer.transform(source, result);
 	}
 
-	public void writeToSAX(ContentHandler contentHandler, Context context) throws XQException, TransformerException, IOException {
+	public void writeToSAX(ContentHandler contentHandler, Context context) throws XQException, TransformerException, IOException, SAXException {
 		switch (_bodyType) {
 		case XQ_SEQUENCE:
 			XQSequence xqSequence = (XQSequence) _body;
@@ -655,7 +591,17 @@ public final class ESBMessage implements Cloneable {
 			xqItem.writeItemToSAX(contentHandler);
 			break;
 		default:
-			context.getIdenticalTransformer().transform(getBodyAsSource(context), new SAXResult(contentHandler));
+			Source source = getBodyAsSource(context);
+			if (source instanceof SAXSource) {
+				SAXSource saxSource = (SAXSource) source;
+				XMLReader xmlReader = saxSource.getXMLReader();
+				if (xmlReader != null) {
+					xmlReader.setContentHandler(contentHandler);
+					xmlReader.parse(saxSource.getInputSource());
+					break;
+				}
+			}
+			context.getIdenticalTransformer().transform(source, new SAXResult(contentHandler));
 			break;
 		}
 	}

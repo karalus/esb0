@@ -22,7 +22,6 @@ import java.io.UnsupportedEncodingException;
 import javax.xml.transform.Source;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
@@ -37,7 +36,6 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.XMLFilterBase;
-import com.artofarc.util.StringWriter;
 
 public abstract class SAXAction extends Action {
 
@@ -118,9 +116,7 @@ public abstract class SAXAction extends Action {
 			if (message.isSink()) {
 				context.getIdenticalTransformer().transform(execContext.<Source> getResource(), message.getBodyAsSinkResult(context));
 			} else {
-				StringWriter sw = new StringWriter();
-				context.getIdenticalTransformer().transform(execContext.<Source> getResource(), new StreamResult(sw));
-				message.reset(BodyType.READER, sw.getStringReader());
+				message.reset(BodyType.SOURCE, execContext.getResource());
 			}
 		}
 	}

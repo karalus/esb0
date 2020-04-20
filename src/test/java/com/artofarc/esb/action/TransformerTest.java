@@ -100,42 +100,31 @@ public class TransformerTest extends AbstractESBTest {
 		consumerPort.process(context, message);
 	}
 
-	public void testStreamingValidatePerformance() throws Exception {
-		XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
-		xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
-		xsdArtifact.validateInternal(getGlobalContext());
-		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new TransformAction(
-				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new SAXValidationAction(xsdArtifact.getSchema()),
-				new TerminalAction(){});
-		byte[] file = readFile("src/test/resources/SOAPRequest.xml");
-		TimeGauge timeGauge = new TimeGauge(Action.logger);
-		timeGauge.startTimeMeasurement();
-		for (int i = 0; i < 1000000; ++i) {
-			ESBMessage message = new ESBMessage(BodyType.BYTES, file);
-			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
-			consumerPort.process(context, message);
-		}
-		timeGauge.stopTimeMeasurement("Performance", false);
-	}
-
+	@Test
 	public void testValidatePerformance() throws Exception {
+		// Set to 1000000 for real test
+		validatePerformance(1, false);
+		validatePerformance(1, true);
+	}
+	
+	private void validatePerformance(int count, boolean useSAXValidation) throws Exception {
 		XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
 		xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
 		xsdArtifact.validateInternal(null);
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new TransformAction(
-				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), createValidateAction(xsdArtifact),
-				new TerminalAction() {});
+		consumerPort.setStartAction(createUnwrapSOAPAction(false, true),
+				new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"),
+				useSAXValidation ? new SAXValidationAction(xsdArtifact.getSchema()) : createValidateAction(xsdArtifact), new TerminalAction() {});
 		byte[] file = readFile("src/test/resources/SOAPRequest.xml");
 		TimeGauge timeGauge = new TimeGauge(Action.logger);
 		timeGauge.startTimeMeasurement();
-		for (int i = 0; i < 1000000; ++i) {
+		for (int i = 0; i < count; ++i) {
 			ESBMessage message = new ESBMessage(BodyType.BYTES, file);
 			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 			consumerPort.process(context, message);
 		}
-		timeGauge.stopTimeMeasurement("Performance", false);
+		long measurement = timeGauge.stopTimeMeasurement("Performance", false);
+		System.out.println("Average in µs: " + measurement * 1000 / count);
 	}
 
 	@Test

@@ -42,6 +42,9 @@ public class JsonXmlTest extends AbstractESBTest {
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action = action.setNextAction(new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; (*/v1:messageHeader)"));
+//	    XSDArtifact xsd = fileSystem.getArtifact("de.aoa.ei.foundation.v1.xsd");
+//	    xsd.validate(getGlobalContext());
+//		action = action.setNextAction(new SAXValidationAction(xsd.getSchema()));
 		action = action.setNextAction(new XML2JsonAction(schemaSet, null, true, new HashMap<String, String>(), null));
 		action = action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
@@ -79,6 +82,7 @@ public class JsonXmlTest extends AbstractESBTest {
 		urisToPrefixes.put("ns0", "http://aoa.de/ei/foundation/v1");
 //		action = action.setNextAction(new DumpAction());
 		action = action.setNextAction(new Json2XMLAction(schemaSet, null, true, null, urisToPrefixes, null, null));
+//		action = action.setNextAction(new XML2JsonAction(schemaSet, null, true, new HashMap<String, String>(), null));
 		action = action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
 	}

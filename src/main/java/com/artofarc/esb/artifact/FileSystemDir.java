@@ -62,6 +62,8 @@ public class FileSystemDir extends FileSystem {
 	private void readDir(Directory base, File dir, CRC32 crc) throws IOException {
 		for (File file : dir.listFiles()) {
 			String name = file.getName();
+			// Ignore files starting with dot (important for Mac OSX)
+			if (name.startsWith(".")) continue;
 			if (file.isDirectory()) {
 				readDir(new Directory(this, base, name), file, crc);
 			} else {

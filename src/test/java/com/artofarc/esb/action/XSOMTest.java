@@ -13,9 +13,8 @@ import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 
 import com.artofarc.esb.AbstractESBTest;
@@ -25,21 +24,11 @@ import com.artofarc.esb.json.Json2XmlTransformer;
 import com.artofarc.esb.json.Xml2JsonTransformer;
 import com.artofarc.util.StringWriter;
 import com.artofarc.util.TimeGauge;
+import com.artofarc.util.XMLParserBase;
 import com.sun.xml.xsom.*;
 
 
 public class XSOMTest extends AbstractESBTest {
-	
-	@BeforeClass
-	public static void init() {
-		System.setProperty("esb0.cacheXSGrammars", "true");
-	}
-
-	@AfterClass
-	public static void destroy() {
-		System.setProperty("esb0.cacheXSGrammars", "false");
-	}
-
 	
 	@Test
 	public void testXSOM() throws Exception {
@@ -132,24 +121,30 @@ public class XSOMTest extends AbstractESBTest {
 		StringWriter writer = new StringWriter();
 		byteStream.reset();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, true, map);
-		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-		//transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		transformer.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
+		XMLParserBase parser = json2xml.createStreamingParser();
+		ContentHandler th = xml2JsonTransformer.createTransformerHandler(writer);
+		parser.setContentHandler(th);
+		parser.parse(new InputSource(byteStream));
+		transformer.setOutputProperty(OutputKeys.INDENT, "no");
+//		transformer.transform(new SAXSource(parser, new InputSource(byteStream)), new SAXResult(th));
 		System.out.println(writer);
 		
 		// Performance
-//		StreamResult streamResult = new StreamResult(writer);
-//		TimeGauge timeGauge = new TimeGauge(Action.logger, 0L, false);
-//		timeGauge.startTimeMeasurement();
-//		int count = 10000000;
-//		for (int i = 0; i < count; ++i) {
-//			byteStream.reset();
-//			writer.reset();
-//			SAXResult saxResult = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-//			transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), saxResult);
-//		}
-//		long measurement = timeGauge.stopTimeMeasurement("Performance", false);
-//		System.out.println("Average in µs: " + measurement * 1000 / count);
+		StreamResult streamResult = new StreamResult(writer);
+		TimeGauge timeGauge = new TimeGauge(Action.logger, 0L, false);
+		timeGauge.startTimeMeasurement();
+		int count = 1;
+		for (int i = 0; i < count; ++i) {
+			byteStream.reset();
+			writer.reset();
+			parser = json2xml.createStreamingParser();
+			th = xml2JsonTransformer.createTransformerHandler(writer);
+//			parser.setContentHandler(th);
+//			parser.parse(new InputSource(byteStream));
+			transformer.transform(new SAXSource(parser, new InputSource(byteStream)), new SAXResult(th));
+		}
+		long measurement = timeGauge.stopTimeMeasurement("Performance", false);
+		System.out.println("Average in µs: " + measurement * 1000 / count);
 	}
 
 	@Test

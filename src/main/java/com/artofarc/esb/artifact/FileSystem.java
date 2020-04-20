@@ -167,9 +167,6 @@ public class FileSystem {
 	}
 
 	protected final Artifact createArtifact(Directory parent, String name) {
-		// Ignore files starting with dot (important for Mac OSX)
-		if (name.startsWith("."))
-			return null;
 		switch (IOUtils.getExt(name)) {
 		case ServiceArtifact.FILE_EXTENSION:
 			return new ServiceArtifact(this, parent, name);
