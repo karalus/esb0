@@ -72,7 +72,7 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 		ch.startElement(_rootElement.getNamespaceURI(), _rootElement.getLocalPart(), _rootElement.getLocalPart(), atts);
 		stack.push(_rootElement);
 		for (;;) {
-			XSTerm term = xsomHelper.matchElement(null, null);
+			final XSTerm term = xsomHelper.nextElement();
 			int level = xsomHelper.getLevel();
 			while (level < stack.size()) {
 				QName element = stack.pop();

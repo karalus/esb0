@@ -217,7 +217,7 @@ public final class Json2XmlTransformer {
 								if (keyName == null) {
 									keyName = _arrays.peek();
 								}
-								XSTerm term = xsomHelper.matchElement(uri, keyName);
+								final XSTerm term = xsomHelper.matchElement(uri, keyName);
 								uri = term.apply(XSOMHelper.GetNamespace);
 								if (xsomHelper.isLastElementAny()) {
 									if (any < 0) {
@@ -390,7 +390,6 @@ public final class Json2XmlTransformer {
 
 	private final class Parser extends AbstractParser {
 
-		XSTerm lastTerm;
 		String primitiveType;
 
 		@Override
@@ -432,15 +431,9 @@ public final class Json2XmlTransformer {
 			startElement(e.uri, e.localName, e.qName, _atts);
 			_atts.clear();
 			for (int level = xsomHelper.getLevel();;) {
-				XSTerm term;
-				if (lastTerm != null) {
-					term = lastTerm;
-					lastTerm = null;
-				} else {
-					term = xsomHelper.matchElement(null, null);
-				}
+				final XSTerm term = xsomHelper.nextElement();
 				if (level >= xsomHelper.getLevel()) {
-					lastTerm = term;
+					xsomHelper.pushback(term);
 					break;
 				}
 				if (xsomHelper.isLastElementAny()) {
@@ -478,7 +471,7 @@ public final class Json2XmlTransformer {
 			case ARRAY:
 				for (JsonValue jsonValue2 : jsonValue.asJsonArray()) {
 					parse(e, jsonValue2);
-					lastTerm = null;
+					xsomHelper.pushback(null);
 				}
 				while (xsomHelper.endArray());
 				xsomHelper.endArray();

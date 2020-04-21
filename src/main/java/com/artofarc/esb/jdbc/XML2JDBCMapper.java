@@ -68,8 +68,13 @@ public final class XML2JDBCMapper extends DefaultHandler {
 					return connection.getConnection().createStruct(name, objects.toArray());
 				}
 			} catch (SQLException e) {
-				throw new SAXException("Could not create " + (array ? "Array " : "Struct ") + name, e);
+				throw new SAXException("Could not create " + this, e);
 			}
+		}
+
+		@Override
+		public String toString() {
+			return (array ? "Array " : "Struct ") + name + " attributes " + objects.size();
 		}
 	}
 
@@ -96,7 +101,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 			complex = true;
 		} else {
 			for (;;) {
-				XSTerm term = xsomHelper.matchElement(uri, null);
+				XSTerm term = xsomHelper.nextElement();
 				if (xsomHelper.isLastElementAny()) {
 					DBObject dbObject = _stack.peek();
 					dbObject.name = null;
@@ -160,18 +165,31 @@ public final class XML2JDBCMapper extends DefaultHandler {
 				while (xsomHelper.endArray());
 				xsomHelper.endArray();
 			} else {
-				while (xsomHelper.isInComplex()) {
-					xsomHelper.matchElement(uri, null);
-					if (xsomHelper.isStartArray()) {
-						_stack.peek().array = true;
-						while (xsomHelper.endArray());
-						xsomHelper.endArray();
-						xsomHelper.endComplex();
+				for (int level = xsomHelper.getLevel();;) {
+					XSTerm term = xsomHelper.nextElement();;
+					if (term == null || level > xsomHelper.getLevel()) {
+						if (!xsomHelper.isInArray()) {
+							xsomHelper.pushback(term);
+						}
+						break;
+					}
+					if (xsomHelper.isLastElementAny()) {
+						xsomHelper.endAny();
 					} else {
-						_stack.peek().objects.add(null);
+						if (xsomHelper.isStartArray()) {
+							_stack.peek().array = true;
+							while (xsomHelper.endArray());
+							xsomHelper.endArray();
+							xsomHelper.endComplex();
+							break;
+						} else {
+							_stack.peek().objects.add(null);
+							if (xsomHelper.getComplexType() != null) {
+								xsomHelper.endComplex();
+							}
+						}
 					}
 				}
-				xsomHelper.endComplex();
 			}
 			object = _stack.pop().create(_connection);
 		} else {

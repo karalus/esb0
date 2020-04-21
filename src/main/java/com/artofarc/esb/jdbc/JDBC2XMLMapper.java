@@ -54,7 +54,7 @@ public final class JDBC2XMLMapper {
 
 	public String getTypeName() throws SAXException {
 		XSOMHelper xsomHelper = new XSOMHelper(_element);
-		xsomHelper.matchElement(null, null);
+		xsomHelper.nextElement();
 		return xsomHelper.getComplexType().getName();
 	}
 
@@ -100,7 +100,7 @@ public final class JDBC2XMLMapper {
 		}
 
 		private void parse(Struct struct) throws SAXException, SQLException, IOException, ParserConfigurationException {
-			XSTerm term = _xsomHelper.matchElement(null, null);
+			XSTerm term = _xsomHelper.nextElement();
 			_xsomHelper.checkComplexType(struct.getSQLTypeName());
 			final String _uri = term.apply(XSOMHelper.GetNamespace);
 			final String _name = term.apply(XSOMHelper.GetName);
@@ -111,12 +111,12 @@ public final class JDBC2XMLMapper {
 					parse(inner);
 				} else if (attribute instanceof Array) {
 					Array inner = (Array) attribute;
-					term = _xsomHelper.matchElement(null, null);
+					term = _xsomHelper.nextElement();
 					_xsomHelper.checkComplexType(JDBCConnection.getSQLTypeName(inner));
 					String uri = term.apply(XSOMHelper.GetNamespace);
 					String name = term.apply(XSOMHelper.GetName);
 					startElement(uri, name, name, _atts);
-					term = _xsomHelper.matchElement(null, null);
+					term = _xsomHelper.nextElement();
 					if (!_xsomHelper.isStartArray()) {
 						throw new SAXException("Expected array in " + _xsomHelper.getCurrentComplexType().getName());
 					}
@@ -130,13 +130,13 @@ public final class JDBC2XMLMapper {
 					endElement(uri, name, name);
 					_xsomHelper.endArray();
 				} else if (attribute instanceof SQLXML) {
-					term = _xsomHelper.matchElement(null, null);
+					term = _xsomHelper.nextElement();
 					String uri = term.apply(XSOMHelper.GetNamespace);
 					String name = term.apply(XSOMHelper.GetName);
 					if (_xsomHelper.getComplexType() == null) {
 						throw new SAXException("Expected complex wrapper type for any in " + name);
 					}
-					term = _xsomHelper.matchElement(null, null);
+					term = _xsomHelper.nextElement();
 					if (!_xsomHelper.isLastElementAny()) {
 						throw new SAXException("Expected any type for " + name);
 					}
@@ -156,7 +156,7 @@ public final class JDBC2XMLMapper {
 				} else if (attribute != null) {
 					writeValue(attribute);
 				} else {
-					term = _xsomHelper.matchElement(null, null);
+					term = _xsomHelper.nextElement();
 					if (_xsomHelper.isLastElementAny()) {
 						_xsomHelper.endAny();
 					} else {
@@ -181,7 +181,7 @@ public final class JDBC2XMLMapper {
 		}
 
 		private void writeValue(Object attribute) throws SAXException, SQLException {
-			final XSTerm term = _xsomHelper.matchElement(null, null);
+			final XSTerm term = _xsomHelper.nextElement();
 			final XSSimpleType simpleType = _xsomHelper.getSimpleType();
 			if (simpleType == null) {
 				throw new SAXException("Expected simple type for " + attribute);

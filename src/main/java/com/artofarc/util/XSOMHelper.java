@@ -193,8 +193,9 @@ public final class XSOMHelper {
 		}
 	}
 
-	private final ArrayDeque<Entry<String, ArrayDeque<Group>>> stack = new ArrayDeque<>();
+	private final ArrayDeque<Entry<String, ArrayDeque<Group>>> _stack = new ArrayDeque<>();
 
+	private XSTerm _lastTerm;
 	private XSComplexType _complexType;
 	private Group _currentGroup, _nextGroup;
 	private String _nextType;
@@ -210,12 +211,12 @@ public final class XSOMHelper {
 	}
 
 	public int getLevel() {
-		return stack.size();
+		return _stack.size();
 	}
 
 	private void saveCurrent() {
 		if (_currentGroup != null && _currentGroup.hasNext()) {
-			Entry<String, ArrayDeque<Group>> context = stack.peek();
+			Entry<String, ArrayDeque<Group>> context = _stack.peek();
 			context.getValue().push(_currentGroup);
 		}
 	}
@@ -250,10 +251,26 @@ public final class XSOMHelper {
 		return _complexType.getAttributeWildcard();
 	}
 
+	public void pushback(XSTerm term) {
+		if (term != null && _lastTerm != null) {
+			throw new IllegalStateException("can only pushback one term");
+		}
+		_lastTerm = term;
+	}
+
+	public XSTerm nextElement() throws SAXException {
+		if (_lastTerm != null) {
+			final XSTerm term = _lastTerm;
+			_lastTerm = null;
+			return term;
+		}
+		return matchElement(null, null);
+	}
+
 	public XSTerm matchElement(String uri, String localName) throws SAXException {
 		if (_nextGroup != null) {
 			saveCurrent();
-			stack.push(Collections.createEntry(_nextType, new ArrayDeque<Group>()));
+			_stack.push(Collections.createEntry(_nextType, new ArrayDeque<Group>()));
 			_currentGroup = _nextGroup;
 			_nextGroup = null;
 		}
@@ -323,32 +340,10 @@ public final class XSOMHelper {
 		return null;
 	}
 
-	public boolean isInComplex() {
-		if (_nextGroup != null && _nextGroup.hasNext()) {
-			return true;
-		} else if (_currentGroup != null && _currentGroup.hasNext()) {
-			return true;
-		} else {
-			for (Entry<String, ArrayDeque<Group>> context = stack.peek(); context != null;) {
-				_currentGroup = context.getValue().peek();
-				if (_currentGroup == null) {
-					return false;
-				} else {
-					if (_currentGroup.hasNext()) {
-						return true;
-					} else {
-						context.getValue().pop();
-					}
-				}
-			}
-			return false;
-		}
-	}
-
 	private void foundParticle() {
 		_currentGroup.found();
 		nextParticle();
-		Entry<String, ArrayDeque<Group>> context = stack.peek();
+		Entry<String, ArrayDeque<Group>> context = _stack.peek();
 		if (context != null) {
 			for (Group group : context.getValue()) {
 				group.found();
@@ -360,12 +355,12 @@ public final class XSOMHelper {
 		if (_currentGroup != null && _currentGroup.hasNext()) {
 			_currentGroup.nextChild();
 		} else {
-			for (Entry<String, ArrayDeque<Group>> context = stack.peek(); context != null;) {
+			for (Entry<String, ArrayDeque<Group>> context = _stack.peek(); context != null;) {
 				_currentGroup = context.getValue().peek();
 				if (_currentGroup == null) {
-					context = stack.pop();
+					context = _stack.pop();
 //					System.out.println("Dropping context for " + context.getKey());
-					context = stack.peek();
+					context = _stack.peek();
 				} else {
 					if (_currentGroup.hasNext()) {
 						break;
@@ -434,9 +429,9 @@ public final class XSOMHelper {
 		if (_nextGroup != null) {
 			_nextGroup = null;
 		} else {
-			Entry<String, ArrayDeque<Group>> context = stack.pop();
+			Entry<String, ArrayDeque<Group>> context = _stack.pop();
 //			System.out.println("Dropping context for " + context.getKey());
-			context = stack.peek();
+			context = _stack.peek();
 			if (context != null) {
 				_currentGroup = context.getValue().poll();
 			}
