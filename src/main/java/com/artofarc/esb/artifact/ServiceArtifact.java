@@ -332,7 +332,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			XSLTArtifact xsltArtifact = loadArtifact(applyXSLT.getXslURI());
 			addReference(xsltArtifact);
 			xsltArtifact.validate(globalContext);
-			addAction(list, new XSLTAction(xsltArtifact.getTemplates()), location);
+			addAction(list, new XSLTAction(xsltArtifact.getTemplates(), applyXSLT.getParams()), location);
 			break;
 		}
 		case "unwrapSOAP": {

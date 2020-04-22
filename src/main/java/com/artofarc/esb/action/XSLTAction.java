@@ -17,39 +17,43 @@
 package com.artofarc.esb.action;
 
 import java.io.IOException;
-import java.util.Map.Entry;
+import java.util.List;
 
 import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.sax.TransformerHandler;
 import javax.xml.xquery.XQItem;
 
+import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.XMLFilterBase;
 
 public class XSLTAction extends SAXAction {
 
 	private final Templates _templates;
+	private final List<String> _params;
 
-	public XSLTAction(Templates templates) {
+	public XSLTAction(Templates templates, List<String> params) {
 		_templates = templates;
+		_params = params;
 	}
 
 	class TransformerFilter extends XMLFilterBase {
 		final TransformerHandler transformerHandler;
 		final Transformer transformer;
 
-		TransformerFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerConfigurationException {
+		TransformerFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerException {
 			if (parent != null) {
 				super.setParent(parent);
 				transformerHandler = JAXPFactoryHelper.newTransformerHandler(_templates);
@@ -59,8 +63,16 @@ public class XSLTAction extends SAXAction {
 				transformer = _templates.newTransformer();
 			}
 			transformer.setURIResolver(context.getPoolContext().getGlobalContext().getURIResolver());
-			for (Entry<String, Object> variable : message.getVariables().entrySet()) {
-				transformer.setParameter(variable.getKey(), variable.getValue());
+			for (String param : _params) {
+				Object value = message.getVariable(param);
+				if (value instanceof Node) {
+					// We need to make a copy otherwise Saxon complains with:
+					// "A node supplied in a global parameter must be built using the same Configuration that was used to compile the stylesheet or query"
+					DOMResult domResult = new DOMResult();
+					context.getIdenticalTransformer().transform(new DOMSource((Node) value), domResult);
+					value = domResult.getNode();
+				}
+				transformer.setParameter(param, value);
 			}
 			transformer.setOutputProperties(message.getSinkProperties());
 		}
@@ -90,13 +102,13 @@ public class XSLTAction extends SAXAction {
 	}
 
 	@Override
-	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws TransformerConfigurationException {
+	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws TransformerException {
 		TransformerFilter transformerFilter = new TransformerFilter(context, message, new XQJFilter(item));
 		return new SAXSource(transformerFilter, null);
 	}
 
 	@Override
-	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerConfigurationException {
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerException {
 		return new TransformerFilter(context, message, parent);
 	}
 
