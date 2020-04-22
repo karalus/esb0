@@ -152,7 +152,9 @@ public abstract class Artifact {
 	protected final void addReference(Artifact artifact) {
 		if (artifact != this) {
 			getReferenced().add(artifact.getURI());
-			artifact.getReferencedBy().add(getURI());
+			synchronized (artifact) {
+				artifact.getReferencedBy().add(getURI());
+			}
 			logger.debug(getURI() + "->" + artifact);
 		}
 	}

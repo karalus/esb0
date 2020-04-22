@@ -1,5 +1,7 @@
 package com.artofarc.esb.action;
 
+import java.util.Collections;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,7 +28,7 @@ public class TransformerTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new XSLTAction(xsltArtifact.getTemplates()), new TransformAction(
+		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()), new TransformAction(
 				"."), new DumpAction());
 		consumerPort.process(context, message);
 	}
@@ -39,7 +41,7 @@ public class TransformerTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getTemplates()), new TransformAction("."), new DumpAction());
+		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()), new TransformAction("."), new DumpAction());
 		consumerPort.process(context, message);
 	}
 
@@ -51,7 +53,7 @@ public class TransformerTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getTemplates()), new DumpAction());
+		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()), new DumpAction());
 		consumerPort.process(context, message);
 	}
 
@@ -63,8 +65,8 @@ public class TransformerTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getTemplates()), new XSLTAction(
-				xsltArtifact.getTemplates()), new DumpAction());
+		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()), new XSLTAction(
+				xsltArtifact.getTemplates(), Collections.<String> emptyList()), new DumpAction());
 		consumerPort.process(context, message);
 	}
 
@@ -80,7 +82,7 @@ public class TransformerTest extends AbstractESBTest {
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new TransformAction(
-				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact.getTemplates()),
+				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()),
 				createValidateAction(xsdArtifact), new DumpAction());
 		message.putVariable("param1", 42);
 		consumerPort.process(context, message);
@@ -161,7 +163,7 @@ public class TransformerTest extends AbstractESBTest {
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new TransformAction(
-				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact1.getTemplates()),
+				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact1.getTemplates(), Collections.<String> emptyList()),
 				new DumpAction());
 		message.putVariable("param1", 42);
 		consumerPort.process(context, message);

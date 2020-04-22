@@ -303,6 +303,11 @@
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<attribute name="xslURI" type="anyURI" use="required" />
+					<attribute name="params">
+						<simpleType>
+						    <list itemType="NMTOKEN" />
+						</simpleType>
+					</attribute>
 				</extension>
 			</complexContent>
 		</complexType>
