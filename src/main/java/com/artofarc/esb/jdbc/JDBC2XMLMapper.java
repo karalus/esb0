@@ -54,7 +54,9 @@ public final class JDBC2XMLMapper {
 
 	public String getTypeName() throws SAXException {
 		XSOMHelper xsomHelper = new XSOMHelper(_element);
-		xsomHelper.nextElement();
+		if (xsomHelper.getComplexType().getName() == null) {
+			xsomHelper.nextElement();
+		}
 		return xsomHelper.getComplexType().getName();
 	}
 
