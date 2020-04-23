@@ -23,6 +23,7 @@ import com.artofarc.esb.action.ValidateAction;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystemDir;
 import com.artofarc.esb.artifact.SchemaArtifact;
+import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.context.Context;
@@ -45,13 +46,13 @@ public abstract class AbstractESBTest {
 		createContext(null);
 	}
 
-	protected void createContext(File dir) {
+	protected void createContext(File dir) throws ValidationException {
 		System.setProperty("java.naming.factory.initial", "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
 		System.setProperty("java.naming.provider.url", "vm://localhost");
 		System.setProperty("esb0.httpconsumer.idletimeout", "0");
 		GlobalContext globalContext = new GlobalContext(getClass().getClassLoader(), null, new Properties());
 		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem());
-		XMLCatalog.attachToFileSystem(globalContext.getFileSystem());
+		XMLCatalog.attachToFileSystem(globalContext);
 		context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());
 	}
 

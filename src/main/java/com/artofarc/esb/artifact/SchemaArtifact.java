@@ -164,15 +164,17 @@ public abstract class SchemaArtifact extends Artifact {
 			if (schemaArtifact == null) {
 				throw new IllegalStateException("Reference has already been cleared");
 			}
-			systemId = XMLCatalog.alignSystemId(systemId);
+			XSDArtifact artifact = XMLCatalog.get(schemaArtifact, namespaceURI);
 			try {
-				XSDArtifact artifact = schemaArtifact.resolveArtifact(systemId, baseURI);
-				if (!cacheXSGrammars) {
-					artifact._namespace.set(namespaceURI);
-				}
-				if (baseURI == null) {
-					baseURI = FILE_SCHEMA + artifact.getURI();
-					systemId = artifact.getName();
+				if (artifact == null) {
+					artifact = schemaArtifact.resolveArtifact(systemId, baseURI);
+					if (!cacheXSGrammars) {
+						artifact._namespace.set(namespaceURI);
+					}
+					if (baseURI == null) {
+						baseURI = FILE_SCHEMA + artifact.getURI();
+						systemId = artifact.getName();
+					}
 				}
 				return new LSInputImpl(publicId, systemId, baseURI, artifact.getContentAsStream());
 			} catch (FileNotFoundException e) {
