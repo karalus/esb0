@@ -90,45 +90,40 @@ public final class SchemaHelper implements InvocationHandler {
 			return method.invoke(_grammarPool, args);
 		case "retrieveGrammar":
 			Object xmlGrammarDescription = args[0];
-			String namespace = ReflectionUtils.eval(xmlGrammarDescription, "namespace");
-			SchemaArtifact artifact = XMLCatalog.get(_schemaArtifact, namespace);
-			try {
-				String baseSystemId = null;
-				if (artifact == null) {
-					String systemId = ReflectionUtils.eval(xmlGrammarDescription, "literalSystemId");
-					if (systemId != null) {
-						baseSystemId = ReflectionUtils.eval(xmlGrammarDescription, "baseSystemId");
-						if (baseSystemId != null) {
-							artifact = _schemaArtifact.resolveArtifact(systemId, baseSystemId);
+			String systemId = ReflectionUtils.eval(xmlGrammarDescription, "literalSystemId");
+			if (systemId != null) {
+				String baseSystemId = ReflectionUtils.eval(xmlGrammarDescription, "baseSystemId");
+				String namespace = ReflectionUtils.eval(xmlGrammarDescription, "namespace");
+				try {
+					SchemaArtifact artifact;
+					if (baseSystemId != null) {
+						artifact = _schemaArtifact.resolveArtifact(namespace, systemId, baseSystemId);
+					} else {
+						artifact = _schemaArtifact.loadArtifact(systemId);
+					}
+					if (artifact != _schemaArtifact) {
+						// don't recurse when it is already started. Will result in stack overflow caused by circular dependencies. 
+						if (artifact._namespace.compareAndSet(null, namespace)) {
+							artifact.createXMLSchema();
 						} else {
-							artifact = _schemaArtifact.loadArtifact(systemId);
+							Object grammar = artifact.getGrammars().get(namespace);
+							if (grammar != null) return grammar;
+							synchronized (artifact) {
+								artifact.wait(timeout);
+							}
+							if (artifact.getGrammars().get(namespace) == null) {
+								Artifact.logger.warn(artifact.getURI() + " not initialized, yet. BaseURI is " + baseSystemId);
+							}
 						}
+						return artifact.getGrammars().get(namespace);
 					} else {
-						return null;
-					}
-				}
-				if (artifact != _schemaArtifact) {
-					// don't recurse when it is already started. Will result in stack overflow caused by circular dependencies. 
-					if (artifact._namespace.compareAndSet(null, namespace)) {
-						artifact.createXMLSchema();
-					} else {
-						Object grammar = artifact.getGrammars().get(namespace);
-						if (grammar != null) return grammar;
-						synchronized (artifact) {
-							artifact.wait(timeout);
-						}
-						if (artifact.getGrammars().get(namespace) == null) {
-							Artifact.logger.warn(artifact.getURI() + " not initialized, yet. BaseURI is " + baseSystemId);
+						if (_schemaArtifact instanceof XSDArtifact) {
+							_schemaArtifact._namespace.set(namespace);
 						}
 					}
-					return artifact.getGrammars().get(namespace);
-				} else {
-					if (_schemaArtifact instanceof XSDArtifact) {
-						_schemaArtifact._namespace.set(namespace);
-					}
+				} catch (Exception e) {
+					throw ReflectionUtils.convert(e, RuntimeException.class);
 				}
-			} catch (Exception e) {
-				throw ReflectionUtils.convert(e, RuntimeException.class);
 			}
 			return null;
 		case "cacheGrammars":

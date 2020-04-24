@@ -135,7 +135,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	protected XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException {
+	protected XSDArtifact resolveArtifact(String namespaceURI, String systemId, String baseURI) throws FileNotFoundException {
 		SchemaArtifact base = this;
 		if (baseURI != null) {
 			if (!baseURI.startsWith(FILE_SCHEMA)) {
@@ -143,8 +143,12 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 			}
 			base = loadArtifact(baseURI.substring(FILE_SCHEMA.length()));
 		}
-		String resourceURI = base.getParent().getURI() + '/' + systemId;
-		return loadArtifact(resourceURI);
+		XSDArtifact artifact = XMLCatalog.get(base, namespaceURI);
+		if (artifact == null) {
+			String resourceURI = base.getParent().getURI() + '/' + systemId;
+			artifact = loadArtifact(resourceURI);
+		}
+		return artifact;
 	}
 
 	@Override

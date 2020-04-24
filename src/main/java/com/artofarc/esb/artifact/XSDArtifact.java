@@ -61,7 +61,7 @@ public class XSDArtifact extends SchemaArtifact {
 	}
 
 	@Override
-	protected XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException {
+	protected XSDArtifact resolveArtifact(String namespaceURI, String systemId, String baseURI) throws FileNotFoundException {
 		SchemaArtifact base = this;
 		if (baseURI != null) {
 			if (!baseURI.startsWith(FILE_SCHEMA)) {
@@ -69,8 +69,11 @@ public class XSDArtifact extends SchemaArtifact {
 			}
 			base = loadArtifact(baseURI.substring(FILE_SCHEMA.length()));
 		}
-		String resourceURI = base.getParent().getURI() + '/' + systemId;
-		XSDArtifact artifact = loadArtifact(resourceURI);
+		XSDArtifact artifact = XMLCatalog.get(base, namespaceURI);
+		if (artifact == null) {
+			String resourceURI = base.getParent().getURI() + '/' + systemId;
+			artifact = loadArtifact(resourceURI);
+		}
 		base.addReference(artifact);
 		return artifact;
 	}
