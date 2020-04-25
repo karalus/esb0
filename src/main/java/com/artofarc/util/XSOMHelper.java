@@ -69,14 +69,10 @@ public final class XSOMHelper {
 		}
 
 		void nextChild() {
-			if (!endArray && (current().isRepeated() && current().getTerm().isElementDecl() || repeated)) {
-				startArray();
+			if (modelGroup.getCompositor() == XSModelGroup.CHOICE) {
+				pos = modelGroup.getSize();
 			} else {
-				if (modelGroup.getCompositor() == XSModelGroup.CHOICE) {
-					pos = modelGroup.getSize();
-				} else {
-					next();
-				}
+				next();
 			}
 		}
 
@@ -194,13 +190,12 @@ public final class XSOMHelper {
 	}
 
 	private final ArrayDeque<Entry<String, ArrayDeque<Group>>> _stack = new ArrayDeque<>();
-
 	private XSTerm _lastTerm;
 	private XSComplexType _complexType;
 	private Group _currentGroup, _nextGroup;
 	private String _nextType;
 	private XSSimpleType _simpleType;
-	private boolean _any, _required;
+	private boolean _any, _required, _repeated;
 
 	public XSOMHelper(XSComplexType complexType, XSElementDecl elementDecl) {
 		expandGroup(_complexType = complexType != null ? complexType : elementDecl.getType().asComplexType(), elementDecl);
@@ -251,20 +246,22 @@ public final class XSOMHelper {
 		return _complexType.getAttributeWildcard();
 	}
 
-	public void pushback(XSTerm term) {
-		if (term != null && _lastTerm != null) {
+	public void push(XSTerm term) {
+		if (_lastTerm != null) {
 			throw new IllegalStateException("can only pushback one term");
 		}
 		_lastTerm = term;
 	}
 
+	public XSTerm poll() {
+		final XSTerm term = _lastTerm;
+		_lastTerm = null;
+		return term;
+	}
+
 	public XSTerm nextElement() throws SAXException {
-		if (_lastTerm != null) {
-			final XSTerm term = _lastTerm;
-			_lastTerm = null;
-			return term;
-		}
-		return matchElement(null, null);
+		final XSTerm term = poll();
+		return term != null ? term : matchElement(null, null);
 	}
 
 	public XSTerm matchElement(String uri, String localName) throws SAXException {
@@ -278,6 +275,7 @@ public final class XSOMHelper {
 			if (_currentGroup.hasNext()) {
 				final XSParticle child = _currentGroup.current();
 				_required = child.getMinOccurs().signum() != 0;
+				_repeated = child.isRepeated();
 				final XSTerm term = child.getTerm();
 				if (term.isElementDecl()) {
 					final XSElementDecl element = term.asElementDecl();
@@ -305,7 +303,7 @@ public final class XSOMHelper {
 					saveCurrent();
 					_currentGroup = new Group(getCurrentComplexType(), child, term.asModelGroupDecl().getModelGroup());
 				} else if (term.isWildcard()) {
-					if (child.isRepeated()) {
+					if (_repeated) {
 						_currentGroup.startArray();
 					}
 					final XSWildcard wildcard = term.asWildcard();
@@ -342,7 +340,11 @@ public final class XSOMHelper {
 
 	private void foundParticle() {
 		_currentGroup.found();
-		nextParticle();
+		if (!_currentGroup.endArray && _repeated || _currentGroup.repeated) {
+			_currentGroup.startArray();
+		} else {
+			nextParticle();
+		}
 		Entry<String, ArrayDeque<Group>> context = _stack.peek();
 		if (context != null) {
 			for (Group group : context.getValue()) {
@@ -404,6 +406,10 @@ public final class XSOMHelper {
 		return _required;
 	}
 
+	public boolean isLastElementRepeated() {
+		return _repeated || _currentGroup.repeated;
+	}
+
 	public boolean isStartArray() {
 		return _currentGroup != null && _currentGroup.startArray;
 	}
@@ -418,6 +424,10 @@ public final class XSOMHelper {
 
 	public boolean isEndArray() {
 		return _currentGroup != null && _currentGroup.endArray;
+	}
+
+	public void startArray() {
+		--_currentGroup.pos;
 	}
 
 	public boolean endArray() {

@@ -86,9 +86,7 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 				comment("You may enter ANY element at this point");
 				xsomHelper.endAny();
 			} else {
-				if (xsomHelper.isStartArray()) {
-					while (xsomHelper.endArray());
-					xsomHelper.endArray();
+				if (xsomHelper.isLastElementRepeated()) {
 					comment("Repeated:");
 				}
 				QName element = new QName(term.apply(XSOMHelper.GetNamespace), term.apply(XSOMHelper.GetName));

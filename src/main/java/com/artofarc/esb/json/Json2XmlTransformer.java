@@ -141,6 +141,11 @@ public final class Json2XmlTransformer {
 			this.localName = localName;
 			this.qName = qName;
 		}
+
+		@Override
+		public String toString() {
+			return new QName(uri, localName).toString();
+		}
 	}
 
 	private abstract class AbstractParser extends XMLParserBase {
@@ -428,39 +433,53 @@ public final class Json2XmlTransformer {
 					addAttribute(getString(jsonObject.get(key)));
 				}				
 			}
-			startElement(e.uri, e.localName, e.qName, _atts);
-			_atts.clear();
-			for (int level = xsomHelper.getLevel();;) {
-				final XSTerm term = xsomHelper.nextElement();
-				if (level >= xsomHelper.getLevel()) {
-					xsomHelper.pushback(term);
-					break;
-				}
-				if (xsomHelper.isLastElementAny()) {
-					xsomHelper.endAny();
-				} else {
-					uri = null;
-					keyName = term.apply(XSOMHelper.GetName);
-					final JsonValue jsonValue = getJsonValue(jsonObject, keyName);
-					if (jsonValue != null) {
-						if (uri == null) {
-							uri = term.apply(XSOMHelper.GetNamespace);
+			if (xsomHelper.getSimpleType() != null) {
+				parse(e, getJsonValue(jsonObject, valueWrapper));
+				_atts.clear();
+			} else {
+				boolean mixed = xsomHelper.getComplexType().isMixed();
+				startElement(e.uri, e.localName, e.qName, _atts);
+				_atts.clear();
+				for (int level = xsomHelper.getLevel();;) {
+					final XSTerm term = xsomHelper.nextElement();
+					if (level >= xsomHelper.getLevel()) {
+						if (term != null) {
+							xsomHelper.push(term);
 						}
-						parse(new Element(uri, keyName, createQName(uri, keyName)), jsonValue);
+						break;
+					}
+					if (xsomHelper.isLastElementAny()) {
+						xsomHelper.endAny();
 					} else {
-						if (xsomHelper.isLastElementRequired()) {
-							throw new SAXException("Missing required element: " + new QName(uri, keyName));
-						}
-						if (xsomHelper.isStartArray()) {
-							while (xsomHelper.endArray());
-							xsomHelper.endArray();
-						} else if (xsomHelper.getComplexType() != null) {
-							xsomHelper.endComplex();
+						uri = null;
+						keyName = term.apply(XSOMHelper.GetName);
+						final JsonValue jsonValue = getJsonValue(jsonObject, keyName);
+						if (jsonValue != null) {
+							if (uri == null) {
+								uri = term.apply(XSOMHelper.GetNamespace);
+							}
+							parse(new Element(uri, keyName, createQName(uri, keyName)), jsonValue);
+						} else {
+							if (xsomHelper.isLastElementRequired()) {
+								throw new SAXException("Missing required element: " + new QName(uri, keyName));
+							}
+							if (xsomHelper.getComplexType() != null) {
+								xsomHelper.endComplex();
+							}
 						}
 					}
 				}
+				if (mixed) {
+					JsonArray jsonArray = (JsonArray) getJsonValue(jsonObject, valueWrapper);
+					if (jsonArray != null) {
+						for (JsonValue jsonValue : jsonArray) {
+							JsonString jsonString = (JsonString) jsonValue;
+							characters(jsonString.getString());
+						}
+					}
+				}
+				endElement(e.uri, e.localName, e.qName);
 			}
-			endElement(e.uri, e.localName, e.qName);
 		}
 
 		private void parse(Element e, JsonValue jsonValue) throws SAXException {
@@ -469,11 +488,16 @@ public final class Json2XmlTransformer {
 				parse(e, jsonValue.asJsonObject());
 				break;
 			case ARRAY:
+				if (!xsomHelper.isLastElementRepeated()) {
+					throw new SAXException("Array not expected for " + e);
+				}
+				xsomHelper.startArray();
 				for (JsonValue jsonValue2 : jsonValue.asJsonArray()) {
 					parse(e, jsonValue2);
-					xsomHelper.pushback(null);
+					if (xsomHelper.poll() != null) {
+						xsomHelper.startArray();
+					}
 				}
-				while (xsomHelper.endArray());
 				xsomHelper.endArray();
 				break;
 			case NULL:

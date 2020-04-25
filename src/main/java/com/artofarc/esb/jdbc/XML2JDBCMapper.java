@@ -139,7 +139,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 				primitiveType = simpleType != null ? XSOMHelper.getJsonType(simpleType) : null;
 			}
 		}
-		if (xsomHelper.isStartArray()) {
+		if (xsomHelper.isLastElementRepeated()) {
 			_stack.peek().array = true;
 		}
 		if (complex) {
@@ -161,32 +161,24 @@ public final class XML2JDBCMapper extends DefaultHandler {
 			return;
 		}
 		if (primitiveType == null) {
-			if (xsomHelper.isInArray()) {
-				while (xsomHelper.endArray());
-				xsomHelper.endArray();
-			} else {
-				for (int level = xsomHelper.getLevel();;) {
-					XSTerm term = xsomHelper.nextElement();;
-					if (term == null || level > xsomHelper.getLevel()) {
-						if (!xsomHelper.isInArray()) {
-							xsomHelper.pushback(term);
-						}
-						break;
+			for (int level = xsomHelper.getLevel();;) {
+				XSTerm term = xsomHelper.nextElement();
+				if (term == null || level > xsomHelper.getLevel()) {
+					if (term != null) {
+						xsomHelper.push(term);
 					}
-					if (xsomHelper.isLastElementAny()) {
-						xsomHelper.endAny();
+					break;
+				}
+				if (xsomHelper.isLastElementAny()) {
+					xsomHelper.endAny();
+				} else {
+					if (xsomHelper.isLastElementRepeated()) {
+						_stack.peek().array = true;
+						break;
 					} else {
-						if (xsomHelper.isStartArray()) {
-							_stack.peek().array = true;
-							while (xsomHelper.endArray());
-							xsomHelper.endArray();
+						_stack.peek().objects.add(null);
+						if (xsomHelper.getComplexType() != null) {
 							xsomHelper.endComplex();
-							break;
-						} else {
-							_stack.peek().objects.add(null);
-							if (xsomHelper.getComplexType() != null) {
-								xsomHelper.endComplex();
-							}
 						}
 					}
 				}
