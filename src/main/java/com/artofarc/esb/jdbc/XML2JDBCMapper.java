@@ -57,6 +57,11 @@ public final class XML2JDBCMapper extends DefaultHandler {
 		boolean array;
 		final ArrayList<Object> objects = new ArrayList<>();
 
+		void add(String localName, Object object) {
+			JDBCConnection.logger.debug(name + " adding " + localName + " at " + objects.size() + ": " + object);
+			objects.add(object);
+		}
+
 		Object create(JDBCConnection connection) throws SAXException {
 			if (name == null) {
 				return objects.get(0);
@@ -108,7 +113,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 					try {
 						SQLXML sqlxml = _connection.getConnection().createSQLXML();
 						delegate = sqlxml.setResult(SAXResult.class).getHandler();
-						dbObject.objects.add(sqlxml);
+						dbObject.add(localName, sqlxml);
 					} catch (SQLException e) {
 						throw new SAXException(e);
 					}
@@ -117,10 +122,11 @@ public final class XML2JDBCMapper extends DefaultHandler {
 					anyLevel = 1;
 					return;
 				}
-				if (localName.equals(term.apply(XSOMHelper.GetName))) {
+				String name = term.apply(XSOMHelper.GetName);
+				if (localName.equals(name)) {
 					break;
 				} else {
-					_stack.peek().objects.add(null);
+					_stack.peek().add(name, null);
 					if (xsomHelper.getComplexType() != null) {
 						xsomHelper.endComplex();
 					}
@@ -141,6 +147,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 		}
 		if (xsomHelper.isLastElementRepeated()) {
 			_stack.peek().array = true;
+			xsomHelper.startArray();
 		}
 		if (complex) {
 			DBObject dbObject = new DBObject();
@@ -161,6 +168,9 @@ public final class XML2JDBCMapper extends DefaultHandler {
 			return;
 		}
 		if (primitiveType == null) {
+			if (_stack.peek().array) {
+				xsomHelper.endArray();
+			}
 			for (int level = xsomHelper.getLevel();;) {
 				XSTerm term = xsomHelper.nextElement();
 				if (term == null || level > xsomHelper.getLevel()) {
@@ -174,9 +184,10 @@ public final class XML2JDBCMapper extends DefaultHandler {
 				} else {
 					if (xsomHelper.isLastElementRepeated()) {
 						_stack.peek().array = true;
+						xsomHelper.endArray();
 						break;
 					} else {
-						_stack.peek().objects.add(null);
+						_stack.peek().add(term.apply(XSOMHelper.GetName), null);
 						if (xsomHelper.getComplexType() != null) {
 							xsomHelper.endComplex();
 						}
@@ -230,7 +241,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 		}
 		DBObject dbObject = _stack.peek();
 		if (dbObject != null) {
-			dbObject.objects.add(object);
+			dbObject.add(localName, object);
 		}
 		primitiveType = null;
 		_builder.setLength(0);

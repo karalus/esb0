@@ -407,7 +407,7 @@ public final class XSOMHelper {
 	}
 
 	public boolean isLastElementRepeated() {
-		return _repeated || _currentGroup.repeated;
+		return _repeated || (_currentGroup != null && _currentGroup.repeated);
 	}
 
 	public boolean isStartArray() {

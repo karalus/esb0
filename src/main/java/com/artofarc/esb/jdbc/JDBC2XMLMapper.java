@@ -104,6 +104,9 @@ public final class JDBC2XMLMapper {
 		private void parse(Struct struct) throws SAXException, SQLException, IOException, ParserConfigurationException {
 			XSTerm term = _xsomHelper.nextElement();
 			_xsomHelper.checkComplexType(struct.getSQLTypeName());
+			if (_xsomHelper.isLastElementRepeated()) {
+				_xsomHelper.startArray();
+			}
 			final String _uri = term.apply(XSOMHelper.GetNamespace);
 			final String _name = term.apply(XSOMHelper.GetName);
 			startElement(_uri, _name, _name, _atts);
@@ -118,19 +121,21 @@ public final class JDBC2XMLMapper {
 					String uri = term.apply(XSOMHelper.GetNamespace);
 					String name = term.apply(XSOMHelper.GetName);
 					startElement(uri, name, name, _atts);
-					term = _xsomHelper.nextElement();
-					if (!_xsomHelper.isStartArray()) {
-						throw new SAXException("Expected array in " + _xsomHelper.getCurrentComplexType().getName());
-					}
-					for (Object element : (Object[]) inner.getArray()) {
-						if (element instanceof Struct) {
-							parse((Struct) element);
-						} else {
-							writeValue(element);
+					Object[] array = (Object[]) inner.getArray();
+					if (array.length > 0) {
+						for (Object element : array) {
+							if (element instanceof Struct) {
+								parse((Struct) element);
+							} else {
+								writeValue(element);
+							}
 						}
+						_xsomHelper.endArray();
+					} else {
+						_xsomHelper.nextElement();
 					}
 					endElement(uri, name, name);
-					_xsomHelper.endArray();
+					_xsomHelper.endComplex();
 				} else if (attribute instanceof SQLXML) {
 					term = _xsomHelper.nextElement();
 					String uri = term.apply(XSOMHelper.GetNamespace);
