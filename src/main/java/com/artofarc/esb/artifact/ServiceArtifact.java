@@ -286,7 +286,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either variable or header");
 				}
 			}
-			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), false);
+			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearAll());
 			XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;
