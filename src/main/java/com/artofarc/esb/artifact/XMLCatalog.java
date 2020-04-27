@@ -45,8 +45,8 @@ public final class XMLCatalog extends Directory {
 
 	private final Map<String, XSDArtifact> _schemaArtifacts = new HashMap<>();
 
-	public XMLCatalog(FileSystem fileSystem) {
-		super(fileSystem, fileSystem.getRoot(), PATH.substring(1));
+	public XMLCatalog(FileSystem fileSystem, Directory parent) {
+		super(fileSystem, parent, PATH.substring(1));
 	}
 
 	public Map<String, XSDArtifact> getSchemaArtifacts() {
@@ -62,8 +62,8 @@ public final class XMLCatalog extends Directory {
 
 	@Override
 	protected XMLCatalog clone(FileSystem fileSystem, Directory parent) {
-		XMLCatalog clone = initClone(new XMLCatalog(fileSystem));
-		for (Map.Entry<String, XSDArtifact> entry : clone._schemaArtifacts.entrySet()) {
+		XMLCatalog clone = initClone(new XMLCatalog(fileSystem, parent));
+		for (Map.Entry<String, XSDArtifact> entry : _schemaArtifacts.entrySet()) {
 			XSDArtifact childClone = entry.getValue().clone(fileSystem, clone);
 			clone._schemaArtifacts.put(entry.getKey(), childClone);
 			clone.getArtifacts().put(childClone.getName(), childClone);
@@ -73,7 +73,7 @@ public final class XMLCatalog extends Directory {
 
 	public static void attachToFileSystem(GlobalContext globalContext) {
 		FileSystem fileSystem = globalContext.getFileSystem();
-		XMLCatalog xmlCatalog = new XMLCatalog(fileSystem);
+		XMLCatalog xmlCatalog = new XMLCatalog(fileSystem, fileSystem.getRoot());
 		try {
 			{
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "xml.xsd");
