@@ -109,7 +109,7 @@ public class SpawnAction extends Action {
 
 	public static Future<ESBMessage> submit(Context context, final ESBMessage message, String workerPoolName, final Action action, final Collection<Action> executionStack, boolean rejoin, final boolean spread) throws RejectedExecutionException {
 		context.getTimeGauge().startTimeMeasurement();
-		final WorkerPool workerPool = context.getPoolContext().getGlobalContext().getWorkerPool(workerPoolName);
+		final WorkerPool workerPool = context.getGlobalContext().getWorkerPool(workerPoolName);
 		final Collection<Action> stackErrorHandler = Collections.newList(context.getStackErrorHandler(), rejoin, !spread);
 		final Collection<Integer> stackPos = Collections.newList(context.getStackPos(), rejoin, !spread);
 		try {

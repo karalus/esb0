@@ -58,9 +58,9 @@ public class AdminAction extends Action {
 			BranchOnPathAction.parseQueryString(message);
 			if (message.getVariables().containsKey("delete")) {
 				// Dirty hack for standard JSP is not able to send DELETE without ajax
-				deleteArtifact(context.getPoolContext().getGlobalContext(), message, resource);
+				deleteArtifact(context.getGlobalContext(), message, resource);
 			} else {
-				readArtifact(context.getPoolContext().getGlobalContext(), message, resource);
+				readArtifact(context, message, resource);
 			}
 			break;
 		case "PUT":
@@ -68,7 +68,7 @@ public class AdminAction extends Action {
 			changeConfiguration(context, message, resource);
 			break;
 		case "DELETE":
-			deleteArtifact(context.getPoolContext().getGlobalContext(), message, resource);
+			deleteArtifact(context.getGlobalContext(), message, resource);
 			break;
 		default:
 			createErrorResponse(message, HttpServletResponse.SC_METHOD_NOT_ALLOWED, verb);
@@ -90,8 +90,8 @@ public class AdminAction extends Action {
 		message.reset(null, errorMessage);
 	}
 
-	private void readArtifact(GlobalContext globalContext, ESBMessage message, String resource) throws IOException {
-		Artifact artifact = globalContext.getFileSystem().getArtifact(resource);
+	private void readArtifact(Context context, ESBMessage message, String resource) throws IOException {
+		Artifact artifact = context.getGlobalContext().getFileSystem().getArtifact(resource);
 		if (artifact != null) {
 			if (artifact instanceof Directory) {
 				Directory directory = (Directory) artifact;
@@ -114,7 +114,7 @@ public class AdminAction extends Action {
 						String content = new String(IOUtils.copy(contentAsStream), ESBMessage.CHARSET_DEFAULT);
 						contentAsStream.close();
 						try {
-							content = (String) bindVariable(content, null, message);
+							content = (String) bindVariable(content, context, message);
 						} catch (Exception e) {
 							logger.warn("Could not adapt WSDL " + resource, e);
 						}
@@ -153,7 +153,7 @@ public class AdminAction extends Action {
 	}
 
 	private static void changeConfiguration(Context context, ESBMessage message, String resource) throws Exception {
-		GlobalContext globalContext = context.getPoolContext().getGlobalContext();
+		GlobalContext globalContext = context.getGlobalContext();
 		// if a file is posted to root then deploy it
 		if (resource.equals("/")) {
 			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);

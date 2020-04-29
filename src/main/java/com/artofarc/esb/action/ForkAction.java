@@ -37,7 +37,7 @@ public class ForkAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		final WorkerPool workerPool = context.getPoolContext().getGlobalContext().getWorkerPool(_workerPool);
+		final WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
 		final Context workerContext = workerPool.getContext();
 		try {
 			final ESBMessage copy = message.copy(workerContext, _copyMessage);

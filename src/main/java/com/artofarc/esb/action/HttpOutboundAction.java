@@ -50,7 +50,7 @@ public class HttpOutboundAction extends Action {
 	}
 
 	private HttpUrlSelector.HttpUrlConnectionWrapper createHttpURLConnection(Context context, ESBMessage message, String contentType) throws Exception {
-		HttpUrlSelector httpUrlSelector = context.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
+		HttpUrlSelector httpUrlSelector = context.getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
 		String appendHttpUrl = message.getVariable(appendHttpUrlPath);
