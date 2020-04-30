@@ -540,6 +540,7 @@
 									<extension base="string">
 										<attribute name="javaType" type="Name" />
 										<attribute name="method" type="Name" />
+										<attribute name="fileURI" type="anyURI" />
 									</extension>
 								</simpleContent>
 							</complexType>

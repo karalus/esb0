@@ -189,6 +189,8 @@ public class FileSystem {
 			return new ClassLoaderArtifact(this, parent, name);
 		case "jar":
 			return new JarArtifact(this, parent, name);
+		case "json":
+			return new JSONArtifact(this, parent, name);
 		default:
 			logger.debug("Cannot be imported: " + name);
 			return null;

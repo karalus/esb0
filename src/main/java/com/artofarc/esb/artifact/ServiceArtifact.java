@@ -251,7 +251,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, setMessage.getClassLoader());
 			SetMessageAction setMessageAction;
 			if (setMessage.getBody() != null) {
-				setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, setMessage.getBody().getValue(), setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
+				String bodyExpr = setMessage.getBody().getValue();
+				if (setMessage.getBody().getFileURI() != null) {
+					Artifact artifact = loadArtifact(setMessage.getBody().getFileURI());
+					artifact.validate(globalContext);
+					addReference(artifact);
+					bodyExpr = new String(artifact.getContentAsBytes(), "UTF-8");
+				}
+				setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, bodyExpr, setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
 			} else {
 				setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, null, null, null);
 			}

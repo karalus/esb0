@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb;
 
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,8 @@ import javax.xml.namespace.QName;
 import org.xml.sax.SAXException;
 
 import com.artofarc.util.Collections;
+import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSAttributeDecl;
 import com.sun.xml.xsom.XSAttributeUse;
@@ -34,6 +37,7 @@ import com.sun.xml.xsom.XSFacet;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
 import com.sun.xml.xsom.XSTerm;
+import com.sun.xml.xsom.parser.XSOMParser;
 
 public final class JsonSchemaGenerator {
 
@@ -220,6 +224,18 @@ public final class JsonSchemaGenerator {
 			}
 			jsonGenerator.writeEnd();
 		}
+	}
+
+	public static String generate(String xsdFilename, String type) throws SAXException {
+		XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
+		xsomParser.parse(xsdFilename);
+//		System.out.println("Number of parsed docs: " + xsomParser.getDocuments().size());
+		JsonSchemaGenerator jsonSchemaGenerator = new JsonSchemaGenerator(xsomParser.getResult(), null);
+		StringWriter stringWriter = new StringWriter();
+		try (JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(stringWriter)) {
+			jsonSchemaGenerator.generate(type, jsonGenerator);
+		}
+		return stringWriter.toString();
 	}
 
 }

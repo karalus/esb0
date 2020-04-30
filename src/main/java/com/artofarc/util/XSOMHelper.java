@@ -40,13 +40,14 @@ public final class XSOMHelper {
 			this.repeated = particle.isRepeated();
 			this.modelGroup = modelGroup;
 			this.all = modelGroup.getCompositor() == XSModelGroup.ALL;
+			this.choice = modelGroup.getCompositor() == XSModelGroup.CHOICE;
 		}
 
 		final XSComplexType owner;
 		final boolean required;
 		final boolean repeated;
 		final XSModelGroup modelGroup;
-		final boolean all;
+		final boolean all, choice;
 		int pos, count;
 		boolean startArray, middleArray, endArray;
 
@@ -69,7 +70,7 @@ public final class XSOMHelper {
 		}
 
 		void nextChild() {
-			if (modelGroup.getCompositor() == XSModelGroup.CHOICE) {
+			if (choice) {
 				pos = modelGroup.getSize();
 			} else {
 				next();
@@ -403,7 +404,7 @@ public final class XSOMHelper {
 	}
 
 	public boolean isLastElementRequired() {
-		return _required;
+		return _required && !_currentGroup.choice;
 	}
 
 	public boolean isLastElementRepeated() {
