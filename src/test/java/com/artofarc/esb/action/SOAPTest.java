@@ -394,8 +394,8 @@ public class SOAPTest extends AbstractESBTest {
       JMSAction jmsAction = new JMSAction(getGlobalContext(), jmsConnectionData, "dynamicQueues/test1", null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 100, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(jmsAction);
-      consumerPort.process(context, message);
       assertFalse(markAction.isExecuted());
+      consumerPort.process(context, message);
 
       Thread.sleep(100);
       

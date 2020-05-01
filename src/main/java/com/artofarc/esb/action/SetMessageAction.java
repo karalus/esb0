@@ -20,6 +20,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWrapper;
 import com.artofarc.util.ReflectionUtils;
 
 import java.lang.reflect.Constructor;
@@ -36,7 +37,7 @@ public class SetMessageAction extends ForwardAction {
 	private final List<Assignment> _assignments = new ArrayList<>();
 	private final Assignment _body; 
 
-	public SetMessageAction(boolean clearAll, ClassLoader cl, String bodyExpr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+	public SetMessageAction(boolean clearAll, ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 		_clearAll = clearAll;
 		_classLoader = cl;
 		_body = bodyExpr != null ? new Assignment(null, false, bodyExpr, javaType, method) : null;
@@ -45,7 +46,7 @@ public class SetMessageAction extends ForwardAction {
 	}
 
 	public final void addAssignment(String name, boolean header, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
-		Assignment assignment = new Assignment(name, header, expr, javaType, method);
+		Assignment assignment = new Assignment(name, header, new StringWrapper(expr), javaType, method);
 		_assignments.add(assignment);
 		if (assignment._needsBody) {
 			_pipelineStop = true;
@@ -61,7 +62,7 @@ public class SetMessageAction extends ForwardAction {
 			if (assignment._needsBody) {
 				break;
 			} else {
-				assignment.assign(message, bindVariable(assignment._expr, context, message));
+				assignment.assign(message, bindVariable(assignment._expr.getString(), context, message));
 			}
 		}
 		return super.prepare(context, message, inPipeline);
@@ -72,11 +73,11 @@ public class SetMessageAction extends ForwardAction {
 		boolean forBody = false;
 		for (Assignment assignment : _assignments) {
 			if (forBody |= assignment._needsBody) {
-				assignment.assign(message, bindVariable(assignment._expr, context, message));
+				assignment.assign(message, bindVariable(assignment._expr.getString(), context, message));
 			}
 		}
 		if (_body != null) {
-			message.reset(null, _body.convert(bindVariable(_body._expr, context, message)));
+			message.reset(null, _body.convert(bindVariable(_body._expr.getString(), context, message)));
 			if (!_clearAll) {
 				message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 			}
@@ -88,16 +89,16 @@ public class SetMessageAction extends ForwardAction {
 
 		final String _name;
 		final boolean _header;
-		final String _expr;
+		final StringWrapper _expr;
 		final boolean _needsBody;
 		Constructor<?> _con;
 		Method _method;
 
-		Assignment(String name, boolean header, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+		Assignment(String name, boolean header, StringWrapper expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
 			_name = name;
 			_header = header;
 			_expr = expr;
-			_needsBody = expr.contains("${body");
+			_needsBody = expr.getString().contains("${body");
 			if (javaType != null) {
 				Class<?> cls = Class.forName(javaType, true, _classLoader);
 				if (method != null) {

@@ -44,6 +44,7 @@ import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.ReflectionUtils;
+import com.artofarc.util.StringWrapper;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.WSDL4JUtil;
 import com.sun.xml.xsom.XSSchemaSet;
@@ -251,12 +252,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, setMessage.getClassLoader());
 			SetMessageAction setMessageAction;
 			if (setMessage.getBody() != null) {
-				String bodyExpr = setMessage.getBody().getValue();
+				StringWrapper bodyExpr;
 				if (setMessage.getBody().getFileURI() != null) {
 					Artifact artifact = loadArtifact(setMessage.getBody().getFileURI());
 					artifact.validate(globalContext);
 					addReference(artifact);
-					bodyExpr = new String(artifact.getContentAsBytes(), "UTF-8");
+					bodyExpr = new StringWrapper(artifact.getContentAsBytes());
+				} else {
+					bodyExpr = new StringWrapper(setMessage.getBody().getValue());
 				}
 				setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, bodyExpr, setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
 			} else {

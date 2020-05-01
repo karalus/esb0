@@ -17,6 +17,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWrapper;
 import com.artofarc.esb.message.ESBConstants;
 
 
@@ -111,7 +112,7 @@ public class ActionTest extends AbstractESBTest {
    @Test
    public void testSetMessage() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), "${body}", "java.lang.String", null);
+      SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), new StringWrapper("${body}"), "java.lang.String", null);
 		action.addAssignment("int", true, "42", "java.lang.Integer", null);
 		action.addAssignment("bool", true, "true", "java.lang.Boolean", "parseBoolean");
 		action.addAssignment("now", true, "", "java.lang.System", "currentTimeMillis");

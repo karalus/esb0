@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.TimerService;
+import com.artofarc.util.StringWrapper;
 
 public class FileSystemWatchTest extends AbstractESBTest {
 
@@ -42,7 +43,7 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		moveDir.mkdir();
 		moveDir.deleteOnExit();
 		TimerService timerService = new TimerService(null, null, null, "seconds", 1, 0, false);
-		SetMessageAction setMessageAction = new SetMessageAction(false, getClass().getClassLoader(), "${filenameOrigin}: ${tstmp}\n", null, null);
+		SetMessageAction setMessageAction = new SetMessageAction(false, getClass().getClassLoader(), new StringWrapper("${filenameOrigin}: ${tstmp}\n"), null, null);
 		setMessageAction.addAssignment("filenameOrigin", false, "${filename}", null, null);
 		setMessageAction.addAssignment("filename", false, "log.txt", null, null);
 		setMessageAction.addAssignment("HttpMethod", false, "ENTRY_MODIFY", null, null);
