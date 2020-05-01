@@ -69,14 +69,6 @@ public final class XSOMHelper {
 			return modelGroup.getChild(pos);
 		}
 
-		void nextChild() {
-			if (choice) {
-				pos = modelGroup.getSize();
-			} else {
-				next();
-			}
-		}
-
 		void startArray() {
 			if (startArray) {
 				startArray = false;
@@ -316,7 +308,7 @@ public final class XSOMHelper {
 								if (!(_currentGroup.startArray || _currentGroup.middleArray)) {
 									_currentGroup.next();
 								}
-								_currentGroup.nextChild();
+								_currentGroup.next();
 								processElement(element);
 								return element;
 							}
@@ -356,7 +348,7 @@ public final class XSOMHelper {
 
 	private void nextParticle() {
 		if (_currentGroup != null && _currentGroup.hasNext()) {
-			_currentGroup.nextChild();
+			_currentGroup.next();
 		} else {
 			for (Entry<String, ArrayDeque<Group>> context = _stack.peek(); context != null;) {
 				_currentGroup = context.getValue().peek();
@@ -451,7 +443,7 @@ public final class XSOMHelper {
 
 	public void endAny() {
 		if (_currentGroup != null && _currentGroup.hasNext()) {
-			_currentGroup.nextChild();
+			_currentGroup.next();
 		}
 		_complexType = null;
 	}

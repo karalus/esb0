@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb;
+package com.artofarc.esb.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;

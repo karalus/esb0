@@ -4,7 +4,11 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
+import javax.json.stream.JsonGenerator;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
 import javax.xml.transform.OutputKeys;
@@ -12,16 +16,20 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 
 import org.junit.Test;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 
 import com.artofarc.esb.AbstractESBTest;
-import com.artofarc.esb.XmlSampleGenerator;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.json.Json2XmlTransformer;
 import com.artofarc.esb.json.Xml2JsonTransformer;
+import com.artofarc.esb.util.JsonSchemaGenerator;
+import com.artofarc.esb.util.XmlSampleGenerator;
+import com.artofarc.util.JsonFactoryHelper;
+import com.artofarc.util.NamespaceMap;
 import com.artofarc.util.StringWriter;
 import com.artofarc.util.TimeGauge;
 import com.artofarc.util.XMLParserBase;
@@ -112,17 +120,23 @@ public class XSOMTest extends AbstractESBTest {
 		map.put("", "http://aoa.de/xsd/demo/v1/");
 		map.put("ei1", "http://aoa.de/ei/foundation/v1");
 		
+		StringWriter writer1 = new StringWriter();
 		Transformer transformer = context.getIdenticalTransformer();
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, true, map);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest.json"));
-		transformer.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
-
+		transformer.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), new StreamResult(writer1));
+		System.out.println(writer1);
+	
 		StringWriter writer = new StringWriter();
-		byteStream.reset();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, true, map);
-		XMLParserBase parser = json2xml.createStreamingParser();
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, null);
 		ContentHandler th = xml2JsonTransformer.createTransformerHandler(writer);
+		transformer.transform(new StreamSource(writer1.getStringReader()), new SAXResult(th));
+		System.out.println(writer);
+		
+		byteStream.reset();
+		XMLParserBase parser = json2xml.createParser();
+		th = xml2JsonTransformer.createTransformerHandler(writer);
 		parser.setContentHandler(th);
 		parser.parse(new InputSource(byteStream));
 		transformer.setOutputProperty(OutputKeys.INDENT, "no");
@@ -278,6 +292,32 @@ public class XSOMTest extends AbstractESBTest {
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 		transformer.transform(new SAXSource(generator, null),  new StreamResult(System.out));
 	}
-	
-	
+
+	@Test
+	public void testGenerateJSonSchema() throws Exception {
+		Map<String, String> prefixMap = new HashMap<String, String>();
+		prefixMap.put("", "http://aoa.de/xsd/demo/v1/");
+		JsonSchemaGenerator generator = new JsonSchemaGenerator(createXSSchemaSet(), prefixMap);
+		
+		JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(System.out);
+		
+		//generator.generate("{http://aoa.de/ei/foundation/v1}propertyListType", jsonGenerator);
+		generator.generate("/type::demoType", jsonGenerator);
+		jsonGenerator.close();
+	}
+
+	@Test
+	public void testNamespaceMap() throws Exception {
+		Map<String, String> prefixMap = new LinkedHashMap<>();
+		prefixMap.put("v1", "http://aoa.de/xsd/demo/v1/");
+		prefixMap.put("", "http://aoa.de/xsd/demo/v1/");
+		prefixMap.put("v11", "http://aoa.de/xsd/demo/v1/");
+		prefixMap.put("e11", "http://aoa.de/ei/foundation/v1");
+		NamespaceMap map = new NamespaceMap(prefixMap);
+		Iterator<String> prefixes = map.getPrefixes("http://aoa.de/xsd/demo/v1/");
+		assertEquals("", prefixes.next());
+		assertEquals("v1", prefixes.next());
+		assertEquals("v11", prefixes.next());
+	}
+
 }

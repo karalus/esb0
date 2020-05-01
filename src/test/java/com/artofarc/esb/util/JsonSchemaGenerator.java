@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb;
+package com.artofarc.esb.util;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -43,6 +43,14 @@ public final class JsonSchemaGenerator {
 	public JsonSchemaGenerator(XSSchemaSet schemaSet, Map<String, String> prefixMap) {
 		_schemaSet = schemaSet;
 		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
+	}
+
+	public String generate(String scd) {
+		StringWriter stringWriter = new StringWriter();
+		try (JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(stringWriter)) {
+			generate(scd, jsonGenerator);
+		}
+		return stringWriter.toString();
 	}
 
 	public void generate(String scd, JsonGenerator jsonGenerator) {
@@ -229,18 +237,13 @@ public final class JsonSchemaGenerator {
 		}
 	}
 
-	public static String generate(String systemId, String namespace, String scd) throws SAXException {
+	public static JsonSchemaGenerator createJsonSchemaGenerator(String systemId, String namespace) throws SAXException {
 		XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
 		xsomParser.parse(systemId);
 //		System.out.println("Number of parsed docs: " + xsomParser.getDocuments().size());
 		Map<String, String> prefixMap = new HashMap<String, String>();
 		prefixMap.put("", namespace);
-		JsonSchemaGenerator jsonSchemaGenerator = new JsonSchemaGenerator(xsomParser.getResult(), prefixMap);
-		StringWriter stringWriter = new StringWriter();
-		try (JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(stringWriter)) {
-			jsonSchemaGenerator.generate(scd, jsonGenerator);
-		}
-		return stringWriter.toString();
+		return new JsonSchemaGenerator(xsomParser.getResult(), prefixMap);
 	}
 
 }
