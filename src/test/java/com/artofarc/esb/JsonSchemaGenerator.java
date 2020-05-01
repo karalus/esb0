@@ -18,46 +18,49 @@ package com.artofarc.esb;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.json.stream.JsonGenerator;
-import javax.xml.namespace.QName;
 
 import org.xml.sax.SAXException;
 
-import com.artofarc.util.Collections;
 import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.JsonFactoryHelper;
+import com.artofarc.util.NamespaceMap;
 import com.artofarc.util.XSOMHelper;
-import com.sun.xml.xsom.XSAttributeDecl;
-import com.sun.xml.xsom.XSAttributeUse;
-import com.sun.xml.xsom.XSComplexType;
-import com.sun.xml.xsom.XSFacet;
-import com.sun.xml.xsom.XSSchemaSet;
-import com.sun.xml.xsom.XSSimpleType;
-import com.sun.xml.xsom.XSTerm;
+import com.sun.xml.xsom.*;
 import com.sun.xml.xsom.parser.XSOMParser;
 
 public final class JsonSchemaGenerator {
 
 	private final XSSchemaSet _schemaSet;
-	private final Map<String, String> _nsMap;
+	private final NamespaceMap _namespaceMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
 	public JsonSchemaGenerator(XSSchemaSet schemaSet, Map<String, String> prefixMap) {
 		_schemaSet = schemaSet;
-		_nsMap = prefixMap != null ? Collections.inverseMap(prefixMap.entrySet()) : null;
+		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
 	}
 
-	public void generate(String type, JsonGenerator jsonGenerator) {
-		QName _type = QName.valueOf(type);
-		XSComplexType complexType = _schemaSet.getComplexType(_type.getNamespaceURI(), _type.getLocalPart());
-		if (complexType == null) {
-			throw new IllegalArgumentException("Could not find type " + type);
+	public void generate(String scd, JsonGenerator jsonGenerator) {
+		XSComponent component = _schemaSet.selectSingle(scd, _namespaceMap);
+		if (component instanceof XSComplexType) {
+			generate(new XSOMHelper((XSComplexType) component, null), jsonGenerator);
+		} else if (component instanceof XSElementDecl) {
+			generate(new XSOMHelper((XSElementDecl) component), jsonGenerator);
+		} else if (component instanceof XSSimpleType) {
+			jsonGenerator.writeStartObject();
+			generateType((XSSimpleType) component, jsonGenerator);
+			jsonGenerator.writeEnd();
+		} else {
+			throw new IllegalArgumentException(scd + " does not resolve to complex type or element, but " + component);
 		}
-		XSOMHelper xsomHelper = new XSOMHelper(complexType, null);
+	}
+
+	private void generate(XSOMHelper xsomHelper, JsonGenerator jsonGenerator) {
 		jsonGenerator.writeStartObject();
 		// jsonGenerator.write("$schema", "http://json-schema.org/draft-04/schema#");
 		try {
@@ -110,8 +113,8 @@ public final class JsonSchemaGenerator {
 					xsomHelper.endAny();
 				} else {
 					String name = term.apply(XSOMHelper.GetName);
-					if (_nsMap != null) {
-						String prefix = _nsMap.get(term.apply(XSOMHelper.GetNamespace));
+					if (_namespaceMap != null) {
+						String prefix = _namespaceMap.getPrefix(term.apply(XSOMHelper.GetNamespace));
 						if (prefix != null && prefix.length() > 0) {
 							name = prefix + '.' + name;
 						}
@@ -226,14 +229,16 @@ public final class JsonSchemaGenerator {
 		}
 	}
 
-	public static String generate(String xsdFilename, String type) throws SAXException {
+	public static String generate(String systemId, String namespace, String scd) throws SAXException {
 		XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
-		xsomParser.parse(xsdFilename);
+		xsomParser.parse(systemId);
 //		System.out.println("Number of parsed docs: " + xsomParser.getDocuments().size());
-		JsonSchemaGenerator jsonSchemaGenerator = new JsonSchemaGenerator(xsomParser.getResult(), null);
+		Map<String, String> prefixMap = new HashMap<String, String>();
+		prefixMap.put("", namespace);
+		JsonSchemaGenerator jsonSchemaGenerator = new JsonSchemaGenerator(xsomParser.getResult(), prefixMap);
 		StringWriter stringWriter = new StringWriter();
 		try (JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(stringWriter)) {
-			jsonSchemaGenerator.generate(type, jsonGenerator);
+			jsonSchemaGenerator.generate(scd, jsonGenerator);
 		}
 		return stringWriter.toString();
 	}

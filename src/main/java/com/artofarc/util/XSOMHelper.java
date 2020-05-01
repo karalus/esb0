@@ -223,7 +223,7 @@ public final class XSOMHelper {
 		if (particle != null) {
 			_nextType = complexType.getName();
 			if (_nextType == null) {
-				_nextType = "Anonymous type in " + element.getName();
+				_nextType = "Anonymous type in " + (element != null ? element.getName() : "unknown element");
 			}
 			_nextGroup = new Group(complexType, particle, particle.getTerm().asModelGroup());
 		} else {

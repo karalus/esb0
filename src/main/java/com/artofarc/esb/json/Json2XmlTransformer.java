@@ -31,8 +31,8 @@ import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
-import com.artofarc.util.Collections;
 import com.artofarc.util.JsonFactoryHelper;
+import com.artofarc.util.NamespaceMap;
 import com.artofarc.util.XMLParserBase;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.*;
@@ -46,7 +46,7 @@ public final class Json2XmlTransformer {
 	private final boolean _includeRoot;
 	private final String _rootUri, _rootName;
 	private final XSComplexType _complexType;
-	private final Map<String, String> _prefixMap, _nsMap;
+	private final NamespaceMap _namespaceMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
@@ -78,8 +78,7 @@ public final class Json2XmlTransformer {
 			}
 		}
 		_includeRoot = includeRoot;
-		_prefixMap = prefixMap;
-		_nsMap = prefixMap != null ? Collections.inverseMap(prefixMap.entrySet()) : null;
+		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
 		_createDocumentEvents = createDocumentEvents;
 	}
 
@@ -157,7 +156,7 @@ public final class Json2XmlTransformer {
 		int any = -1;
 
 		AbstractParser() {
-			super(_createDocumentEvents, _prefixMap, _nsMap);
+			super(_createDocumentEvents, _namespaceMap);
 		}
 
 		void addAttribute(String value) throws SAXException {
@@ -283,8 +282,8 @@ public final class Json2XmlTransformer {
 						}
 						final int i = keyName.indexOf('.');
 						if (i >= 0) {
-							if (_prefixMap != null) {
-								uri = _prefixMap.get(keyName.substring(0, i));
+							if (_namespaceMap != null) {
+								uri = _namespaceMap.getNamespaceURI(keyName.substring(0, i));
 							} else if (VALIDATE_PREFIXES) {
 								throw new SAXException("No prefix map provided, but found " + keyName);
 							}
@@ -520,12 +519,13 @@ public final class Json2XmlTransformer {
 
 		private JsonValue getJsonValue(JsonObject jsonObject, String key) {
 			JsonValue jsonValue = jsonObject.get(key);
-			if (jsonValue == null && _prefixMap != null) {
-				for (String prefix : _prefixMap.keySet()) {
+			if (jsonValue == null && _namespaceMap != null) {
+				for (Map.Entry<String, String> entry : _namespaceMap.getPrefixes()) {
+					String prefix = entry.getKey();
 					if (prefix.length() > 0) {
 						jsonValue = jsonObject.get(prefix + '.' + key);
 						if (jsonValue != null) {
-							uri = _prefixMap.get(prefix);
+							uri = entry.getValue();
 							break;
 						}
 					}

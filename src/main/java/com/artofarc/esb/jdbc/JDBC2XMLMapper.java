@@ -73,7 +73,7 @@ public final class JDBC2XMLMapper {
 		final AttributesImpl _atts = new AttributesImpl();
 
 		Parser(Context context, Struct struct) {
-			super(true, null, null);
+			super(true, null);
 			_struct = struct;
 			_context = context;
 		}

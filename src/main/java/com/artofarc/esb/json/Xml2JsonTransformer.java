@@ -33,8 +33,8 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import com.artofarc.util.Collections;
 import com.artofarc.util.JsonFactoryHelper;
+import com.artofarc.util.NamespaceMap;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSAttributeUse;
 import com.sun.xml.xsom.XSComplexType;
@@ -46,7 +46,7 @@ public final class Xml2JsonTransformer {
 	private final XSSchemaSet _schemaSet;
 	private final XSComplexType _complexType;
 	private final boolean _includeRoot;
-	private final Map<String, String> _nsMap;
+	private final NamespaceMap _namespaceMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
@@ -59,7 +59,7 @@ public final class Xml2JsonTransformer {
 			_complexType = null;
 		}
 		_includeRoot = includeRoot;
-		_nsMap = prefixMap != null ? Collections.inverseMap(prefixMap.entrySet()) : null;
+		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
 	}
 
 	public ContentHandler createTransformerHandler(Writer writer) {
@@ -139,8 +139,8 @@ public final class Xml2JsonTransformer {
 				}
 			}
 			String key = localName;
-			if (_nsMap != null) {
-				String prefix = _nsMap.get(uri);
+			if (_namespaceMap != null) {
+				String prefix = _namespaceMap.getPrefix(uri);
 				if (prefix != null && prefix.length() > 0) {
 					key = prefix + '.' + localName;
 				}

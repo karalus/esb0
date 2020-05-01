@@ -46,20 +46,6 @@ public final class Collections {
 		return result;
 	}
 
-	/**
-	 * In case of a collision keep the shortest key.
-	 */
-	public static <V> Map<V, String> inverseMap(Collection<Map.Entry<String, V>> entrySet) {
-		Map<V, String> result = new HashMap<>();
-		for (Map.Entry<String, V> entry : entrySet) {
-			String old = result.get(entry.getValue());
-			if (old == null || old.length() > entry.getKey().length()) {
-				result.put(entry.getValue(), entry.getKey());
-			}
-		}
-		return result;
-	}
-
 	public static <T> List<T> newList(Collection<T> coll, boolean empty, boolean move) {
 		if (empty) {
 			return java.util.Collections.emptyList();

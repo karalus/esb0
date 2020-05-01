@@ -27,14 +27,13 @@ import org.xml.sax.SAXException;
 public abstract class XMLParserBase extends XMLFilterBase {
 
 	private final boolean _createDocumentEvents;
-	private final Map<String, String> _prefixMap, _nsMap;
+	private final NamespaceMap _namespaceMap;
 	private final ArrayDeque<String> _stack = new ArrayDeque<>();
 
-	public XMLParserBase(boolean createDocumentEvents, Map<String, String> prefixMap, Map<String, String> nsMap) {
+	public XMLParserBase(boolean createDocumentEvents, NamespaceMap namespaceMap) {
 		_createDocumentEvents = createDocumentEvents;
-		_prefixMap = prefixMap;
-		_nsMap = nsMap;
-		String defaultNsUri = _prefixMap != null ? _prefixMap.get(XMLConstants.DEFAULT_NS_PREFIX) : null;
+		_namespaceMap = namespaceMap;
+		String defaultNsUri = namespaceMap != null ? namespaceMap.getNamespaceURI(XMLConstants.DEFAULT_NS_PREFIX) : null;
 		_stack.push(defaultNsUri != null ? defaultNsUri : XMLConstants.NULL_NS_URI);
 	}
 
@@ -43,8 +42,8 @@ public abstract class XMLParserBase extends XMLFilterBase {
 	}
 
 	public final String createQName(String uri, String localName) {
-		if (_nsMap != null) {
-			String prefix = _nsMap.get(uri);
+		if (_namespaceMap != null) {
+			String prefix = _namespaceMap.getPrefix(uri);
 			if (prefix != null && prefix.length() > 0) {
 				return prefix + ':' + localName;
 			}
@@ -57,8 +56,8 @@ public abstract class XMLParserBase extends XMLFilterBase {
 		if (_createDocumentEvents) {
 			super.startDocument();
 		}
-		if (_prefixMap != null) {
-			for (Map.Entry<String, String> entry : _prefixMap.entrySet()) {
+		if (_namespaceMap != null) {
+			for (Map.Entry<String, String> entry : _namespaceMap.getPrefixes()) {
 				startPrefixMapping(entry.getKey(), entry.getValue());
 			}
 		}
@@ -66,8 +65,8 @@ public abstract class XMLParserBase extends XMLFilterBase {
 
 	@Override
 	public void endDocument() throws SAXException {
-		if (_prefixMap != null) {
-			for (Map.Entry<String, String> entry : _prefixMap.entrySet()) {
+		if (_namespaceMap != null) {
+			for (Map.Entry<String, String> entry : _namespaceMap.getPrefixes()) {
 				endPrefixMapping(entry.getKey());
 			}
 		}
