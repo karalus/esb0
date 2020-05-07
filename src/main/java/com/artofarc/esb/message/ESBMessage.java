@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.message;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -66,6 +65,7 @@ import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
+import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.Collections;
 import com.artofarc.util.SchemaAwareFastInfosetSerializer;
@@ -76,7 +76,6 @@ import com.artofarc.util.StringWriter;
 public final class ESBMessage implements Cloneable {
 
 	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
-	public static final int MTU = IOUtils.MTU;
 
 	private static final Map<String, String> HEADER_NAMES = new ConcurrentHashMap<>(256); 
 
@@ -268,7 +267,7 @@ public final class ESBMessage implements Cloneable {
 		if (contentEncoding != null) {
 			switch (contentEncoding) {
 			case "gzip":
-				outputStream = new GZIPOutputStream(outputStream, MTU);
+				outputStream = new GZIPOutputStream(outputStream, IOUtils.MTU);
 				break;
 			case "deflate":
 				outputStream = new DeflaterOutputStream(outputStream);
@@ -283,7 +282,7 @@ public final class ESBMessage implements Cloneable {
 		if (contentEncoding != null) {
 			switch (contentEncoding) {
 			case "gzip":
-				inputStream = new GZIPInputStream(inputStream, MTU);
+				inputStream = new GZIPInputStream(inputStream, IOUtils.MTU);
 				break;
 			case "deflate":
 				inputStream = new InflaterInputStream(inputStream);

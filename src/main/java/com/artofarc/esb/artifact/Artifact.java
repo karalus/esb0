@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -28,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.ReflectionUtils;
 
 public abstract class Artifact {

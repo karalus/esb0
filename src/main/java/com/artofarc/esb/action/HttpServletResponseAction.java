@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.ByteArrayOutputStream;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
@@ -33,6 +32,7 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.servlet.GenericHttpListener;
+import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.IOUtils;
 
 public class HttpServletResponseAction extends Action {
@@ -75,7 +75,7 @@ public class HttpServletResponseAction extends Action {
 			checkFastInfoSet(message);
 			if (_multipartResponse != null) {
 				if (inPipeline) {
-					ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
+					ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					message.reset(BodyType.OUTPUT_STREAM, bos);
 					executionContext.setResource2(bos);
 				}

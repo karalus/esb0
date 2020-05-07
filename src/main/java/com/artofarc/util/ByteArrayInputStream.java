@@ -19,28 +19,27 @@ package com.artofarc.util;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
+public final class ByteArrayInputStream extends java.io.ByteArrayInputStream {
 
-	public ByteArrayOutputStream() {
-		super(IOUtils.MTU);
+	public ByteArrayInputStream(byte[] buf) {
+		super(buf);
 	}
 
-	@Override
-	public void write(byte[] b, int off, int len) {
-		if (count + len > buf.length) {
-			super.write(b, off, len);
-		} else {
-			System.arraycopy(b, off, buf, count, len);
-			count += len;
-		}
-	}
-
-	public ByteArrayInputStream getByteArrayInputStream() {
-		return new ByteArrayInputStream(buf, 0, count);
+	public ByteArrayInputStream(byte[] buf, int offset, int length) {
+		super(buf, offset, length);
 	}
 
 	public void copyTo(OutputStream os) throws IOException {
-		os.write(buf, 0, count);
+		os.write(buf, pos, count - pos);
+	}
+
+	public byte[] toByteArray() {
+		if (pos == 0 && buf.length == count) {
+			return buf;
+		}
+		final byte[] copy = new byte[count - pos];
+		System.arraycopy(buf, pos, copy, 0, count - pos);
+		return copy;
 	}
 
 }

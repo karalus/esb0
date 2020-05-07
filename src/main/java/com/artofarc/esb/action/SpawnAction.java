@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.ByteArrayOutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.Collection;
@@ -31,7 +30,9 @@ import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.Collections;
+import com.artofarc.util.IOUtils;
 import com.artofarc.util.ReflectionUtils;
 
 public class SpawnAction extends Action {
@@ -60,7 +61,7 @@ public class SpawnAction extends Action {
 		if (_usePipe) {
 			PipedOutputStream pos = new PipedOutputStream();
 			ESBMessage clone = message.clone();
-			clone.reset(BodyType.INPUT_STREAM, new PipedInputStream(pos, ESBMessage.MTU));
+			clone.reset(BodyType.INPUT_STREAM, new PipedInputStream(pos, IOUtils.MTU));
 			Future<ESBMessage> future = submit(context, clone, executionStack);
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, pos);
@@ -71,7 +72,7 @@ public class SpawnAction extends Action {
 		} else {
 			ExecutionContext execContext = new ExecutionContext(executionStack);
 			if (inPipeline) {
-				ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				message.reset(BodyType.OUTPUT_STREAM, bos);
 				execContext.setResource2(bos);
 			}
@@ -89,7 +90,7 @@ public class SpawnAction extends Action {
 		} else {
 			ByteArrayOutputStream bos = execContext.getResource2();
 			if (bos != null) {
-				message.reset(BodyType.BYTES, bos.toByteArray());
+				message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 			} else {
 				if (message.getBodyType() != BodyType.INVALID) {
 					message.getBodyAsByteArray(context);

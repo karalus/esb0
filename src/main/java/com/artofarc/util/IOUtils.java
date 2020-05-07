@@ -46,10 +46,15 @@ public final class IOUtils {
 	}
 
 	public static void copy(InputStream is, OutputStream os) throws IOException {
-		final byte[] buffer = new byte[MTU];
-		int len;
-		while ((len = is.read(buffer)) >= 0) {
-			os.write(buffer, 0, len);
+		if (is instanceof ByteArrayInputStream) {
+			ByteArrayInputStream bis = (ByteArrayInputStream) is;
+			bis.copyTo(os);
+		} else {
+			final byte[] buffer = new byte[MTU];
+			int len;
+			while ((len = is.read(buffer)) >= 0) {
+				os.write(buffer, 0, len);
+			}
 		}
 	}
 
@@ -62,6 +67,10 @@ public final class IOUtils {
 	}
 
 	public static byte[] copy(InputStream is) throws IOException {
+		if (is instanceof ByteArrayInputStream) {
+			ByteArrayInputStream bis = (ByteArrayInputStream) is;
+			return bis.toByteArray();
+		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		copy(is, os);
 		return os.toByteArray();
@@ -106,6 +115,7 @@ public final class IOUtils {
 				pos = 0;
 			}
 		}
+		formatter.close();
 		// remaining content
 		if (pos != 0) {
 			// add spaces for formatting purpose

@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.message;
 
-import java.io.ByteArrayOutputStream;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -29,6 +28,8 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.util.ByteArrayOutputStream;
+
 import static com.artofarc.esb.http.HttpConstants.*;
 
 public final class MimeHelper {
@@ -57,7 +58,7 @@ public final class MimeHelper {
 		MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START + '"' + ROOTPART
 				+ "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
 		if (bos == null) {
-			bos = new ByteArrayOutputStream(ESBMessage.MTU);
+			bos = new ByteArrayOutputStream();
 			message.writeTo(bos, context);
 			message.closeBody();
 		}
@@ -90,8 +91,7 @@ public final class MimeHelper {
 				MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
 				String cid = bodyPart.getContentID();
 				if (start == null && i == 0 || start != null && start.equals(cid)) {
-					for (@SuppressWarnings("unchecked")
-					Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
+					for (Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
 						Header header = allHeaders.nextElement();
 						message.putHeader(header.getName(), header.getValue());
 					}

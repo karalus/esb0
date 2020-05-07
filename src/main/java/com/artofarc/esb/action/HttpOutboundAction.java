@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 
 import javax.mail.internet.MimeMultipart;
@@ -30,6 +29,7 @@ import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrlSelector;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.MimeHelper;
+import com.artofarc.util.ByteArrayOutputStream;
 
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
@@ -76,7 +76,7 @@ public class HttpOutboundAction extends Action {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if (_multipartRequest != null) {
 			if (inPipeline) {
-				ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				message.reset(BodyType.OUTPUT_STREAM, bos);
 				return new ExecutionContext(bos); 
 			}
