@@ -484,14 +484,14 @@ public final class Json2XmlTransformer {
 		private void parse(Element e, JsonValue jsonValue) throws SAXException {
 			switch(jsonValue.getValueType()) {
 			case OBJECT:
-				parse(e, jsonValue.asJsonObject());
+				parse(e, (JsonObject) jsonValue);
 				break;
 			case ARRAY:
 				if (!xsomHelper.isLastElementRepeated()) {
 					throw new SAXException("Array not expected for " + e);
 				}
 				xsomHelper.startArray();
-				for (JsonValue jsonValue2 : jsonValue.asJsonArray()) {
+				for (JsonValue jsonValue2 : (JsonArray) jsonValue) {
 					parse(e, jsonValue2);
 					if (xsomHelper.poll() != null) {
 						xsomHelper.startArray();

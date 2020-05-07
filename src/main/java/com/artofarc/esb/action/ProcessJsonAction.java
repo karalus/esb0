@@ -17,8 +17,10 @@
 package com.artofarc.esb.action;
 
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import javax.json.*;
 
@@ -83,16 +85,59 @@ public class ProcessJsonAction extends Action {
 
 	protected final static class Assignment {
 		private final String _name;
-		private final JsonPointer _jsonPointer;
+		private final ArrayList<String> _pointer = new ArrayList<>();
+		//private final javax.json.JsonPointer _jsonPointer;
 
 		public Assignment(String name, String jsonPointer) {
 			_name = name;
-			_jsonPointer = Json.createPointer(jsonPointer);
+			StringTokenizer st = new StringTokenizer(jsonPointer, "/");
+			while (st.hasMoreTokens()) {
+				try {
+					_pointer.add(java.net.URLDecoder.decode(st.nextToken().replace("~1","/").replace("~0", "~"), "UTF-8"));
+				} catch (UnsupportedEncodingException e) {
+					//
+				}
+			}
+			// needs javax.json v1.1 (JSR 374)
+			//_jsonPointer = Json.createPointer(jsonPointer);
+		}
+
+//		private JsonValue getValue(JsonStructure json) {
+//			return _jsonPointer.getValue(json);
+//		}
+
+		private JsonValue getValue(JsonStructure json) {
+			JsonValue result = json;
+			for (int i = 0; result != null && i < _pointer.size(); ++i) {
+				String fragment = _pointer.get(i);
+				switch (result.getValueType()) {
+				case OBJECT:
+					JsonObject jsonObject = (JsonObject) result;
+					result = jsonObject.get(fragment);
+					break;
+				case ARRAY:
+					JsonArray jsonArray = (JsonArray) result;
+					try {
+						int index = Integer.parseInt(fragment);
+						result = jsonArray.size() > index ? jsonArray.get(index) : null;
+					} catch (NumberFormatException e) {
+						result = null;
+					}
+					break;
+				default:
+					result = null;
+					break;
+				}
+			}
+			if (result == null) {
+				throw new JsonException("result is null");
+			}
+			return result;
 		}
 
 		public Object getValueAsObject(JsonStructure json) {
 			try {
-				JsonValue value = _jsonPointer.getValue(json);
+				JsonValue value = getValue(json);
 				switch (value.getValueType()) {
 				case NULL:
 					return null;
@@ -112,6 +157,7 @@ public class ProcessJsonAction extends Action {
 				return null;
 			}
 		}
+
 	}
 
 }

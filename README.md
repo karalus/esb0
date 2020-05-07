@@ -84,7 +84,6 @@ From version 1.4 on Java 8 is required at runtime.
 ESB Zero requires a Java Servlet Container conforming to the servlet 3.0 API. 
 It has been tested with Tomcat 8 and 8.5, Wildfly, Jetty 9 and JBoss EAP 7.x.
 
-__Note__: The current ESB0 version 1.7 only works with JBoss EAP 7.1 when the JBoss provided module javax.json is excluded in the Jboss deployment descriptor.
 JBoss EAP 7.2 has been tested with Oracle JDK8 and OpenJDK 11.
 
 ESB Zero needs one directory to retrieve service flows and other artifacts from and persist to.
