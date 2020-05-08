@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Map;
 
 import javax.jms.*;
@@ -31,6 +33,32 @@ import com.artofarc.esb.message.*;
 import com.artofarc.esb.resource.JMSSessionFactory;
 
 public class JMSAction extends TerminalAction {
+
+	static class BytesMessageOutputStream extends OutputStream {
+		final BytesMessage _bytesMessage;
+
+		BytesMessageOutputStream(BytesMessage bytesMessage) {
+			_bytesMessage = bytesMessage;
+		}
+
+		@Override
+		public void write(int b) throws IOException {
+			try {
+				_bytesMessage.writeByte((byte) b);
+			} catch (JMSException e) {
+				throw new IOException(e);
+			}
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) throws IOException {
+			try {
+				_bytesMessage.writeBytes(b, off, len);
+			} catch (JMSException e) {
+				throw new IOException(e);
+			}
+		}
+	}
 
 	private final JMSConnectionData _jmsConnectionData;
 	private Destination _destination;
@@ -77,7 +105,7 @@ public class JMSAction extends TerminalAction {
 			jmsMessage = session.createMessage();
 		} else if (_isBytesMessage) {
 			BytesMessage bytesMessage = session.createBytesMessage();
-			bytesMessage.writeBytes(message.getBodyAsByteArray(context));
+			message.writeTo(new BytesMessageOutputStream(bytesMessage), context);
 			jmsMessage = bytesMessage;
 			jmsMessage.setStringProperty(ESBConstants.Charset, message.getCharset().name());
 		} else {

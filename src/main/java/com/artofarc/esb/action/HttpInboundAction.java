@@ -25,10 +25,8 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
-import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBConstants;
-import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.MimeHelper;
+import com.artofarc.esb.message.*;
+import com.artofarc.util.ByteArrayOutputStream;
 
 public class HttpInboundAction extends Action {
 
@@ -64,14 +62,17 @@ public class HttpInboundAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message,
+			boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
 			InputStream inputStream = execContext.getResource();
 			if (message.isSink()) {
 				message.copyFrom(inputStream);
 			} else {
-				message.reset(BodyType.INPUT_STREAM, inputStream);
-				message.getBodyAsByteArray(context);
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				message.reset(BodyType.OUTPUT_STREAM, bos);
+				message.copyFrom(inputStream);
+				message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 			}
 		}
 	}

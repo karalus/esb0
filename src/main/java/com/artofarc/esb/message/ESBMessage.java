@@ -712,10 +712,18 @@ public final class ESBMessage implements Cloneable {
 			final Object newBody;
 			switch (_bodyType) {
 			case INPUT_STREAM:
-				newBody = getBodyAsByteArray(context);
+				if (_body instanceof ByteArrayInputStream) {
+					newBody = ((ByteArrayInputStream) _body).clone();
+				} else {
+					newBody = getBodyAsByteArray(context);
+				}
 				break;
 			case READER:
-				newBody = getBodyAsString(context);
+				if (_body instanceof com.artofarc.util.StringReader) {
+					newBody = ((com.artofarc.util.StringReader) _body).clone();
+				} else {
+					newBody = getBodyAsString(context);
+				}
 				break;
 			case XQ_ITEM:
 				newBody = context.getXQDataFactory().createItem((XQItem) _body);

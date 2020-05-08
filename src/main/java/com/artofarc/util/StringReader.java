@@ -16,7 +16,7 @@
  */
 package com.artofarc.util;
 
-public final class StringReader extends java.io.Reader {
+public final class StringReader extends java.io.Reader implements Cloneable {
 
 	private final StringBuilder builder;
 	private final int length;
@@ -83,6 +83,11 @@ public final class StringReader extends java.io.Reader {
 	@Override
 	public String toString() {
 		return builder.toString();
+	}
+
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		return super.clone();
 	}
 
 }

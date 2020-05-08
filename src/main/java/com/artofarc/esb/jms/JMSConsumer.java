@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.jms;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Enumeration;
 import java.util.concurrent.Future;
 
@@ -33,6 +35,59 @@ import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
 
 public final class JMSConsumer extends ConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
+
+	static class BytesMessageInputStream extends InputStream {
+		final BytesMessage _bytesMessage;
+		long available;
+
+		BytesMessageInputStream(BytesMessage bytesMessage) throws JMSException {
+			_bytesMessage = bytesMessage;
+			available = bytesMessage.getBodyLength();
+		}
+
+		@Override
+		public int available() {
+			return available > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) available;
+		}
+
+		@Override
+		public int read() throws IOException {
+			if (available == 0L) {
+				return -1;
+			}
+			try {
+				final int c = _bytesMessage.readUnsignedByte();
+				--available;
+				return c;
+			} catch (JMSException e) {
+				throw new IOException(e);
+			}
+		}
+
+		@Override
+		public int read(byte[] b, int off, int len) throws IOException {
+			if (available == 0L) {
+				return -1;
+			}
+			try {
+				if (off == 0) {
+					len = _bytesMessage.readBytes(b, len);
+				} else {
+					final byte[] ba = new byte[len];
+					len = _bytesMessage.readBytes(ba, len);
+					if (len > 0) {
+						System.arraycopy(ba, 0, b, off, len);
+					}
+				}
+				if (len > 0 && (available -= len) == 0L) {
+					_bytesMessage.clearBody();
+				}
+				return len;
+			} catch (JMSException e) {
+				throw new IOException(e);
+			}
+		}
+	}
 
 	private final String _workerPool;
 	private final JMSConnectionData _jmsConnectionData;
@@ -166,17 +221,14 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 
 	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws JMSException {
 		if (message instanceof BytesMessage) {
-			BytesMessage bytesMessage = (BytesMessage) message;
-			byte[] ba = new byte[(int) bytesMessage.getBodyLength()];
-			bytesMessage.readBytes(ba);
-			esbMessage.reset(BodyType.BYTES, ba, message.getStringProperty(ESBConstants.Charset));
+			esbMessage.reset(BodyType.INPUT_STREAM, new BytesMessageInputStream((BytesMessage) message), message.getStringProperty(ESBConstants.Charset));
 		} else if (message instanceof TextMessage) {
 			TextMessage textMessage = (TextMessage) message;
 			esbMessage.reset(BodyType.STRING, textMessage.getText());
+			message.clearBody();
 		} else {
 			esbMessage.reset(BodyType.INVALID, null);
 		}
-		message.clearBody();
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
 		esbMessage.putVariable(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
 		esbMessage.putVariable(ESBConstants.JMSReplyTo, message.getJMSReplyTo());

@@ -19,7 +19,7 @@ package com.artofarc.util;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public final class ByteArrayInputStream extends java.io.ByteArrayInputStream {
+public final class ByteArrayInputStream extends java.io.ByteArrayInputStream implements Cloneable {
 
 	public ByteArrayInputStream(byte[] buf) {
 		super(buf);
@@ -40,6 +40,11 @@ public final class ByteArrayInputStream extends java.io.ByteArrayInputStream {
 		final byte[] copy = new byte[count - pos];
 		System.arraycopy(buf, pos, copy, 0, count - pos);
 		return copy;
+	}
+
+	@Override
+	public Object clone() throws CloneNotSupportedException {
+		return super.clone();
 	}
 
 }
