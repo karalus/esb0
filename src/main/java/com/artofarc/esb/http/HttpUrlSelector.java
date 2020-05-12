@@ -202,7 +202,9 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			conn.setChunkedStreamingMode(chunkLength);
 		}
 		for (Entry<String, Object> entry : headers) {
-			conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
+			if (entry.getValue() != null) {
+				conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
+			}
 		}
 		conn.connect();
 		_totalConnectionsCount.incrementAndGet();
