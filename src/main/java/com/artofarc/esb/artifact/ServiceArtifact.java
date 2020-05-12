@@ -480,7 +480,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "dump":
 			Dump dump = (Dump) actionElement.getValue();
-			addAction(list, new DumpAction(dump.isBinary()), location);
+			addAction(list, new DumpAction(dump.isBinary(), dump.getDir()), location);
 			break;
 		case "admin":
 			addAction(list, new AdminAction(), location);

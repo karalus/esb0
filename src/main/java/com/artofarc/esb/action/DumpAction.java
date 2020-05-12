@@ -16,25 +16,38 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.PrintWriter;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.StringWriter;
 
 public class DumpAction extends TerminalAction {
 
 	private final boolean _binary;
+	private final File _dumpDir;
 
-	public DumpAction(boolean binary) {
+	public DumpAction(boolean binary, String dumpDir) {
 		_binary = binary;
+		if (dumpDir != null) {
+			_dumpDir = new File(dumpDir);
+			if (!_dumpDir.exists() || !_dumpDir.isDirectory()) {
+				throw new IllegalStateException("Is not a directory " + dumpDir);
+			}
+		} else {
+			_dumpDir = null;
+		}
 	}
 
 	public DumpAction() {
-		this(false);
+		this(false, null);
 	}
 
 	@Override
@@ -63,8 +76,15 @@ public class DumpAction extends TerminalAction {
 						message.getBodyAsString(context);
 					}
 				}
-				if (_binary) {
-					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(message.getBodyAsInputStream(context)));
+				if (_dumpDir != null) {
+					File dumpFile = new File(_dumpDir, message.getVariable(ESBConstants.initialTimestamp) + ".bin");
+					try (FileOutputStream fileOutputStream = new FileOutputStream(dumpFile)) {
+						fileOutputStream.write(message.getBodyAsByteArray(context));
+					}
+					logger.info("Body dumped into " + dumpFile);
+				} else if (_binary) {
+					ByteArrayInputStream bis = new ByteArrayInputStream(message.getBodyAsByteArray(context));
+					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(bis));
 				} else {
 					logger.info("Body:\n" + message.getBodyAsString(context));
 				}

@@ -621,6 +621,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase" >
+					<attribute name="dir" type="anyURI" />
 					<attribute name="binary" type="boolean" default="false" />
 				</extension>
 			</complexContent>
