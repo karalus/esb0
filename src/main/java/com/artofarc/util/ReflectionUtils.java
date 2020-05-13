@@ -32,7 +32,7 @@ public final class ReflectionUtils {
 	}
 
 	public static <T> T eval(Object root, String path, final Object... params) throws ReflectiveOperationException {
-		ParamResolver<ReflectiveOperationException> paramResolver = params.length == 0 ? null : new ParamResolver<ReflectiveOperationException>() {
+		ParamResolver<RuntimeException> paramResolver = params.length == 0 ? null : new ParamResolver<RuntimeException>() {
 
 			@Override
 			public Object resolve(String argName) {

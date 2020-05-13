@@ -16,7 +16,6 @@
  */
 package com.artofarc.util;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.zip.GZIPInputStream;
@@ -24,23 +23,36 @@ import java.util.zip.GZIPOutputStream;
 
 public final class StringWrapper {
 
-	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
-
 	private final String smallString;
 	private final byte[] compressedContent;
+	private final Charset charset;
 
 	public StringWrapper(String string) {
 		smallString = string.intern();
 		compressedContent = null;
+		charset = null;
 	}
 
-	public StringWrapper(byte[] content) throws IOException {
+	public StringWrapper(byte[] content) {
+		this(content, java.nio.charset.StandardCharsets.UTF_8);
+	}
+
+	public StringWrapper(byte[] content, Charset charset) {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		GZIPOutputStream gzipOutputStream = new GZIPOutputStream(out, IOUtils.MTU);
-		gzipOutputStream.write(content);
-		gzipOutputStream.close();
-		compressedContent = out.toByteArray();
-		smallString = null;
+		try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(out, IOUtils.MTU)) {
+			gzipOutputStream.write(content);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		byte[] ba = out.toByteArray();
+		if (ba.length < content.length) {
+			compressedContent = ba;
+			smallString = null;
+		} else {
+			compressedContent = null;
+			smallString = new String(content, charset);
+		}
+		this.charset = charset;
 	}
 
 	public boolean isEmpty() {
@@ -52,7 +64,7 @@ public final class StringWrapper {
 			return smallString;
 		}
 		try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(compressedContent), IOUtils.MTU)) {
-			return new String(IOUtils.copy(gzipInputStream), CHARSET_DEFAULT);
+			return new String(IOUtils.copy(gzipInputStream), charset);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
