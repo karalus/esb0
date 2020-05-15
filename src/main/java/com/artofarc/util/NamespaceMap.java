@@ -26,7 +26,7 @@ import java.util.Set;
 public final class NamespaceMap implements javax.xml.namespace.NamespaceContext {
 
 	private final Map<String, String> _prefixMap;
-	private final Map<String, ArrayList<String>> _nsMap = new HashMap<String, ArrayList<String>>();
+	private final Map<String, ArrayList<String>> _nsMap = new HashMap<>();
 
 	public NamespaceMap(Map<String, String> prefixMap) {
 		_prefixMap = prefixMap;

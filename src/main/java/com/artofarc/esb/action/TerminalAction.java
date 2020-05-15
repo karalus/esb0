@@ -29,7 +29,7 @@ public abstract class TerminalAction extends Action {
 	}
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
 		if (inPipeline) {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			message.reset(BodyType.OUTPUT_STREAM, bos);

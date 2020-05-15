@@ -52,7 +52,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 			_threadFactory = null;
 		}
 		if (maxThreads > 0) {
-			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<Runnable>(queueDepth) : new LinkedBlockingQueue<Runnable>(), _threadFactory);
+			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<>(queueDepth) : new LinkedBlockingQueue<>(), _threadFactory);
 			_executorService.allowCoreThreadTimeOut(allowCoreThreadTimeOut);
 		} else {
 			_executorService = null;

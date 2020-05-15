@@ -35,7 +35,7 @@ public final class JDBCResult implements AutoCloseable {
 		currentResultSet = statement.getResultSet();
 		if (currentResultSet == null) {
 			firstUpdateCount = statement.getUpdateCount();
-			readAhead = firstUpdateCount >= 0 ? next() : false;
+			readAhead = firstUpdateCount >= 0 && next();
 		} else {
 			firstUpdateCount = -1;
 		}

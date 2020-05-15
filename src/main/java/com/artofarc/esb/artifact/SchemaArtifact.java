@@ -45,7 +45,7 @@ public abstract class SchemaArtifact extends Artifact {
 
 	protected static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
 
-	protected Map<String, Object> _grammars = cacheXSGrammars ? new HashMap<String, Object>() : null;
+	protected Map<String, Object> _grammars = cacheXSGrammars ? new HashMap<>() : null;
 	protected final AtomicReference<String> _namespace = new AtomicReference<>();
 	protected volatile Schema _schema;
 	protected XSSchemaSet _schemaSet;

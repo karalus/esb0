@@ -50,7 +50,7 @@ public abstract class JDBCAction extends Action {
 	protected XSSchemaSet _schemaSet;
 
 	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, XSSchemaSet schemaSet) throws NamingException {
-		if (dsName.indexOf("${") < 0) {
+		if (!dsName.contains("${")) {
 			globalContext.getProperty(dsName);
 		}
 		_pipelineStop = false;

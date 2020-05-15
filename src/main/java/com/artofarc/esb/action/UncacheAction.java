@@ -27,7 +27,7 @@ public class UncacheAction extends Action {
 	private final String _keyExp, _cacheName;
 	private final LRUCacheWithExpirationFactory _factory;
 
-	public UncacheAction(GlobalContext globalContext, String keyExp, String cacheName) throws Exception {
+	public UncacheAction(GlobalContext globalContext, String keyExp, String cacheName) {
 		_keyExp = keyExp;
 		_cacheName = cacheName;
 		_factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);

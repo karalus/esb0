@@ -37,7 +37,7 @@ public class KafkaProduceAction extends TerminalAction {
 	private final boolean _binary;
 	private final Producer<?, ?> _producer;
 
-	public KafkaProduceAction(GlobalContext globalContext, Properties properties, String topic, Integer partition, boolean binary) throws Exception {
+	public KafkaProduceAction(GlobalContext globalContext, Properties properties, String topic, Integer partition, boolean binary) {
 		_topic = topic;
 		_partition = partition;
 		_binary = binary;

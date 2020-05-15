@@ -163,7 +163,7 @@ public final class PrefixBTree<T> {
 		}
 
 		Node<T> copy() {
-			Node<T> copy = new Node<>(new ArrayList<Entry<char[], ?>>());
+			Node<T> copy = new Node<>(new ArrayList<>());
 			for (Entry<char[], ?> entry : _list) {
 				if (entry.getValue() instanceof Node) {
 					@SuppressWarnings("unchecked")
@@ -180,7 +180,7 @@ public final class PrefixBTree<T> {
 
 	// copy on write 
 	private final ReentrantLock _lock = new ReentrantLock();
-	private volatile Node<T> _root = new Node<>(new ArrayList<Entry<char[], ?>>());
+	private volatile Node<T> _root = new Node<>(new ArrayList<>());
 
 	public void insert(String key, T value) {
 		_lock.lock();

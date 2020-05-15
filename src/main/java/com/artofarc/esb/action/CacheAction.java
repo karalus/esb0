@@ -30,7 +30,7 @@ public class CacheAction extends Action {
 	private final LRUCacheWithExpirationFactory.Cache _cache;
 	private final long _ttl;
 
-	public CacheAction(GlobalContext globalContext, String keyExp, String valueName, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, long ttl) throws Exception {
+	public CacheAction(GlobalContext globalContext, String keyExp, String valueName, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, long ttl) {
 		_keyExp = keyExp;
 		_valueName = valueName;
 		_cacheAction = cacheAction;
@@ -81,7 +81,7 @@ public class CacheAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) {
 		if (_notWriteOnly && isValueBody()) {
 			Object key = execContext.getResource();
 			if (_cache.containsKey(key)) {

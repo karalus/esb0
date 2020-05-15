@@ -112,7 +112,7 @@ public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithE
 		}
 	}
 
-	private final DelayQueue<Expiration> expiries = new DelayQueue<Expiration>();
+	private final DelayQueue<Expiration> expiries = new DelayQueue<>();
 	private final Future<?> cleaner;
 
 	public LRUCacheWithExpirationFactory(GlobalContext globalContext) {

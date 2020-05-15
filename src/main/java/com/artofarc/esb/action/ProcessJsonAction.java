@@ -29,6 +29,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.JsonFactoryHelper;
 
 /**
  * Extract data from message using JSON Pointer.
@@ -63,7 +64,7 @@ public class ProcessJsonAction extends Action {
 		}
 		// Materialize message in case it is a stream thus it will not be consumed
 		String content = message.getBodyAsString(context);
-		JsonStructure json = Json.createReader(new StringReader(content)).read();
+		JsonStructure json = JsonFactoryHelper.JSON_READER_FACTORY.createReader(new StringReader(content)).read();
 
 		for (Assignment variable : _variables) {
 			Object value = variable.getValueAsObject(json);

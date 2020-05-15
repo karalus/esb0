@@ -260,7 +260,7 @@ public final class XSOMHelper {
 	public XSTerm matchElement(String uri, String localName) throws SAXException {
 		if (_nextGroup != null) {
 			saveCurrent();
-			_stack.push(Collections.createEntry(_nextType, new ArrayDeque<Group>()));
+			_stack.push(Collections.createEntry(_nextType, new ArrayDeque<>()));
 			_currentGroup = _nextGroup;
 			_nextGroup = null;
 		}
