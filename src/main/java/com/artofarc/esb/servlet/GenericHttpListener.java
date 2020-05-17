@@ -93,8 +93,9 @@ public class GenericHttpListener extends HttpServlet {
 	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer httpConsumer) throws Exception {
 		// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
 		final boolean bodyPresent = request.getHeader(HTTP_HEADER_CONTENT_LENGTH) != null || request.getHeader(HTTP_HEADER_TRANSFER_ENCODING) != null;
-		ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
-		message.getVariables().put(HttpMethod, request.getMethod());
+		final ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
+		final String methodOverride = request.getHeader(HTTP_HEADER_X_METHOD_OVERRIDE);
+		message.getVariables().put(HttpMethod, methodOverride != null ? methodOverride : request.getMethod());
 		message.getVariables().put(ContextPath, request.getContextPath());
 		message.getVariables().put(PathInfo, pathInfo);
 		if (httpConsumer.isPathMapping()) {

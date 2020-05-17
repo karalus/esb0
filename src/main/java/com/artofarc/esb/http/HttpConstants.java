@@ -81,6 +81,8 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
 
+	public static final String HTTP_HEADER_X_METHOD_OVERRIDE = "X-HTTP-Method-Override";
+
 	public static String getValueFromHttpHeader(String httpHeader, String key) {
 		if (httpHeader != null) {
 			int i = httpHeader.indexOf(key);

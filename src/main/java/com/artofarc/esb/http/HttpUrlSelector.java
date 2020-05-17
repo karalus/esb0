@@ -195,7 +195,12 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		conn.setConnectTimeout(_httpEndpoint.getConnectionTimeout());
 		conn.setReadTimeout(timeout);
 		// For "PATCH" refer to https://stackoverflow.com/questions/25163131/httpurlconnection-invalid-http-method-patch
-		conn.setRequestMethod(method);
+		if (method.equals("PATCH")) {
+			conn.setRequestProperty(HttpConstants.HTTP_HEADER_X_METHOD_OVERRIDE, "PATCH");
+			conn.setRequestMethod("POST");		
+		} else {
+			conn.setRequestMethod(method);
+		}
 		conn.setDoOutput(true);
 		conn.setInstanceFollowRedirects(false);
 		if (chunkLength != null) {
