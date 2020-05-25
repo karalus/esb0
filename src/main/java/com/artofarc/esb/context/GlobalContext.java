@@ -62,6 +62,17 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, final Properties properties) {
 		super(mbs);
 		_classLoader = classLoader;
+		logger.info("ESB0 version " + properties.getProperty(VERSION) + " build time " + properties.getProperty(BUILD_TIME));
+		logVersion("SLF4J", "org.slf4j", "com.artofarc.esb.context.AbstractContext", "logger");
+		logVersion("JAXB", "javax.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
+		logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.JAXPFactoryHelper", "SAX_PARSER_FACTORY");
+		logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.JAXPFactoryHelper", "SAX_TRANSFORMER_FACTORY");
+		logVersion("XQJ", "javax.xml.xquery", "com.saxonica.xqj.SaxonXQDataSource", null);
+		logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
+		logVersion("JSONParser", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
+		logVersion("JavaMail", "javax.mail.internet", "javax.mail.internet.MimeMultipart", null);
+		logVersion("metro-fi", "com.sun.xml.fastinfoset", "com.sun.xml.fastinfoset.Encoder", null);
+		logVersion("XSOM", "com.sun.xml.xsom", "com.artofarc.util.XSOMHelper", "anySchema");
 		_propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
 
 			@Override
@@ -97,6 +108,32 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
 		if (HTTPCONSUMER_IDLETIMEOUT > 0) {
 			getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, HTTPCONSUMER_IDLETIMEOUT, HTTPCONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
+		}
+	}
+
+	private void logVersion(String capability, String ifcPkg, String factoryClass, String factoryField) {
+		try {
+			Class<?> cls = Class.forName(factoryClass, true, _classLoader);
+			Package factoryPackage;
+			if (factoryField != null) {
+				java.lang.reflect.Field field = cls.getDeclaredField(factoryField);
+				field.setAccessible(true);
+				Object factory = field.get(null);
+				factoryPackage = factory.getClass().getPackage();
+			} else {
+				factoryPackage = cls.getPackage();
+			}
+			logger.info(capability + ", interface: " + Package.getPackage(ifcPkg));
+			String impl = "package " + factoryPackage.getName();
+			if (factoryPackage.getImplementationTitle() != null) {
+				impl += ", " + factoryPackage.getImplementationTitle();
+			}
+			if (factoryPackage.getImplementationVersion() != null) {
+				impl += ", version " + factoryPackage.getImplementationVersion();
+			}
+			logger.info(capability + ", implementation: " + impl);
+		} catch (ReflectiveOperationException e) {
+			logger.error("Could not get factory", e);
 		}
 	}
 
