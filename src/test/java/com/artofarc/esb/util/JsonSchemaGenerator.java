@@ -179,61 +179,77 @@ public final class JsonSchemaGenerator {
 	}
 
 	private void generateType(XSSimpleType simpleType, JsonGenerator jsonGenerator) {
-		String jsonType = XSOMHelper.getJsonType(simpleType);
-		String format = null;
-		switch (jsonType) {
-		case "int":
-			jsonType = "integer";
-			format = "int32";
-			break;
-		case "long":
-			jsonType = "integer";
-			format = "int64";
-			break;
-		case "date":
-			jsonType = "string";
-			format = "date";
-			break;
-		case "dateTime":
-			jsonType = "string";
-			format = "date-time";
-			break;
-		case "base64Binary":
-			jsonType = "string";
-			format = "byte";
-			break;
-		case "decimal":
-			jsonType = "number";
-			break;
-		case "float":
-			jsonType = "number";
-			format = "float";
-			break;
-		case "double":
-			jsonType = "number";
-			format = "double";
-			break;
-		case "string":
-		case "integer":
-		case "boolean":
-			break;
-		default:
-			throw new IllegalArgumentException("No mapping defined for " + jsonType);
-		}
-		jsonGenerator.write("type", jsonType);
-		if (format != null) {
-			jsonGenerator.write("format", format);
-		}
-		for (XSFacet facet : simpleType.getFacets(XSFacet.FACET_PATTERN)) {
-			jsonGenerator.write("pattern", "^" + facet.getValue() + "$");
-		}
-		List<XSFacet> facets = simpleType.getFacets(XSFacet.FACET_ENUMERATION);
-		if (facets.size() > 0) {
-			jsonGenerator.writeStartArray("enum");
-			for (XSFacet facet : facets) {
-				jsonGenerator.write(facet.getValue().value);
+		if (simpleType.isUnion()) {
+			jsonGenerator.writeStartArray("anyOf");
+			XSUnionSimpleType unionType = simpleType.asUnion();
+			for (int i = 0; i < unionType.getMemberSize(); ++i) {
+				jsonGenerator.writeStartObject();
+				generateType(unionType.getMember(i), jsonGenerator);
+				jsonGenerator.writeEnd();
 			}
 			jsonGenerator.writeEnd();
+		} else if (simpleType.isList()) {
+			jsonGenerator.write("type", "array");
+			jsonGenerator.writeStartObject("items");
+			generateType(simpleType.asList().getItemType(), jsonGenerator);
+			jsonGenerator.writeEnd();
+		} else {
+			String jsonType = XSOMHelper.getJsonType(simpleType);
+			String format = null;
+			switch (jsonType) {
+			case "int":
+				jsonType = "integer";
+				format = "int32";
+				break;
+			case "long":
+				jsonType = "integer";
+				format = "int64";
+				break;
+			case "date":
+				jsonType = "string";
+				format = "date";
+				break;
+			case "dateTime":
+				jsonType = "string";
+				format = "date-time";
+				break;
+			case "base64Binary":
+				jsonType = "string";
+				format = "byte";
+				break;
+			case "decimal":
+				jsonType = "number";
+				break;
+			case "float":
+				jsonType = "number";
+				format = "float";
+				break;
+			case "double":
+				jsonType = "number";
+				format = "double";
+				break;
+			case "string":
+			case "integer":
+			case "boolean":
+				break;
+			default:
+				throw new IllegalArgumentException("No mapping defined for " + jsonType);
+			}
+			jsonGenerator.write("type", jsonType);
+			if (format != null) {
+				jsonGenerator.write("format", format);
+			}
+			for (XSFacet facet : simpleType.getFacets(XSFacet.FACET_PATTERN)) {
+				jsonGenerator.write("pattern", "^" + facet.getValue() + "$");
+			}
+			List<XSFacet> facets = simpleType.getFacets(XSFacet.FACET_ENUMERATION);
+			if (facets.size() > 0) {
+				jsonGenerator.writeStartArray("enum");
+				for (XSFacet facet : facets) {
+					jsonGenerator.write(facet.getValue().value);
+				}
+				jsonGenerator.writeEnd();
+			}
 		}
 	}
 

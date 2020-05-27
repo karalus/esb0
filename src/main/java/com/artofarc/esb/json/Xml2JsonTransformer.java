@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.json.stream.JsonGenerator;
 import javax.xml.XMLConstants;
@@ -38,10 +39,13 @@ import com.artofarc.util.NamespaceMap;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSAttributeUse;
 import com.sun.xml.xsom.XSComplexType;
+import com.sun.xml.xsom.XSListSimpleType;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
 
 public final class Xml2JsonTransformer {
+
+	private static final Pattern whitespacePattern = Pattern.compile("\\s+");
 
 	private final XSSchemaSet _schemaSet;
 	private final XSComplexType _complexType;
@@ -135,7 +139,16 @@ public final class Xml2JsonTransformer {
 				} else {
 					complex = xsomHelper.getComplexType() != null;
 					final XSSimpleType simpleType = xsomHelper.getSimpleType();
-					primitiveType = simpleType != null ? XSOMHelper.getJsonType(simpleType) : null;
+					if (simpleType != null) {
+						final XSListSimpleType listSimpleType = xsomHelper.getListSimpleType();
+						if (listSimpleType != null) {
+							primitiveType = XSOMHelper.getJsonType(listSimpleType.getItemType());
+						} else {
+							primitiveType = XSOMHelper.getJsonType(simpleType);
+						}
+					} else {
+						primitiveType = null;
+					}
 				}
 			}
 			String key = localName;
@@ -191,10 +204,33 @@ public final class Xml2JsonTransformer {
 				}
 			}
 			if (primitiveType != null) {
-				if (openKey != null) {
-					writeKeyValue(openKey, _builder.toString(), primitiveType);
+				final XSListSimpleType listSimpleType = xsomHelper.getListSimpleType();
+				if (listSimpleType != null) {
+					final String[] items = whitespacePattern.split(_builder);
+					if (listSimpleType != xsomHelper.getSimpleType() && items.length == 1) {
+						// Union and probably not a list
+						if (openKey != null) {
+							writeKeyValue(openKey, items[0], primitiveType);
+						} else {
+							writeValue(items[0], primitiveType);
+						}
+					} else {
+						if (openKey != null) {
+							jsonGenerator.writeStartArray(openKey);
+						} else {
+							jsonGenerator.writeStartArray();
+						}
+						for (String value : items) {
+							writeValue(value, primitiveType);
+						}
+						jsonGenerator.writeEnd();
+					}
 				} else {
-					writeValue(_builder.toString(), primitiveType);
+					if (openKey != null) {
+						writeKeyValue(openKey, _builder.toString(), primitiveType);
+					} else {
+						writeValue(_builder.toString(), primitiveType);
+					}
 				}
 			} else {
 				if (anyLevel < 0) {

@@ -391,6 +391,24 @@ public final class XSOMHelper {
 		return _simpleType;
 	}
 
+	public XSListSimpleType getListSimpleType() {
+		if (_simpleType != null) {
+			if (_simpleType.isList()) {
+				return _simpleType.asList();
+			}
+			if (_simpleType.isUnion()) {
+				XSUnionSimpleType unionType = _simpleType.asUnion();
+				for (int i = unionType.getMemberSize(); i > 0;) {
+					XSSimpleType simpleType = unionType.getMember(--i);
+					if (simpleType.isList()) {
+						return simpleType.asList();
+					}
+				}
+			}
+		}
+		return null;
+	}
+
 	public boolean isLastElementAny() {
 		return _any;
 	}

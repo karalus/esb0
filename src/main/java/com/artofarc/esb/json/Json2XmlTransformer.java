@@ -40,6 +40,7 @@ import com.sun.xml.xsom.*;
 public final class Json2XmlTransformer {
 
 	private static final boolean VALIDATE_PREFIXES = false;
+	private static final char[] WHITESPACE = { ' ' };
 
 	private final XSSchemaSet _schemaSet;
 	private final boolean _createDocumentEvents;
@@ -185,7 +186,7 @@ public final class Json2XmlTransformer {
 		final ArrayDeque<Element> _stack = new ArrayDeque<>();
 		final ArrayDeque<String> _arrays = new ArrayDeque<>();
 
-		boolean attribute, simpleContent;
+		boolean attribute, simpleContent, simpleList;
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
@@ -267,7 +268,12 @@ public final class Json2XmlTransformer {
 						break;
 					case END_ARRAY:
 						_arrays.pop();
-						if (any < 0) {
+						if (simpleList) {
+							endElement(uri, keyName, createQName(uri, keyName));
+							keyName = null;
+							uri = null;
+							simpleList = false;
+						} else if (any < 0) {
 							xsomHelper.endArray();
 						}
 						break;
@@ -314,6 +320,11 @@ public final class Json2XmlTransformer {
 		}
 
 		private void writeValue(String value, String type) throws SAXException {
+			if (simpleList) {
+				characters(WHITESPACE, 0, 1);
+				characters(value);
+				return;
+			}
 			if (attribute) {
 				addAttribute(value);
 			} else {
@@ -327,16 +338,23 @@ public final class Json2XmlTransformer {
 					characters(value);
 				} else {
 					uri = xsomHelper.matchElement(uri, keyName).apply(XSOMHelper.GetNamespace);
+					final String qName = createQName(uri, keyName);
 					if (xsomHelper.isLastElementAny()) {
 						if (any < 0) {
 							any = _stack.size();
 						}
 					} else {
-						if (xsomHelper.getSimpleType() == null) {
+						final XSSimpleType simpleType = xsomHelper.getSimpleType();
+						if (simpleType == null) {
 							throw new SAXException("Expected simple type: " + new QName(uri, keyName));
 						}
+						if (xsomHelper.getListSimpleType() != null) {
+							startElement(uri, keyName, qName, _atts);
+							characters(value);
+							simpleList = true;
+							return;
+						}
 					}
-					final String qName = createQName(uri, keyName);
 					if (value != null) {
 						if (any >= 0 && type != null) {
 							if (any == _stack.size()) {
@@ -487,11 +505,23 @@ public final class Json2XmlTransformer {
 				parse(e, (JsonObject) jsonValue);
 				break;
 			case ARRAY:
+				JsonArray jsonArray = (JsonArray) jsonValue;
 				if (!xsomHelper.isLastElementRepeated()) {
+					if (xsomHelper.getListSimpleType() != null) {
+						startElement(e.uri, e.localName, e.qName, _atts);
+						for (int i = 0; i < jsonArray.size(); ++i) {
+							if (i > 0) {
+								characters(WHITESPACE, 0, 1);
+							}
+							characters(getString(jsonArray.get(i)));
+						}
+						endElement(e.uri, e.localName, e.qName);
+						break;
+					}
 					throw new SAXException("Array not expected for " + e);
 				}
 				xsomHelper.startArray();
-				for (JsonValue jsonValue2 : (JsonArray) jsonValue) {
+				for (JsonValue jsonValue2 : jsonArray) {
 					parse(e, jsonValue2);
 					if (xsomHelper.poll() != null) {
 						xsomHelper.startArray();
