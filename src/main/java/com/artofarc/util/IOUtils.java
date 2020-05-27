@@ -84,14 +84,6 @@ public final class IOUtils {
 		return ba;
 	}
 
-	public static InputStream getResourceAsStream(String name) throws FileNotFoundException {
-		InputStream stream = IOUtils.class.getClassLoader().getResourceAsStream(name);
-		if (stream == null) {
-			throw new FileNotFoundException(name + " must be in classpath");
-		}
-		return stream;
-	}
-
 	public static String convertToHexDump(InputStream is) throws IOException {
 		int pos = 0;
 		int c;

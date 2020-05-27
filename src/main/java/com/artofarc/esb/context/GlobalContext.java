@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.context;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
@@ -37,7 +39,6 @@ import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.ConcurrentResourcePool;
-import com.artofarc.util.IOUtils;
 
 public final class GlobalContext extends Registry implements Runnable, com.artofarc.esb.mbean.GlobalContextMXBean {
 
@@ -62,23 +63,25 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, final Properties properties) {
 		super(mbs);
 		_classLoader = classLoader;
-		logger.info("ESB0 version " + properties.getProperty(VERSION) + " build time " + properties.getProperty(BUILD_TIME));
-		logVersion("SLF4J", "org.slf4j", "com.artofarc.esb.context.AbstractContext", "logger");
-		logVersion("JAXB", "javax.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
-		logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.JAXPFactoryHelper", "SAX_PARSER_FACTORY");
-		logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.JAXPFactoryHelper", "SAX_TRANSFORMER_FACTORY");
-		logVersion("XQJ", "javax.xml.xquery", "com.saxonica.xqj.SaxonXQDataSource", null);
-		logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
-		logVersion("JSONParser", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
-		logVersion("JavaMail", "javax.mail.internet", "javax.mail.internet.MimeMultipart", null);
-		logVersion("metro-fi", "com.sun.xml.fastinfoset", "com.sun.xml.fastinfoset.Encoder", null);
-		logVersion("XSOM", "com.sun.xml.xsom", "com.artofarc.util.XSOMHelper", "anySchema");
+		if (properties.getProperty(VERSION) != null) {
+			logger.info("ESB0 version " + properties.getProperty(VERSION) + " build time " + properties.getProperty(BUILD_TIME));
+			logVersion("SLF4J", "org.slf4j", "com.artofarc.esb.context.AbstractContext", "logger");
+			logVersion("JAXB", "javax.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
+			logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.JAXPFactoryHelper", "SAX_PARSER_FACTORY");
+			logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.JAXPFactoryHelper", "SAX_TRANSFORMER_FACTORY");
+			logVersion("XQJ", "javax.xml.xquery", "com.saxonica.xqj.SaxonXQDataSource", null);
+			logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
+			logVersion("JSONParser", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
+			logVersion("JavaMail", "javax.mail.internet", "javax.mail.internet.MimeMultipart", null);
+			logVersion("metro-fi", "com.sun.xml.fastinfoset", "com.sun.xml.fastinfoset.Encoder", null);
+			logVersion("XSOM", "com.sun.xml.xsom", "com.artofarc.util.XSOMHelper", "anySchema");
+		}
 		_propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
 
 			@Override
 			protected void init(Map<String, Object> pool) throws Exception {
 				if (GLOBALPROPERTIES != null) {
-					properties.load(IOUtils.getResourceAsStream(GLOBALPROPERTIES));
+					properties.load(getResourceAsStream(GLOBALPROPERTIES));
 				}
 				for (String key : properties.stringPropertyNames()) {
 					pool.put(key, properties.getProperty(key));
@@ -139,6 +142,14 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 	public ClassLoader getClassLoader() {
 		return _classLoader;
+	}
+
+	public InputStream getResourceAsStream(String name) throws FileNotFoundException {
+		InputStream stream = _classLoader.getResourceAsStream(name);
+		if (stream == null) {
+			throw new FileNotFoundException(name + " must be in classpath");
+		}
+		return stream;
 	}
 
 	@SuppressWarnings("unchecked")

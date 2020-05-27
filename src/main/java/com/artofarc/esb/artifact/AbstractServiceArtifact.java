@@ -29,9 +29,6 @@ import javax.xml.validation.SchemaFactory;
 
 import org.xml.sax.SAXException;
 
-import com.artofarc.esb.service.ObjectFactory;
-import com.artofarc.util.IOUtils;
-
 public abstract class AbstractServiceArtifact extends Artifact {
 
 	private final static JAXBContext jaxbContext;
@@ -39,12 +36,12 @@ public abstract class AbstractServiceArtifact extends Artifact {
 
 	static {
 		try {
-			jaxbContext = JAXBContext.newInstance(ObjectFactory.class);
+			jaxbContext = JAXBContext.newInstance(com.artofarc.esb.service.ObjectFactory.class);
 		} catch (JAXBException e) {
 			throw new RuntimeException("Cannot initialize JAXBContext", e);
 		}
 		SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-		try (InputStream inputStream = IOUtils.getResourceAsStream("service.xsd")) {
+		try (InputStream inputStream = AbstractServiceArtifact.class.getClassLoader().getResourceAsStream("service.xsd")) {
 			schema = factory.newSchema(new StreamSource(inputStream));
 		} catch (SAXException | IOException e) {
 			throw new RuntimeException("Cannot parse service schema", e);

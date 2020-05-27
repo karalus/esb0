@@ -77,7 +77,7 @@ public final class XMLCatalog extends Directory {
 		try {
 			{
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "xml.xsd");
-				xsdArtifact.setContent(IOUtils.copy(IOUtils.getResourceAsStream("xml.xsd")));
+				xsdArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("xml.xsd")));
 				xmlCatalog.addSchemaArtifact("http://www.w3.org/XML/1998/namespace", xsdArtifact);
 			}
 			XPath xPath = XPathFactory.newInstance().newXPath();
@@ -86,7 +86,7 @@ public final class XMLCatalog extends Directory {
 			// TODO: Works only with document/literal WSDL style and messageParts referring to elements
 			String exp = "/*/*[local-name()='complexType' and @name='Body']/*/*/@processContents";
 			{
-				Attr attr = evaluate(xPath, exp, IOUtils.getResourceAsStream("soap11.xsd"));
+				Attr attr = evaluate(xPath, exp, globalContext.getResourceAsStream("soap11.xsd"));
 				attr.setValue("strict");
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "soap11.xsd");
 				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
@@ -94,7 +94,7 @@ public final class XMLCatalog extends Directory {
 			}
 			xPath.reset();
 			{
-				Attr attr = evaluate(xPath, exp, IOUtils.getResourceAsStream("soap12.xsd"));
+				Attr attr = evaluate(xPath, exp, globalContext.getResourceAsStream("soap12.xsd"));
 				attr.setValue("strict");
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "soap12.xsd");
 				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
@@ -102,12 +102,12 @@ public final class XMLCatalog extends Directory {
 			}
 			{
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "xop-include.xsd");
-				xsdArtifact.setContent(IOUtils.copy(IOUtils.getResourceAsStream("xop-include.xsd")));
+				xsdArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("xop-include.xsd")));
 				xmlCatalog.addSchemaArtifact("http://www.w3.org/2004/08/xop/include", xsdArtifact);
 			}
 			{
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "xmlmime.xsd");
-				xsdArtifact.setContent(IOUtils.copy(IOUtils.getResourceAsStream("xmlmime.xsd")));
+				xsdArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("xmlmime.xsd")));
 				xmlCatalog.addSchemaArtifact("http://www.w3.org/2005/05/xmlmime", xsdArtifact);
 			}
 		} catch (IOException | XPathExpressionException | TransformerException e) {
