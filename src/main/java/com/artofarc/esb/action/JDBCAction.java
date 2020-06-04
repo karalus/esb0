@@ -145,7 +145,13 @@ public abstract class JDBCAction extends Action {
 						SAXResult result = xmlObject.setResult(SAXResult.class);
 						TransformerHandler transformerHandler = conn.getTransformerHandler();
 						if (transformerHandler != null) {
-							transformerHandler.getTransformer().transform(message.getBodyAsSource(context), result);
+							// Oracle JDBC needs its own Transformer, with Saxon namespaces are lost
+							if (message.getBodyType() == BodyType.XQ_ITEM) {
+								transformerHandler.setResult(result);
+								message.writeTo(new SAXResult(transformerHandler), context);
+							} else {
+								transformerHandler.getTransformer().transform(message.getBodyAsSource(context), result);
+							}
 						} else {
 							message.writeTo(result, context);
 						}

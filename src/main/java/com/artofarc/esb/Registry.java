@@ -115,11 +115,10 @@ public class Registry extends AbstractContext {
 
 	private ConsumerPort bindService(ConsumerPort consumerPort) {
 		ConsumerPort oldConsumerPort = _services.put(consumerPort.getUri(), consumerPort);
-		String postfix = consumerPort.getMBeanPostfix();
 		if (oldConsumerPort != null) {
-			unregisterMBean(postfix);
+			unregisterMBean(oldConsumerPort.getMBeanPostfix());
 		}
-		registerMBean(consumerPort, postfix);
+		registerMBean(consumerPort, consumerPort.getMBeanPostfix());
 		return oldConsumerPort;
 	}
 
