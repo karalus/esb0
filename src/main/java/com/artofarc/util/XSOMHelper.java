@@ -391,22 +391,45 @@ public final class XSOMHelper {
 		return _simpleType;
 	}
 
-	public XSListSimpleType getListSimpleType() {
+	public boolean isListSimpleType() {
 		if (_simpleType != null) {
 			if (_simpleType.isList()) {
-				return _simpleType.asList();
+				return true;
 			}
 			if (_simpleType.isUnion()) {
 				XSUnionSimpleType unionType = _simpleType.asUnion();
-				for (int i = unionType.getMemberSize(); i > 0;) {
-					XSSimpleType simpleType = unionType.getMember(--i);
-					if (simpleType.isList()) {
-						return simpleType.asList();
+				for (int i = unionType.getMemberSize(); i-- > 0;) {
+					if (unionType.getMember(i).isList()) {
+						return true;
 					}
 				}
 			}
 		}
-		return null;
+		return false;
+	}
+
+	public XSListSimpleType getListSimpleTypeFromUnion(String type) throws SAXException {
+		if (_simpleType == null || !_simpleType.isUnion()) {
+			throw new SAXException("Current type is not xs:union");
+		}
+		if (type == null) {
+			type = "xsd:string";
+		}
+		XSUnionSimpleType unionType = _simpleType.asUnion();
+		for (int i = unionType.getMemberSize(); i-- > 0;) {
+			XSSimpleType simpleType = unionType.getMember(i);
+			if (simpleType.isList()) {
+				XSListSimpleType listSimpleType = simpleType.asList();
+				String jsonType = getJsonType(listSimpleType.getItemType());
+				if (type.contains(jsonType)) {
+					if (listSimpleType.getName() == null) {
+						throw new SAXException("xs:union type must not contain anonymous xs:list type");
+					}
+					return listSimpleType;
+				}
+			}
+		}
+		throw new SAXException("xs:union type does not contain xs:list type for " + type);
 	}
 
 	public boolean isLastElementAny() {
@@ -451,7 +474,6 @@ public final class XSOMHelper {
 			_nextGroup = null;
 		} else {
 			Entry<String, ArrayDeque<Group>> context = _stack.pop();
-//			System.out.println("Dropping context for " + context.getKey());
 			context = _stack.peek();
 			if (context != null) {
 				_currentGroup = context.getValue().poll();

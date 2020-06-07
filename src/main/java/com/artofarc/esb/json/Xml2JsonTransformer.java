@@ -21,6 +21,7 @@ import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -34,14 +35,15 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.artofarc.util.Collections;
 import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.NamespaceMap;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSAttributeUse;
 import com.sun.xml.xsom.XSComplexType;
-import com.sun.xml.xsom.XSListSimpleType;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
+import com.sun.xml.xsom.XSType;
 
 public final class Xml2JsonTransformer {
 
@@ -82,14 +84,39 @@ public final class Xml2JsonTransformer {
 
 		final JsonGenerator jsonGenerator;
 		final StringBuilder _builder = new StringBuilder(128);
+		final ArrayList<Map.Entry<String, String>> prefixes = new ArrayList<>();
 
 		XSOMHelper xsomHelper;
-		boolean root = true, complex;
+		boolean root = true, complex, simpleList;
 		String primitiveType, openKey;
 		int level, anyLevel = -1;
 
 		TransformerHandler(JsonGenerator jsonGenerator) {
 			this.jsonGenerator = jsonGenerator;
+		}
+
+		@Override
+		public void startPrefixMapping(String prefix, String uri) {
+			prefixes.add(Collections.createEntry(prefix, uri));
+		}
+
+		@Override
+		public void endPrefixMapping(String prefix) {
+			for (int i = prefixes.size(); i-- > 0;) {
+				if (prefixes.get(i).getKey().equals(prefix)) {
+					prefixes.remove(i);
+					break;
+				}
+			}
+		}
+
+		private String getNamespace(String prefix) {
+			for (int i = prefixes.size(); i-- > 0;) {
+				if (prefixes.get(i).getKey().equals(prefix)) {
+					return prefixes.get(i).getValue();
+				}
+			}
+			return null;
 		}
 
 		@Override
@@ -121,14 +148,28 @@ public final class Xml2JsonTransformer {
 				complex = true;
 			} else {
 				xsomHelper.matchElement(uri, localName);
-				if (xsomHelper.isLastElementAny()) {
-					int index = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
-					if (index >= 0) {
-						String value = atts.getValue(index);
-						// TODO: Check whether it is really primitive
-						primitiveType = value.substring(value.indexOf(':') + 1);
-						--attsLength;
+				final int index = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
+				if (index >= 0) {
+					final String value = atts.getValue(index);
+					final int i = value.indexOf(':');
+					final String prefix = i < 0 ? XMLConstants.DEFAULT_NS_PREFIX : value.substring(0, i);
+					final String localPart = i < 0 ? value : value.substring(i + 1);
+					final XSType type = _schemaSet.getSchema(getNamespace(prefix)).getType(localPart);
+					if (type.isSimpleType()) {
+						final XSSimpleType simpleType = type.asSimpleType();
+						if (simpleList = simpleType.isList()) {
+							primitiveType = XSOMHelper.getJsonType(simpleType.asList().getItemType());
+						} else {
+							primitiveType = XSOMHelper.getJsonType(simpleType);
+						}
+					} else {
+						throw new SAXException("xsi:type with complexType not supported, yet");
 					}
+					--attsLength;
+				} else {
+					primitiveType = null;
+				}
+				if (xsomHelper.isLastElementAny()) {
 					if (anyLevel < 0) {
 						if (!_includeRoot && level == 1) {
 							anyLevel = 0;
@@ -138,16 +179,18 @@ public final class Xml2JsonTransformer {
 					}
 				} else {
 					complex = xsomHelper.getComplexType() != null;
-					final XSSimpleType simpleType = xsomHelper.getSimpleType();
-					if (simpleType != null) {
-						final XSListSimpleType listSimpleType = xsomHelper.getListSimpleType();
-						if (listSimpleType != null) {
-							primitiveType = XSOMHelper.getJsonType(listSimpleType.getItemType());
-						} else {
-							primitiveType = XSOMHelper.getJsonType(simpleType);
+					if (primitiveType == null) {
+						final XSSimpleType simpleType = xsomHelper.getSimpleType();
+						if (simpleType != null) {
+							if (simpleType.isUnion()) {
+								throw new SAXException("xs:union and no xsi:type given");
+							}
+							if (simpleList = simpleType.isList()) {
+								primitiveType = XSOMHelper.getJsonType(simpleType.asList().getItemType());
+							} else {
+								primitiveType = XSOMHelper.getJsonType(simpleType);
+							}
 						}
-					} else {
-						primitiveType = null;
 					}
 				}
 			}
@@ -204,27 +247,16 @@ public final class Xml2JsonTransformer {
 				}
 			}
 			if (primitiveType != null) {
-				final XSListSimpleType listSimpleType = xsomHelper.getListSimpleType();
-				if (listSimpleType != null) {
-					final String[] items = whitespacePattern.split(_builder);
-					if (listSimpleType != xsomHelper.getSimpleType() && items.length == 1) {
-						// Union and probably not a list
-						if (openKey != null) {
-							writeKeyValue(openKey, items[0], primitiveType);
-						} else {
-							writeValue(items[0], primitiveType);
-						}
+				if (simpleList) {
+					if (openKey != null) {
+						jsonGenerator.writeStartArray(openKey);
 					} else {
-						if (openKey != null) {
-							jsonGenerator.writeStartArray(openKey);
-						} else {
-							jsonGenerator.writeStartArray();
-						}
-						for (String value : items) {
-							writeValue(value, primitiveType);
-						}
-						jsonGenerator.writeEnd();
+						jsonGenerator.writeStartArray();
 					}
+					for (String value : whitespacePattern.split(_builder)) {
+						writeValue(value, primitiveType);
+					}
+					jsonGenerator.writeEnd();
 				} else {
 					if (openKey != null) {
 						writeKeyValue(openKey, _builder.toString(), primitiveType);

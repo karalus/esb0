@@ -186,7 +186,7 @@ public final class Json2XmlTransformer {
 		final ArrayDeque<Element> _stack = new ArrayDeque<>();
 		final ArrayDeque<String> _arrays = new ArrayDeque<>();
 
-		boolean attribute, simpleContent, simpleList;
+		boolean attribute, simpleContent, simpleList, union;
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
@@ -270,6 +270,12 @@ public final class Json2XmlTransformer {
 						_arrays.pop();
 						if (simpleList) {
 							endElement(uri, keyName, createQName(uri, keyName));
+							if (union) {
+								_atts.clear();
+								endPrefixMapping("ns");
+								endPrefixMapping("xsi");
+								union = false;
+							}
 							keyName = null;
 							uri = null;
 							simpleList = false;
@@ -348,26 +354,38 @@ public final class Json2XmlTransformer {
 						if (simpleType == null) {
 							throw new SAXException("Expected simple type: " + new QName(uri, keyName));
 						}
-						if (xsomHelper.getListSimpleType() != null) {
-							startElement(uri, keyName, qName, _atts);
-							characters(value);
-							simpleList = true;
-							return;
+						union = simpleType.isUnion();
+						if (keyName == _arrays.peek()) {
+							simpleList = xsomHelper.isListSimpleType();
 						}
 					}
 					if (value != null) {
-						if (any >= 0 && type != null) {
-							if (any == _stack.size()) {
+						if (union || any >= 0 && type != null) {
+							if (union || any == _stack.size()) {
 								startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+							}
+							if (simpleList) {
+								XSListSimpleType listSimpleType = xsomHelper.getListSimpleTypeFromUnion(type);
+								startPrefixMapping("ns", listSimpleType.getTargetNamespace());
+								type = "ns:" + listSimpleType.getName();
+							} else {
+								startPrefixMapping("xsd", XMLConstants.W3C_XML_SCHEMA_NS_URI);
+								if (type == null) {
+									type = "xsd:string";
+								}
 							}
 							_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", type);
 						}
 						startElement(uri, keyName, qName, _atts);
 						characters(value);
+						if (simpleList) {
+							return;
+						}
 						endElement(uri, keyName, qName);
-						if (any >= 0 && type != null) {
+						if (union || any >= 0 && type != null) {
 							_atts.clear();
-							if(any == _stack.size()) {
+							if (union || any == _stack.size()) {
+								endPrefixMapping("xsd");
 								endPrefixMapping("xsi");
 							}
 						}
@@ -500,6 +518,7 @@ public final class Json2XmlTransformer {
 		}
 
 		private void parse(Element e, JsonValue jsonValue) throws SAXException {
+			final boolean union = xsomHelper.getSimpleType() != null && xsomHelper.getSimpleType().isUnion();
 			switch(jsonValue.getValueType()) {
 			case OBJECT:
 				parse(e, (JsonObject) jsonValue);
@@ -507,15 +526,33 @@ public final class Json2XmlTransformer {
 			case ARRAY:
 				JsonArray jsonArray = (JsonArray) jsonValue;
 				if (!xsomHelper.isLastElementRepeated()) {
-					if (xsomHelper.getListSimpleType() != null) {
+					if (xsomHelper.isListSimpleType()) {
+						String value = null;
+						if (jsonArray.size() > 0) {
+							value = getString(jsonArray.get(0));
+						} else if (union) {
+							throw new SAXException("Cannot map empty array to a xs:union");
+						}
+						if (union) {
+							XSListSimpleType listSimpleType = xsomHelper.getListSimpleTypeFromUnion(primitiveType);
+							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+							startPrefixMapping("ns", listSimpleType.getTargetNamespace());
+							_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", "ns:" + listSimpleType.getName());
+						}
 						startElement(e.uri, e.localName, e.qName, _atts);
-						for (int i = 0; i < jsonArray.size(); ++i) {
-							if (i > 0) {
-								characters(WHITESPACE, 0, 1);
-							}
+						if (value != null) {
+							characters(value);
+						}
+						for (int i = 1; i < jsonArray.size(); ++i) {
+							characters(WHITESPACE, 0, 1);
 							characters(getString(jsonArray.get(i)));
 						}
 						endElement(e.uri, e.localName, e.qName);
+						if (union) {
+							_atts.clear();
+							endPrefixMapping("ns");
+							endPrefixMapping("xsi");
+						}
 						break;
 					}
 					throw new SAXException("Array not expected for " + e);
@@ -534,14 +571,18 @@ public final class Json2XmlTransformer {
 				break;
 			default:
 				String value = getString(jsonValue);
-				if (any >= 0 && primitiveType != null) {
-					_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", primitiveType);
+				if (union || any >= 0 && primitiveType != null) {
+					startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+					startPrefixMapping("xsd", XMLConstants.W3C_XML_SCHEMA_NS_URI);
+					_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", primitiveType != null ? primitiveType : "xsd:string");
 				}
 				startElement(e.uri, e.localName, e.qName, _atts);
 				characters(value);
 				endElement(e.uri, e.localName, e.qName);
-				if (any >= 0 && primitiveType != null) {
+				if (union || any >= 0 && primitiveType != null) {
 					_atts.clear();
+					endPrefixMapping("xsd");
+					endPrefixMapping("xsi");
 				}
 				break;
 			}
