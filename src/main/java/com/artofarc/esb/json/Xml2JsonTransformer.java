@@ -39,11 +39,7 @@ import com.artofarc.util.Collections;
 import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.NamespaceMap;
 import com.artofarc.util.XSOMHelper;
-import com.sun.xml.xsom.XSAttributeUse;
-import com.sun.xml.xsom.XSComplexType;
-import com.sun.xml.xsom.XSSchemaSet;
-import com.sun.xml.xsom.XSSimpleType;
-import com.sun.xml.xsom.XSType;
+import com.sun.xml.xsom.*;
 
 public final class Xml2JsonTransformer {
 
@@ -102,8 +98,8 @@ public final class Xml2JsonTransformer {
 
 		@Override
 		public void endPrefixMapping(String prefix) {
-			for (int i = prefixes.size(); i-- > 0;) {
-				if (prefixes.get(i).getKey().equals(prefix)) {
+			for (int i = prefixes.size(); i > 0;) {
+				if (prefixes.get(--i).getKey().equals(prefix)) {
 					prefixes.remove(i);
 					break;
 				}
@@ -111,9 +107,10 @@ public final class Xml2JsonTransformer {
 		}
 
 		private String getNamespace(String prefix) {
-			for (int i = prefixes.size(); i-- > 0;) {
-				if (prefixes.get(i).getKey().equals(prefix)) {
-					return prefixes.get(i).getValue();
+			for (int i = prefixes.size(); i > 0;) {
+				final Map.Entry<String, String> entry = prefixes.get(--i);
+				if (entry.getKey().equals(prefix)) {
+					return entry.getValue();
 				}
 			}
 			return null;
@@ -128,6 +125,32 @@ public final class Xml2JsonTransformer {
 		public void endDocument() {
 			if (_includeRoot) jsonGenerator.writeEnd();
 			jsonGenerator.close();
+		}
+
+		private String getJsonType(String xsiType) throws SAXException {
+			final int i = xsiType.indexOf(':');
+			final String namespace = getNamespace(i < 0 ? XMLConstants.DEFAULT_NS_PREFIX : xsiType.substring(0, i));
+			if (namespace == null) {
+				throw new SAXException("Namespace not found for xsi:type " + xsiType);
+			}
+			final XSSchema schema = _schemaSet.getSchema(namespace);
+			if (schema == null) {
+				throw new SAXException("Schema not found for namespace " + namespace);
+			}
+			final XSType type = schema.getType(i < 0 ? xsiType : xsiType.substring(i + 1));
+			if (type == null) {
+				throw new SAXException("xsi:type could not be resolved " + xsiType);
+			}
+			if (type.isSimpleType()) {
+				final XSSimpleType simpleType = type.asSimpleType();
+				if (simpleList = simpleType.isList()) {
+					return XSOMHelper.getJsonType(simpleType.asList().getItemType());
+				} else {
+					return XSOMHelper.getJsonType(simpleType);
+				}
+			} else {
+				throw new SAXException("xsi:type with complexType not supported, yet");
+			}
 		}
 
 		@Override
@@ -148,23 +171,9 @@ public final class Xml2JsonTransformer {
 				complex = true;
 			} else {
 				xsomHelper.matchElement(uri, localName);
-				final int index = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
-				if (index >= 0) {
-					final String value = atts.getValue(index);
-					final int i = value.indexOf(':');
-					final String prefix = i < 0 ? XMLConstants.DEFAULT_NS_PREFIX : value.substring(0, i);
-					final String localPart = i < 0 ? value : value.substring(i + 1);
-					final XSType type = _schemaSet.getSchema(getNamespace(prefix)).getType(localPart);
-					if (type.isSimpleType()) {
-						final XSSimpleType simpleType = type.asSimpleType();
-						if (simpleList = simpleType.isList()) {
-							primitiveType = XSOMHelper.getJsonType(simpleType.asList().getItemType());
-						} else {
-							primitiveType = XSOMHelper.getJsonType(simpleType);
-						}
-					} else {
-						throw new SAXException("xsi:type with complexType not supported, yet");
-					}
+				final String type = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
+				if (type != null) {
+					primitiveType = getJsonType(type);
 					--attsLength;
 				} else {
 					primitiveType = null;
@@ -212,8 +221,8 @@ public final class Xml2JsonTransformer {
 					openKey = key;
 				}
 			}
-			final int index = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
-			if (index >= 0 && DatatypeConverter.parseBoolean(atts.getValue(index))) {
+			final String nil = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
+			if (nil != null && DatatypeConverter.parseBoolean(nil)) {
 				primitiveType = "nil";
 				--attsLength;
 			}

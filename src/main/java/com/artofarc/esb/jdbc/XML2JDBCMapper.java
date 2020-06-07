@@ -133,8 +133,8 @@ public final class XML2JDBCMapper extends DefaultHandler {
 				}
 			}
 			complex = xsomHelper.getComplexType() != null;
-			final int index = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
-			if (index >= 0 && DatatypeConverter.parseBoolean(atts.getValue(index))) {
+			final String nil = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
+			if (nil != null && DatatypeConverter.parseBoolean(nil)) {
 				if (complex) {
 					xsomHelper.endComplex();
 					complex = false;

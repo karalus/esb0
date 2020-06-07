@@ -306,16 +306,16 @@ public final class Json2XmlTransformer {
 						writeValue(jsonParser.getString(), null);
 						break;
 					case VALUE_NUMBER:
-						writeValue(jsonParser.getString(), jsonParser.isIntegralNumber() ? "xsd:integer" : "xsd:decimal");
+						writeValue(jsonParser.getString(), jsonParser.isIntegralNumber() ? "integer" : "decimal");
 						break;
 					case VALUE_NULL:
 						writeValue(null, null);
 						break;
 					case VALUE_TRUE:
-						writeValue("true", "xsd:boolean");
+						writeValue("true", "boolean");
 						break;
 					case VALUE_FALSE:
-						writeValue("false", "xsd:boolean");
+						writeValue("false", "boolean");
 						break;
 					default:
 						throw new IllegalStateException();
@@ -370,9 +370,7 @@ public final class Json2XmlTransformer {
 								type = "ns:" + listSimpleType.getName();
 							} else {
 								startPrefixMapping("xsd", XMLConstants.W3C_XML_SCHEMA_NS_URI);
-								if (type == null) {
-									type = "xsd:string";
-								}
+								type = type != null ? "xsd:" + type : "xsd:string";
 							}
 							_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", type);
 						}
@@ -574,7 +572,7 @@ public final class Json2XmlTransformer {
 				if (union || any >= 0 && primitiveType != null) {
 					startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 					startPrefixMapping("xsd", XMLConstants.W3C_XML_SCHEMA_NS_URI);
-					_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", primitiveType != null ? primitiveType : "xsd:string");
+					_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", primitiveType != null ? "xsd:" + primitiveType : "xsd:string");
 				}
 				startElement(e.uri, e.localName, e.qName, _atts);
 				characters(value);
@@ -614,17 +612,17 @@ public final class Json2XmlTransformer {
 			case NUMBER:
 				JsonNumber jsonNumber = (JsonNumber) jsonValue;
 				if (jsonNumber.isIntegral()) {
-					primitiveType = "xsd:integer";
+					primitiveType = "integer";
 					return jsonNumber.bigIntegerValue().toString();
 				} else {
-					primitiveType = "xsd:decimal";
+					primitiveType = "decimal";
 					return jsonNumber.bigDecimalValue().toString();
 				}
 			case TRUE:
-				primitiveType = "xsd:boolean";
+				primitiveType = "boolean";
 				return "true";
 			case FALSE:
-				primitiveType = "xsd:boolean";
+				primitiveType = "boolean";
 				return "false";
 			default:
 				throw new IllegalArgumentException("Not atomic " + jsonValue.getValueType());

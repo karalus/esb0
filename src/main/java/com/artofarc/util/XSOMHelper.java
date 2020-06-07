@@ -354,7 +354,6 @@ public final class XSOMHelper {
 				_currentGroup = context.getValue().peek();
 				if (_currentGroup == null) {
 					context = _stack.pop();
-//					System.out.println("Dropping context for " + context.getKey());
 					context = _stack.peek();
 				} else {
 					if (_currentGroup.hasNext()) {
@@ -398,8 +397,8 @@ public final class XSOMHelper {
 			}
 			if (_simpleType.isUnion()) {
 				XSUnionSimpleType unionType = _simpleType.asUnion();
-				for (int i = unionType.getMemberSize(); i-- > 0;) {
-					if (unionType.getMember(i).isList()) {
+				for (int i = unionType.getMemberSize(); i > 0;) {
+					if (unionType.getMember(--i).isList()) {
 						return true;
 					}
 				}
@@ -408,20 +407,19 @@ public final class XSOMHelper {
 		return false;
 	}
 
-	public XSListSimpleType getListSimpleTypeFromUnion(String type) throws SAXException {
+	public XSListSimpleType getListSimpleTypeFromUnion(String xsdType) throws SAXException {
 		if (_simpleType == null || !_simpleType.isUnion()) {
 			throw new SAXException("Current type is not xs:union");
 		}
-		if (type == null) {
-			type = "xsd:string";
+		if (xsdType == null) {
+			xsdType = "string";
 		}
 		XSUnionSimpleType unionType = _simpleType.asUnion();
-		for (int i = unionType.getMemberSize(); i-- > 0;) {
-			XSSimpleType simpleType = unionType.getMember(i);
+		for (int i = unionType.getMemberSize(); i > 0;) {
+			XSSimpleType simpleType = unionType.getMember(--i);
 			if (simpleType.isList()) {
 				XSListSimpleType listSimpleType = simpleType.asList();
-				String jsonType = getJsonType(listSimpleType.getItemType());
-				if (type.contains(jsonType)) {
+				if (xsdType.equals(getJsonBaseType(listSimpleType.getItemType()))) {
 					if (listSimpleType.getName() == null) {
 						throw new SAXException("xs:union type must not contain anonymous xs:list type");
 					}
@@ -429,7 +427,7 @@ public final class XSOMHelper {
 				}
 			}
 		}
-		throw new SAXException("xs:union type does not contain xs:list type for " + type);
+		throw new SAXException("xs:union type does not contain xs:list type for " + xsdType);
 	}
 
 	public boolean isLastElementAny() {
@@ -501,6 +499,16 @@ public final class XSOMHelper {
 		while (!simpleType.isPrimitive()) {
 			if (simpleType.getTargetNamespace().equals(XMLConstants.W3C_XML_SCHEMA_NS_URI)
 					&& (simpleType.getName().equals("int") || simpleType.getName().equals("long") || simpleType.getName().equals("integer"))) {
+				break;
+			}
+			simpleType = simpleType.getBaseType().asSimpleType();
+		}
+		return simpleType.getName();
+	}
+
+	public static String getJsonBaseType(XSSimpleType simpleType) {
+		while (!simpleType.isPrimitive()) {
+			if (simpleType.getTargetNamespace().equals(XMLConstants.W3C_XML_SCHEMA_NS_URI) && simpleType.getName().equals("integer")) {
 				break;
 			}
 			simpleType = simpleType.getBaseType().asSimpleType();
