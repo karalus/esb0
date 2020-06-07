@@ -64,7 +64,10 @@ public class ProcessJsonAction extends Action {
 		}
 		// Materialize message in case it is a stream thus it will not be consumed
 		String content = message.getBodyAsString(context);
-		JsonStructure json = JsonFactoryHelper.JSON_READER_FACTORY.createReader(new StringReader(content)).read();
+		JsonStructure json;
+		try (JsonReader jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(new StringReader(content))) {
+			json = jsonReader.read();
+		}
 
 		for (Assignment variable : _variables) {
 			Object value = variable.getValueAsObject(json);

@@ -190,7 +190,7 @@ public final class Json2XmlTransformer {
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
-			Source source = new Source(inputSource);
+			final Source source = new Source(inputSource);
 			setDocumentLocator(source);
 			startDocument();
 			try (final JsonParser jsonParser = source.jsonParser) {
@@ -408,22 +408,18 @@ public final class Json2XmlTransformer {
 		}
 	}
 
-	private static JsonObject readObject(InputSource source) throws SAXException {
-		JsonReader jsonReader;
+	private static JsonReader createReader(InputSource source) throws SAXException {
 		if (source.getByteStream() != null) {
 			if (source.getEncoding() != null) {
-				jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(source.getByteStream(), Charset.forName(source.getEncoding()));
+				return JsonFactoryHelper.JSON_READER_FACTORY.createReader(source.getByteStream(), Charset.forName(source.getEncoding()));
 			} else {
-				jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(source.getByteStream());
+				return JsonFactoryHelper.JSON_READER_FACTORY.createReader(source.getByteStream());
 			}
 		} else if (source.getCharacterStream() != null) {
-			jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(source.getCharacterStream());
+			return JsonFactoryHelper.JSON_READER_FACTORY.createReader(source.getCharacterStream());
 		} else {
 			throw new SAXException("InputSource must provide a stream");
 		}
-		JsonObject jsonObject = jsonReader.readObject();
-		jsonReader.close();
-		return jsonObject;
 	}
 
 	private final class Parser extends AbstractParser {
@@ -432,7 +428,10 @@ public final class Json2XmlTransformer {
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
-			JsonObject jsonObject = readObject(inputSource);
+			JsonObject jsonObject;
+			try (JsonReader jsonReader = createReader(inputSource)) {
+				jsonObject = jsonReader.readObject();
+			}
 			startDocument();
 			if (_includeRoot) {
 				Set<String> keySet = jsonObject.keySet();
