@@ -37,17 +37,17 @@ public class JDBCResult2JsonMapper {
 			if (!message.isSink()) {
 				message.reset(BodyType.WRITER, sw = new StringWriter());
 			}
-			JsonGenerator jsonGenerator = message.getBodyAsJsonGenerator();
-			do {
-				if (result.getCurrentUpdateCount() >= 0) {
-					jsonGenerator.writeStartObject();
-					jsonGenerator.write(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
-					jsonGenerator.writeEnd();
-				} else {
-					writeJson(result.getCurrentResultSet(), jsonGenerator);
-				}
-			} while (result.next());
-			jsonGenerator.close();
+			try (JsonGenerator jsonGenerator = message.getBodyAsJsonGenerator()) {
+				do {
+					if (result.getCurrentUpdateCount() >= 0) {
+						jsonGenerator.writeStartObject();
+						jsonGenerator.write(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
+						jsonGenerator.writeEnd();
+					} else {
+						writeJson(result.getCurrentResultSet(), jsonGenerator);
+					}
+				} while (result.next());
+			}
 			if (sw != null) {
 				message.reset(BodyType.READER, sw.getStringReader());
 			}

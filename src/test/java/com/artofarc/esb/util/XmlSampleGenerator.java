@@ -113,7 +113,8 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 						comment("Enumeration: " + values);
 					}
 					ch.startElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart(), atts);
-					String s = getSampleValue(simpleType, facets);
+					String s = term.asElementDecl().getDefaultValue() != null ? term.asElementDecl().getDefaultValue().value
+							: getSampleValue(simpleType, facets);
 					ch.characters(s.toCharArray(), 0, s.length());
 					ch.endElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart());
 				} else {
