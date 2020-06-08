@@ -365,7 +365,7 @@ public final class Json2XmlTransformer {
 								startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 							}
 							if (simpleList) {
-								XSListSimpleType listSimpleType = xsomHelper.getListSimpleTypeFromUnion(type);
+								XSListSimpleType listSimpleType = xsomHelper.getListSimpleTypeFromUnion(type != null ? type : "string");
 								startPrefixMapping("ns", listSimpleType.getTargetNamespace());
 								type = "ns:" + listSimpleType.getName();
 							} else {
@@ -525,29 +525,39 @@ public final class Json2XmlTransformer {
 				if (!xsomHelper.isLastElementRepeated()) {
 					if (xsomHelper.isListSimpleType()) {
 						String value = null;
+						primitiveType = null;
 						if (jsonArray.size() > 0) {
 							value = getString(jsonArray.get(0));
-						} else if (union) {
-							throw new SAXException("Cannot map empty array to a xs:union");
+							if (primitiveType == null) {
+								primitiveType = "string";
+							}
 						}
+						String prefix = null;
 						if (union) {
 							XSListSimpleType listSimpleType = xsomHelper.getListSimpleTypeFromUnion(primitiveType);
 							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
-							startPrefixMapping("ns", listSimpleType.getTargetNamespace());
-							_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", "ns:" + listSimpleType.getName());
+							prefix = getPrefix(listSimpleType.getTargetNamespace());
+							if (prefix != null) {
+								_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", prefix + ":" + listSimpleType.getName());
+							} else {
+								startPrefixMapping("ns", listSimpleType.getTargetNamespace());
+								_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", "ns:" + listSimpleType.getName());
+							}
 						}
 						startElement(e.uri, e.localName, e.qName, _atts);
 						if (value != null) {
 							characters(value);
-						}
-						for (int i = 1; i < jsonArray.size(); ++i) {
-							characters(WHITESPACE, 0, 1);
-							characters(getString(jsonArray.get(i)));
+							for (int i = 1; i < jsonArray.size(); ++i) {
+								characters(WHITESPACE, 0, 1);
+								characters(getString(jsonArray.get(i)));
+							}
 						}
 						endElement(e.uri, e.localName, e.qName);
 						if (union) {
 							_atts.clear();
-							endPrefixMapping("ns");
+							if (prefix == null) {
+								endPrefixMapping("ns");
+							}
 							endPrefixMapping("xsi");
 						}
 						break;

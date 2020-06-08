@@ -411,15 +411,12 @@ public final class XSOMHelper {
 		if (_simpleType == null || !_simpleType.isUnion()) {
 			throw new SAXException("Current type is not xs:union");
 		}
-		if (xsdType == null) {
-			xsdType = "string";
-		}
 		XSUnionSimpleType unionType = _simpleType.asUnion();
 		for (int i = unionType.getMemberSize(); i > 0;) {
 			XSSimpleType simpleType = unionType.getMember(--i);
 			if (simpleType.isList()) {
 				XSListSimpleType listSimpleType = simpleType.asList();
-				if (xsdType.equals(getJsonBaseType(listSimpleType.getItemType()))) {
+				if (xsdType == null || xsdType.equals(getJsonBaseType(listSimpleType.getItemType()))) {
 					if (listSimpleType.getName() == null) {
 						throw new SAXException("xs:union type must not contain anonymous xs:list type");
 					}

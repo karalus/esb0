@@ -193,8 +193,7 @@ public final class Xml2JsonTransformer {
 						if (simpleType != null) {
 							if (simpleType.isUnion()) {
 								throw new SAXException("xs:union and no xsi:type given");
-							}
-							if (simpleList = simpleType.isList()) {
+							} else if (simpleList = simpleType.isList()) {
 								primitiveType = XSOMHelper.getJsonType(simpleType.asList().getItemType());
 							} else {
 								primitiveType = XSOMHelper.getJsonType(simpleType);
@@ -262,8 +261,10 @@ public final class Xml2JsonTransformer {
 					} else {
 						jsonGenerator.writeStartArray();
 					}
-					for (String value : whitespacePattern.split(_builder)) {
-						writeValue(value, primitiveType);
+					if (_builder.length() > 0) {
+						for (String value : whitespacePattern.split(_builder)) {
+							writeValue(value, primitiveType);
+						}
 					}
 					jsonGenerator.writeEnd();
 				} else {

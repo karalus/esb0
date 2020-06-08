@@ -22,26 +22,14 @@ import java.io.InputStream;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
-import javax.json.JsonWriter;
 import javax.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.ConsumerPort;
-import com.artofarc.esb.artifact.DeployHelper;
-import com.artofarc.esb.artifact.Artifact;
-import com.artofarc.esb.artifact.Directory;
-import com.artofarc.esb.artifact.FileSystem;
-import com.artofarc.esb.artifact.ValidationException;
-import com.artofarc.esb.artifact.WSDLArtifact;
-import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.artifact.*;
+import com.artofarc.esb.context.*;
 import static com.artofarc.esb.http.HttpConstants.*;
-import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBConstants;
-import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.MimeHelper;
+import com.artofarc.esb.message.*;
 import com.artofarc.util.IOUtils;
-import com.artofarc.util.StringWriter;
 
 public class AdminAction extends Action {
 
@@ -99,11 +87,7 @@ public class AdminAction extends Action {
 				for (String artifactName : directory.getArtifacts().keySet()) {
 					builder.add(artifactName);
 				}
-				StringWriter sw = new StringWriter();
-				JsonWriter jsonWriter = Json.createWriter(sw);
-				jsonWriter.writeArray(builder.build());
-				jsonWriter.close();
-				createResponse(message, BodyType.READER, sw.getStringReader(), "");
+				createResponse(message, BodyType.STRING, builder.build().toString(), "");
 				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				String headerAccept = message.getVariable(HTTP_HEADER_ACCEPT);

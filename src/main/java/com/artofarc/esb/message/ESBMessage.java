@@ -63,7 +63,6 @@ import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
-
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.ByteArrayOutputStream;
@@ -309,7 +308,7 @@ public final class ESBMessage implements Cloneable {
 			charset = _sinkEncoding;
 			break;
 		case STRING:
-			ba = ((String) _body).getBytes(getSinkEncoding());
+			ba = ((String) _body).getBytes(getSinkEncodingCharset());
 			charset = _sinkEncoding;
 			break;
 		case BYTES:
@@ -632,16 +631,20 @@ public final class ESBMessage implements Cloneable {
 	public void writeRawTo(OutputStream os, Context context) throws XQException, TransformerException, IOException {
 		switch (_bodyType) {
 		case DOM:
-			transform(context.getIdenticalTransformer(), new StreamResult(new OutputStreamWriter(os, getSinkEncoding())));
+			transform(context.getIdenticalTransformer(), new StreamResult(new OutputStreamWriter(os, getSinkEncodingCharset())));
 			break;
 		case STRING:
-			os.write(getBodyAsByteArray(context));
+			String s = (String) _body;
+			init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncoding()), null).write(s);
 			break;
 		case BYTES:
 			if (isSinkEncodingdifferent()) {
-				_body = getBodyAsString(context).getBytes(_sinkEncoding);
+				try (Reader reader = new InputStreamReader(new ByteArrayInputStream((byte[]) _body), getCharset())) {
+					IOUtils.copy(reader, init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
+				}
+			} else {
+				os.write((byte[]) _body);
 			}
-			os.write((byte[]) _body);
 			break;
 		case INPUT_STREAM:
 			if (isSinkEncodingdifferent()) {
@@ -656,7 +659,7 @@ public final class ESBMessage implements Cloneable {
 			}
 			break;
 		case READER:
-			IOUtils.copy((Reader) _body, init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncoding()), null));
+			IOUtils.copy((Reader) _body, init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null));
 			break;
 		case XQ_SEQUENCE:
 			XQSequence xqSequence = (XQSequence) _body;

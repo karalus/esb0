@@ -41,6 +41,10 @@ public abstract class XMLParserBase extends XMLFilterBase {
 		return _stack.peek();
 	}
 
+	protected final String getPrefix(String namespaceURI) {
+		return _namespaceMap != null ? _namespaceMap.getPrefix(namespaceURI) : null;
+	}
+
 	public final String createQName(String uri, String localName) {
 		if (_namespaceMap != null) {
 			String prefix = _namespaceMap.getPrefix(uri);

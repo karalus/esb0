@@ -61,7 +61,7 @@ public final class JsonSchemaGenerator {
 			generate(new XSOMHelper((XSElementDecl) component), jsonGenerator);
 		} else if (component instanceof XSSimpleType) {
 			jsonGenerator.writeStartObject();
-			generateType((XSSimpleType) component, jsonGenerator);
+			generateType((XSSimpleType) component, null, jsonGenerator);
 			jsonGenerator.writeEnd();
 		} else {
 			throw new IllegalArgumentException(scd + " does not resolve to complex type or element, but " + component);
@@ -95,7 +95,7 @@ public final class JsonSchemaGenerator {
 			XSAttributeDecl decl = attributeUse.getDecl();
 			String attr = attributePrefix + decl.getName();
 			jsonGenerator.writeStartObject(attr);
-			generateType(decl.getType(), jsonGenerator);
+			generateType(decl.getType(), decl.getDefaultValue(), jsonGenerator);
 			jsonGenerator.writeEnd();
 			if (attributeUse.isRequired()) {
 				required.add(attr);
@@ -131,7 +131,7 @@ public final class JsonSchemaGenerator {
 					if (xsomHelper.isLastElementRequired()) {
 						required.add(name);
 					}
-					generateType(xsomHelper, jsonGenerator);
+					generateType(xsomHelper, term.asElementDecl().getDefaultValue(), jsonGenerator);
 					jsonGenerator.writeEnd(); // name
 				}
 			}
@@ -155,7 +155,7 @@ public final class JsonSchemaGenerator {
 		jsonGenerator.write("additionalProperties", any);
 	}
 
-	private void generateType(XSOMHelper xsomHelper, JsonGenerator jsonGenerator) throws SAXException {
+	private void generateType(XSOMHelper xsomHelper, XmlString defaultValue, JsonGenerator jsonGenerator) throws SAXException {
 		// decide object, array or primitive
 		if (xsomHelper.isLastElementRepeated()) {
 			jsonGenerator.write("type", "array");
@@ -163,7 +163,7 @@ public final class JsonSchemaGenerator {
 			if (xsomHelper.getComplexType() != null) {
 				generateObject(xsomHelper, jsonGenerator);
 			} else {
-				generateType(xsomHelper.getSimpleType(), jsonGenerator);
+				generateType(xsomHelper.getSimpleType(), null, jsonGenerator);
 			}
 			jsonGenerator.writeEnd(); // items
 		} else {
@@ -172,26 +172,26 @@ public final class JsonSchemaGenerator {
 			} else {
 				XSSimpleType simpleType = xsomHelper.getSimpleType();
 				if (simpleType != null) {
-					generateType(simpleType, jsonGenerator);
+					generateType(simpleType, defaultValue, jsonGenerator);
 				}
 			}
 		}
 	}
 
-	private void generateType(XSSimpleType simpleType, JsonGenerator jsonGenerator) {
+	private void generateType(XSSimpleType simpleType, XmlString defaultValue, JsonGenerator jsonGenerator) {
 		if (simpleType.isUnion()) {
 			jsonGenerator.writeStartArray("anyOf");
 			XSUnionSimpleType unionType = simpleType.asUnion();
 			for (int i = 0; i < unionType.getMemberSize(); ++i) {
 				jsonGenerator.writeStartObject();
-				generateType(unionType.getMember(i), jsonGenerator);
+				generateType(unionType.getMember(i), defaultValue, jsonGenerator);
 				jsonGenerator.writeEnd();
 			}
 			jsonGenerator.writeEnd();
 		} else if (simpleType.isList()) {
 			jsonGenerator.write("type", "array");
 			jsonGenerator.writeStartObject("items");
-			generateType(simpleType.asList().getItemType(), jsonGenerator);
+			generateType(simpleType.asList().getItemType(), defaultValue, jsonGenerator);
 			jsonGenerator.writeEnd();
 		} else {
 			String jsonType = XSOMHelper.getJsonType(simpleType);
@@ -249,6 +249,9 @@ public final class JsonSchemaGenerator {
 					jsonGenerator.write(facet.getValue().value);
 				}
 				jsonGenerator.writeEnd();
+			}
+			if (defaultValue != null) {
+				jsonGenerator.write("default", defaultValue.value);
 			}
 		}
 	}
