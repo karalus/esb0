@@ -97,8 +97,12 @@ public class XSOMTest extends AbstractESBTest {
 	}
 
 	private static void printQName(XSDeclaration declaration, String indent) {
-		QName qName = new QName(declaration.getTargetNamespace(), declaration.getName());
-		System.out.println(indent + qName);
+		if (declaration.getName() != null) {
+			QName qName = new QName(declaration.getTargetNamespace(), declaration.getName());
+			System.out.println(indent + qName);
+		} else {
+			System.out.println(indent + "anonymous");
+		}
 	}
 
 	private XSSchemaSet createXSSchemaSet() throws Exception {

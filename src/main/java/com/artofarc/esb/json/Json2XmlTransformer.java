@@ -18,6 +18,9 @@ package com.artofarc.esb.json;
 
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -352,7 +355,7 @@ public final class Json2XmlTransformer {
 					} else {
 						final XSSimpleType simpleType = xsomHelper.getSimpleType();
 						if (simpleType == null) {
-							throw new SAXException("Expected simple type: " + new QName(uri, keyName));
+							throw new SAXException("Expected simple type: " + qName);
 						}
 						union = simpleType.isUnion();
 						if (keyName == _arrays.peek()) {
@@ -388,12 +391,16 @@ public final class Json2XmlTransformer {
 							}
 						}
 					} else if (any >= 0 || xsomHelper.matchElement(uri, keyName).asElementDecl().isNillable()) {
-						startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+						if (any < 0) {
+							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+						}
 						_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil", "xsi:nil", "CDATA", "true");
 						startElement(uri, keyName, qName, _atts);
 						endElement(uri, keyName, qName);
 						_atts.clear();
-						endPrefixMapping("xsi");
+						if (any < 0) {
+							endPrefixMapping("xsi");
+						}
 					}
 					if (!xsomHelper.isInArray()) {
 						if (_stack.size() == any) {
@@ -408,7 +415,7 @@ public final class Json2XmlTransformer {
 		}
 	}
 
-	private static JsonReader createReader(InputSource source) throws SAXException {
+	private static JsonReader createJsonReader(InputSource source) throws SAXException {
 		if (source.getByteStream() != null) {
 			if (source.getEncoding() != null) {
 				return JsonFactoryHelper.JSON_READER_FACTORY.createReader(source.getByteStream(), Charset.forName(source.getEncoding()));
@@ -429,7 +436,7 @@ public final class Json2XmlTransformer {
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
 			JsonObject jsonObject;
-			try (JsonReader jsonReader = createReader(inputSource)) {
+			try (JsonReader jsonReader = createJsonReader(inputSource)) {
 				jsonObject = jsonReader.readObject();
 			}
 			startDocument();
@@ -457,30 +464,48 @@ public final class Json2XmlTransformer {
 			endDocument();
 		}
 
-		private void parse(Element e, JsonObject jsonObject) throws SAXException {
+		private void parse(Element e, JsonObject _jsonObject) throws SAXException {
+			final Map<String, JsonValue> jsonObject = new LinkedHashMap<>(_jsonObject);
 			uri = null;
-			for (String key : jsonObject.keySet()) {
+			for (Iterator<String> iter = jsonObject.keySet().iterator(); iter.hasNext();) {
+				String key = iter.next();
 				if (key.startsWith(attributePrefix)) {
 					keyName = key.substring(attributePrefix.length());
 					addAttribute(getString(jsonObject.get(key)));
-				}				
+					iter.remove();
+				}
 			}
 			if (xsomHelper.getSimpleType() != null) {
 				parse(e, getJsonValue(jsonObject, valueWrapper));
 				_atts.clear();
 			} else {
-				boolean mixed = xsomHelper.getComplexType().isMixed();
+				boolean mixed = any < 0 && xsomHelper.getComplexType().isMixed();
 				startElement(e.uri, e.localName, e.qName, _atts);
 				_atts.clear();
 				for (int level = xsomHelper.getLevel();;) {
 					final XSTerm term = xsomHelper.nextElement();
-					if (level >= xsomHelper.getLevel()) {
+					if (term == null || any < 0 && level >= xsomHelper.getLevel()) {
 						if (term != null) {
 							xsomHelper.push(term);
 						}
 						break;
 					}
 					if (xsomHelper.isLastElementAny()) {
+						// map any element not mapped before
+						if (++any == 0) {
+							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);							
+						}
+						for (String key : new ArrayList<>(jsonObject.keySet())) {
+							uri = null;
+							final JsonValue jsonValue = getJsonValue(jsonObject, key);
+							if (uri == null) {
+								uri = term.apply(XSOMHelper.GetNamespace);
+							}
+							parse(new Element(uri, key, createQName(uri, key)), jsonValue);
+						}
+						if (--any < 0) {
+							endPrefixMapping("xsi");
+						}
 						xsomHelper.endAny();
 					} else {
 						uri = null;
@@ -521,7 +546,7 @@ public final class Json2XmlTransformer {
 				parse(e, (JsonObject) jsonValue);
 				break;
 			case ARRAY:
-				JsonArray jsonArray = (JsonArray) jsonValue;
+				final JsonArray jsonArray = (JsonArray) jsonValue;
 				if (!xsomHelper.isLastElementRepeated()) {
 					if (xsomHelper.isListSimpleType()) {
 						String value = null;
@@ -574,12 +599,23 @@ public final class Json2XmlTransformer {
 				xsomHelper.endArray();
 				break;
 			case NULL:
-				// nillable?
+				if (any < 0) {
+					startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+				}
+				_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil", "xsi:nil", "CDATA", "true");
+				startElement(e.uri, e.localName, e.qName, _atts);
+				endElement(e.uri, e.localName, e.qName);
+				_atts.clear();
+				if (any < 0) {
+					endPrefixMapping("xsi");
+				}
 				break;
 			default:
-				String value = getString(jsonValue);
+				final String value = getString(jsonValue);
 				if (union || any >= 0 && primitiveType != null) {
-					startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+					if (any < 0) {
+						startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+					}
 					startPrefixMapping("xsd", XMLConstants.W3C_XML_SCHEMA_NS_URI);
 					_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", primitiveType != null ? "xsd:" + primitiveType : "xsd:string");
 				}
@@ -589,19 +625,21 @@ public final class Json2XmlTransformer {
 				if (union || any >= 0 && primitiveType != null) {
 					_atts.clear();
 					endPrefixMapping("xsd");
-					endPrefixMapping("xsi");
+					if (any < 0) {
+						endPrefixMapping("xsi");
+					}
 				}
 				break;
 			}
 		}
 
-		private JsonValue getJsonValue(JsonObject jsonObject, String key) {
-			JsonValue jsonValue = jsonObject.get(key);
+		private JsonValue getJsonValue(Map<String, JsonValue> jsonObject, String key) {
+			JsonValue jsonValue = jsonObject.remove(key);
 			if (jsonValue == null && _namespaceMap != null) {
 				for (Map.Entry<String, String> entry : _namespaceMap.getPrefixes()) {
 					String prefix = entry.getKey();
 					if (prefix.length() > 0) {
-						jsonValue = jsonObject.get(prefix + '.' + key);
+						jsonValue = jsonObject.remove(prefix + '.' + key);
 						if (jsonValue != null) {
 							uri = entry.getValue();
 							break;
