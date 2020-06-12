@@ -282,9 +282,8 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 			if (_messageConsumer != null) {
 				try {
 					if (JMSConnectionProvider.closeWithTimeout > 0) {
-						Closer closer = new Closer(_workerPool.getExecutorService());
 						// Oracle AQ sometimes waits forever in close()
-						closer.closeWithTimeout(_messageConsumer, JMSConnectionProvider.closeWithTimeout, getKey());
+						Closer.closeWithTimeout(_messageConsumer, _workerPool.getExecutorService(), JMSConnectionProvider.closeWithTimeout, getKey());
 					} else {
 						_messageConsumer.close();
 					}

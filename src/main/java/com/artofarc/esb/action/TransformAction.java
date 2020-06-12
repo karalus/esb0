@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +80,7 @@ public class TransformAction extends Action {
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
-		this(xquery, contextItem != null ? Arrays.asList(new Assignment(contextItem, false, null, false, null)) : emptyNames(), baseURI, contextItem);
+		this(xquery, contextItem != null ? java.util.Collections.singletonList(new Assignment(contextItem, false, null, false, null)) : emptyNames(), baseURI, contextItem);
 	}
 
 	protected TransformAction(String xquery, List<Assignment> varNames) {

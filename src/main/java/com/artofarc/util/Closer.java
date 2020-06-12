@@ -51,9 +51,9 @@ public final class Closer implements AutoCloseable {
 		}
 	}
 
-	public boolean closeWithTimeout(final Object obj, long timeout, String context) throws Exception {
+	public static boolean closeWithTimeout(final Object obj, ExecutorService executorService, long timeout, String context) throws Exception {
 		final Method method = obj.getClass().getMethod("close");
-		Future<Boolean> future = _executorService.submit(new Callable<Boolean>() {
+		Future<Boolean> future = executorService.submit(new Callable<Boolean>() {
 
 			@Override
 			public Boolean call() throws Exception {
