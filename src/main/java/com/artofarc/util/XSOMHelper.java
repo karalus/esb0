@@ -220,6 +220,10 @@ public final class XSOMHelper {
 			_nextGroup = new Group(complexType, particle, particle.getTerm().asModelGroup());
 		} else {
 			_simpleType = contentType.asSimpleType();
+			if (_simpleType == null) {
+				// empty content, we need a dummy for _nextGroup
+				_nextGroup = _currentGroup;
+			}
 		}
 	}
 
@@ -259,9 +263,11 @@ public final class XSOMHelper {
 
 	public XSTerm matchElement(String uri, String localName) throws SAXException {
 		if (_nextGroup != null) {
-			saveCurrent();
-			_stack.push(Collections.createEntry(_nextType, new ArrayDeque<>()));
-			_currentGroup = _nextGroup;
+			if (_nextGroup != _currentGroup) {
+				saveCurrent();
+				_stack.push(Collections.createEntry(_nextType, new ArrayDeque<>()));
+				_currentGroup = _nextGroup;
+			}
 			_nextGroup = null;
 		}
 		while (_currentGroup != null) {

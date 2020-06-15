@@ -246,6 +246,7 @@ public final class Json2XmlTransformer {
 					case END_OBJECT:
 						if (e != null) {
 							startElement(e.uri, e.localName, e.qName, _atts);
+							_atts.clear();
 						}
 						e = _stack.poll();
 						if (e != null) {

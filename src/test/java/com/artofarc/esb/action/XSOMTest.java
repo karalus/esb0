@@ -61,7 +61,7 @@ public class XSOMTest extends AbstractESBTest {
 		if (particle != null) {
 			XSTerm term = particle.getTerm();
 			print(term.asModelGroup(), indent + "\t");
-		} else {
+		} else if (complexType.getContentType().asSimpleType() != null) {
 			print(complexType.getContentType().asSimpleType(), indent + "\t");
 		}
 	}
