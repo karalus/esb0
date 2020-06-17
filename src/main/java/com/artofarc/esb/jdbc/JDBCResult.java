@@ -32,7 +32,18 @@ public final class JDBCResult implements AutoCloseable {
 
 	public JDBCResult(Statement statement) throws SQLException {
 		_statement = statement;
-		currentResultSet = statement.getResultSet();
+		try {
+			currentResultSet = statement.getResultSet();
+		} catch (SQLException e) {
+			// https://stackoverflow.com/questions/42091653/whats-the-correct-way-to-fetch-all-possibly-implicit-results-from-an-oracle-q
+			if (e.getErrorCode() == 17283) {
+				if (_statement.getMoreResults()) {
+					currentResultSet = statement.getResultSet();
+				}
+			} else {
+				throw e;
+			}
+		}
 		if (currentResultSet == null) {
 			firstUpdateCount = statement.getUpdateCount();
 			readAhead = firstUpdateCount >= 0 && next();

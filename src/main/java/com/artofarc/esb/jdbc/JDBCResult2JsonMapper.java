@@ -38,15 +38,16 @@ public class JDBCResult2JsonMapper {
 				message.reset(BodyType.WRITER, sw = new StringWriter());
 			}
 			try (JsonGenerator jsonGenerator = message.getBodyAsJsonGenerator()) {
-				do {
-					if (result.getCurrentUpdateCount() >= 0) {
-						jsonGenerator.writeStartObject();
-						jsonGenerator.write(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
+				writeStartCurrent(result, jsonGenerator);
+				if (result.next()) {
+					jsonGenerator.writeStartArray("more");
+					do {
+						writeStartCurrent(result, jsonGenerator);
 						jsonGenerator.writeEnd();
-					} else {
-						writeJson(result.getCurrentResultSet(), jsonGenerator);
-					}
-				} while (result.next());
+					} while (result.next());
+					jsonGenerator.writeEnd();
+				}
+				jsonGenerator.writeEnd();
 			}
 			if (sw != null) {
 				message.reset(BodyType.READER, sw.getStringReader());
@@ -54,6 +55,15 @@ public class JDBCResult2JsonMapper {
 			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 		} else if (result.getCurrentUpdateCount() >= 0) {
 			message.getVariables().put(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
+		}
+	}
+
+	private static void writeStartCurrent(JDBCResult result, JsonGenerator jsonGenerator) throws SQLException {
+		if (result.getCurrentUpdateCount() >= 0) {
+			jsonGenerator.writeStartObject();
+			jsonGenerator.write(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
+		} else {
+			writeJson(result.getCurrentResultSet(), jsonGenerator);
 		}
 	}
 
@@ -139,7 +149,6 @@ public class JDBCResult2JsonMapper {
 			}
 			json.writeEnd();
 		}
-		json.writeEnd();
 		json.writeEnd();
 	}
 
