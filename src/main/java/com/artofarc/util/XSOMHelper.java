@@ -287,7 +287,7 @@ public final class XSOMHelper {
 						processElement(element);
 						return element;
 					}
-					if (_required && !_currentGroup.all) {
+					if (_required && !(_currentGroup.all || _currentGroup.choice)) {
 						throw new SAXException("Missing required element: " + new QName(element.getTargetNamespace(), element.getName()));
 					}
 					if (endArray()) {
@@ -445,6 +445,16 @@ public final class XSOMHelper {
 		return _repeated || (_currentGroup != null && _currentGroup.repeated);
 	}
 
+	public XSTerm getWrappedElement() {
+		if (_nextGroup != null && _nextGroup.modelGroup.getSize() == 1) {
+			final XSParticle child = _nextGroup.modelGroup.getChild(0);
+			if ((_nextGroup.repeated || child.isRepeated()) && !_nextGroup.owner.isMixed() && _nextGroup.owner.getAttributeUses().isEmpty()) {
+				return child.getTerm();
+			}
+		}
+		return null;
+	}
+
 	public boolean isStartArray() {
 		return _currentGroup != null && _currentGroup.startArray;
 	}
@@ -461,8 +471,12 @@ public final class XSOMHelper {
 		return _currentGroup != null && _currentGroup.endArray;
 	}
 
-	public void startArray() {
+	public void repeatElement() {
 		--_currentGroup.pos;
+	}
+
+	public void startArray() {
+		_currentGroup.startArray();
 	}
 
 	public boolean endArray() {

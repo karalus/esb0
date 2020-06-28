@@ -105,7 +105,7 @@ public final class JDBC2XMLMapper {
 			XSTerm term = _xsomHelper.nextElement();
 			_xsomHelper.checkComplexType(struct.getSQLTypeName());
 			if (_xsomHelper.isLastElementRepeated()) {
-				_xsomHelper.startArray();
+				_xsomHelper.repeatElement();
 			}
 			final String _uri = term.apply(XSOMHelper.GetNamespace);
 			final String _name = term.apply(XSOMHelper.GetName);

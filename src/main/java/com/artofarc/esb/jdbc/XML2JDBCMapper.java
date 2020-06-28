@@ -147,7 +147,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 		}
 		if (xsomHelper.isLastElementRepeated()) {
 			_stack.peek().array = true;
-			xsomHelper.startArray();
+			xsomHelper.repeatElement();
 		}
 		if (complex) {
 			DBObject dbObject = new DBObject();

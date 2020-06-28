@@ -21,6 +21,7 @@ import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -81,6 +82,7 @@ public final class Xml2JsonTransformer {
 		final JsonGenerator jsonGenerator;
 		final StringBuilder _builder = new StringBuilder(128);
 		final ArrayList<Map.Entry<String, String>> prefixes = new ArrayList<>();
+		final ArrayDeque<Integer> ignoreLevel = new ArrayDeque<>();
 
 		XSOMHelper xsomHelper;
 		boolean root = true, complex, simpleList;
@@ -156,10 +158,6 @@ public final class Xml2JsonTransformer {
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
 			_builder.setLength(0);
-			if (openKey != null) {
-				jsonGenerator.writeStartObject(openKey);
-				openKey = null;
-			}
 			int attsLength = atts.getLength();
 			if (root) {
 				root = false;
@@ -209,25 +207,36 @@ public final class Xml2JsonTransformer {
 					key = prefix + '.' + localName;
 				}
 			}
-			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
-				jsonGenerator.writeEnd();
-				xsomHelper.endArray();
-			}
 			if (anyLevel < 0 && xsomHelper.isStartArray()) {
-				jsonGenerator.writeStartArray(key);
+				jsonGenerator.writeStartArray(openKey != null ? openKey : key);
+				openKey = null;
 			} else {
+				if (openKey != null) {
+					jsonGenerator.writeStartObject(openKey);
+					openKey = null;
+				}
 				if (anyLevel >= 0 || !xsomHelper.isMiddleOfArray()) {
 					openKey = key;
 				}
+			}
+			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
+				jsonGenerator.writeEnd();
+				xsomHelper.endArray();
 			}
 			final String nil = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
 			if (nil != null && DatatypeConverter.parseBoolean(nil)) {
 				primitiveType = "nil";
 				--attsLength;
 			}
+			++level;
 			if (attsLength > 0 || complex && anyLevel < 0) {
 				if (openKey != null) {
-					jsonGenerator.writeStartObject(openKey);
+					if (xsomHelper.getWrappedElement() != null) {
+						ignoreLevel.push(level);
+					} else {
+						jsonGenerator.writeStartObject(openKey);
+						openKey = null;
+					}
 				} else {
 					jsonGenerator.writeStartObject();
 				}
@@ -236,12 +245,10 @@ public final class Xml2JsonTransformer {
 					String type = attributeUse != null ? XSOMHelper.getJsonType(attributeUse.getDecl().getType()) : "string";
 					writeKeyValue(attributePrefix + atts.getLocalName(i), atts.getValue(i), type);
 				}
-				openKey = null;
 				if (primitiveType != null) {
 					openKey = valueWrapper;
 				}
 			}
-			++level;
 		}
 
 		@Override
@@ -300,7 +307,12 @@ public final class Xml2JsonTransformer {
 				}
 			}
 			if (complex || primitiveType == null) {
-				jsonGenerator.writeEnd();
+				final Integer ignore = ignoreLevel.peek();
+				if (ignore != null && level == ignore) {
+					ignoreLevel.pop();
+				} else {
+					jsonGenerator.writeEnd();
+				}
 			}
 			if (anyLevel == level--) {
 				anyLevel = -1;

@@ -138,6 +138,7 @@ public final class Json2XmlTransformer {
 	private static final class Element {
 
 		final String uri, localName, qName;
+		Element container;
 
 		Element(String uri, String localName, String qName) {
 			this.uri = uri;
@@ -186,8 +187,8 @@ public final class Json2XmlTransformer {
 
 	private final class StreamingParser extends AbstractParser {
 
-		final ArrayDeque<Element> _stack = new ArrayDeque<>();
-		final ArrayDeque<String> _arrays = new ArrayDeque<>();
+		final ArrayDeque<Element> _objects = new ArrayDeque<>();
+		final ArrayDeque<Element> _arrays = new ArrayDeque<>();
 
 		boolean attribute, simpleContent, simpleList, union;
 
@@ -201,7 +202,7 @@ public final class Json2XmlTransformer {
 				while (jsonParser.hasNext()) {
 					switch (jsonParser.next()) {
 					case START_OBJECT:
-						if (keyName == null && (xsomHelper == null || !xsomHelper.isInArray())) {
+						if (keyName == null && xsomHelper == null) {
 							// assume we are on root node
 							if (_includeRoot) {
 								continue;
@@ -211,7 +212,7 @@ public final class Json2XmlTransformer {
 								xsomHelper = new XSOMHelper(_complexType, _schemaSet.getElementDecl(uri, keyName));
 							}
 						} else {
-							if (_includeRoot && _stack.isEmpty()) {
+							if (_includeRoot && _objects.isEmpty()) {
 								if (_rootName != null) {
 									if (!_rootName.equals(keyName)) {
 										throw new SAXException("JSON must start with: " + _rootName);
@@ -223,13 +224,19 @@ public final class Json2XmlTransformer {
 								xsomHelper = new XSOMHelper(_complexType, _schemaSet.getElementDecl(uri, keyName));
 							} else {
 								if (keyName == null) {
-									keyName = _arrays.peek();
+									e = _arrays.peek();
+									if (xsomHelper.isMiddleOfArray()) {
+										xsomHelper.matchElement(e.uri, e.localName);
+									} else {
+										xsomHelper.startArray();
+									}
+								} else {
+									final XSTerm term = xsomHelper.matchElement(uri, keyName);
+									uri = term.apply(XSOMHelper.GetNamespace);
 								}
-								final XSTerm term = xsomHelper.matchElement(uri, keyName);
-								uri = term.apply(XSOMHelper.GetNamespace);
 								if (xsomHelper.isLastElementAny()) {
 									if (any < 0) {
-										any = _stack.size();
+										any = _objects.size();
 										startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 									} 
 								} else {
@@ -240,7 +247,7 @@ public final class Json2XmlTransformer {
 								}
 							}
 						}
-						_stack.push(e = new Element(uri, keyName, createQName(uri, keyName)));
+						_objects.push(e != null ? e : (e = new Element(uri, keyName, createQName(uri, keyName))));
 						uri = null;
 						break;
 					case END_OBJECT:
@@ -248,17 +255,19 @@ public final class Json2XmlTransformer {
 							startElement(e.uri, e.localName, e.qName, _atts);
 							_atts.clear();
 						}
-						e = _stack.poll();
+						e = _objects.poll();
 						if (e != null) {
 							endElement(e.uri, e.localName, e.qName);
 							if (any < 0) {
 								if (simpleContent) {
 									simpleContent = false;
 								} else {
-									xsomHelper.endComplex();
+									do {
+										xsomHelper.endComplex();
+									} while (xsomHelper.getLevel() > _objects.size());
 								}
-							} else if (_stack.size() <= any) {
-								if (_stack.size() < any || !xsomHelper.isInArray()) {
+							} else if (_objects.size() <= any) {
+								if (_objects.size() < any || !xsomHelper.isInArray()) {
 									endPrefixMapping("xsi");
 									any = -1;
 									xsomHelper.endAny();
@@ -268,10 +277,41 @@ public final class Json2XmlTransformer {
 						}
 						break;
 					case START_ARRAY:
-						_arrays.push(keyName);
+						Element container = null;
+						if (keyName == null) {
+							container = _arrays.peek();
+							e = new Element(container.uri, container.localName, container.qName);
+							startElement(e.uri, e.localName, e.qName, _atts);
+						} else if (xsomHelper.getCurrentComplexType().isMixed() && valueWrapper.equals(keyName)) {
+							// dummy element for mixed content represented as ARRAY
+							e = new Element(uri, keyName, null);
+						} else {
+							XSTerm term = xsomHelper.matchElement(uri, keyName);
+							uri = term.apply(XSOMHelper.GetNamespace);
+							if (!xsomHelper.isLastElementRepeated()) {
+								term = xsomHelper.getWrappedElement();
+								if (term != null) {
+									_objects.push(container = e = new Element(uri, keyName, createQName(uri, keyName)));
+									startElement(e.uri, e.localName, e.qName, _atts);
+									keyName = term.apply(XSOMHelper.GetName);
+									uri = term.apply(XSOMHelper.GetNamespace);
+									term = xsomHelper.matchElement(uri, keyName);
+								} else {
+									throw new SAXException("Array not expected for " + keyName);
+								}
+							}
+							e = new Element(uri, keyName, createQName(uri, keyName));
+							keyName = null;
+						}
+						e.container = container;
+						_arrays.push(e);
+						e = null;
 						break;
 					case END_ARRAY:
-						_arrays.pop();
+						e = _arrays.pop();
+						if (e.container != null) {
+							endElement(e.container.uri, e.container.localName, e.container.qName);
+						}
 						if (simpleList) {
 							endElement(uri, keyName, createQName(uri, keyName));
 							if (union) {
@@ -280,12 +320,18 @@ public final class Json2XmlTransformer {
 								endPrefixMapping("xsi");
 								union = false;
 							}
-							keyName = null;
-							uri = null;
 							simpleList = false;
 						} else if (any < 0) {
 							xsomHelper.endArray();
 						}
+						if (e.container != null && e.localName != e.container.localName) {
+							// element wrapper
+							_objects.pop();
+							xsomHelper.endComplex();
+						}
+						e = null;
+						keyName = null;
+						uri = null;
 						break;
 					case KEY_NAME:
 						keyName = jsonParser.getString();
@@ -338,34 +384,39 @@ public final class Json2XmlTransformer {
 			if (attribute) {
 				addAttribute(value);
 			} else {
-				if (keyName == null) {
-					keyName = _arrays.peek();
-				}
-				if ((simpleContent || any >= 0) && valueWrapper.equals(keyName)) {
+				if ((simpleContent || any >= 0 && type == null) && valueWrapper.equals(keyName)) {
 					simpleContent = true;
 					characters(value);
-				} else if (xsomHelper.getCurrentComplexType().isMixed() && valueWrapper.equals(keyName)) {
+				} else if (xsomHelper.getCurrentComplexType().isMixed() && (any < 0 || type == null) && valueWrapper.equals(keyName != null ? keyName : _arrays.peek().localName)) {
 					characters(value);
 				} else {
-					uri = xsomHelper.matchElement(uri, keyName).apply(XSOMHelper.GetNamespace);
-					final String qName = createQName(uri, keyName);
+					final Element e;
+					final XSTerm term;
+					if (keyName == null) {
+						e = _arrays.peek();
+						term = xsomHelper.matchElement(e.uri, e.localName);
+					} else {
+						term = xsomHelper.matchElement(uri, keyName);
+						uri = term.apply(XSOMHelper.GetNamespace);
+						e = new Element(uri, keyName, createQName(uri, keyName));
+					}
 					if (xsomHelper.isLastElementAny()) {
 						if (any < 0) {
-							any = _stack.size();
+							any = _objects.size();
 						}
 					} else {
 						final XSSimpleType simpleType = xsomHelper.getSimpleType();
 						if (simpleType == null) {
-							throw new SAXException("Expected simple type: " + qName);
+							throw new SAXException("Expected simple type: " + e.qName);
 						}
 						union = simpleType.isUnion();
-						if (keyName == _arrays.peek()) {
+						if (e == _arrays.peek()) {
 							simpleList = xsomHelper.isListSimpleType();
 						}
 					}
 					if (value != null) {
 						if (union || any >= 0 && type != null) {
-							if (union || any == _stack.size()) {
+							if (union || any == _objects.size()) {
 								startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 							}
 							if (simpleList) {
@@ -378,33 +429,33 @@ public final class Json2XmlTransformer {
 							}
 							_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", type);
 						}
-						startElement(uri, keyName, qName, _atts);
+						startElement(e.uri, e.localName, e.qName, _atts);
 						characters(value);
 						if (simpleList) {
 							return;
 						}
-						endElement(uri, keyName, qName);
+						endElement(e.uri, e.localName, e.qName);
 						if (union || any >= 0 && type != null) {
 							_atts.clear();
-							if (union || any == _stack.size()) {
+							if (union || any == _objects.size()) {
 								endPrefixMapping("xsd");
 								endPrefixMapping("xsi");
 							}
 						}
-					} else if (any >= 0 || xsomHelper.matchElement(uri, keyName).asElementDecl().isNillable()) {
-						if (any < 0) {
+					} else if (any >= 0 || term.asElementDecl().isNillable()) {
+						if (any < 0 || _objects.size() == any) {
 							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 						}
 						_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil", "xsi:nil", "CDATA", "true");
-						startElement(uri, keyName, qName, _atts);
-						endElement(uri, keyName, qName);
+						startElement(e.uri, e.localName, e.qName, _atts);
+						endElement(e.uri, e.localName, e.qName);
 						_atts.clear();
 						if (any < 0) {
 							endPrefixMapping("xsi");
 						}
 					}
 					if (!xsomHelper.isInArray()) {
-						if (_stack.size() == any) {
+						if (_objects.size() == any) {
 							any = -1;
 							xsomHelper.endAny();
 						}
@@ -588,13 +639,32 @@ public final class Json2XmlTransformer {
 						}
 						break;
 					}
-					throw new SAXException("Array not expected for " + e);
+					XSTerm term = xsomHelper.getWrappedElement();
+					if (term != null) {
+						startElement(e.uri, e.localName, e.qName, _atts);
+						if (jsonArray.size() > 0) {
+							xsomHelper.nextElement();
+							keyName = term.apply(XSOMHelper.GetName);
+							uri = term.apply(XSOMHelper.GetNamespace);
+							parse(new Element(uri, keyName, createQName(uri, keyName)), jsonArray);
+						}
+						endElement(e.uri, e.localName, e.qName);
+						break;
+					} else {
+						throw new SAXException("Array not expected for " + keyName);
+					}
 				}
-				xsomHelper.startArray();
-				for (JsonValue jsonValue2 : jsonArray) {
-					parse(e, jsonValue2);
+				xsomHelper.repeatElement();
+				for (JsonValue value : jsonArray) {
+					if (value.getValueType() == JsonValue.ValueType.ARRAY) {
+						startElement(e.uri, e.localName, e.qName, _atts);
+					}
+					parse(e, value);
+					if (value.getValueType() == JsonValue.ValueType.ARRAY) {
+						endElement(e.uri, e.localName, e.qName);
+					}
 					if (xsomHelper.poll() != null) {
-						xsomHelper.startArray();
+						xsomHelper.repeatElement();
 					}
 				}
 				xsomHelper.endArray();
