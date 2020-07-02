@@ -62,6 +62,9 @@ public class DumpAction extends TerminalAction {
 		ESBMessage.dumpKeyValues(context, message.getVariables().entrySet(), writer);
 		logger.info(writer.toString());
 		writer.reset();
+		if (message.getAttachments().size() > 0) {
+			logger.info("Attachments: " + message.getAttachments().keySet());
+		}
 		if (message.getBodyType() != BodyType.INVALID) {
 			if (message.getBodyType() == BodyType.EXCEPTION) {
 				writer.write("Body(Exception): ");
