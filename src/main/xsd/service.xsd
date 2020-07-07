@@ -117,6 +117,25 @@
 			</complexContent>
 		</complexType>
 	</element>
+	<element name="sendMail" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase">
+					<sequence>
+						<element ref="tns:property" maxOccurs="unbounded"/>
+					</sequence>
+					<attribute name="workerPool" type="anyURI" />
+					<attribute name="from" type="tns:string1" use="required" />
+					<attribute name="to" type="tns:string1" use="required" />
+					<attribute name="cc" type="tns:string1" />
+					<attribute name="bcc" type="tns:string1" />
+					<attribute name="replyTo" type="tns:string1" />
+					<attribute name="subject" type="tns:string1" use="required" />
+					<attribute name="text" type="tns:string1" use="required" />
+				</extension>
+			</complexContent>
+		</complexType>
+	</element>
 	<element name="file" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>

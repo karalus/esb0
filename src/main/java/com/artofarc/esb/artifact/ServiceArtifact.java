@@ -207,6 +207,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			addAction(list, kafkaConsumeAction, location);
 			break;
 		}
+		case "sendMail": {
+			SendMail sendMail = (SendMail) actionElement.getValue();
+			Properties properties = new Properties();
+			for (Property property : sendMail.getProperty()) {
+				properties.put(property.getKey(), property.getValue());
+			}
+			addAction(list, new SendMailAction(globalContext, properties, resolveWorkerPool(sendMail.getWorkerPool()), sendMail.getFrom(), sendMail.getTo(), sendMail.getCc(), sendMail.getBcc(), sendMail.getReplyTo(), sendMail.getSubject(), sendMail.getText()), location);
+			break;
+		}
 		case "file": {
 			File file = (File) actionElement.getValue();
 			addAction(list, new FileAction(globalContext.bindProperties(file.getDir())), location);
