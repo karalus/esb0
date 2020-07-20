@@ -86,14 +86,14 @@ public class BranchOnPathAction extends Action {
 	public static void parseQueryString(ESBMessage message) throws UnsupportedEncodingException {
 		String queryString = message.getVariable(ESBConstants.QueryString);
 		if (queryString != null) {
-			StringTokenizer st = new StringTokenizer(URLDecoder.decode(queryString, "UTF-8"), "&");
+			StringTokenizer st = new StringTokenizer(queryString, "&");
 			while (st.hasMoreTokens()) {
 				String pair = st.nextToken();
 				final int i = pair.indexOf("=");
 				if (i > 0) {
-					message.getVariables().put(pair.substring(0, i), pair.substring(i + 1));
+					message.getVariables().put(URLDecoder.decode(pair.substring(0, i), "UTF-8"), URLDecoder.decode(pair.substring(i + 1), "UTF-8"));
 				} else {
-					message.getVariables().put(pair, null);
+					message.getVariables().put(URLDecoder.decode(pair, "UTF-8"), null);
 				}
 			}
 		}
