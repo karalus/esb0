@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.jdbc;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Array;
@@ -41,7 +42,7 @@ public final class JDBCConnection implements AutoCloseable {
 	private static Class<?> ifcOracleConnection;
 	private static Method createARRAY;
 	private static Method getSQLTypeName;
-	private static Class<?> jxTransformerHandler;
+	private static Constructor<TransformerHandler> jxTransformerHandlerCon;
 
 	static {
 		try {
@@ -52,7 +53,9 @@ public final class JDBCConnection implements AutoCloseable {
 			logger.warn("Oracle JDBC driver not in classpath. Mapping of Arrays will not work");
 		}
 		try {
-			jxTransformerHandler = Class.forName("oracle.xml.jaxp.JXTransformerHandler");
+			@SuppressWarnings("unchecked")
+			Class<TransformerHandler> cls = (Class<TransformerHandler>) Class.forName("oracle.xml.jaxp.JXTransformerHandler");
+			jxTransformerHandlerCon = cls.getConstructor();
 		} catch (ReflectiveOperationException e) {
 			logger.warn("Oracle XML parser not in classpath. Binding of SQLXML will not work when using namespaces");
 		}
@@ -96,10 +99,10 @@ public final class JDBCConnection implements AutoCloseable {
 	}
 
 	public TransformerHandler getTransformerHandler() {
-		if (_isOracleConnection && jxTransformerHandler != null) {
+		if (_isOracleConnection && jxTransformerHandlerCon != null) {
 			try {
-				return (TransformerHandler) jxTransformerHandler.newInstance();
-			} catch (InstantiationException | IllegalAccessException e) {
+				return jxTransformerHandlerCon.newInstance();
+			} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
 				throw new RuntimeException(e);
 			}
 		}
