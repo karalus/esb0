@@ -673,6 +673,8 @@
 							<attribute name="messageSelector" type="string" />
 							<attribute name="workerCount" type="tns:positiveInt" default="1" />
 							<attribute name="pollInterval" type="int" default="0" />
+							<attribute name="maximumRetries" type="int" />
+							<attribute name="redeliveryDelay" type="unsignedInt" />
 						</complexType>
 					</element>
 					<element name="timerBinding">

@@ -64,7 +64,13 @@ public interface ESBConstants {
 
 	String JMSTimestamp = "JMSTimestamp";
 
+	String JMSType = "JMSType";
+
 	String JMSOrigin = "JMSOrigin";
+
+	String QueueName = "QueueName";
+
+	String TopicName = "TopicName";
 
 	String Charset = "Charset";
 

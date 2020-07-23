@@ -51,8 +51,13 @@ public final class Closer implements AutoCloseable {
 		}
 	}
 
-	public static boolean closeWithTimeout(final Object obj, ExecutorService executorService, long timeout, String context) throws Exception {
-		final Method method = obj.getClass().getMethod("close");
+	public static <E extends Exception> boolean closeWithTimeout(final Object obj, ExecutorService executorService, long timeout, String context, Class<E> cls) throws E {
+		final Method method;
+		try {
+			method = obj.getClass().getMethod("close");
+		} catch (NoSuchMethodException e) {
+			throw new IllegalArgumentException(obj.getClass() + " has no method close");
+		}
 		Future<Boolean> future = executorService.submit(new Callable<Boolean>() {
 
 			@Override
@@ -60,7 +65,7 @@ public final class Closer implements AutoCloseable {
 				try {
 					method.invoke(obj);
 				} catch (InvocationTargetException e) {
-					throw ReflectionUtils.convert(e.getCause(), Exception.class);
+					throw ReflectionUtils.convert(e.getCause(), cls);
 				}
 				return true;
 			}
@@ -71,8 +76,11 @@ public final class Closer implements AutoCloseable {
 			logger.warn("Possible resource leak: Could not close " + obj.getClass().getSimpleName() + " for " + context + " regularly within timeout of " + timeout + "ms");
 			future.cancel(true);
 			return false;
+		} catch (InterruptedException e) {
+			logger.warn("Possible resource leak: Closing " + obj.getClass().getSimpleName() + " for " + context + " was unexpectedly interrupted");
+			return false;
 		} catch (ExecutionException e) {
-			throw ReflectionUtils.convert(e.getCause(), Exception.class);
+			throw ReflectionUtils.convert(e.getCause(), cls);
 		}
 	}
 

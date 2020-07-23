@@ -113,10 +113,16 @@ public class JMSAction extends TerminalAction {
 		}
 		for (Map.Entry<String, Object> entry : message.getHeaders()) {
 			try {
-				if (entry.getKey().equals(ESBConstants.JMSCorrelationID)) {
+				switch (entry.getKey()) {
+				case ESBConstants.JMSCorrelationID:
 					jmsMessage.setJMSCorrelationID((String) entry.getValue());
-				} else {
+					break;
+				case ESBConstants.JMSType:
+					jmsMessage.setJMSType((String) entry.getValue());
+					break;
+				default:
 					jmsMessage.setObjectProperty(entry.getKey(), entry.getValue());
+					break;
 				}
 			} catch (JMSException e) {
 				throw new ExecutionException(this, "Could not set JMS property " + entry.getKey(), e);
@@ -150,11 +156,11 @@ public class JMSAction extends TerminalAction {
 	}
 
 	private static Destination getDestination(ESBMessage message, JMSSession jmsSession) throws JMSException {
-		String queueName = message.getVariable("QueueName");
+		String queueName = message.getVariable(ESBConstants.QueueName);
 		if (queueName != null) {
 			return jmsSession.createQueue(queueName);
 		}			
-		String topicName = message.getVariable("TopicName");
+		String topicName = message.getVariable(ESBConstants.TopicName);
 		if (topicName != null) {
 			return jmsSession.createTopic(topicName);
 		}

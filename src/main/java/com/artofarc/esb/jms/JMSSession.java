@@ -88,7 +88,7 @@ public final class JMSSession implements AutoCloseable {
 	}
 
 	@Override
-	public void close() throws Exception {
+	public void close() throws JMSException {
 		if (_consumer != null) {
 			_consumer.close();
 			_temporaryQueue.delete();

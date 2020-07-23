@@ -180,9 +180,18 @@ public final class ESBMessage implements Cloneable {
 		return result != null ? result : def;
 	}
 
-	@SuppressWarnings("unchecked")
-	public <T> T putVariable(String varName, Object value) {
-		return (T) (value != null ? _variables.put(varName, value) : _variables.remove(varName));
+	public void putVariable(String varName, Object value) {
+		if (value != null) {
+			_variables.put(varName, value);
+		} else {
+			_variables.remove(varName);
+		}
+	}
+
+	public void putVariableIfNotNull(String varName, Object value) {
+		if (value != null) {
+			_variables.put(varName, value);
+		}
 	}
 
 	public <T> T removeVariable(String varName) {
