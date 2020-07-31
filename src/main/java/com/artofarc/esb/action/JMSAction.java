@@ -106,6 +106,7 @@ public class JMSAction extends TerminalAction {
 		} else if (_isBytesMessage) {
 			BytesMessage bytesMessage = session.createBytesMessage();
 			message.writeTo(new BytesMessageOutputStream(bytesMessage), context);
+			message.closeBody();
 			jmsMessage = bytesMessage;
 			jmsMessage.setStringProperty(ESBConstants.Charset, message.getCharset().name());
 		} else {

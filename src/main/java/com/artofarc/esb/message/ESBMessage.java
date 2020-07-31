@@ -644,7 +644,7 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case STRING:
 			String s = (String) _body;
-			init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncoding()), null).write(s);
+			init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null).write(s);
 			break;
 		case BYTES:
 			if (isSinkEncodingdifferent()) {
