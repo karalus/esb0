@@ -26,7 +26,6 @@ import java.util.ArrayList;
 
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
-import javax.xml.transform.sax.SAXResult;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
@@ -112,7 +111,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 					dbObject.name = null;
 					try {
 						SQLXML sqlxml = _connection.getConnection().createSQLXML();
-						delegate = sqlxml.setResult(SAXResult.class).getHandler();
+						delegate = _connection.createSAXResult(sqlxml).getHandler();
 						dbObject.add(localName, sqlxml);
 					} catch (SQLException e) {
 						throw new SAXException(e);

@@ -19,6 +19,7 @@ package com.artofarc.util;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -231,6 +232,17 @@ public final class ReflectionUtils {
 			}
 		}
 		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <R, T extends Throwable> R invoke(Method method, Class<T> cls, Object obj, Object... params) throws T {
+		try {
+			return (R) method.invoke(obj, params);
+		} catch (InvocationTargetException e) {
+			throw ReflectionUtils.convert(e.getCause(), cls);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 }

@@ -17,7 +17,6 @@
 package com.artofarc.esb.jdbc;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Array;
 import java.sql.Connection;
@@ -83,26 +82,18 @@ public final class JDBCConnection implements AutoCloseable {
 			throw new SQLException("Only works with OJDBC");
 		}
 		// https://docs.oracle.com/cd/B28359_01/java.111/b31224/oraarr.htm#i1059642
-		try {
-			return (Array) createARRAY.invoke(_connection.unwrap(ifcOracleConnection), typeName, elements);
-		} catch (InvocationTargetException | IllegalAccessException e) {
-			throw ReflectionUtils.convert(e.getCause(), SQLException.class);
-		}
+		return ReflectionUtils.invoke(createARRAY, SQLException.class, _connection.unwrap(ifcOracleConnection), typeName, elements);
 	}
 
 	public static String getSQLTypeName(Array array) throws SQLException {
-		try {
-			return (String) getSQLTypeName.invoke(array);
-		} catch (InvocationTargetException | IllegalAccessException e) {
-			throw ReflectionUtils.convert(e.getCause(), SQLException.class);
-		}
+		return ReflectionUtils.invoke(getSQLTypeName, SQLException.class, array);
 	}
 
 	public TransformerHandler getTransformerHandler() {
 		if (_isOracleConnection && jxTransformerHandlerCon != null) {
 			try {
 				return jxTransformerHandlerCon.newInstance();
-			} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+			} catch (ReflectiveOperationException e) {
 				throw new RuntimeException(e);
 			}
 		}

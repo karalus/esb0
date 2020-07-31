@@ -16,7 +16,6 @@
  */
 package com.artofarc.util;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -51,7 +50,7 @@ public final class Closer implements AutoCloseable {
 		}
 	}
 
-	public static <E extends Exception> boolean closeWithTimeout(final Object obj, ExecutorService executorService, long timeout, String context, Class<E> cls) throws E {
+	public static <E extends Exception> boolean closeWithTimeout(final Object obj, ExecutorService executorService, long timeout, String context, final Class<E> cls) throws E {
 		final Method method;
 		try {
 			method = obj.getClass().getMethod("close");
@@ -61,12 +60,8 @@ public final class Closer implements AutoCloseable {
 		Future<Boolean> future = executorService.submit(new Callable<Boolean>() {
 
 			@Override
-			public Boolean call() throws Exception {
-				try {
-					method.invoke(obj);
-				} catch (InvocationTargetException e) {
-					throw ReflectionUtils.convert(e.getCause(), cls);
-				}
+			public Boolean call() throws E {
+				ReflectionUtils.invoke(method, cls, obj);
 				return true;
 			}
 		});
