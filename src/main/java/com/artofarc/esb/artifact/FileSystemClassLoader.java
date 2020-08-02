@@ -17,10 +17,15 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.security.SecureClassLoader;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Vector;
 
 public class FileSystemClassLoader extends SecureClassLoader {
 
@@ -95,6 +100,19 @@ public class FileSystemClassLoader extends SecureClassLoader {
 		return null;
 	}
 
+	private URL findURLInJarArtifacts(String filename) throws IOException {
+		byte[] data = findInJarArtifacts(filename);
+		if (data != null) {
+			File tempFile = File.createTempFile("FileSystemClassLoader-", null);
+			tempFile.deleteOnExit();
+			try (FileOutputStream fileOutputStream = new FileOutputStream(tempFile)) {
+				fileOutputStream.write(data);
+			}
+			return tempFile.toURI().toURL();
+		}
+		return null;
+	}
+
 	@Override
 	public InputStream getResourceAsStream(String name) {
 		try {
@@ -103,9 +121,41 @@ public class FileSystemClassLoader extends SecureClassLoader {
 				return new ByteArrayInputStream(data);
 			}
 		} catch (IOException e) {
-			return null;
+			throw new RuntimeException(e);
 		}
 		return super.getResourceAsStream(name);
+	}
+
+	@Override
+	public URL getResource(String name) {
+		try {
+			URL url = findURLInJarArtifacts(name);
+			if (url != null) {
+				return url;
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return super.getResource(name);
+	}
+
+	@Override
+	public Enumeration<URL> getResources(String name) throws IOException {
+		Enumeration<URL> resources = super.getResources(name);
+		try {
+			URL url = findURLInJarArtifacts(name);
+			if (url != null) {
+				Vector<URL> urls = new Vector<>();
+				urls.add(url);
+				while (resources.hasMoreElements()) {
+					urls.add(resources.nextElement());
+				}
+				resources = urls.elements();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return resources;
 	}
 
 }
