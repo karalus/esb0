@@ -24,8 +24,6 @@ import java.util.List;
 
 import javax.naming.NamingException;
 import javax.sql.DataSource;
-import javax.xml.transform.sax.SAXResult;
-import javax.xml.transform.sax.TransformerHandler;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -142,19 +140,7 @@ public abstract class JDBCAction extends Action {
 					SQLXML xmlObject = execContext.getResource2();
 					if (xmlObject == null) {
 						xmlObject = conn.getConnection().createSQLXML();
-						SAXResult result = xmlObject.setResult(SAXResult.class);
-						TransformerHandler transformerHandler = conn.getTransformerHandler();
-						if (transformerHandler != null) {
-							// Oracle JDBC needs its own Transformer, with Saxon namespaces are lost
-							if (message.getBodyType() == BodyType.XQ_ITEM) {
-								transformerHandler.setResult(result);
-								message.writeTo(new SAXResult(transformerHandler), context);
-							} else {
-								transformerHandler.getTransformer().transform(message.getBodyAsSource(context), result);
-							}
-						} else {
-							message.writeTo(result, context);
-						}
+						message.writeToSAX(conn.createSAXResult(xmlObject).getHandler(), context);
 					}
 					ps.setSQLXML(param.getPos(), xmlObject);
 					break;
@@ -190,7 +176,7 @@ public abstract class JDBCAction extends Action {
 					break;
 				case STRUCT:
 					XML2JDBCMapper mapper = new XML2JDBCMapper(_schemaSet, conn);
-					message.writeTo(new SAXResult(mapper), context);
+					message.writeToSAX(mapper, context);
 					ps.setObject(param.getPos(), mapper.getObject());
 					break;
 				default:

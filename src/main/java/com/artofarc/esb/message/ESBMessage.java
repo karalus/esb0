@@ -613,22 +613,13 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public void writeTo(Result result, Context context) throws XQException, TransformerException, IOException {
-		if (_bodyType == BodyType.XQ_ITEM) {
-			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItemToResult(result);
-		} else {
-			transform(context.getIdenticalTransformer(), result);
-		}
-	}
-
 	public void writeTo(OutputStream os, Context context) throws Exception {
 		os = getCompressedOutputStream(os);
 		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
 			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 			serializer.getFastInfosetSerializer().setOutputStream(os);
 			serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
-			writeTo(new SAXResult(serializer.getContentHandler()), context);
+			writeToSAX(serializer.getContentHandler(), context);
 		} else {
 			writeRawTo(os, context);
 		}

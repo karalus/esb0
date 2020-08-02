@@ -22,7 +22,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -34,11 +33,10 @@ import javax.xml.namespace.QName;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 
-import com.artofarc.util.Collections;
 import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.NamespaceMap;
+import com.artofarc.util.PrefixHandler;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.*;
 
@@ -77,11 +75,10 @@ public final class Xml2JsonTransformer {
 		return new TransformerHandler(JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(outputStream, charset));
 	}
 
-	private final class TransformerHandler extends DefaultHandler {
+	private final class TransformerHandler extends PrefixHandler {
 
 		final JsonGenerator jsonGenerator;
 		final StringBuilder _builder = new StringBuilder(128);
-		final ArrayList<Map.Entry<String, String>> prefixes = new ArrayList<>();
 		final ArrayDeque<Integer> ignoreLevel = new ArrayDeque<>();
 
 		XSOMHelper xsomHelper;
@@ -91,31 +88,6 @@ public final class Xml2JsonTransformer {
 
 		TransformerHandler(JsonGenerator jsonGenerator) {
 			this.jsonGenerator = jsonGenerator;
-		}
-
-		@Override
-		public void startPrefixMapping(String prefix, String uri) {
-			prefixes.add(Collections.createEntry(prefix, uri));
-		}
-
-		@Override
-		public void endPrefixMapping(String prefix) {
-			for (int i = prefixes.size(); i > 0;) {
-				if (prefixes.get(--i).getKey().equals(prefix)) {
-					prefixes.remove(i);
-					break;
-				}
-			}
-		}
-
-		private String getNamespace(String prefix) {
-			for (int i = prefixes.size(); i > 0;) {
-				final Map.Entry<String, String> entry = prefixes.get(--i);
-				if (entry.getKey().equals(prefix)) {
-					return entry.getValue();
-				}
-			}
-			return null;
 		}
 
 		@Override
