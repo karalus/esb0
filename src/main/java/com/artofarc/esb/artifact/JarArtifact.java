@@ -20,8 +20,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
@@ -109,7 +107,7 @@ public class JarArtifact extends Artifact {
 
 		URL createUrlForEntry(String filename) {
 			try {
-				return new URL(null, new URI("esb0:/" + filename).toString(), new URLStreamHandler() {
+				return new URL(null, "esb0:" + filename, new URLStreamHandler() {
 
 					@Override
 					protected URLConnection openConnection(URL u) {
@@ -121,12 +119,12 @@ public class JarArtifact extends Artifact {
 
 							@Override
 							public InputStream getInputStream() throws IOException {
-								return new ByteArrayInputStream(getEntry(url.getPath().substring(1)));
+								return new ByteArrayInputStream(getEntry(url.getPath()));
 							}
 						};
 					}
 				});
-			} catch (URISyntaxException | MalformedURLException e) {
+			} catch (MalformedURLException e) {
 				throw new RuntimeException(e);
 			}
 		}
