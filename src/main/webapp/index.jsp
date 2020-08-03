@@ -152,9 +152,19 @@
 		   %>
 				   <tr><td>Namespace</td><td><%=((SchemaArtifact) a).getNamespace()%></td></tr>
 		   <%
-		   	} else if (a instanceof JarArtifact) {
+		   	} else if (a instanceof JarArtifact && a.isValidated()) {
 		   %>
 				   <tr><td>Used</td><td><%=((JarArtifact) a).isUsed()%></td></tr>
+				   </table>
+				   <br>
+				   <table border="1"><tr bgcolor="#EEEEEE"><td><b>Entries</b></td></tr>
+				   <%
+				   	   for (String e : ((JarArtifact) a).getEntries()) {
+				   %>
+				  	<tr><td><%=e%></td></tr>
+				   <%
+				       }
+				   %>
 		   <%
 		   	}
 		   %>

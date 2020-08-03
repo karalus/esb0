@@ -23,7 +23,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -43,6 +44,10 @@ public class JarArtifact extends Artifact {
 
 	final Jar getJar() {
 		return _jar;
+	}
+
+	public final Set<String> getEntries() {
+		return _jar._entries.keySet();
 	}
 
 	public final boolean isUsed() {
@@ -69,7 +74,7 @@ public class JarArtifact extends Artifact {
 	static final class Jar {
 
 		private final byte[] _content;
-		private final HashMap<String, byte[]> _entries = new HashMap<>();
+		private final LinkedHashMap<String, byte[]> _entries = new LinkedHashMap<>();
 
 		// track whether the JAR is used 
 		volatile boolean _used;
