@@ -152,6 +152,10 @@
 		   %>
 				   <tr><td>Namespace</td><td><%=((SchemaArtifact) a).getNamespace()%></td></tr>
 		   <%
+		   	} else if (a instanceof JarArtifact) {
+		   %>
+				   <tr><td>Used</td><td><%=((JarArtifact) a).isUsed()%></td></tr>
+		   <%
 		   	}
 		   %>
 	   </table>

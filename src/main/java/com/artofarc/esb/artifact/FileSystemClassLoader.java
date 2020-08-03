@@ -17,8 +17,6 @@
 package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -100,15 +98,11 @@ public class FileSystemClassLoader extends SecureClassLoader {
 		return null;
 	}
 
-	private URL findURLInJarArtifacts(String filename) throws IOException {
-		byte[] data = findInJarArtifacts(filename);
-		if (data != null) {
-			File tempFile = File.createTempFile("FileSystemClassLoader-", null);
-			tempFile.deleteOnExit();
-			try (FileOutputStream fileOutputStream = new FileOutputStream(tempFile)) {
-				fileOutputStream.write(data);
+	private URL findURLInJarArtifacts(String filename) {
+		for (JarArtifact.Jar jar : _jars) {
+			if (jar.contains(filename)) {
+				return jar.createUrlForEntry(filename);
 			}
-			return tempFile.toURI().toURL();
 		}
 		return null;
 	}
@@ -128,13 +122,9 @@ public class FileSystemClassLoader extends SecureClassLoader {
 
 	@Override
 	public URL getResource(String name) {
-		try {
-			URL url = findURLInJarArtifacts(name);
-			if (url != null) {
-				return url;
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		URL url = findURLInJarArtifacts(name);
+		if (url != null) {
+			return url;
 		}
 		return super.getResource(name);
 	}
@@ -142,18 +132,14 @@ public class FileSystemClassLoader extends SecureClassLoader {
 	@Override
 	public Enumeration<URL> getResources(String name) throws IOException {
 		Enumeration<URL> resources = super.getResources(name);
-		try {
-			URL url = findURLInJarArtifacts(name);
-			if (url != null) {
-				Vector<URL> urls = new Vector<>();
-				urls.add(url);
-				while (resources.hasMoreElements()) {
-					urls.add(resources.nextElement());
-				}
-				resources = urls.elements();
+		URL url = findURLInJarArtifacts(name);
+		if (url != null) {
+			Vector<URL> urls = new Vector<>();
+			urls.add(url);
+			while (resources.hasMoreElements()) {
+				urls.add(resources.nextElement());
 			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+			resources = urls.elements();
 		}
 		return resources;
 	}

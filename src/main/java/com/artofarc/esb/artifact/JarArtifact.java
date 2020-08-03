@@ -18,6 +18,13 @@ package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
 import java.util.HashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -36,8 +43,12 @@ public class JarArtifact extends Artifact {
 		super(fileSystem, parent, name);
 	}
 
-	public final Jar getJar() {
+	final Jar getJar() {
 		return _jar;
+	}
+
+	public final boolean isUsed() {
+		return _jar._used;
 	}
 
 	@Override
@@ -63,7 +74,7 @@ public class JarArtifact extends Artifact {
 		private final HashMap<String, byte[]> _entries = new HashMap<>();
 
 		// track whether the JAR is used 
-		boolean _used;
+		volatile boolean _used;
 
 		Jar(byte[] content) throws IOException {
 			try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(content))) {
@@ -94,6 +105,30 @@ public class JarArtifact extends Artifact {
 				}
 			}
 			return _entries.get(filename);
+		}
+
+		URL createUrlForEntry(String filename) {
+			try {
+				return new URL(null, new URI("esb0:/" + filename).toString(), new URLStreamHandler() {
+
+					@Override
+					protected URLConnection openConnection(URL u) {
+						return new URLConnection(u) {
+
+							@Override
+							public void connect() {
+							}
+
+							@Override
+							public InputStream getInputStream() throws IOException {
+								return new ByteArrayInputStream(getEntry(url.getPath().substring(1)));
+							}
+						};
+					}
+				});
+			} catch (URISyntaxException | MalformedURLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
