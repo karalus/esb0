@@ -100,7 +100,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			switch (_protocol = service.getProtocol()) {
 			case HTTP:
 				final Service.HttpBindURI httpBinding = service.getHttpBindURI();
-				_consumerPort = new HttpConsumer(getURI(), service.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), httpBinding.getRequiredRole(), httpBinding.getMinPool(),
+				_consumerPort = new HttpConsumer(getURI(), service.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
 						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
 				break;
 			case JMS:
@@ -191,7 +191,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			ProduceKafka produceKafka = (ProduceKafka) actionElement.getValue();
 			Properties properties = new Properties();
 			for (Property property : produceKafka.getProperty()) {
-				properties.put(property.getKey(), property.getValue());
+				properties.put(property.getKey(), globalContext.bindProperties(property.getValue()));
 			}
 			addAction(list, new KafkaProduceAction(globalContext, properties, produceKafka.getTopic(), produceKafka.getPartition(), produceKafka.isBinary()), location);
 			break;
@@ -200,7 +200,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			ConsumeKafka consumeKafka = (ConsumeKafka) actionElement.getValue();
 			Properties properties = new Properties();
 			for (Property property : consumeKafka.getProperty()) {
-				properties.put(property.getKey(), property.getValue());
+				properties.put(property.getKey(), globalContext.bindProperties(property.getValue()));
 			}
 			KafkaConsumeAction kafkaConsumeAction = new KafkaConsumeAction(properties, consumeKafka.getTopic(), consumeKafka.getTimeout(),
 					resolveWorkerPool(consumeKafka.getWorkerPool()), Action.linkList(transform(globalContext, consumeKafka.getAction(), null)));
