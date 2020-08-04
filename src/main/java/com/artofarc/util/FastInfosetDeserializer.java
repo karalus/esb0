@@ -16,16 +16,22 @@
  */
 package com.artofarc.util;
 
-import org.jvnet.fastinfoset.sax.FastInfosetReader;
+import java.io.IOException;
+
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import com.sun.xml.fastinfoset.sax.SAXDocumentParser;
 
-public final class FastInfosetDeserializer {
+public final class FastInfosetDeserializer extends SAXDocumentParser {
 
-	private final SAXDocumentParser saxDocumentParser = new SAXDocumentParser();
-
-	public FastInfosetReader getFastInfosetReader() {
-		return saxDocumentParser;
+	@Override
+	public void parse(InputSource input) throws SAXException, IOException {
+		try {
+			super.parse(input);
+		} finally {
+			reset();
+		}
 	}
 
 }

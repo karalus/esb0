@@ -28,6 +28,7 @@ import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
 import javax.xml.transform.sax.SAXSource;
 
 import org.xml.sax.InputSource;
@@ -151,12 +152,20 @@ public final class JDBC2XMLMapper {
 					SQLXML sqlxml = (SQLXML) attribute;
 					SAXSource saxSource = sqlxml.getSource(SAXSource.class);
 					XMLReader xmlReader = saxSource.getXMLReader();
-					if (xmlReader == null) {
+					if (xmlReader != null) {
+						xmlReader.setContentHandler(this);
+						xmlReader.parse(saxSource.getInputSource());
+					} else {
 						// Oracle does not deliver a XMLReader
-						xmlReader = _context.getSAXParser().getXMLReader();
+						SAXParser saxParser = _context.getSAXParser();
+						xmlReader = saxParser.getXMLReader();
+						xmlReader.setContentHandler(this);
+						try {
+							xmlReader.parse(saxSource.getInputSource());
+						} finally {
+							saxParser.reset();
+						}
 					}
-					xmlReader.setContentHandler(this);
-					xmlReader.parse(saxSource.getInputSource());
 					sqlxml.free();
 					endElement(uri, name, name);
 					_xsomHelper.endAny();

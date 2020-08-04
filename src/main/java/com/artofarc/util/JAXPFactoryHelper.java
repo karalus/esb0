@@ -19,8 +19,6 @@ package com.artofarc.util;
 import java.lang.reflect.Constructor;
 
 import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.Templates;
@@ -39,13 +37,11 @@ import org.xml.sax.SAXException;
 public final class JAXPFactoryHelper {
 
 	private static final boolean SECURE_PROCESSING = Boolean.parseBoolean(System.getProperty("esb0.jaxp.secure-processing", "true"));
-	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
 	private static final SAXParserFactory SAX_PARSER_FACTORY = SAXParserFactory.newInstance();
 	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
 	private static final Constructor<? extends SAXTransformerFactory> conSAXTransformerFactory;
 
 	static {
-		DOCUMENT_BUILDER_FACTORY.setNamespaceAware(true);
 		SAX_PARSER_FACTORY.setNamespaceAware(true);
 		try {
 			SAX_PARSER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
@@ -60,10 +56,6 @@ public final class JAXPFactoryHelper {
 		} catch (ParserConfigurationException | SAXException | TransformerConfigurationException | ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	public static DocumentBuilder newDocumentBuilder() throws ParserConfigurationException {
-		return DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
 	}
 
 	public static SAXParserFactory getSAXParserFactory() {

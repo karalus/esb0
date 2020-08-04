@@ -69,10 +69,10 @@ public class SOAPTest extends AbstractESBTest {
       @SuppressWarnings("unused")
 		Node node = message.getVariable("header");
       System.out.println();
-      //context.getIdenticalTransformer().transform(new DOMSource(node), new StreamResult(System.out));
+      //context.transform(new DOMSource(node), new StreamResult(System.out));
       node = message.getVariable("messageHeader");
       System.out.println();
-      //context.getIdenticalTransformer().transform(new DOMSource(node), new StreamResult(System.out));
+      //context.transform(new DOMSource(node), new StreamResult(System.out));
       System.out.println();
    }
    
@@ -420,15 +420,12 @@ public class SOAPTest extends AbstractESBTest {
 		Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), null, null).getBindingOperations(), null, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      SetMessageAction setMessageAction = new SetMessageAction(false, null, null, null, null);
-      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_ACCEPT, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null);
-		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
+      SetMessageAction setMessageAction = new SetMessageAction(false, null, null, null, null);
+      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_CONTENT_TYPE, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null);
+		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new DumpAction());
       action = action.setNextAction(createUnwrapSOAPAction(false, true));
-      setMessageAction = new SetMessageAction(false, null, null, null, null);
-      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_ACCEPT, true, "", null, null);
-		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);

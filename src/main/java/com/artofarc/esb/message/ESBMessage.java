@@ -42,12 +42,10 @@ import javax.mail.internet.MimeBodyPart;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -344,7 +342,7 @@ public final class ESBMessage implements Cloneable {
 		StringWriter sw;
 		switch (_bodyType) {
 		case DOM:
-			transform(context.getIdenticalTransformer(), new StreamResult(sw = new StringWriter()));
+			context.transform(new DOMSource((Node) _body), new StreamResult(sw = new StringWriter()));
 			str = sw.toString();
 			break;
 		case STRING:
@@ -433,7 +431,7 @@ public final class ESBMessage implements Cloneable {
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
 			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
-			return new SAXSource(context.getFastInfosetDeserializer().getFastInfosetReader(), new InputSource(is));
+			return new SAXSource(context.getFastInfosetDeserializer(), new InputSource(is));
 		}
 		return getBodyAsSourceInternal();
 	}
@@ -500,8 +498,12 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
+	public boolean isFI() {
+		return isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
+	}
+
 	public Result getBodyAsSinkResult(Context context) throws Exception {
-		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
+		if (isFI()) {
 			if (_bodyType == BodyType.OUTPUT_STREAM) {
 				SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 				serializer.getFastInfosetSerializer().setOutputStream(getCompressedOutputStream((OutputStream) _body));
@@ -541,48 +543,6 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	private void transform(Transformer transformer, Result result) throws TransformerException, XQException, IOException {
-		Source source;
-		switch (_bodyType) {
-		case SOURCE:
-			source = (Source) _body;
-			break;
-		case DOM:
-			source = new DOMSource((Node) _body);
-			break;
-		case STRING:
-			source = new StreamSource(new StringReader((String) _body));
-			break;
-		case BYTES:
-			source = new StreamSource(new ByteArrayInputStream((byte[]) _body));
-			break;
-		case INPUT_STREAM:
-			_bodyType = BodyType.INVALID;
-			source = new StreamSource(getInputStreamReader((InputStream) _body));
-			break;
-		case READER:
-			source = new StreamSource((Reader) _body);
-			break;
-		case XQ_SEQUENCE:
-			XQSequence xqSequence = (XQSequence) _body;
-			if (xqSequence.next()) {
-				init(BodyType.XQ_ITEM, xqSequence.getItem(), null);
-			} else {
-				throw new IllegalStateException("Message already consumed");
-			}
-			// nobreak
-		case XQ_ITEM:
-			XQItem xqItem = (XQItem) _body;
-			source = new StAXSource(xqItem.getItemAsStream());
-			break;
-		case INVALID:
-			throw new IllegalStateException("Message is invalid");
-		default:
-			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
-		}
-		transformer.transform(source, result);
-	}
-
 	public void writeToSAX(ContentHandler contentHandler, Context context) throws XQException, TransformerException, IOException, SAXException {
 		switch (_bodyType) {
 		case XQ_SEQUENCE:
@@ -608,14 +568,14 @@ public final class ESBMessage implements Cloneable {
 					break;
 				}
 			}
-			context.getIdenticalTransformer().transform(source, new SAXResult(contentHandler));
+			context.transform(source, new SAXResult(contentHandler));
 			break;
 		}
 	}
 
 	public void writeTo(OutputStream os, Context context) throws Exception {
 		os = getCompressedOutputStream(os);
-		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
+		if (isFI()) {
 			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 			serializer.getFastInfosetSerializer().setOutputStream(os);
 			serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
@@ -631,7 +591,7 @@ public final class ESBMessage implements Cloneable {
 	public void writeRawTo(OutputStream os, Context context) throws XQException, TransformerException, IOException {
 		switch (_bodyType) {
 		case DOM:
-			transform(context.getIdenticalTransformer(), new StreamResult(new OutputStreamWriter(os, getSinkEncodingCharset())));
+			context.transform(new DOMSource((Node) _body), new StreamResult(new OutputStreamWriter(os, getSinkEncodingCharset())));
 			break;
 		case STRING:
 			String s = (String) _body;
@@ -756,7 +716,7 @@ public final class ESBMessage implements Cloneable {
 			Map.Entry<String, Object> entry = iter.next();
 			logWriter.write(entry.getKey() + "=");
 			if (entry.getValue() instanceof Node) {
-				context.getIdenticalTransformer().transform(new DOMSource((Node) entry.getValue()), new StreamResult(logWriter));
+				context.transform(new DOMSource((Node) entry.getValue()), new StreamResult(logWriter));
 			} else {
 				logWriter.write(String.valueOf(entry.getValue()));
 			}

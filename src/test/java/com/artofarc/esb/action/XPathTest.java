@@ -53,7 +53,7 @@ public class XPathTest extends AbstractESBTest {
       action.setNextAction(new DumpAction());
       action.process(context, message);
       Node node = message.getVariable("result");
-      context.getIdenticalTransformer().transform(new DOMSource(node), new StreamResult(System.out));
+      context.transform(new DOMSource(node), new StreamResult(System.out));
       Node request = message.getVariable("request");
       assertTrue(request.getNodeType() == Node.DOCUMENT_NODE);
    }
@@ -87,7 +87,7 @@ public class XPathTest extends AbstractESBTest {
          String result = node.getTextContent();
          assertEquals("Hello", result);
       } else {
-         context.getIdenticalTransformer().transform(new DOMSource(node), new StreamResult(System.out));
+         context.transform(new DOMSource(node), new StreamResult(System.out));
       }
    }
    

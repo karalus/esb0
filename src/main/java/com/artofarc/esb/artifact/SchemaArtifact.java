@@ -131,7 +131,7 @@ public abstract class SchemaArtifact extends Artifact {
 		}
 
 		/**
-		 * Used from {@link getXSSchemaSet}
+		 * Used from {@link #getXSSchemaSet}
 		 */
 		@Override
 		public InputSource resolveEntity(String publicId, String systemId) {
