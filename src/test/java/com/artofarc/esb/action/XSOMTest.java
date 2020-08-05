@@ -131,7 +131,7 @@ public class XSOMTest extends AbstractESBTest {
 		System.out.println(writer1);
 	
 		StringWriter writer = new StringWriter();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, null);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, true, null);
 		ContentHandler th = xml2JsonTransformer.createTransformerHandler(writer);
 		context.transform(new StreamSource(writer1.getStringReader()), new SAXResult(th));
 		System.out.println(writer);
@@ -175,7 +175,7 @@ public class XSOMTest extends AbstractESBTest {
 
 		StringWriter writer = new StringWriter();
 		byteStream.reset();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, true, map);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, true, true, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
@@ -207,7 +207,7 @@ public class XSOMTest extends AbstractESBTest {
 
 		byteStream.reset();
 		StringWriter writer = new StringWriter();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, map);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, true, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
@@ -233,7 +233,7 @@ public class XSOMTest extends AbstractESBTest {
 
 		StringWriter writer = new StringWriter();
 		byteStream.reset();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, null);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, true, null);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
@@ -259,7 +259,7 @@ public class XSOMTest extends AbstractESBTest {
 
 		StringWriter writer = new StringWriter();
 		byteStream.reset();
-		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, null);
+		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, true, null);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);

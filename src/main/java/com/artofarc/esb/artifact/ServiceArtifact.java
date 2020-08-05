@@ -306,8 +306,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			addAction(list, new XML2JsonAction(schemaArtifact.getXSSchemaSet(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
-				createNsDecls(xml2Json.getNsDecl()), xml2Json.isValidate() ? schemaArtifact.getSchema() : null), location);
+			addAction(list, new XML2JsonAction(schemaArtifact.getXSSchemaSet(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(),
+				xml2Json.isWrapperAsArrayName(), xml2Json.getNsDecl().isEmpty() ? null : createNsDecls(xml2Json.getNsDecl())), location);
 			break;
 		}
 		case "json2xml": {
@@ -315,8 +315,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			addAction(list, new Json2XMLAction(schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
-				createNsDecls(json2Xml.getNsDecl()), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isStreaming()), location);
+			addAction(list, new Json2XMLAction(schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(),
+				json2Xml.getNsDecl().isEmpty() ? null : createNsDecls(json2Xml.getNsDecl()), json2Xml.isStreaming()), location);
 			break;
 		}
 		case "transform": {

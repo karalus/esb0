@@ -46,12 +46,12 @@ public final class Xml2JsonTransformer {
 
 	private final XSSchemaSet _schemaSet;
 	private final XSComplexType _complexType;
-	private final boolean _includeRoot;
+	private final boolean _includeRoot, _wrapperAsArrayName;
 	private final NamespaceMap _namespaceMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
-	public Xml2JsonTransformer(XSSchemaSet schemaSet, String type, boolean includeRoot, Map<String, String> prefixMap) {
+	public Xml2JsonTransformer(XSSchemaSet schemaSet, String type, boolean includeRoot, boolean wrapperAsArrayName, Map<String, String> prefixMap) {
 		_schemaSet = schemaSet != null ? schemaSet : XSOMHelper.anySchema;
 		if (type != null) {
 			QName _type = QName.valueOf(type);
@@ -60,6 +60,7 @@ public final class Xml2JsonTransformer {
 			_complexType = null;
 		}
 		_includeRoot = includeRoot;
+		_wrapperAsArrayName = wrapperAsArrayName;
 		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
 	}
 
@@ -203,7 +204,7 @@ public final class Xml2JsonTransformer {
 			++level;
 			if (attsLength > 0 || complex && anyLevel < 0) {
 				if (openKey != null) {
-					if (xsomHelper.getWrappedElement() != null) {
+					if (_wrapperAsArrayName && xsomHelper.getWrappedElement() != null) {
 						ignoreLevel.push(level);
 					} else {
 						jsonGenerator.writeStartObject(openKey);

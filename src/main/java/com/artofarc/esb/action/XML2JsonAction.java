@@ -18,8 +18,6 @@ package com.artofarc.esb.action;
 
 import java.util.Map;
 
-import javax.xml.validation.Schema;
-
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.json.Xml2JsonTransformer;
@@ -32,11 +30,13 @@ import com.sun.xml.xsom.XSSchemaSet;
 
 public class XML2JsonAction extends Action {
 
+	private static final boolean wrapperAsArrayNameDefault = Boolean.parseBoolean(System.getProperty("esb0.xml2json.wrapperAsArrayName", "true"));
+
 	private final Xml2JsonTransformer _xml2JsonTransformer;
 
-	public XML2JsonAction(XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, Map<String, String> prefixMap, Schema schema) {
+	public XML2JsonAction(XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, Boolean wrapperAsArrayName, Map<String, String> prefixMap) {
 		_pipelineStop = true;
-		_xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, type, jsonIncludeRoot, prefixMap);
+		_xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, type, jsonIncludeRoot, wrapperAsArrayName != null ? wrapperAsArrayName : wrapperAsArrayNameDefault, prefixMap);
 	}
 
 	@Override

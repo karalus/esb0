@@ -98,15 +98,6 @@ public class FileSystemClassLoader extends SecureClassLoader {
 		return null;
 	}
 
-	private URL findURLInJarArtifacts(String filename) {
-		for (JarArtifact.Jar jar : _jars) {
-			if (jar.contains(filename)) {
-				return jar.createUrlForEntry(filename);
-			}
-		}
-		return null;
-	}
-
 	@Override
 	public InputStream getResourceAsStream(String name) {
 		try {
@@ -122,26 +113,27 @@ public class FileSystemClassLoader extends SecureClassLoader {
 
 	@Override
 	public URL getResource(String name) {
-		URL url = findURLInJarArtifacts(name);
-		if (url != null) {
-			return url;
+		for (JarArtifact.Jar jar : _jars) {
+			if (jar.contains(name)) {
+				return jar.createUrlForEntry(name);
+			}
 		}
 		return super.getResource(name);
 	}
 
 	@Override
 	public Enumeration<URL> getResources(String name) throws IOException {
-		Enumeration<URL> resources = super.getResources(name);
-		URL url = findURLInJarArtifacts(name);
-		if (url != null) {
-			Vector<URL> urls = new Vector<>();
-			urls.add(url);
-			while (resources.hasMoreElements()) {
-				urls.add(resources.nextElement());
+		Vector<URL> urls = new Vector<>();
+		for (JarArtifact.Jar jar : _jars) {
+			if (jar.contains(name)) {
+				urls.add(jar.createUrlForEntry(name));
 			}
-			resources = urls.elements();
 		}
-		return resources;
+		Enumeration<URL> resources = super.getResources(name);
+		while (resources.hasMoreElements()) {
+			urls.add(resources.nextElement());
+		}
+		return urls.elements();
 	}
 
 }

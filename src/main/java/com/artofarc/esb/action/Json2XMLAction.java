@@ -19,7 +19,6 @@ package com.artofarc.esb.action;
 import java.util.Map;
 
 import javax.xml.transform.sax.SAXSource;
-import javax.xml.validation.Schema;
 import javax.xml.xquery.XQItem;
 
 import org.xml.sax.XMLReader;
@@ -39,7 +38,7 @@ public class Json2XMLAction extends SAXAction {
 	private final Json2XmlTransformer _json2xml; 
 	private final boolean _streaming;
 
-	public Json2XMLAction(XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, String xmlElement, Map<String, String> prefixMap, Schema schema, Boolean streaming) {
+	public Json2XMLAction(XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, String xmlElement, Map<String, String> prefixMap, Boolean streaming) {
 		_pipelineStop = false;
 		_streaming = streaming != null ? streaming : useStreaming;
 		_json2xml = new Json2XmlTransformer(schemaSet, true, xmlElement, type, jsonIncludeRoot, prefixMap);
