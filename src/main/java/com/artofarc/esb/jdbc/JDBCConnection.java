@@ -76,7 +76,8 @@ public final class JDBCConnection implements AutoCloseable {
 				AttributesImpl attributes = new AttributesImpl(atts);
 				for (Map.Entry<String, String> entry : _prefixes) {
 					String prefix = entry.getKey();
-					attributes.addAttribute(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, prefix, "xmlns:" + prefix, "CDATA", entry.getValue());
+					String qNameAtt = prefix.isEmpty() ? "xmlns" : "xmlns:" + prefix;
+					attributes.addAttribute(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, prefix, qNameAtt, "CDATA", entry.getValue());
 				}
 				_prefixes.clear();
 				super.startElement(uri, localName, qName, attributes);

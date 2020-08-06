@@ -53,6 +53,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 	private int anyLevel;
 	private Object object;
 	private ContentHandler delegate;
+	private PrefixHandler delegatePrefixHandler;
 
 	private static final class DBObject {
 		String name;
@@ -99,21 +100,10 @@ public final class XML2JDBCMapper extends PrefixHandler {
 		_builder.setLength(0);
 		if (delegate != null) {
 			int i = qName.indexOf(':');
-			if (i > 0) {
-				String prefix = qName.substring(0, i);
-				String ns = getNamespace(prefix);
-				if (ns != null) {
-					for (Map.Entry<Integer, String> entry : _prefixPos) {
-						if (entry.getValue().equals(prefix)) {
-							ns = null;
-							break;
-						}
-					}
-					if (ns != null) {
-						delegate.startPrefixMapping(prefix, ns);
-						_prefixPos.push(Collections.createEntry(anyLevel, prefix));
-					}
-				}
+			String prefix = i > 0 ? qName.substring(0, i) : XMLConstants.DEFAULT_NS_PREFIX;
+			if (delegatePrefixHandler.getNamespace(prefix) == null) {
+				startPrefixMapping(prefix, getNamespace(prefix));
+				_prefixPos.push(Collections.createEntry(anyLevel, prefix));
 			}
 			delegate.startElement(uri, localName, qName, atts);
 			++anyLevel;
@@ -132,6 +122,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 					try {
 						SQLXML sqlxml = _connection.getConnection().createSQLXML();
 						delegate = _connection.createSAXResult(sqlxml).getHandler();
+						delegatePrefixHandler = new PrefixHandler();
 						dbObject.add(localName, sqlxml);
 					} catch (SQLException e) {
 						throw new SAXException(e);
@@ -181,10 +172,11 @@ public final class XML2JDBCMapper extends PrefixHandler {
 			Map.Entry<Integer, String> entry = _prefixPos.peek();
 			if (entry != null && entry.getKey() == anyLevel) {
 				_prefixPos.pop();
-				delegate.endPrefixMapping(entry.getValue());
+				endPrefixMapping(entry.getValue());
 			}
 			if (anyLevel == 0) {
 				delegate = null;
+				delegatePrefixHandler = null;
 				xsomHelper.endAny();
 			}
 			return;
@@ -282,6 +274,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 	public void startPrefixMapping(String prefix, String uri) throws SAXException {
 		if (delegate != null) {
 			delegate.startPrefixMapping(prefix, uri);
+			delegatePrefixHandler.startPrefixMapping(prefix, uri);
 		} else {
 			super.startPrefixMapping(prefix, uri);
 		}
@@ -291,6 +284,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 	public void endPrefixMapping(String prefix) throws SAXException {
 		if (delegate != null) {
 			delegate.endPrefixMapping(prefix);
+			delegatePrefixHandler.endPrefixMapping(prefix);
 		} else {
 			super.endPrefixMapping(prefix);
 		}

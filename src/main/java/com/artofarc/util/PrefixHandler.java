@@ -22,7 +22,7 @@ import java.util.Map;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-public abstract class PrefixHandler extends DefaultHandler {
+public class PrefixHandler extends DefaultHandler {
 
 	private final ArrayList<Map.Entry<String, String>> prefixes = new ArrayList<>();
 
@@ -36,12 +36,13 @@ public abstract class PrefixHandler extends DefaultHandler {
 		for (int i = prefixes.size(); i > 0;) {
 			if (prefixes.get(--i).getKey().equals(prefix)) {
 				prefixes.remove(i);
-				break;
+				return;
 			}
 		}
+		throw new SAXException("prefix not found: " + prefix);
 	}
 
-	protected final String getNamespace(String prefix) {
+	public final String getNamespace(String prefix) {
 		for (int i = prefixes.size(); i > 0;) {
 			final Map.Entry<String, String> entry = prefixes.get(--i);
 			if (entry.getKey().equals(prefix)) {
