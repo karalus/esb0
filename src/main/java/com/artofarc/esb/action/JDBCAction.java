@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.naming.NamingException;
 import javax.sql.DataSource;
+import javax.xml.transform.dom.DOMResult;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -86,7 +87,7 @@ public abstract class JDBCAction extends Action {
 					switch (param.getType()) {
 					case SQLXML:
 						SQLXML xmlObject = connection.getConnection().createSQLXML();
-						message.reset(BodyType.RESULT, connection.createSAXResult(xmlObject));
+						message.reset(BodyType.RESULT, xmlObject.setResult(DOMResult.class));
 						execContext.setResource2(xmlObject);
 						break;
 					case CLOB:
@@ -140,7 +141,7 @@ public abstract class JDBCAction extends Action {
 					SQLXML xmlObject = execContext.getResource2();
 					if (xmlObject == null) {
 						xmlObject = conn.getConnection().createSQLXML();
-						message.writeToSAX(conn.createSAXResult(xmlObject).getHandler(), context);
+						message.writeTo(xmlObject.setResult(DOMResult.class), context);
 					}
 					ps.setSQLXML(param.getPos(), xmlObject);
 					break;

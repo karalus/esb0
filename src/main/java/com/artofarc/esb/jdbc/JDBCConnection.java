@@ -20,21 +20,10 @@ import java.lang.reflect.Method;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLXML;
-import java.util.ArrayList;
-import java.util.Map;
-
-import javax.xml.XMLConstants;
-import javax.xml.transform.sax.SAXResult;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
-import org.xml.sax.helpers.AttributesImpl;
-import org.xml.sax.helpers.XMLFilterImpl;
 
-import com.artofarc.util.Collections;
 import com.artofarc.util.ReflectionUtils;
 
 /**
@@ -55,33 +44,6 @@ public final class JDBCConnection implements AutoCloseable {
 			getSQLTypeName = Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName");
 		} catch (ReflectiveOperationException e) {
 			logger.warn("Oracle JDBC driver not in classpath. Mapping of Arrays will not work");
-		}
-	}
-
-	private static final class AddAttributeForPrefixMappingFilter extends XMLFilterImpl {
-
-		private final ArrayList<Map.Entry<String, String>> _prefixes = new ArrayList<>();
-
-		@Override
-		public void startPrefixMapping(String prefix, String uri) throws SAXException {
-			super.startPrefixMapping(prefix, uri);
-			_prefixes.add(Collections.createEntry(prefix, uri));
-		}
-
-		@Override
-		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-			if (_prefixes.isEmpty()) {
-				super.startElement(uri, localName, qName, atts);
-			} else {
-				AttributesImpl attributes = new AttributesImpl(atts);
-				for (Map.Entry<String, String> entry : _prefixes) {
-					String prefix = entry.getKey();
-					String qNameAtt = prefix.isEmpty() ? "xmlns" : "xmlns:" + prefix;
-					attributes.addAttribute(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, prefix, qNameAtt, "CDATA", entry.getValue());
-				}
-				_prefixes.clear();
-				super.startElement(uri, localName, qName, attributes);
-			}
 		}
 	}
 
@@ -112,17 +74,6 @@ public final class JDBCConnection implements AutoCloseable {
 
 	public static String getSQLTypeName(Array array) throws SQLException {
 		return ReflectionUtils.invoke(getSQLTypeName, SQLException.class, array);
-	}
-
-	public SAXResult createSAXResult(SQLXML xmlObject) throws SQLException {
-		SAXResult result = xmlObject.setResult(SAXResult.class);
-		if (_isOracleConnection) {
-			// OJDBC expects attributes for namespace declarations
-			AddAttributeForPrefixMappingFilter filter = new AddAttributeForPrefixMappingFilter();
-			filter.setContentHandler(result.getHandler());
-			result.setHandler(filter);
-		}
-		return result;
 	}
 
 }

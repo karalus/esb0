@@ -27,12 +27,15 @@ import java.util.Map;
 
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.sax.TransformerHandler;
 
 import org.xml.sax.Attributes;
-import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
 import com.artofarc.util.Collections;
+import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.PrefixHandler;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSSchemaSet;
@@ -52,7 +55,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 	private String primitiveType;
 	private int anyLevel;
 	private Object object;
-	private ContentHandler delegate;
+	private TransformerHandler delegate;
 	private PrefixHandler delegatePrefixHandler;
 
 	private static final class DBObject {
@@ -121,12 +124,14 @@ public final class XML2JDBCMapper extends PrefixHandler {
 					dbObject.name = null;
 					try {
 						SQLXML sqlxml = _connection.getConnection().createSQLXML();
-						delegate = _connection.createSAXResult(sqlxml).getHandler();
+						delegate = JAXPFactoryHelper.newTransformerHandler();
+						delegate.setResult(sqlxml.setResult(DOMResult.class));
 						delegatePrefixHandler = new PrefixHandler();
 						dbObject.add(localName, sqlxml);
-					} catch (SQLException e) {
+					} catch (SQLException | TransformerConfigurationException e) {
 						throw new SAXException(e);
 					}
+					delegate.startDocument();
 					startElement(uri, localName, qName, atts);
 					return;
 				}
@@ -175,6 +180,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 				endPrefixMapping(entry.getValue());
 			}
 			if (anyLevel == 0) {
+				delegate.endDocument();
 				delegate = null;
 				delegatePrefixHandler = null;
 				xsomHelper.endAny();

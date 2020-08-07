@@ -43,6 +43,7 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
@@ -570,6 +571,15 @@ public final class ESBMessage implements Cloneable {
 			}
 			context.transform(source, new SAXResult(contentHandler));
 			break;
+		}
+	}
+
+	public void writeTo(DOMResult result, Context context) throws XQException, TransformerException, IOException {
+		if (_bodyType == BodyType.XQ_ITEM) {
+			XQItem xqItem = (XQItem) _body;
+			result.setNode(xqItem.getNode());
+		} else {
+			context.transform(getBodyAsSource(context), result);
 		}
 	}
 

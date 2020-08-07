@@ -66,6 +66,10 @@ public final class JAXPFactoryHelper {
 		return SAX_TRANSFORMER_FACTORY.newTransformer();
 	}
 
+	public static TransformerHandler newTransformerHandler() throws TransformerConfigurationException {
+		return SAX_TRANSFORMER_FACTORY.newTransformerHandler();
+	}
+
 	public static TransformerHandler newTransformerHandler(Templates templates) throws TransformerConfigurationException {
 		return SAX_TRANSFORMER_FACTORY.newTransformerHandler(templates);
 	}
