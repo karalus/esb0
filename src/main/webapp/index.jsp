@@ -93,6 +93,20 @@
 		}
 %>
 </table>
+<br>InternalServices:
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>ReferencedBy</b></td><td><b>Delete</b></td></tr> 
+<%
+		for (ConsumerPort consumerPort : globalContext.getInternalServices()) {
+		   %>
+		   <tr>
+		    <td><a href="<%=request.getContextPath() + request.getServletPath() + "/" + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
+		    <td><%=globalContext.getFileSystem().getArtifact(consumerPort.getUri()).getReferencedBy().size()%></td>
+		    <td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="delete"/></form></td>
+		   </tr>
+		   <%
+		}
+%>
+</table>
 <br>WorkerPools:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Active Threads</b></td><td><b>Size of work queue</b></td><td><b>Running Threads</b></td><td><b>Completed tasks</b></td></tr> 
 <%
