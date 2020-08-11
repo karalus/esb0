@@ -197,7 +197,8 @@ public abstract class JDBCAction extends Action {
 				}
 			}
 		}
-		ps.setQueryTimeout(message.getTimeleft(_timeout).intValue() / 1000);
+		int ceil = (message.getTimeleft(_timeout).intValue() + 999) / 1000;
+		ps.setQueryTimeout(ceil);
 		ps.setMaxRows(_maxRows);
 	}
 
