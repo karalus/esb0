@@ -141,11 +141,12 @@
    String pathInfo = request.getPathInfo() != null ? request.getPathInfo() : "";
    Artifact a = globalContext.getFileSystem().getArtifact(request.getPathInfo());
    if (a instanceof Directory) {
+	   Set<String> artifacts = ((Directory) a).getArtifacts().keySet();
 %>
-<br>Filesystem:
+<br>Filesystem directory "<%=a.getURI()%>" (<%=artifacts.size()%> artifacts)
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td></tr>
 <%
-	   for (String name : ((Directory) a).getArtifacts().keySet()) {
+	   for (String name : artifacts) {
 %>
   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + pathInfo + "/" + name%>"><%=name%></a></td></tr>
 <%
