@@ -88,7 +88,7 @@ public final class XSOMHelper {
 			} else {
 				next();
 			}
-			return middleArray || endArray;
+			return endArray;
 		}
 
 		@Override
@@ -188,7 +188,7 @@ public final class XSOMHelper {
 	private Group _currentGroup, _nextGroup;
 	private String _nextType;
 	private XSSimpleType _simpleType;
-	private boolean _any, _required, _repeated;
+	private boolean _any, _required, _repeated, _endArray;
 
 	public XSOMHelper(XSComplexType complexType, XSElementDecl elementDecl) {
 		expandGroup(_complexType = complexType != null ? complexType : elementDecl.getType().asComplexType(), elementDecl);
@@ -290,8 +290,14 @@ public final class XSOMHelper {
 					if (_required && !(_currentGroup.all || _currentGroup.choice)) {
 						throw new SAXException("Missing required element: " + new QName(element.getTargetNamespace(), element.getName()));
 					}
+					final boolean endArray = isEndArray();
 					if (endArray()) {
 						_currentGroup.next();
+						if (!_currentGroup.endArray || !_currentGroup.hasNext()) {
+							_endArray = true;
+						}
+					} else {
+						_endArray = endArray;
 					}
 				} else if (term.isModelGroup()) {
 					nextParticle();
@@ -339,7 +345,7 @@ public final class XSOMHelper {
 
 	private void foundParticle() {
 		_currentGroup.found();
-		if (!_currentGroup.endArray && _repeated || _currentGroup.repeated) {
+		if (_repeated || _currentGroup.repeated) {
 			_currentGroup.startArray();
 		} else {
 			nextParticle();
@@ -468,7 +474,7 @@ public final class XSOMHelper {
 	}
 
 	public boolean isEndArray() {
-		return _currentGroup != null && _currentGroup.endArray;
+		return _endArray || _currentGroup != null && _currentGroup.endArray;
 	}
 
 	public void repeatElement() {
@@ -480,7 +486,13 @@ public final class XSOMHelper {
 	}
 
 	public boolean endArray() {
-		_nextGroup = null;
+		if (_endArray) {
+			_endArray = false;
+			return true;
+		}
+		if (!_currentGroup.startArray) {
+			_nextGroup = null;
+		}
 		return _currentGroup.endArray();
 	}
 

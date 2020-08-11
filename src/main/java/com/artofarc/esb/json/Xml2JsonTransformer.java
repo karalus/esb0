@@ -180,6 +180,10 @@ public final class Xml2JsonTransformer {
 					key = prefix + '.' + localName;
 				}
 			}
+			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
+				jsonGenerator.writeEnd();
+				xsomHelper.endArray();
+			}
 			if (anyLevel < 0 && xsomHelper.isStartArray()) {
 				jsonGenerator.writeStartArray(openKey != null ? openKey : key);
 				openKey = null;
@@ -191,10 +195,6 @@ public final class Xml2JsonTransformer {
 				if (anyLevel >= 0 || !xsomHelper.isMiddleOfArray()) {
 					openKey = key;
 				}
-			}
-			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
-				jsonGenerator.writeEnd();
-				xsomHelper.endArray();
 			}
 			final String nil = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
 			if (nil != null && DatatypeConverter.parseBoolean(nil)) {
