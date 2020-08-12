@@ -29,7 +29,7 @@
 			<a href="<%=request.getContextPath()%>/admin">Admin UI Home</a><br>
 			<%
 		}
-		switch (request.getQueryString() != null ? request.getQueryString() : "") {
+		switch (query != null ? query : "") {
 		case "HttpServices":
 			%>
 <br>HttpServices:

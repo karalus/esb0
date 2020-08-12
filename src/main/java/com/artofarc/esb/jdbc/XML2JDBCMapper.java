@@ -191,7 +191,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 			if (_stack.peek().array) {
 				xsomHelper.endArray();
 			}
-			for (int level = xsomHelper.getLevel();;) {
+			for (int level = _stack.size();;) {
 				XSTerm term = xsomHelper.nextElement();
 				if (term == null || level > xsomHelper.getLevel()) {
 					if (term != null) {
