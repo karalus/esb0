@@ -34,7 +34,7 @@ public final class AsyncProcessingPool implements Runnable {
 		public Action nextAction;
 		public Collection<Action> executionStack;
 		public Map<String, Object> variables;
-		public long expriry;
+		public long expiry;
 	}
 
 	private final Map<Object, AsyncContext> _asyncContexts = new ConcurrentHashMap<>();
@@ -78,7 +78,7 @@ public final class AsyncProcessingPool implements Runnable {
 		for (Iterator<Map.Entry<Object, AsyncContext>> iter = _asyncContexts.entrySet().iterator(); iter.hasNext();) {
 			Map.Entry<Object, AsyncContext> entry = iter.next();
 			AsyncContext asyncContext = entry.getValue();
-			if (asyncContext.expriry < System.currentTimeMillis()) {
+			if (asyncContext.expiry < System.currentTimeMillis()) {
 				iter.remove();
 				try {
 					Context context = new Context(_workerPool.getPoolContext());

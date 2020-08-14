@@ -55,7 +55,7 @@ public class SuspendAction extends Action {
 		asyncContext.nextAction = _nextAction;
 		asyncContext.executionStack = execContext.getResource();
 		asyncContext.variables = message.getVariables();
-		asyncContext.expriry = message.<Long> getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue();
+		asyncContext.expiry = message.<Long> getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue();
 		asyncProcessingPool.putAsyncContext(correlationID, asyncContext);
 	}
 

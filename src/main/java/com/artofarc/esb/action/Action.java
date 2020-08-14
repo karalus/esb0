@@ -39,7 +39,7 @@ public abstract class Action implements Cloneable {
 
 	protected final static Logger logger = LoggerFactory.getLogger(Action.class);
 
-	private final static long threshold = Long.parseLong(System.getProperty("esb0.timeGauge.threshold", "250"));
+	private final static long timeGaugeThreshold = Long.parseLong(System.getProperty("esb0.timeGauge.threshold", "250"));
 
 	protected Action _nextAction;
 	protected Action _errorHandler;
@@ -81,8 +81,8 @@ public abstract class Action implements Cloneable {
 		logger.info(stringWriter.toString());
 	}
 
-	protected long getThreshold() {
-		return threshold;
+	protected long getTimeGaugeThreshold() {
+		return timeGaugeThreshold;
 	}
 
 	/**
@@ -93,7 +93,7 @@ public abstract class Action implements Cloneable {
 		List<ExecutionContext> resources = new ArrayList<>();
 		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
 		context.pushStackPos();
-		TimeGauge timeGauge = new TimeGauge(logger, getThreshold(), false);
+		TimeGauge timeGauge = new TimeGauge(logger, getTimeGaugeThreshold(), false);
 		timeGauge.startTimeMeasurement();
 		for (Action nextAction = this; nextAction != null;) {
 			boolean isPipeline = false;
