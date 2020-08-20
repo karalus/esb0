@@ -252,8 +252,6 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 			TextMessage textMessage = (TextMessage) message;
 			esbMessage.reset(BodyType.STRING, textMessage.getText());
 			message.clearBody();
-		} else {
-			esbMessage.reset(BodyType.INVALID, null);
 		}
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
 		esbMessage.putVariable(ESBConstants.JMSTimestamp, message.getJMSTimestamp());

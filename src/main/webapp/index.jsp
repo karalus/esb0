@@ -165,6 +165,7 @@
 			break;
 		default:
 			%>
+<h4>
 <a href="<%=request.getContextPath()%>/admin?HttpServices">HttpServices</a><br><br>
 <a href="<%=request.getContextPath()%>/admin?MappedHttpServices">HttpServices with path mapping</a><br><br>
 <a href="<%=request.getContextPath()%>/admin?JMSServices">JMSServices</a><br><br>
@@ -172,6 +173,7 @@
 <a href="<%=request.getContextPath()%>/admin?InternalServices">InternalServices</a><br><br>
 <a href="<%=request.getContextPath()%>/admin?WorkerPools">WorkerPools</a><br><br>
 <a href="<%=request.getContextPath()%>/admin?HttpEndpoints">HttpEndpoints</a><br><br>
+</h4>
 Upload Service-JAR:
 <form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%>/" enctype="multipart/form-data" method="POST">
 	<input type="file" name="file">
