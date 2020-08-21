@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.Iterator;
@@ -29,6 +30,7 @@ import javax.mail.internet.MimeBodyPart;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
+import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
@@ -57,8 +59,14 @@ public class FileAction extends TerminalAction {
 		boolean zip = Boolean.parseBoolean(String.valueOf(message.<Object> getVariable("zip")));
 		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
 		String method = message.getVariable(ESBConstants.FileEventKind);
+		if (method == null) {
+			method = message.getVariable(ESBConstants.HttpMethod);
+		}
 		boolean append = false;
 		switch (method) {
+		case "GET":
+			message.reset(BodyType.INPUT_STREAM, new FileInputStream(file));
+			break;
 		case "ENTRY_MODIFY":
 			append = Boolean.parseBoolean(String.valueOf(message.<Object> getVariable("append")));
 		case "ENTRY_CREATE":

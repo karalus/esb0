@@ -271,15 +271,19 @@ public final class ESBMessage implements Cloneable {
 
 	private OutputStream getCompressedOutputStream(OutputStream outputStream) throws IOException {
 		final String contentEncoding = getHeader(HTTP_HEADER_CONTENT_ENCODING);
+		final String fileName = getVariable(ESBConstants.filename);
+		final boolean isGZIP = fileName != null && fileName.endsWith(".gz");
 		if (contentEncoding != null) {
 			switch (contentEncoding) {
 			case "gzip":
-				outputStream = new GZIPOutputStream(outputStream, IOUtils.MTU);
-				break;
+				return isGZIP ? outputStream : new GZIPOutputStream(outputStream, IOUtils.MTU);
 			case "deflate":
 				outputStream = new DeflaterOutputStream(outputStream);
 				break;
 			}
+		}
+		if (isGZIP) {
+			_body = new GZIPInputStream((InputStream) _body, IOUtils.MTU);
 		}
 		return outputStream;
 	}
