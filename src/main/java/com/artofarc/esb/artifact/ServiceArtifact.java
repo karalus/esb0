@@ -244,7 +244,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			if (jdbc.getWorkerPool() != null) {
 				addAction(list, new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()), location);
 			}
-			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getMaxRows(), jdbc.getTimeout()), location);
+			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()),
+					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout()), location);
 			break;
 		}
 		case "setMessage": {

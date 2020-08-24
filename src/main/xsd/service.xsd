@@ -174,6 +174,11 @@
 					<sequence>
 						<element ref="tns:jdbcParameter" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
+					<attribute name="generatedKeys">
+						<simpleType>
+						    <list itemType="NMTOKEN" />
+						</simpleType>
+					</attribute>
 				</extension>
 			</complexContent>
 		</complexType>
@@ -201,7 +206,6 @@
 						</element>
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" />
-					<attribute name="classLoader" type="anyURI" />
 				</extension>
 			</complexContent>
 		</complexType>
