@@ -118,8 +118,9 @@ public class ActionTest extends AbstractESBTest {
 		action.addAssignment("now", true, "", "java.lang.System", "currentTimeMillis");
 		action.addAssignment("_id", false, "", "java.util.UUID", "randomUUID");
 		action.addAssignment("id", true, "${_id.toString}", null, null);
-		action.addAssignment("calendar", false, "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime");
-		action.addAssignment("timeInMillis", false, "${calendar.getTimeInMillis}", null, null);
+		action.addAssignment("id2", true, "${id.substring(2)}", null, null);
+		action.addAssignment("_calendar", false, "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime");
+		action.addAssignment("timeInMillis", false, "${_calendar.getTimeInMillis}", null, null);
 		action.addAssignment("_addr", false, "", "java.net.InetAddress", "getLocalHost");
 		action.addAssignment("hostname", false, "${_addr.getHostName}", null, null);
 		action.addAssignment("date", false, "", "java.util.Date", null);
@@ -135,7 +136,7 @@ public class ActionTest extends AbstractESBTest {
    	assertEquals(true, message.getHeader("bool"));
    	assertTrue(message.getHeader("now") instanceof Long);
    	assertTrue(message.getHeader("id") instanceof String);
-   	Object calendar = message.getVariable("calendar");
+   	Object calendar = message.getVariable("_calendar");
 		assertTrue("Type is: " + calendar.getClass(), calendar instanceof Calendar);
    	Object timeInMillis = message.getVariable("timeInMillis");
 		assertTrue("Type is: " + timeInMillis.getClass(), timeInMillis instanceof Long);

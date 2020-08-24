@@ -728,6 +728,7 @@ public final class ESBMessage implements Cloneable {
 		logWriter.write('{');
 		for (Iterator<Map.Entry<String, Object>> iter = keyValues.iterator(); iter.hasNext();) {
 			Map.Entry<String, Object> entry = iter.next();
+			if (entry.getKey().startsWith("_")) continue;
 			logWriter.write(entry.getKey() + "=");
 			if (entry.getValue() instanceof Node) {
 				context.transform(new DOMSource((Node) entry.getValue()), new StreamResult(logWriter));
