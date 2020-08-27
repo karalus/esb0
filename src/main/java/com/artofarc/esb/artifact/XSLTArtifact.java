@@ -36,7 +36,7 @@ import com.artofarc.util.JAXPFactoryHelper;
 public class XSLTArtifact extends XMLProcessingArtifact {
 
 	private Templates _templates;
-	private List<String> _params = new ArrayList<>();
+	private List<String> _params;
 
 	public XSLTArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -72,6 +72,7 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 		// determine parameters
 		XPath xPath = JAXPFactoryHelper.getXPathFactory().newXPath();
 		NodeList params = (NodeList) xPath.evaluate("*/*[local-name()='param']/@name", new InputSource(getContentAsStream()), XPathConstants.NODESET);
+		_params = new ArrayList<>();
 		for (int i = 0; i < params.getLength(); ++ i) {
 			_params.add(params.item(i).getNodeValue());
 		}
