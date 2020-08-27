@@ -315,7 +315,9 @@ public final class ESBMessage implements Cloneable {
 		ByteArrayOutputStream bos;
 		switch (_bodyType) {
 		case DOM:
+		case SOURCE:
 			writeRawTo(bos = new ByteArrayOutputStream(), context);
+			closeBody();
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
 			break;
@@ -347,7 +349,9 @@ public final class ESBMessage implements Cloneable {
 		StringWriter sw;
 		switch (_bodyType) {
 		case DOM:
-			context.transform(new DOMSource((Node) _body), new StreamResult(sw = new StringWriter()));
+			_body = new DOMSource((Node) _body);
+		case SOURCE:
+			context.transform((Source) _body, new StreamResult(sw = new StringWriter()));
 			str = sw.toString();
 			break;
 		case STRING:
@@ -605,7 +609,9 @@ public final class ESBMessage implements Cloneable {
 	public void writeRawTo(OutputStream os, Context context) throws XQException, TransformerException, IOException {
 		switch (_bodyType) {
 		case DOM:
-			context.transform(new DOMSource((Node) _body), new StreamResult(new OutputStreamWriter(os, getSinkEncodingCharset())));
+			_body = new DOMSource((Node) _body);
+		case SOURCE:
+			context.transform((Source) _body, new StreamResult(init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null)));
 			break;
 		case STRING:
 			String s = (String) _body;
@@ -681,9 +687,9 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	/**
-	 * @param context Should be the context of the Thread receiving this copy
+	 * @param destContext Should be the context of the Thread receiving this copy
 	 */
-	public ESBMessage copy(Context context, boolean withBody) throws Exception {
+	public ESBMessage copy(Context context, Context destContext, boolean withBody) throws Exception {
 		final ESBMessage clone;
 		if (withBody) {
 			final Object newBody;
@@ -702,8 +708,10 @@ public final class ESBMessage implements Cloneable {
 					newBody = getBodyAsString(context);
 				}
 				break;
+			case SOURCE:
+				init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument((Source) _body, null), null);
 			case XQ_ITEM:
-				newBody = context.getXQDataFactory().createItem((XQItem) _body);
+				newBody = destContext.getXQDataFactory().createItem((XQItem) _body);
 				break;
 			default:
 				newBody = _body;

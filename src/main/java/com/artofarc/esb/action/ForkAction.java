@@ -40,7 +40,7 @@ public class ForkAction extends Action {
 		final WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
 		final Context workerContext = workerPool.getContext();
 		try {
-			final ESBMessage copy = message.copy(workerContext, _copyMessage);
+			final ESBMessage copy = message.copy(context, workerContext, _copyMessage);
 			workerPool.getExecutorService().execute(new Runnable() {
 
 				@Override
