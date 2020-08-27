@@ -16,10 +16,19 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.transform.Templates;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.JAXPFactoryHelper;
@@ -27,6 +36,7 @@ import com.artofarc.util.JAXPFactoryHelper;
 public class XSLTArtifact extends XMLProcessingArtifact {
 
 	private Templates _templates;
+	private List<String> _params = new ArrayList<>();
 
 	public XSLTArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -36,6 +46,7 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 	protected XSLTArtifact clone(FileSystem fileSystem, Directory parent) {
 		XSLTArtifact clone = initClone(new XSLTArtifact(fileSystem, parent, getName()));
 		clone._templates = _templates;
+		clone._params = _params;
 		return clone;
 	}
 
@@ -43,8 +54,12 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 		return _templates;
 	}
 
+	public final List<String> getParams() {
+		return _params;
+	}
+
 	@Override
-	public void validateInternal(GlobalContext globalContext) throws TransformerConfigurationException {
+	public void validateInternal(GlobalContext globalContext) throws TransformerConfigurationException, XPathExpressionException {
 		// Needs an individual SAXTransformerFactory to track the use of imports/includes
 		SAXTransformerFactory saxTransformerFactory = JAXPFactoryHelper.createSAXTransformerFactory();
 		saxTransformerFactory.setURIResolver(new ArtifactURIResolver(this));
@@ -53,6 +68,12 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 		// set imports/includes to validated 
 		for (String referenced : getReferenced()) {
 			getArtifact(referenced).setValidated();
+		}
+		// determine parameters
+		XPath xPath = JAXPFactoryHelper.getXPathFactory().newXPath();
+		NodeList params = (NodeList) xPath.evaluate("*/*[local-name()='param']/@name", new InputSource(getContentAsStream()), XPathConstants.NODESET);
+		for (int i = 0; i < params.getLength(); ++ i) {
+			_params.add(params.item(i).getNodeValue());
 		}
 	}
 

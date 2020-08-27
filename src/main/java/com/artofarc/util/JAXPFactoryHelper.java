@@ -27,6 +27,7 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.sax.TransformerHandler;
+import javax.xml.xpath.XPathFactory;
 
 import org.xml.sax.SAXException;
 
@@ -40,6 +41,7 @@ public final class JAXPFactoryHelper {
 	private static final SAXParserFactory SAX_PARSER_FACTORY = SAXParserFactory.newInstance();
 	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
 	private static final Constructor<? extends SAXTransformerFactory> conSAXTransformerFactory;
+	private static final XPathFactory XPATH_FACTORY = XPathFactory.newInstance();
 
 	static {
 		SAX_PARSER_FACTORY.setNamespaceAware(true);
@@ -60,6 +62,10 @@ public final class JAXPFactoryHelper {
 
 	public static SAXParserFactory getSAXParserFactory() {
 		return SAX_PARSER_FACTORY;
+	}
+
+	public static XPathFactory getXPathFactory() {
+		return XPATH_FACTORY;
 	}
 
 	public static Transformer newTransformer() throws TransformerConfigurationException {
