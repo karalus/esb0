@@ -57,10 +57,18 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 	public void validateInternal(GlobalContext globalContext) throws Exception {
 		// Needs an individual XQConnectionFactory to track the use of modules
 		XQConnectionFactory factory = XQConnectionFactory.newInstance(new ArtifactURIResolver(this));
+		ValidationErrorListener errorListener = new ValidationErrorListener(getURI());
+		factory.setErrorListener(errorListener);
 		XQConnection connection = factory.getConnection();
+		logger.info("Parsing XQuery in: " + getURI());
 		try {
-			logger.info("Parsing XQuery in: " + getURI());
 			validateXQuerySource(this, connection, XQuerySource.create(getContentAsBytes()));
+		} catch (XQException e) {
+			if (errorListener.exceptions.isEmpty()) {
+				throw e;
+			} else {
+				throw errorListener.exceptions.get(0);
+			}
 		} finally {
 			connection.close();
 		}

@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.transform.Templates;
-import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
@@ -59,11 +59,21 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 	}
 
 	@Override
-	public void validateInternal(GlobalContext globalContext) throws TransformerConfigurationException, XPathExpressionException {
+	public void validateInternal(GlobalContext globalContext) throws TransformerException, XPathExpressionException {
 		// Needs an individual SAXTransformerFactory to track the use of imports/includes
 		SAXTransformerFactory saxTransformerFactory = JAXPFactoryHelper.createSAXTransformerFactory();
+		ValidationErrorListener errorListener = new ValidationErrorListener(getURI());
+		saxTransformerFactory.setErrorListener(errorListener);
 		saxTransformerFactory.setURIResolver(new ArtifactURIResolver(this));
-		_templates = saxTransformerFactory.newTemplates(new StreamSource(getContentAsStream()));
+		try {
+			_templates = saxTransformerFactory.newTemplates(new StreamSource(getContentAsStream()));
+		} catch (TransformerException e) {
+			if (errorListener.exceptions.isEmpty()) {
+				throw e;
+			} else {
+				throw errorListener.exceptions.get(0);
+			}
+		}
 		saxTransformerFactory.setURIResolver(null);
 		// set imports/includes to validated 
 		for (String referenced : getReferenced()) {

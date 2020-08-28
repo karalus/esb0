@@ -18,6 +18,7 @@ package com.artofarc.esb.resource;
 
 import java.util.HashMap;
 
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
@@ -61,6 +62,11 @@ final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURI
 		configuration.registerExtensionFunction(functionEvaluate);
 		configuration.setModuleURIResolver(this);
 		configuration.setURIResolver(uriResolver);
+	}
+
+	@Override
+	public void setErrorListener(ErrorListener listener) {
+		_dataSource.getConfiguration().setErrorListener(listener);
 	}
 
 	@Override

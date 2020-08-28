@@ -18,6 +18,7 @@ package com.artofarc.esb.resource;
 
 import java.lang.reflect.Constructor;
 
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.URIResolver;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
@@ -45,6 +46,9 @@ public class XQConnectionFactory {
 
 	protected XQConnectionFactory(URIResolver uriResolver) {
 		_uriResolver = uriResolver;
+	}
+
+	public void setErrorListener(ErrorListener listener) {
 	}
 
 	public XQConnection getConnection() throws XQException {
