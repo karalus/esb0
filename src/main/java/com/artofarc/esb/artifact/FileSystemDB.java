@@ -73,17 +73,7 @@ public class FileSystemDB extends FileSystem {
 		try (Connection conn = _dataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet resultSet = ps.executeQuery()) {
 			while (resultSet.next()) {
 				String uri = resultSet.getString(1).substring(1);
-				int i = uri.lastIndexOf('/');
-				Directory parent;
-				String name;
-				if (i < 0) {
-					parent = _root;
-					name = uri;
-				} else {
-					parent = makeDirectory(uri.substring(0, i));
-					name = uri.substring(i + 1);
-				}
-				Artifact artifact = createArtifact(parent, name);
+				Artifact artifact = createArtifact(uri);
 				if (artifact != null) {
 					artifact.setModificationTime(resultSet.getLong(2));
 					artifact.setContent(getBytes(resultSet.getBlob(3)));

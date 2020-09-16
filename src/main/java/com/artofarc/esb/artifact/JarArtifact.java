@@ -71,6 +71,12 @@ public class JarArtifact extends Artifact {
 		_jar = new Jar(getContentAsBytes());
 	}
 
+	@Override
+	protected void invalidate() {
+		_jar = null;
+		super.invalidate();
+	}
+
 	static final class Jar {
 
 		private final byte[] _content;

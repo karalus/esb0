@@ -55,12 +55,12 @@ public abstract class Artifact {
 		}
 	}
 
-	public final boolean isEqual(Artifact other) {
+	public final boolean isDifferent(byte[] content, long crc) {
 		if (_content != null) {
-			return Arrays.equals(_content, other._content);
+			return !Arrays.equals(_content, content);
 		}
 		// not 100% certain, but very likely
-		return _length == other._length && _crc == other._crc;
+		return _length != content.length || _crc != crc;
 	}
 
 	public final Directory getParent() {
@@ -177,7 +177,11 @@ public abstract class Artifact {
 		_validated = false;
 		for (Iterator<String> iterator = _referenced.iterator(); iterator.hasNext();) {
 			Artifact artifact = getArtifact(iterator.next());
-			artifact.getReferencedBy().remove(getURI());
+			Collection<String> referencedBy = artifact.getReferencedBy();
+			referencedBy.remove(getURI());
+			if (referencedBy.isEmpty()) {
+				artifact.invalidate();
+			}
 			iterator.remove();
 		}
 	}

@@ -172,6 +172,15 @@ public class FileSystem {
 		}
 	}
 
+	protected final Artifact createArtifact(String uri) {
+		int i = uri.lastIndexOf('/');
+		if (i < 0) {
+			return createArtifact(_root, uri);
+		} else {
+			return createArtifact(makeDirectory(uri.substring(0, i)), uri.substring(i + 1));
+		}
+	}
+
 	protected final Artifact createArtifact(Directory parent, String name) {
 		switch (IOUtils.getExt(name)) {
 		case ServiceArtifact.FILE_EXTENSION:
@@ -355,7 +364,7 @@ public class FileSystem {
 		Artifact artifact = copy.loadArtifact(copy.getRoot(), uri);
 		CRC32 crc = new CRC32();
 		crc.update(content);
-		if (artifact._length != content.length || artifact._crc != crc.getValue()) {
+		if (artifact.isDifferent(content, crc.getValue())) {
 			artifact.setContent(content);
 			artifact.setModificationTime(System.currentTimeMillis());
 			artifact.setCrc(crc.getValue());
@@ -413,7 +422,7 @@ public class FileSystem {
 		}
 		return changeSet;
 	}
-	
+
 	private boolean mergeZIP(InputStream inputStream) throws IOException {
 		boolean tidyOut = false;
 		try (JarInputStream zis = new JarInputStream(inputStream)) {
@@ -432,27 +441,24 @@ public class FileSystem {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				if (!entry.isDirectory()) {
-					int i = entry.getName().lastIndexOf('/');
-					Directory dir = i < 0 ? _root : makeDirectory(entry.getName().substring(0, i));
-					String name = i < 0 ? entry.getName() : entry.getName().substring(i + 1);
-					Artifact old = getArtifact(entry.getName());
-					Artifact artifact = createArtifact(dir, name);
+					Artifact artifact = getArtifact(entry.getName());
 					if (artifact != null) {
-						artifact.setContent(IOUtils.copy(zis));
-						artifact.setModificationTime(entry.getTime());
-						artifact.setCrc(entry.getCrc());
-						if (old != null) {
-							if (old.isEqual(artifact)) {
-								// Undo
-								dir.getArtifacts().put(name, old);
-								if (old.getContent() == null) {
-									// Keep content (until dehydrateArtifacts happens), it might be needed by Resolvers during validation
-									old.setContent(artifact.getContent());
-								}
-							} else {
-								_changes.put(artifact.getURI(), ChangeType.UPDATE);
-							}
-						} else {
+						byte[] content = IOUtils.copy(zis);
+						if (artifact.isDifferent(content, entry.getCrc())) {
+							artifact.setContent(content);
+							artifact.setModificationTime(entry.getTime());
+							artifact.setCrc(entry.getCrc());
+							_changes.put(artifact.getURI(), ChangeType.UPDATE);
+						} else if (artifact.getContent() == null) {
+							// Keep content (until dehydrateArtifacts happens), it might be needed by Resolvers during validation
+							artifact.setContent(content);
+						}
+					} else {
+						artifact = createArtifact(entry.getName());
+						if (artifact != null) {
+							artifact.setContent(IOUtils.copy(zis));
+							artifact.setModificationTime(entry.getTime());
+							artifact.setCrc(entry.getCrc());
 							_changes.put(artifact.getURI(), ChangeType.CREATE);
 						}
 					}

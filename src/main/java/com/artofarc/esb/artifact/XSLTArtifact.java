@@ -88,4 +88,11 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 		}
 	}
 
+	@Override
+	protected void invalidate() {
+		_templates = null;
+		_params = null;
+		super.invalidate();
+	}
+
 }

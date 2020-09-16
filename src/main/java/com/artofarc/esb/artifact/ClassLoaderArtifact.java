@@ -31,6 +31,10 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 		super(fileSystem, parent, name);
 	}
 
+	public final FileSystemClassLoader getFileSystemClassLoader() {
+		return _fileSystemClassLoader;
+	}
+
 	@Override
 	protected ClassLoaderArtifact clone(FileSystem fileSystem, Directory parent) {
 		ClassLoaderArtifact clone = initClone(new ClassLoaderArtifact(fileSystem, parent, getName()));
@@ -59,8 +63,10 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 		}
 	}
 
-	public final FileSystemClassLoader getFileSystemClassLoader() {
-		return _fileSystemClassLoader;
+	@Override
+	protected void invalidate() {
+		_fileSystemClassLoader = null;
+		super.invalidate();
 	}
 
 }
