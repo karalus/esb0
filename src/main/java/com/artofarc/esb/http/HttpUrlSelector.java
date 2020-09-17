@@ -74,7 +74,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	private final boolean[] active;
 	private final AtomicIntegerArray inUse;
 	private int pos;
-	private volatile int activeCount;
+	private int activeCount;
 	private long _sequenceNumber;
 	private ScheduledFuture<?> _future;
 	private final AtomicLong _totalConnectionsCount = new AtomicLong();
@@ -157,10 +157,10 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	}
 
 	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, int retryCount) throws IOException {
-		if (activeCount == 0) {
+		int pos = computeNextPos();
+		if (pos < 0) {
 			throw new ConnectException("No active url");
 		}
-		int pos = computeNextPos();
 		try {
 			HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(pos);
 			return new HttpUrlConnectionWrapper(httpUrl, pos, connectTo(httpUrl, timeout, method, appendUrl, headers, chunkLength));
@@ -180,11 +180,19 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			if (pos == size) {
 				pos = 0;
 			}
-			if (active[pos]) {
-				if (--weight[pos] == 0) {
-					weight[pos] = _httpEndpoint.getHttpUrls().get(pos).getWeight();
-					return pos++;
+			switch (activeCount) {
+			case 0:
+				return -1;
+			case 1:
+				return pos;
+			default:
+				if (active[pos]) {
+					if (--weight[pos] == 0) {
+						weight[pos] = _httpEndpoint.getHttpUrls().get(pos).getWeight();
+						return pos++;
+					}
 				}
+				break;
 			}
 		}
 	}
