@@ -38,7 +38,7 @@ public interface ESBConstants {
 
 	String appendHttpUrlPath = "appendHttpUrlPath";
 
-	String AsyncContext = "AsyncContext";
+	String AsyncContext = "_AsyncContext";
 
 	String WorkerPool = "WorkerPool";
 
