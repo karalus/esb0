@@ -284,7 +284,7 @@ public abstract class Action implements Cloneable {
 						char firstChar = param.charAt(0);
 						if (firstChar == '\'') {
 							return param.substring(1, param.length() - 1);
-						} else if (Character.isDigit(firstChar)) {
+						} else if (Character.isDigit(firstChar) || firstChar == '-') {
 							return Integer.valueOf(param);
 						}
 						return Action.this.resolve(message, param, true);

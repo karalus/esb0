@@ -179,15 +179,20 @@ public final class ReflectionUtils {
 		throw new NoSuchMethodException(cls + " has no ctor for any of " + Arrays.asList(anyOfType));
 	}
 
-	public static Method findAnyMethod(Class<?> cls, String method, Class<?>... anyOfType) throws NoSuchMethodException {
+	public static Method findAnyMethod(Class<?> cls, String name, Class<?>... anyOfType) throws NoSuchMethodException {
 		for (Class<?> parameterType : anyOfType) {
 			try {
-				return cls.getMethod(method, parameterType);
+				return cls.getMethod(name, parameterType);
 			} catch (NoSuchMethodException e) {
 				// continue
 			}
 		}
-		throw new NoSuchMethodException(cls + " has no method " + method + " with any parameter type of " + Arrays.asList(anyOfType));
+		for (Method method : cls.getMethods()) {
+			if (method.getParameterCount() == 1 && method.getName().equals(name)) {
+				return method;
+			}
+		}
+		throw new NoSuchMethodException(cls + " has no method " + name + " with any parameter type of " + Arrays.asList(anyOfType));
 	}
 
 	@SuppressWarnings("unchecked")
