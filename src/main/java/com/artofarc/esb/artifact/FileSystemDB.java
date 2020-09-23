@@ -88,45 +88,41 @@ public class FileSystemDB extends FileSystem {
 	}
 
 	@Override
-	public void writeBackChanges() {
+	public void writeBackChanges() throws SQLException {
 		String createSql = "insert into " + FILESYSTEM_TABLE + " (URI, ENVIRONMENT, MODIFIED, CONTENT) VALUES (?,'" + environment + "',?,?)";
 		String updateSql = "update " + FILESYSTEM_TABLE + " set MODIFIED=?, CONTENT=? WHERE URI=? and ENVIRONMENT='" + environment + "'";
 		String deleteSql = "delete from " + FILESYSTEM_TABLE + " WHERE URI=? and ENVIRONMENT='" + environment + "'";
-		try {
-			try (Connection conn = _dataSource.getConnection();
-					PreparedStatement create = conn.prepareStatement(createSql);
-					PreparedStatement update = conn.prepareStatement(updateSql);
-					PreparedStatement delete = conn.prepareStatement(deleteSql)) {
+		try (Connection conn = _dataSource.getConnection();
+				PreparedStatement create = conn.prepareStatement(createSql);
+				PreparedStatement update = conn.prepareStatement(updateSql);
+				PreparedStatement delete = conn.prepareStatement(deleteSql)) {
 
-				for (Map.Entry<String, ChangeType> entry : _changes.entrySet()) {
-					Artifact artifact = getArtifact(entry.getKey());
-					if (!(artifact instanceof Directory)) {
-						switch (entry.getValue()) {
-						case CREATE:
-							// delete first, if another ESB0 has created it meanwhile
-							delete.setString(1, artifact.getURI());
-							delete.executeUpdate();
-							create.setString(1, artifact.getURI());
-							create.setLong(2, artifact.getModificationTime());
-							create.setBinaryStream(3, artifact.getContentAsStream());
-							create.executeUpdate();
-							break;
-						case UPDATE:
-							update.setLong(1, artifact.getModificationTime());
-							update.setBinaryStream(2, artifact.getContentAsStream());
-							update.setString(3, artifact.getURI());
-							update.executeUpdate();
-							break;
-						case DELETE:
-							delete.setString(1, artifact.getURI());
-							delete.executeUpdate();
-							break;
-						}
+			for (Map.Entry<String, ChangeType> entry : _changes.entrySet()) {
+				Artifact artifact = getArtifact(entry.getKey());
+				if (!(artifact instanceof Directory)) {
+					switch (entry.getValue()) {
+					case CREATE:
+						// delete first, if another ESB0 has created it meanwhile
+						delete.setString(1, artifact.getURI());
+						delete.executeUpdate();
+						create.setString(1, artifact.getURI());
+						create.setLong(2, artifact.getModificationTime());
+						create.setBinaryStream(3, artifact.getContentAsStream());
+						create.executeUpdate();
+						break;
+					case UPDATE:
+						update.setLong(1, artifact.getModificationTime());
+						update.setBinaryStream(2, artifact.getContentAsStream());
+						update.setString(3, artifact.getURI());
+						update.executeUpdate();
+						break;
+					case DELETE:
+						delete.setString(1, artifact.getURI());
+						delete.executeUpdate();
+						break;
 					}
 				}
 			}
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
 		}
 		_changes.clear();
 		dehydrateArtifacts(_root);

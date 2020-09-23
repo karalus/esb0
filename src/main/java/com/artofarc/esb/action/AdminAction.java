@@ -170,7 +170,7 @@ public class AdminAction extends Action {
 		}
 	}
 
-	private static void deployChangeset(GlobalContext globalContext, FileSystem.ChangeSet changeSet, ESBMessage message, String pathInfo) throws IOException {
+	private static void deployChangeset(GlobalContext globalContext, FileSystem.ChangeSet changeSet, ESBMessage message, String pathInfo) throws Exception {
 		if (globalContext.lockFileSystem()) {
 			try {
 				int serviceCount = DeployHelper.deployChangeSet(globalContext, changeSet);

@@ -127,7 +127,15 @@ public abstract class Artifact {
 	}
 
 	public final InputStream getContentAsStream() {
-		return _content != null ? new ByteArrayInputStream(_content) : _fileSystem.createInputStream(getURI());
+		if (_content != null) {
+			return new ByteArrayInputStream(_content);
+		} else {
+			try {
+				return _fileSystem.createInputStream(getURI());
+			} catch (Exception e) {
+				throw ReflectionUtils.convert(e, RuntimeException.class);
+			}
+		}
 	}
 
 	protected final byte[] getContentAsBytes() throws Exception {

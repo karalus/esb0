@@ -63,22 +63,24 @@ public class FileSystem {
 		return new FileSystem(this);
 	}
 
-	public final Directory getRoot() {
-		return _root;
+	public void parse() throws Exception {
 	}
 
-	protected InputStream createInputStream(String uri) {
-		try {
-			return new ByteArrayInputStream(reloadContent(uri));
-		} catch (Exception e) {
-			throw ReflectionUtils.convert(e, RuntimeException.class);
-		}
+	public void writeBackChanges() throws Exception {
+	}
+
+	protected InputStream createInputStream(String uri) throws Exception {
+		return new ByteArrayInputStream(reloadContent(uri));
 	}
 
 	protected byte[] reloadContent(String uri) throws Exception {
 		try (InputStream contentAsStream = createInputStream(uri)) {
 			return IOUtils.copy(contentAsStream);
 		}
+	}
+
+	public final Directory getRoot() {
+		return _root;
 	}
 
 	public final <A extends Artifact> A getArtifact(String uri) {
@@ -131,9 +133,6 @@ public class FileSystem {
 		ChangeSet changeSet = new ChangeSet();
 		validateServices(globalContext, _root, changeSet);
 		return changeSet;
-	}
-
-	public void parse() throws Exception {
 	}
 
 	public final void dehydrateArtifacts(Directory base) {
@@ -466,9 +465,6 @@ public class FileSystem {
 			}
 		}
 		return tidyOut;
-	}
-
-	public void writeBackChanges() throws IOException {
 	}
 
 }
