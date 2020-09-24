@@ -51,7 +51,22 @@ public abstract class AbstractESBTest {
 		System.setProperty("java.naming.provider.url", "vm://localhost");
 		System.setProperty("esb0.httpconsumer.idletimeout", "0");
 		GlobalContext globalContext = new GlobalContext(getClass().getClassLoader(), null, new Properties());
-		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem());
+		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem() {
+
+			@Override
+			public FileSystem copy() {
+				return null;
+			}
+
+			@Override
+			public void parse() {
+			}
+
+			@Override
+			public void writeBackChanges() {
+			}
+
+		});
 		XMLCatalog.attachToFileSystem(globalContext);
 		context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());
 	}

@@ -42,7 +42,7 @@ import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.ReflectionUtils;
 
-public class FileSystem {
+public abstract class FileSystem {
 
 	protected final static Logger logger = LoggerFactory.getLogger(FileSystem.class);
 
@@ -59,15 +59,11 @@ public class FileSystem {
 		_root = fileSystem._root.clone(this, null);
 	}
 
-	public FileSystem copy() {
-		return new FileSystem(this);
-	}
+	public abstract FileSystem copy();
 
-	public void parse() throws Exception {
-	}
+	public abstract void parse() throws Exception;
 
-	public void writeBackChanges() throws Exception {
-	}
+	public abstract void writeBackChanges() throws Exception;
 
 	protected InputStream createInputStream(String uri) throws Exception {
 		return new ByteArrayInputStream(reloadContent(uri));
