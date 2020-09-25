@@ -67,7 +67,7 @@ public class JDBCSQLAction extends JDBCAction {
 				}
 				generatedKeys.close();
 			}
-			return execContext.setResource3(new JDBCResult(ps));
+			return new JDBCResult(ps);
 		} catch (Exception e) {
 			conn.close();
 			throw e;

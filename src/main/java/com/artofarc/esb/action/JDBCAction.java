@@ -118,9 +118,14 @@ public abstract class JDBCAction extends Action {
 			}
 		}
 		if (!_pipelineStop) {
-			JDBCResult result = executeStatement(context, execContext, message);
-			if (result.hasComplexContent()) {
-				message.clearHeaders();
+			try (JDBCResult result = executeStatement(context, execContext, message)) {
+				if (result.hasComplexContent()) {
+					message.clearHeaders();
+				}
+				JDBCResult2JsonMapper.writeResult(result, message);
+			} catch (Exception e) {
+				connection.close();
+				throw e;
 			}
 		}
 		return execContext;
@@ -131,13 +136,12 @@ public abstract class JDBCAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (_pipelineStop) {
-			JDBCResult result = executeStatement(context, execContext, message);
-			if (result.hasComplexContent()) {
-				message.clearHeaders();
+			try (JDBCResult result = executeStatement(context, execContext, message)) {
+				if (result.hasComplexContent()) {
+					message.clearHeaders();
+				}
+				JDBCResult2JsonMapper.writeResult(result, message);
 			}
-		}
-		try (JDBCResult result = execContext.getResource3()) {
-			JDBCResult2JsonMapper.writeResult(result, message);
 		}
 	}
 

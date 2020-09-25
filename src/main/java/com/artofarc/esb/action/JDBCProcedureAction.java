@@ -105,7 +105,7 @@ public class JDBCProcedureAction extends JDBCAction {
 					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));
 				}
 			}
-			return execContext.setResource3(new JDBCResult(cs));
+			return new JDBCResult(cs);
 		} catch (Exception e) {
 			conn.close();
 			throw e;
