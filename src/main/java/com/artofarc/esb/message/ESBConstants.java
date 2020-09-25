@@ -32,7 +32,7 @@ public interface ESBConstants {
 
 	String HttpResponseCode = "HttpResponseCode";
 
-	String HttpURLConnection = "HttpURLConnection";
+	String HttpURLConnection = "_HttpURLConnection";
 
 	String HttpURLOutbound = "HttpURLOutbound";
 
@@ -77,5 +77,7 @@ public interface ESBConstants {
 	String FileEventKind = "FileEventKind";
 
 	String filename = "filename";
+
+	String JDBCConnection = "_JDBCConnection";
 
 }

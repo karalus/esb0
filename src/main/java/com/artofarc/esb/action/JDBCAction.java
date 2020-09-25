@@ -36,6 +36,7 @@ import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
 import com.artofarc.esb.jdbc.XML2JDBCMapper;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.sun.xml.xsom.XSSchemaSet;
 
@@ -46,10 +47,11 @@ public abstract class JDBCAction extends Action {
 	private final List<JDBCParameter> _params;
 	private final int _maxRows;
 	private final Integer _timeout;
+	private final boolean _keepConnection;
 	protected XSSchemaSet _schemaSet;
 
-	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, XSSchemaSet schemaSet) throws NamingException {
-		if (!dsName.contains("${")) {
+	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, boolean keepConnection, XSSchemaSet schemaSet) throws NamingException {
+		if (dsName != null && !dsName.contains("${")) {
 			globalContext.getProperty(dsName);
 		}
 		_pipelineStop = false;
@@ -61,6 +63,7 @@ public abstract class JDBCAction extends Action {
 		_params = params;
 		_maxRows = maxRows;
 		_timeout = timeout;
+		_keepConnection = keepConnection;
 		_schemaSet = schemaSet;
 		checkParameters(params);
 	}
@@ -77,9 +80,18 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String dsName = (String) bindVariable(_dsName, context, message);
-		DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
-		JDBCConnection connection = new JDBCConnection(dataSource.getConnection());
+		JDBCConnection connection = message.getVariable(ESBConstants.JDBCConnection);
+		if (connection == null) {
+			if (_dsName == null) {
+				throw new ExecutionException(this, "No DataSource configured and no Connection set");
+			}
+			String dsName = (String) bindVariable(_dsName, context, message);
+			DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
+			connection = new JDBCConnection(dataSource.getConnection());
+			if (_keepConnection) {
+				connection.getConnection().setAutoCommit(false);
+			}
+		}
 		ExecutionContext execContext = new ExecutionContext(connection);
 		if (inPipeline) {
 			for (JDBCParameter param : _params) {
@@ -128,8 +140,20 @@ public abstract class JDBCAction extends Action {
 				message.clearHeaders();
 			}
 		}
-		try (JDBCConnection connection = execContext.getResource(); JDBCResult result = execContext.getResource3()) {
+		JDBCConnection connection = execContext.getResource();
+		try (JDBCResult result = execContext.getResource3()) {
 			JDBCResult2JsonMapper.writeResult(result, message);
+		} catch (Exception e) {
+			connection.close();
+			throw e;
+		}
+		if (_keepConnection) {
+			message.putVariable(ESBConstants.JDBCConnection, connection);
+		} else {
+			if (message.getVariables().containsKey(ESBConstants.JDBCConnection)) {
+				connection.getConnection().commit();
+			}
+			connection.close();
 		}
 	}
 

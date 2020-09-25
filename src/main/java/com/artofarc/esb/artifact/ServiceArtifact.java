@@ -235,8 +235,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				schemaArtifact.validate(globalContext);
 				schemaSet = schemaArtifact.getXSSchemaSet();
 			}
-			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
-					.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), schemaSet), location);
+			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getJdbcParameter()),
+					createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.isKeepConnection(), schemaSet), location);
 			break;
 		}
 		case "jdbc": {
@@ -245,7 +245,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				addAction(list, new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()), location);
 			}
 			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()),
-					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout()), location);
+					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.isKeepConnection()), location);
 			break;
 		}
 		case "setMessage": {
