@@ -156,7 +156,7 @@ public abstract class JDBCAction extends Action {
 						if (param.getTruncate() == null) {
 							ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
 						} else {
-							ps.setCharacterStream(param.getPos(), new StringReader((String) param.alignValue(message.getBodyAsString(context))));
+							ps.setCharacterStream(param.getPos(), new StringReader(param.truncate(message.getBodyAsString(context))));
 						}
 					}
 					break;
@@ -171,7 +171,7 @@ public abstract class JDBCAction extends Action {
 						if (param.getTruncate() == null) {
 							ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
 						} else {
-							ps.setBinaryStream(param.getPos(), new ByteArrayInputStream((byte[]) param.alignValue(message.getBodyAsByteArray(context))));
+							ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(param.truncate(message.getBodyAsByteArray(context))));
 						}
 					}
 					break;
@@ -191,7 +191,7 @@ public abstract class JDBCAction extends Action {
 			} else {
 				Object value = resolve(message, param.getBindName(), false);
 				if (value != null) {
-					ps.setObject(param.getPos(), param.alignValue(value), param.getType());
+					ps.setObject(param.getPos(), param.alignValue(value, conn), param.getType());
 				} else {
 					ps.setNull(param.getPos(), param.getType());
 				}
