@@ -58,58 +58,53 @@ public class JDBCProcedureAction extends JDBCAction {
 		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.debug("JDBCProcedureAction sql=" + sql);
 		JDBCConnection conn = execContext.getResource();
-		try {
-			CallableStatement cs = conn.getConnection().prepareCall(sql);
-			for (JDBCParameter param : _outParams) {
-				if (param.getXmlElement() != null) {
-					JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
-					cs.registerOutParameter(param.getPos(), param.getType(), mapper.getTypeName());
-				} else {
-					cs.registerOutParameter(param.getPos(), param.getType());
-				}
+		CallableStatement cs = conn.getConnection().prepareCall(sql);
+		for (JDBCParameter param : _outParams) {
+			if (param.getXmlElement() != null) {
+				JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
+				cs.registerOutParameter(param.getPos(), param.getType(), mapper.getTypeName());
+			} else {
+				cs.registerOutParameter(param.getPos(), param.getType());
 			}
-			bindParameters(conn, cs, context, execContext, message);
-			cs.execute();
-			for (JDBCParameter param : _outParams) {
-				if (param.isBody()) {
-					switch (param.getType()) {
-					case SQLXML:
-						SQLXML sqlxml = cs.getSQLXML(param.getPos());
-						XQItem xqItem = context.getXQDataFactory().createItemFromDocument(sqlxml.getSource(SAXSource.class), null);
-						message.reset(BodyType.XQ_ITEM, xqItem);
-						sqlxml.free();
-						break;
-					case CLOB:
-						message.reset(BodyType.READER, cs.getCharacterStream(param.getPos()));
-						break;
-					case BLOB:
-						final Blob blob = cs.getBlob(param.getPos());
-						message.reset(BodyType.BYTES, blob.getBytes(1, (int) blob.length()));
-						blob.free();
-						break;
-					case STRUCT:
-						JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
-						SAXSource saxSource = new SAXSource(mapper.createParser(context, (Struct) cs.getObject(param.getPos())), null);
-						message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
-						break;
-					default:
-						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
-					}
-				} else if (param.isAttachments()) {
-					Struct struct = (Struct) cs.getObject(param.getPos());
-					if (struct != null) {
-						JDBCAttachments jdbcAttachments = new JDBCAttachments(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-						jdbcAttachments.parseAttachments(struct, message);
-					}
-				} else {
-					message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));
-				}
-			}
-			return new JDBCResult(cs);
-		} catch (Exception e) {
-			conn.close();
-			throw e;
 		}
+		bindParameters(conn, cs, context, execContext, message);
+		cs.execute();
+		for (JDBCParameter param : _outParams) {
+			if (param.isBody()) {
+				switch (param.getType()) {
+				case SQLXML:
+					SQLXML sqlxml = cs.getSQLXML(param.getPos());
+					XQItem xqItem = context.getXQDataFactory().createItemFromDocument(sqlxml.getSource(SAXSource.class), null);
+					message.reset(BodyType.XQ_ITEM, xqItem);
+					sqlxml.free();
+					break;
+				case CLOB:
+					message.reset(BodyType.READER, cs.getCharacterStream(param.getPos()));
+					break;
+				case BLOB:
+					final Blob blob = cs.getBlob(param.getPos());
+					message.reset(BodyType.BYTES, blob.getBytes(1, (int) blob.length()));
+					blob.free();
+					break;
+				case STRUCT:
+					JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
+					SAXSource saxSource = new SAXSource(mapper.createParser(context, (Struct) cs.getObject(param.getPos())), null);
+					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
+					break;
+				default:
+					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
+				}
+			} else if (param.isAttachments()) {
+				Struct struct = (Struct) cs.getObject(param.getPos());
+				if (struct != null) {
+					JDBCAttachments jdbcAttachments = new JDBCAttachments(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+					jdbcAttachments.parseAttachments(struct, message);
+				}
+			} else {
+				message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));
+			}
+		}
+		return new JDBCResult(cs);
 	}
 
 }

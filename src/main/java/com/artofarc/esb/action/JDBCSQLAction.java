@@ -54,24 +54,18 @@ public class JDBCSQLAction extends JDBCAction {
 		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.debug("JDBCSQLAction sql=" + sql);
 		JDBCConnection conn = execContext.getResource();
-		try {
-			final PreparedStatement ps = _generatedKeys != null ? conn.getConnection().prepareStatement(sql, _generatedKeys)
-					: conn.getConnection().prepareStatement(sql);
-			bindParameters(conn, ps, context, execContext, message);
-			ps.execute();
-			if (_generatedKeys != null) {
-				ResultSet generatedKeys = ps.getGeneratedKeys();
-				int i = 0;
-				while (generatedKeys.next()) {
-					message.putVariable(_generatedKeys[i++], generatedKeys.getObject(1));
-				}
-				generatedKeys.close();
+		PreparedStatement ps = _generatedKeys != null ? conn.getConnection().prepareStatement(sql, _generatedKeys) : conn.getConnection().prepareStatement(sql);
+		bindParameters(conn, ps, context, execContext, message);
+		ps.execute();
+		if (_generatedKeys != null) {
+			ResultSet generatedKeys = ps.getGeneratedKeys();
+			int i = 0;
+			while (generatedKeys.next()) {
+				message.putVariable(_generatedKeys[i++], generatedKeys.getObject(1));
 			}
-			return new JDBCResult(ps);
-		} catch (Exception e) {
-			conn.close();
-			throw e;
+			generatedKeys.close();
 		}
+		return new JDBCResult(ps);
 	} 
 
 }
