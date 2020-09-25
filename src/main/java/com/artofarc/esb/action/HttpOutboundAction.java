@@ -27,6 +27,7 @@ import static com.artofarc.esb.http.HttpConstants.*;
 
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrlSelector;
+import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.util.ByteArrayOutputStream;
@@ -67,7 +68,8 @@ public class HttpOutboundAction extends Action {
 			message.putHeader("Authorization", "Basic " + DatatypeConverter.printBase64Binary(basicAuthCredential.getBytes()));
 		}
 		int timeout = message.getTimeleft(_readTimeout).intValue();
-		HttpUrlSelector.HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders(), _chunkLength);
+		HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders(), _chunkLength);
+		message.getVariables().put(HttpURLConnection, wrapper);
 		message.getVariables().put(HttpURLOutbound, wrapper.getHttpUrl().getUrlStr());
 		return wrapper;
 	}
@@ -86,7 +88,7 @@ public class HttpOutboundAction extends Action {
 			if (contentType != null) {
 				contentType += ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
 			}
-			HttpUrlSelector.HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentType);
+			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentType);
 			HttpURLConnection conn = wrapper.getHttpURLConnection();
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
@@ -102,16 +104,20 @@ public class HttpOutboundAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		message.closeBody();
-		HttpUrlSelector.HttpUrlConnectionWrapper wrapper;
 		if (_multipartRequest != null) {
 			ByteArrayOutputStream bos = execContext.getResource();
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartRequest, bos);
-			wrapper = createHttpURLConnection(context, message, mmp.getContentType());
+			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, mmp.getContentType());
 			mmp.writeTo(wrapper.getHttpURLConnection().getOutputStream());
-		} else {
-			wrapper = execContext.getResource();
 		}
-		message.getVariables().put(HttpURLConnection, wrapper);
+	}
+
+	@Override
+	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) {
+		if (exception) {
+			HttpUrlConnectionWrapper wrapper = message.removeVariable(HttpURLConnection);
+			wrapper.close();
+		}
 	}
 
 }

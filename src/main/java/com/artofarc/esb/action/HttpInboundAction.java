@@ -62,8 +62,7 @@ public class HttpInboundAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message,
-			boolean nextActionIsPipelineStop) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
 			InputStream inputStream = execContext.getResource();
 			if (message.isSink()) {
@@ -78,7 +77,7 @@ public class HttpInboundAction extends Action {
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext) throws Exception {
+	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 		try {
 			execContext.<InputStream> getResource().close();
 		} finally {

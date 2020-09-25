@@ -157,7 +157,7 @@ public abstract class Action implements Cloneable {
 					action = pipeline.get(--i);
 					ExecutionContext exContext = resources.get(i);
 					try {
-						action.close(exContext);
+						action.close(exContext, message, closeSilently);
 						if (action.getErrorHandler() != null) {
 							context.getStackPos().pop();
 							stackErrorHandler.pop();
@@ -214,8 +214,10 @@ public abstract class Action implements Cloneable {
 
 	/**
 	 * Cleanup ExecutionContext.
+	 * @param message TODO
+	 * @param exception TODO
 	 */
-	protected void close(ExecutionContext execContext) throws Exception {
+	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 	}
 
 	@Override

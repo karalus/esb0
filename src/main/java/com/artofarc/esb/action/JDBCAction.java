@@ -29,12 +29,7 @@ import javax.xml.transform.dom.DOMResult;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.jdbc.JDBCAttachments;
-import com.artofarc.esb.jdbc.JDBCConnection;
-import com.artofarc.esb.jdbc.JDBCParameter;
-import com.artofarc.esb.jdbc.JDBCResult;
-import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
-import com.artofarc.esb.jdbc.XML2JDBCMapper;
+import com.artofarc.esb.jdbc.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
@@ -89,6 +84,7 @@ public abstract class JDBCAction extends Action {
 			DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
 			connection = new JDBCConnection(dataSource.getConnection());
 			if (_keepConnection) {
+				message.putVariable(ESBConstants.JDBCConnection, connection);
 				connection.getConnection().setAutoCommit(false);
 			}
 		}
@@ -140,17 +136,16 @@ public abstract class JDBCAction extends Action {
 				message.clearHeaders();
 			}
 		}
-		JDBCConnection connection = execContext.getResource();
 		try (JDBCResult result = execContext.getResource3()) {
 			JDBCResult2JsonMapper.writeResult(result, message);
-		} catch (Exception e) {
-			connection.close();
-			throw e;
 		}
-		if (_keepConnection) {
-			message.putVariable(ESBConstants.JDBCConnection, connection);
-		} else {
-			if (message.getVariables().containsKey(ESBConstants.JDBCConnection)) {
+	}
+
+	@Override
+	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
+		if (exception || !_keepConnection) {
+			JDBCConnection connection = execContext.getResource();
+			if (message.getVariables().remove(ESBConstants.JDBCConnection) != null) {
 				connection.getConnection().commit();
 			}
 			connection.close();
