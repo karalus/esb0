@@ -213,9 +213,7 @@ public abstract class Action implements Cloneable {
 	}
 
 	/**
-	 * Cleanup ExecutionContext.
-	 * @param message TODO
-	 * @param exception TODO
+	 * Cleanup resources.
 	 */
 	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 	}

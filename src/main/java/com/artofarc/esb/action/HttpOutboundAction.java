@@ -90,12 +90,17 @@ public class HttpOutboundAction extends Action {
 			}
 			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentType);
 			HttpURLConnection conn = wrapper.getHttpURLConnection();
-			if (inPipeline) {
-				message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
-			} else {
-				if (!message.isEmpty()) {
-					message.writeTo(conn.getOutputStream(), context);
+			try {
+				if (inPipeline) {
+					message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
+				} else {
+					if (!message.isEmpty()) {
+						message.writeTo(conn.getOutputStream(), context);
+					}
 				}
+			} catch (Exception e) {
+				wrapper.close();
+				throw e;
 			}
 			return new ExecutionContext(wrapper); 
 		}
