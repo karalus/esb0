@@ -49,10 +49,7 @@ public abstract class JDBCAction extends Action {
 		if (dsName != null && !dsName.contains("${")) {
 			globalContext.getProperty(dsName);
 		}
-		_pipelineStop = false;
-		for (JDBCParameter param : params) {
-			_pipelineStop |= param.isBody();
-		}
+		_pipelineStop = true;
 		_dsName = dsName;
 		_sql = sql;
 		_params = params;
@@ -64,11 +61,23 @@ public abstract class JDBCAction extends Action {
 	}
 
 	protected final void checkParameters(List<JDBCParameter> params) {
-		if (_schemaSet == null) {
-			for (JDBCParameter jdbcParameter : params) {
-				if (jdbcParameter.getType() == STRUCT) {
-					throw new IllegalArgumentException("When using parameter type STRUCT, a schema is mandatory");
+		boolean body = false, attachments = false;
+		for (JDBCParameter jdbcParameter : params) {
+			if (jdbcParameter.isBody()) {
+				if (body) {
+					throw new IllegalArgumentException("Cannot have more than one parameter of type body");
 				}
+				body = true;
+			} else if (jdbcParameter.isAttachments()) {
+				if (attachments) {
+					throw new IllegalArgumentException("Cannot have more than one parameter of type attachments");
+				}
+				attachments = true;
+			} else if (jdbcParameter.getBindName() == null) {
+				throw new IllegalArgumentException("Parameter must bind to variable, body or attachment");
+			}
+			if (_schemaSet == null && jdbcParameter.getType() == STRUCT) {
+				throw new IllegalArgumentException("When using parameter type STRUCT, a schema is mandatory");
 			}
 		}
 	}
@@ -114,18 +123,8 @@ public abstract class JDBCAction extends Action {
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
+					break;
 				}
-			}
-		}
-		if (!_pipelineStop) {
-			try (JDBCResult result = executeStatement(context, execContext, message)) {
-				if (result.hasComplexContent()) {
-					message.clearHeaders();
-				}
-				JDBCResult2JsonMapper.writeResult(result, message);
-			} catch (Exception e) {
-				connection.close();
-				throw e;
 			}
 		}
 		return execContext;
@@ -135,13 +134,11 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (_pipelineStop) {
-			try (JDBCResult result = executeStatement(context, execContext, message)) {
-				if (result.hasComplexContent()) {
-					message.clearHeaders();
-				}
-				JDBCResult2JsonMapper.writeResult(result, message);
+		try (JDBCResult result = executeStatement(context, execContext, message)) {
+			if (result.hasComplexContent()) {
+				message.clearHeaders();
 			}
+			JDBCResult2JsonMapper.writeResult(result, message);
 		}
 	}
 

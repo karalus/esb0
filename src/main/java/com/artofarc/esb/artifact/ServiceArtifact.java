@@ -235,8 +235,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				schemaArtifact.validate(globalContext);
 				schemaSet = schemaArtifact.getXSSchemaSet();
 			}
-			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getJdbcParameter()),
-					createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.isKeepConnection(), schemaSet), location);
+			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getJdbcParameter().size() + jdbcProcedure.getOut().getJdbcParameter().size()];
+			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getJdbcParameter(), posUsed),
+					createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter(), posUsed), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.isKeepConnection(), schemaSet), location);
 			break;
 		}
 		case "jdbc": {
@@ -244,7 +245,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			if (jdbc.getWorkerPool() != null) {
 				addAction(list, new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()), location);
 			}
-			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()),
+			boolean[] posUsed = new boolean[jdbc.getJdbcParameter().size()];
+			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter(), posUsed),
 					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.isKeepConnection()), location);
 			break;
 		}
@@ -521,13 +523,23 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return result;
 	}
 
-	private static List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) {
+	private static List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters, boolean[] posUsed) {
 		List<JDBCParameter> params = new ArrayList<>(jdbcParameters.size());
-		for (int i = 0; i < jdbcParameters.size();) {
-			JdbcParameter jdbcParameter = jdbcParameters.get(i++);
-			int pos = jdbcParameter.getPos() != null ? jdbcParameter.getPos() : i;
-			params.add(new JDBCParameter(pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
-					jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
+		for (JdbcParameter jdbcParameter : jdbcParameters) {
+			if (jdbcParameter.getPos() != null) {
+				params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
+						jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
+				posUsed[jdbcParameter.getPos() - 1] = true;
+			}
+		}
+		int pos = 0;
+		for (JdbcParameter jdbcParameter : jdbcParameters) {
+			if (jdbcParameter.getPos() == null) {
+				while (posUsed[pos]) ++pos;
+				posUsed[pos] = true;
+				params.add(new JDBCParameter(++pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
+						jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
+			}
 		}
 		return params;
 	}
