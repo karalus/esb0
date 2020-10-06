@@ -25,7 +25,6 @@ import java.util.Properties;
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
-import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
 
 import org.xml.sax.Locator;
@@ -59,7 +58,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	// only used during validation
 	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
-	private XQConnection _connection;
+	private XQConnectionFactory _xqConnectionFactory;
 
 	public ServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -82,11 +81,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return clone;
 	}
 
-	private XQConnection getConnection() throws XQException {
-		if (_connection == null) {
-			_connection = XQConnectionFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this)).getConnection();
+	private XQConnectionFactory getXQConnectionFactory() throws XQException {
+		if (_xqConnectionFactory == null) {
+			_xqConnectionFactory = XQConnectionFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this));
 		}
-		return _connection;
+		return _xqConnectionFactory;
 	}
 
 	@Override
@@ -122,10 +121,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			_consumerPort.setEnabled(service.isEnabled());
 		} finally {
 			_actionPipelines.clear();
-			if (_connection != null) {
-				_connection.close();
-				_connection = null;
-			}
+			_xqConnectionFactory = null;
 		}
 	}
 
@@ -300,7 +296,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 			}
 			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearAll());
-			XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
+			XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;
 		}
@@ -331,7 +327,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getParent().getURI(), transform.getContextItem()), location);
 			} else if (transform.getXquery() != null) {
 				XQuerySource xquery = XQuerySource.create(transform.getXquery());
-				XQueryArtifact.validateXQuerySource(this, getConnection(), xquery);
+				XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), xquery);
 				addAction(list, new TransformAction(xquery, getParent().getURI(), transform.getContextItem()), location);
 			} else {
 				throw new ValidationException(this, "transform has no XQuery");
@@ -385,7 +381,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			if (complexExpression || !USE_SAX_VALIDATION) {
 				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem());
 				if (complexExpression) {
-					XQueryArtifact.validateXQuerySource(this, getConnection(), validateAction.getXQuery());
+					XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), validateAction.getXQuery());
 				}
 				addAction(list, validateAction, location);
 			} else {
@@ -414,7 +410,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			Conditional conditional = (Conditional) actionElement.getValue();
 			ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(),
 				conditional.getBindName(), conditional.getContextItem(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
-			XQueryArtifact.validateXQuerySource(this, getConnection(), conditionalAction.getXQuery());
+			XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), conditionalAction.getXQuery());
 			addAction(list, conditionalAction, location);
 			break;
 		case "cache":

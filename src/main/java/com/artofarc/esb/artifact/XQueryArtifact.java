@@ -28,6 +28,8 @@ import com.artofarc.esb.resource.XQConnectionFactory;
 
 public class XQueryArtifact extends XMLProcessingArtifact {
 
+	private static final boolean legacyXqmResolver = Boolean.parseBoolean(System.getProperty("esb0.legacyXqmResolver"));
+
 	public XQueryArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
 	}
@@ -37,13 +39,27 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		return initClone(new XQueryArtifact(fileSystem, parent, getName()));
 	}
 
-	static void validateXQuerySource(Artifact owner, XQConnection connection, XQuerySource xQuerySource) throws XQException {
-		XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(connection, owner.getParent().getURI());
-		for (QName qName : preparedExpression.getAllExternalVariables()) {
-			logger.debug("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
+	static void validateXQuerySource(Artifact owner, XQConnectionFactory factory, XQuerySource xQuerySource) throws Exception {
+		ValidationErrorListener errorListener = new ValidationErrorListener(owner.getURI());
+		factory.setErrorListener(errorListener);
+		XQConnection connection = factory.getConnection();
+		try {
+			String baseURI = legacyXqmResolver ? owner.getParent().getURI() : owner.getURI();
+			XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(connection, baseURI);
+			for (QName qName : preparedExpression.getAllExternalVariables()) {
+				logger.debug("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
+			}
+			logger.debug("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
+			preparedExpression.close();
+		} catch (XQException e) {
+			if (errorListener.exceptions.isEmpty()) {
+				throw e;
+			} else {
+				throw errorListener.exceptions.get(0);
+			}
+		} finally {
+			connection.close();
 		}
-		logger.debug("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
-		preparedExpression.close();
 		// set modules to validated 
 		for (String referenced : owner.getReferenced()) {
 			Artifact referencedArtifact = owner.getArtifact(referenced);
@@ -57,21 +73,8 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 	public void validateInternal(GlobalContext globalContext) throws Exception {
 		// Needs an individual XQConnectionFactory to track the use of modules
 		XQConnectionFactory factory = XQConnectionFactory.newInstance(new ArtifactURIResolver(this));
-		ValidationErrorListener errorListener = new ValidationErrorListener(getURI());
-		factory.setErrorListener(errorListener);
-		XQConnection connection = factory.getConnection();
 		logger.info("Parsing XQuery in: " + getURI());
-		try {
-			validateXQuerySource(this, connection, XQuerySource.create(getContentAsBytes()));
-		} catch (XQException e) {
-			if (errorListener.exceptions.isEmpty()) {
-				throw e;
-			} else {
-				throw errorListener.exceptions.get(0);
-			}
-		} finally {
-			connection.close();
-		}
+		validateXQuerySource(this, factory, XQuerySource.create(getContentAsBytes()));
 	}
 
 }

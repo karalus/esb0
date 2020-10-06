@@ -23,8 +23,7 @@ import java.util.WeakHashMap;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
-
-import com.artofarc.esb.resource.XQConnectionFactory;
+import javax.xml.xquery.XQStaticContext;
 
 public final class XQuerySource {
 
@@ -90,15 +89,17 @@ public final class XQuerySource {
 	}
 
 	public XQPreparedExpression prepareExpression(XQConnection conn, String baseURI) throws XQException {
-		if (_xquery != null) {
-			if (baseURI != null) {
-				return conn.prepareExpression(_xquery, XQConnectionFactory.getStaticContext(conn, baseURI));
+		if (baseURI != null) {
+			XQStaticContext staticContext = conn.getStaticContext();
+			staticContext.setBaseURI(baseURI);
+			if (_xquery != null) {
+				return conn.prepareExpression(_xquery, staticContext);
 			} else {
-				return conn.prepareExpression(_xquery);
+				return conn.prepareExpression(new ByteArrayInputStream(_data), staticContext);
 			}
 		}
-		if (baseURI != null) {
-			return conn.prepareExpression(new ByteArrayInputStream(_data), XQConnectionFactory.getStaticContext(conn, baseURI));
+		if (_xquery != null) {
+			return conn.prepareExpression(_xquery);
 		} else {
 			return conn.prepareExpression(new ByteArrayInputStream(_data));
 		}

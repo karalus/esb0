@@ -22,7 +22,6 @@ import javax.xml.transform.ErrorListener;
 import javax.xml.transform.URIResolver;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
-import javax.xml.xquery.XQStaticContext;
 
 import com.artofarc.util.ReflectionUtils;
 
@@ -53,13 +52,6 @@ public class XQConnectionFactory {
 
 	public XQConnection getConnection() throws XQException {
 		return null;
-	}
-
-	public static XQStaticContext getStaticContext(XQConnection connection, String baseURI) throws XQException {
-		XQStaticContext staticContext = connection.getStaticContext();
-		// In Saxon baseURI must not be an empty string (root of FileSystem)
-		staticContext.setBaseURI(baseURI.isEmpty() ? "./" : baseURI);
-		return staticContext;
 	}
 
 }

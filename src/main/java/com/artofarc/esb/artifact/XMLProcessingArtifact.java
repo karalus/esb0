@@ -60,6 +60,8 @@ public class XMLProcessingArtifact extends Artifact {
 
 	abstract public static class AbstractURIResolver implements URIResolver {
 
+		private static final String PROTOCOL_FILE = "file:";
+
 		protected abstract Artifact getBaseArtifact();
 
 		Artifact resolveArtifact(String href, String base) throws FileNotFoundException {
@@ -70,7 +72,7 @@ public class XMLProcessingArtifact extends Artifact {
 					return getBaseArtifact().loadArtifact(base).loadArtifact(href);
 				}
 			} else {
-				return getBaseArtifact().loadArtifact(href);
+				return getBaseArtifact().loadArtifact(href.startsWith(PROTOCOL_FILE) ? href.substring(PROTOCOL_FILE.length()) : href);
 			}
 		}
 
