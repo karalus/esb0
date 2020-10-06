@@ -16,17 +16,15 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.HttpQueryHelper;
 import com.artofarc.esb.message.ESBConstants;
 
 public class BranchOnPathAction extends Action {
@@ -41,7 +39,9 @@ public class BranchOnPathAction extends Action {
 	}
 
 	public final void addBranch(String pathTemplate, Action action) {
-		_branchMap.put(new PathTemplate(pathTemplate), action);
+		if (_branchMap.put(new PathTemplate(pathTemplate), action) != null) {
+			throw new IllegalArgumentException("Duplicate branch pathTemplate " + pathTemplate);
+		}
 	}	
 
 	@Override
@@ -76,27 +76,11 @@ public class BranchOnPathAction extends Action {
 				}
 			}
 		}
-		parseQueryString(message);
+		HttpQueryHelper.parseQueryString(message);
 		if (_nextAction != null) {
 			context.getExecutionStack().push(_nextAction);
 		}
 		return new ExecutionContext(action);
-	}
-
-	public static void parseQueryString(ESBMessage message) throws UnsupportedEncodingException {
-		String queryString = message.getVariable(ESBConstants.QueryString);
-		if (queryString != null) {
-			StringTokenizer st = new StringTokenizer(queryString, "&");
-			while (st.hasMoreTokens()) {
-				String pair = st.nextToken();
-				final int i = pair.indexOf("=");
-				if (i > 0) {
-					message.getVariables().put(URLDecoder.decode(pair.substring(0, i), "UTF-8"), URLDecoder.decode(pair.substring(i + 1), "UTF-8"));
-				} else {
-					message.getVariables().put(URLDecoder.decode(pair, "UTF-8"), null);
-				}
-			}
-		}
 	}
 
 	@Override
@@ -173,6 +157,18 @@ public class BranchOnPathAction extends Action {
 				builder.append(_list.get(i));
 			}
 			return builder.toString();
+		}
+
+		@Override
+		public int hashCode() {
+			return _list.hashCode();
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (obj == null || getClass() != obj.getClass())
+				return false;
+			return _list.equals(((PathTemplate) obj)._list);
 		}
 
 		@Override

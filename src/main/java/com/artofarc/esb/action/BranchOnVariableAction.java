@@ -40,7 +40,9 @@ public class BranchOnVariableAction extends Action {
 	}
 
 	public final void addBranch(String value, Action action) {
-		_branchMap.put(_useRegEx ? Pattern.compile(value) : value, action);
+		if (_branchMap.put(_useRegEx ? Pattern.compile(value) : value, action) != null) {
+			throw new IllegalArgumentException("Duplicate branch value " + value);
+		}
 	}	
 
 	@Override

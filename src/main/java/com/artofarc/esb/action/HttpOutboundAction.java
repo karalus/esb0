@@ -34,6 +34,7 @@ import com.artofarc.util.ByteArrayOutputStream;
 
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.HttpQueryHelper;
 
 public class HttpOutboundAction extends Action {
 
@@ -55,8 +56,8 @@ public class HttpOutboundAction extends Action {
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
 		String appendHttpUrl = message.getVariable(appendHttpUrlPath);
-		String queryString = message.getVariable(QueryString);
-		if (queryString != null && queryString.length() > 0) {
+		String queryString = HttpQueryHelper.getQueryString(message);
+		if (queryString != null) {
 			appendHttpUrl += "?" + queryString;
 		}
 		if (contentType != null) {
