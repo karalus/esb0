@@ -28,7 +28,7 @@ import com.artofarc.esb.resource.XQConnectionFactory;
 
 public class XQueryArtifact extends XMLProcessingArtifact {
 
-	private static final boolean legacyXqmResolver = Boolean.parseBoolean(System.getProperty("esb0.legacyXqmResolver"));
+	static final boolean legacyXqmResolver = Boolean.parseBoolean(System.getProperty("esb0.legacyXqmResolver"));
 
 	public XQueryArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);

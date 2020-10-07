@@ -324,11 +324,12 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				XQueryArtifact xQueryArtifact = loadArtifact(transform.getXqueryURI());
 				addReference(xQueryArtifact);
 				xQueryArtifact.validate(globalContext);
-				addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getParent().getURI(), transform.getContextItem()), location);
+				String baseURI = XQueryArtifact.legacyXqmResolver ? xQueryArtifact.getParent().getURI() : xQueryArtifact.getURI();
+				addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), baseURI, transform.getContextItem()), location);
 			} else if (transform.getXquery() != null) {
 				XQuerySource xquery = XQuerySource.create(transform.getXquery());
 				XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), xquery);
-				addAction(list, new TransformAction(xquery, getParent().getURI(), transform.getContextItem()), location);
+				addAction(list, new TransformAction(xquery, getURI(), transform.getContextItem()), location);
 			} else {
 				throw new ValidationException(this, "transform has no XQuery");
 			}
