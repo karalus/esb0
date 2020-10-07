@@ -28,22 +28,26 @@ import com.artofarc.esb.message.ESBMessage;
 public class BranchOnVariableAction extends Action {
 
 	private final String _varName;
-	private final boolean _useRegEx;
 	private final Map<Object, Action> _branchMap = new LinkedHashMap<>();
 	private final Action _defaultAction, _nullAction;
+	private boolean _useRegEx;
 
-	public BranchOnVariableAction(String varName, boolean useRegEx, Action defaultAction, Action nullAction) {
+	public BranchOnVariableAction(String varName, Action defaultAction, Action nullAction) {
 		_varName = varName;
-		_useRegEx = useRegEx;
 		_defaultAction = defaultAction;
 		_nullAction = nullAction;
 	}
 
 	public final void addBranch(String value, Action action) {
-		if (_branchMap.put(_useRegEx ? Pattern.compile(value) : value, action) != null) {
+		if (_branchMap.put(value, action) != null) {
 			throw new IllegalArgumentException("Duplicate branch value " + value);
 		}
-	}	
+	}
+
+	public final void addBranchRegEx(String regEx, Action action) {
+		_branchMap.put(Pattern.compile(regEx), action);
+		_useRegEx = true;
+	}
 
 	@Override
 	protected boolean isPipelineStop() {
@@ -72,20 +76,22 @@ public class BranchOnVariableAction extends Action {
 			checkAtomic(value, _varName);
 			String strValue = value.toString();
 			action = _defaultAction;
-			if (_useRegEx) {
+			if (_branchMap.containsKey(strValue)) {
+				action = _branchMap.get(strValue);
+			} else if (_useRegEx) {
 				for (Map.Entry<Object, Action> entry : _branchMap.entrySet()) {
-					Pattern pattern = (Pattern) entry.getKey();
-					Matcher matcher = pattern.matcher(strValue);
-					if (matcher.matches()) {
-						action = entry.getValue();
-						for (int i = 1; i <= matcher.groupCount(); ++i) {
-							message.getVariables().put(_varName + '#' + i, matcher.group(i));
+					if (entry.getKey() instanceof Pattern) {
+						Pattern pattern = (Pattern) entry.getKey();
+						Matcher matcher = pattern.matcher(strValue);
+						if (matcher.matches()) {
+							action = entry.getValue();
+							for (int i = 1; i <= matcher.groupCount(); ++i) {
+								message.getVariables().put(_varName + '#' + i, matcher.group(i));
+							}
+							break;
 						}
-						break;
 					}
 				}
-			} else if (_branchMap.containsKey(strValue)) {
-				action = _branchMap.get(strValue);
 			}
 		}
 		if (_nextAction != null) {

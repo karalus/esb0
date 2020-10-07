@@ -442,9 +442,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			if (branchOnVariable.getNull() != null) {
 				nullAction = Action.linkList(transform(globalContext, branchOnVariable.getNull().getAction(), null));
 			}
-			BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), branchOnVariable.isUseRegEx(), defaultAction, nullAction);
+			BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), defaultAction, nullAction);
 			for (BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
-				branchOnVariableAction.addBranch(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), null)));
+				if (branch.getValue() != null) {
+					branchOnVariableAction.addBranch(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), null)));
+				} else if (branch.getRegEx() != null) {
+					branchOnVariableAction.addBranchRegEx(branch.getRegEx(), Action.linkList(transform(globalContext, branch.getAction(), null)));
+				} else {
+					throw new ValidationException(this, branch.sourceLocation().getLineNumber(), "branch must be either value or regEx");
+				}
 			}
 			addAction(list, branchOnVariableAction, location);
 			break;

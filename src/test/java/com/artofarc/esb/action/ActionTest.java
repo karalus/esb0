@@ -87,7 +87,7 @@ public class ActionTest extends AbstractESBTest {
       MarkAction action1 = new MarkAction();
       MarkAction action2 = new MarkAction();
       MarkAction action3 = new MarkAction();
-      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("var", false, action2, null);
+      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("var", action2, null);
       branchOnVariableAction.addBranch("ok", action1);
       branchOnVariableAction.setNextAction(action3);
       branchOnVariableAction.process(context, message);

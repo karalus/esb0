@@ -427,7 +427,8 @@
 								<sequence>
 									<element ref="tns:action" minOccurs="0" maxOccurs="unbounded" />
 								</sequence>
-								<attribute name="value" type="string" use="required" />
+								<attribute name="value" type="string" />
+								<attribute name="regEx" type="tns:string1" />
 							</complexType>
 						</element>
 						<element name="default" minOccurs="0">
@@ -446,7 +447,6 @@
 						</element>
 					</sequence>
 					<attribute name="variable" type="Name" use="required" />
-					<attribute name="useRegEx" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>
