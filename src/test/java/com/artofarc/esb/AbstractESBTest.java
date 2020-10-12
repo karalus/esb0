@@ -102,14 +102,14 @@ public abstract class AbstractESBTest {
 		return new AssignAction(varName, expression, null, decls, null);
 	}
 
-	protected static AssignAction createAssignAction(List<AssignAction.Assignment> assignments, Map<String, String> namespaces, String... bindNames) {
+	protected static AssignAction createAssignAction(List<AssignAction.Assignment> assignments, String expression, Map<String, String> namespaces, String... bindNames) {
 		List<XQDecl> decls = new ArrayList<>();
 		for (String bindName : bindNames) {
 			XQDecl decl = new XQDecl();
 			decl.setValue(bindName);
 			decls.add(decl);
 		}
-		return new AssignAction(assignments, ".", namespaces != null ? namespaces.entrySet() : null, decls, null, false);
+		return new AssignAction(assignments, expression, namespaces != null ? namespaces.entrySet() : null, decls, null, false);
 	}
 
 	protected static List<AssignAction.Assignment> createAssignments(boolean header, String... tuples) {
