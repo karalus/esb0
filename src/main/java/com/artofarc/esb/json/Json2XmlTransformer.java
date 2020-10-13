@@ -49,17 +49,17 @@ public final class Json2XmlTransformer {
 	private final boolean _createDocumentEvents;
 	private final boolean _includeRoot;
 	private final String _rootUri, _rootName;
-	private final XSComplexType _complexType;
+	private final XSType _type;
 	private final NamespaceMap _namespaceMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
-	public Json2XmlTransformer(XSSchemaSet schemaSet, boolean createDocumentEvents, String rootElement, String type, boolean includeRoot, Map<String, String> prefixMap) {
+	public Json2XmlTransformer(XSSchemaSet schemaSet, boolean createDocumentEvents, String rootElement, String typeName, boolean includeRoot, Map<String, String> prefixMap) {
 		if (schemaSet == null) {
 			_schemaSet = XSOMHelper.anySchema;
 			_rootUri = XMLConstants.NULL_NS_URI;
 			_rootName = "root";
-			_complexType = _schemaSet.getElementDecl(_rootUri, _rootName).getType().asComplexType();
+			_type = _schemaSet.getElementDecl(_rootUri, _rootName).getType();
 		} else {
 			_schemaSet = schemaSet;
 			if (rootElement != null) {
@@ -68,17 +68,17 @@ public final class Json2XmlTransformer {
 				_rootName = _rootElement.getLocalPart();
 				XSElementDecl elementDecl = schemaSet.getElementDecl(_rootUri, _rootName);
 				if (elementDecl != null) {
-					_complexType = elementDecl.getType().asComplexType();
-				} else if (type != null) {
-					QName _type = QName.valueOf(type);
-					_complexType = schemaSet.getComplexType(_type.getNamespaceURI(), _type.getLocalPart());
+					_type = elementDecl.getType();
+				} else if (typeName != null) {
+					QName type = QName.valueOf(typeName);
+					_type = schemaSet.getType(type.getNamespaceURI(), type.getLocalPart());
 				} else {
-					_complexType = null;
+					_type = null;
 				}
 			} else {
 				_rootUri = null;
 				_rootName = null;
-				_complexType = null;
+				_type = null;
 			}
 		}
 		_includeRoot = includeRoot;
@@ -87,7 +87,7 @@ public final class Json2XmlTransformer {
 	}
 
 	public XMLParserBase createStreamingParser() {
-		return new StreamingParser();
+		return _type instanceof XSSimpleType ? new Parser() : new StreamingParser();
 	}
 
 	public XMLParserBase createParser() {
@@ -209,7 +209,7 @@ public final class Json2XmlTransformer {
 							} else {
 								keyName = _rootName;
 								uri = _rootUri;
-								xsomHelper = new XSOMHelper(_complexType, _schemaSet.getElementDecl(uri, keyName));
+								xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
 							}
 						} else {
 							if (_includeRoot && _objects.isEmpty()) {
@@ -221,7 +221,7 @@ public final class Json2XmlTransformer {
 								} else {
 									uri = getDefaultUri();
 								}
-								xsomHelper = new XSOMHelper(_complexType, _schemaSet.getElementDecl(uri, keyName));
+								xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
 							} else {
 								if (keyName == null) {
 									e = _arrays.peek();
@@ -487,12 +487,13 @@ public final class Json2XmlTransformer {
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
-			JsonObject jsonObject;
+			JsonValue jsonValue;
 			try (JsonReader jsonReader = createJsonReader(inputSource)) {
-				jsonObject = jsonReader.readObject();
+				jsonValue = jsonReader.readValue();
 			}
 			startDocument();
 			if (_includeRoot) {
+				JsonObject jsonObject = (JsonObject) jsonValue;
 				Set<String> keySet = jsonObject.keySet();
 				if (keySet.size() != 1) {
 					throw new SAXException("JSON with root must consist of exactly one value");
@@ -506,13 +507,18 @@ public final class Json2XmlTransformer {
 				} else {
 					uri = getDefaultUri();
 				}
-				jsonObject = jsonObject.getJsonObject(keyName);
+				jsonValue = jsonObject.getJsonObject(keyName);
 			} else {
 				keyName = _rootName;
 				uri = _rootUri;
 			}
-			xsomHelper = new XSOMHelper(_complexType, _schemaSet.getElementDecl(uri, keyName));
-			parse(new Element(uri, keyName, createQName(uri, keyName)), jsonObject);
+			Element e = new Element(uri, keyName, createQName(uri, keyName));
+			if (_type instanceof XSSimpleType) {
+				parse(e, jsonValue, (XSSimpleType) _type);
+			} else {
+				xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
+				parse(e, (JsonObject) jsonValue);
+			}
 			endDocument();
 		}
 
@@ -592,7 +598,11 @@ public final class Json2XmlTransformer {
 		}
 
 		private void parse(Element e, JsonValue jsonValue) throws SAXException {
-			final boolean union = xsomHelper.getSimpleType() != null && xsomHelper.getSimpleType().isUnion();
+			parse(e, jsonValue, xsomHelper.getSimpleType());
+		}
+
+		private void parse(Element e, JsonValue jsonValue, XSSimpleType simpleType) throws SAXException {
+			final boolean union = simpleType != null && simpleType.isUnion();
 			switch(jsonValue.getValueType()) {
 			case OBJECT:
 				parse(e, (JsonObject) jsonValue);
