@@ -191,6 +191,9 @@ public final class XSOMHelper {
 	private boolean _any, _required, _repeated, _endArray;
 
 	public XSOMHelper(XSComplexType complexType, XSElementDecl elementDecl) {
+		if (complexType == null && elementDecl == null) {
+			throw new IllegalArgumentException("Either complexType or elementDecl must be specified");
+		}
 		expandGroup(_complexType = complexType != null ? complexType : elementDecl.getType().asComplexType(), elementDecl);
 	}
 

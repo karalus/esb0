@@ -21,6 +21,10 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.StringTokenizer;
 
+import javax.xml.datatype.XMLGregorianCalendar;
+
+import com.artofarc.esb.json.Xml2JsonTransformer;
+
 public class HttpQueryHelper {
 
 	private static final String UTF_8 = "UTF-8";
@@ -52,6 +56,9 @@ public class HttpQueryHelper {
 					String varName = st.nextToken();
 					Object value = message.getVariables().get(varName);
 					if (value != null) {
+						if (value instanceof XMLGregorianCalendar) {
+							Xml2JsonTransformer.omitTZfromDate((XMLGregorianCalendar) value);
+						}
 						String valStr = URLEncoder.encode(varName, UTF_8) + "=" + URLEncoder.encode(value.toString(), UTF_8);
 						if (queryString != null) {
 							queryString += "&" + valStr;

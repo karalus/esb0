@@ -28,6 +28,8 @@ import java.util.regex.Pattern;
 import javax.json.stream.JsonGenerator;
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.datatype.DatatypeConstants;
+import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
 
 import org.xml.sax.Attributes;
@@ -41,6 +43,11 @@ import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.*;
 
 public final class Xml2JsonTransformer {
+
+	/**
+	 * @see https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.7.3.1
+	 */
+	public static final boolean JSON_OMIT_TZ_FROM_DATE = Boolean.parseBoolean(System.getProperty("esb0.json.omitTZfromDate", "true"));
 
 	private static final Pattern whitespacePattern = Pattern.compile("\\s+");
 
@@ -328,6 +335,9 @@ public final class Xml2JsonTransformer {
 			case "nil":
 				jsonGenerator.writeNull(key);
 				break;
+			case "date":
+				jsonGenerator.write(key, omitTZfromDate(s));
+				break;
 			default:
 				jsonGenerator.write(key, s);
 				break;
@@ -361,12 +371,31 @@ public final class Xml2JsonTransformer {
 			case "nil":
 				jsonGenerator.writeNull();
 				break;
+			case "date":
+				jsonGenerator.write(omitTZfromDate(s));
+				break;
 			default:
 				jsonGenerator.write(s);
 				break;
 			}
 		}
 
+	}
+
+	public static String omitTZfromDate(String date) {
+		if (JSON_OMIT_TZ_FROM_DATE) {
+			if (date.charAt(0) == '-') {
+				throw new IllegalArgumentException("year must not be negative " + date);
+			}
+			date = date.substring(0, 10);
+		}
+		return date;
+	}
+
+	public static void omitTZfromDate(XMLGregorianCalendar date) {
+		if (JSON_OMIT_TZ_FROM_DATE) {
+			date.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+		}
 	}
 
 }
