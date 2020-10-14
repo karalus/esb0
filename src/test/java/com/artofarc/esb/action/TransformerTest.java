@@ -12,11 +12,11 @@ import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.artifact.XSLTArtifact;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.TimeGauge;
+import com.artofarc.util.XQuerySource;
 
 public class TransformerTest extends AbstractESBTest {
 

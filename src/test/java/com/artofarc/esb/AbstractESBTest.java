@@ -28,12 +28,12 @@ import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.IOUtils;
+import com.artofarc.util.XQuerySource;
 
 public abstract class AbstractESBTest {
 

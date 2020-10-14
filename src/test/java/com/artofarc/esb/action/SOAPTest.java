@@ -25,7 +25,6 @@ import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
@@ -35,6 +34,7 @@ import com.artofarc.esb.service.XQDecl;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.Collections;
 import com.artofarc.util.WSDL4JUtil;
+import com.artofarc.util.XQuerySource;
 
 public class SOAPTest extends AbstractESBTest {
    

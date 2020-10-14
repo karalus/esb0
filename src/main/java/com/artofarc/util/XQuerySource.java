@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.context;
+package com.artofarc.util;
 
-import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 

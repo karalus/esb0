@@ -40,6 +40,7 @@ import com.artofarc.esb.action.Action;
 import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.TimeGauge;
+import com.artofarc.util.XQuerySource;
 
 public final class Context extends AbstractContext {
 

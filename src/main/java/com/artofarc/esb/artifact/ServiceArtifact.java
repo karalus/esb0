@@ -33,7 +33,6 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.action.*;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.jdbc.JDBCParameter;
@@ -46,6 +45,7 @@ import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWrapper;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.WSDL4JUtil;
+import com.artofarc.util.XQuerySource;
 import com.sun.xml.xsom.XSSchemaSet;
 
 public class ServiceArtifact extends AbstractServiceArtifact {

@@ -23,8 +23,8 @@ import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQSequenceType;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.resource.XQConnectionFactory;
+import com.artofarc.util.XQuerySource;
 
 public class XQueryArtifact extends XMLProcessingArtifact {
 

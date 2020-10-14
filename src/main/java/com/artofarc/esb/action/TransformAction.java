@@ -35,12 +35,12 @@ import javax.xml.xquery.XQSequenceType;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.Collections;
+import com.artofarc.util.XQuerySource;
 
 public class TransformAction extends Action {
 
