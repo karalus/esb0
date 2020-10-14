@@ -33,6 +33,7 @@ public abstract class WeakCache<K, V> {
 			for (Iterator<Reference<? extends V>> iter = cache.values().iterator(); iter.hasNext();) {
 				if (iter.next() == ref) {
 					iter.remove();
+					break;
 				}
 			}
 		}

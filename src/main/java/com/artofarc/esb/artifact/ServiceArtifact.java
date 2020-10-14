@@ -25,7 +25,6 @@ import java.util.Properties;
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
-import javax.xml.xquery.XQException;
 
 import org.xml.sax.Locator;
 
@@ -81,7 +80,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return clone;
 	}
 
-	private XQConnectionFactory getXQConnectionFactory() throws XQException {
+	private XQConnectionFactory getXQConnectionFactory() {
 		if (_xqConnectionFactory == null) {
 			_xqConnectionFactory = XQConnectionFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this));
 		}

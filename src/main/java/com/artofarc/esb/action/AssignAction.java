@@ -48,7 +48,7 @@ public class AssignAction extends TransformAction {
 				builder.append("declare namespace ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\";\n");
 			}
 		}
-		HashSet<String> variables = new HashSet<String>();
+		HashSet<String> variables = new HashSet<>();
 		for (XQDecl bindName : bindNames) {
 			builder.append("declare variable $").append(bindName.getValue());
 			if (bindName.getType() != null) {

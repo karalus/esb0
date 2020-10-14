@@ -732,7 +732,7 @@
 	<simpleType name="URI1">
 		<restriction base="anyURI">
 			<minLength value="1" />
-			<pattern value="[^\*]*\*?" />
+			<pattern value="[^*]*\*?" />
 		</restriction>
 	</simpleType>
 	<attributeGroup name="JMSConnectionData">

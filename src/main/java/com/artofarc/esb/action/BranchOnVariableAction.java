@@ -32,8 +32,8 @@ public class BranchOnVariableAction extends Action {
 	private static final WeakCache<String, Pattern> PATTERN_CACHE = new WeakCache<String, Pattern>() {
 		
 		@Override
-		public Pattern create(String key) {
-			return Pattern.compile(key);
+		public Pattern create(String regEx) {
+			return Pattern.compile(regEx);
 		}
 	};
 	
