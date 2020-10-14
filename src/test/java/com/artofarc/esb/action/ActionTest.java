@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Properties;
 
@@ -88,7 +89,7 @@ public class ActionTest extends AbstractESBTest {
       MarkAction action2 = new MarkAction();
       MarkAction action3 = new MarkAction();
       BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("var", action2, null);
-      branchOnVariableAction.addBranch("ok", action1);
+      branchOnVariableAction.addBranch(Arrays.asList("ok"), action1);
       branchOnVariableAction.setNextAction(action3);
       branchOnVariableAction.process(context, message);
       assertFalse(action1.isExecuted());

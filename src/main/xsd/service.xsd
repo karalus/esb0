@@ -427,7 +427,11 @@
 								<sequence>
 									<element ref="tns:action" minOccurs="0" maxOccurs="unbounded" />
 								</sequence>
-								<attribute name="value" type="string" />
+								<attribute name="value">
+									<simpleType>
+									    <list itemType="string" />
+									</simpleType>
+								</attribute>
 								<attribute name="regEx" type="tns:string1" />
 							</complexType>
 						</element>

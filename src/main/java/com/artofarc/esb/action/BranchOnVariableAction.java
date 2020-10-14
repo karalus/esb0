@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,9 +25,18 @@ import java.util.regex.Pattern;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.WeakCache;
 
 public class BranchOnVariableAction extends Action {
 
+	private static final WeakCache<String, Pattern> PATTERN_CACHE = new WeakCache<String, Pattern>() {
+		
+		@Override
+		public Pattern create(String key) {
+			return Pattern.compile(key);
+		}
+	};
+	
 	private final String _varName;
 	private final Map<Object, Action> _branchMap = new LinkedHashMap<>();
 	private final Action _defaultAction, _nullAction;
@@ -38,14 +48,16 @@ public class BranchOnVariableAction extends Action {
 		_nullAction = nullAction;
 	}
 
-	public final void addBranch(String value, Action action) {
-		if (_branchMap.put(value, action) != null) {
-			throw new IllegalArgumentException("Duplicate branch value " + value);
+	public final void addBranch(List<String> values, Action action) {
+		for (String value : values) {
+			if (_branchMap.put(value, action) != null) {
+				throw new IllegalArgumentException("Duplicate branch value " + value);
+			}
 		}
 	}
 
 	public final void addBranchRegEx(String regEx, Action action) {
-		_branchMap.put(Pattern.compile(regEx), action);
+		_branchMap.put(PATTERN_CACHE.get(regEx), action);
 		_useRegEx = true;
 	}
 

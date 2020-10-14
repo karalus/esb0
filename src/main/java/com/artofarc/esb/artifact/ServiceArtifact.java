@@ -445,7 +445,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), defaultAction, nullAction);
 			for (BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
-				if (branch.getValue() != null) {
+				if (branch.getValue().size() > 0) {
 					branchOnVariableAction.addBranch(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), null)));
 				} else if (branch.getRegEx() != null) {
 					branchOnVariableAction.addBranchRegEx(branch.getRegEx(), Action.linkList(transform(globalContext, branch.getAction(), null)));
