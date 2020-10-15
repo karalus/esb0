@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.List;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
@@ -24,29 +26,29 @@ import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 
 public class CacheAction extends Action {
 
-	private final String _keyExp, _valueName;
+	private final String _keyExp;
+	private final List<String> _valueNames;
+	private final int _indexBody;
 	private final Action _cacheAction;
 	private final boolean _notWriteOnly;
-	private final LRUCacheWithExpirationFactory.Cache _cache;
+	private final LRUCacheWithExpirationFactory<Object, Object[]>.Cache _cache;
 	private final long _ttl;
 
-	public CacheAction(GlobalContext globalContext, String keyExp, String valueName, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, long ttl) {
+	public CacheAction(GlobalContext globalContext, String keyExp, List<String> valueNames, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, long ttl) {
 		_keyExp = keyExp;
-		_valueName = valueName;
+		_valueNames = valueNames;
 		_cacheAction = cacheAction;
 		_notWriteOnly = !writeOnly;
-		LRUCacheWithExpirationFactory factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);
+		_indexBody = valueNames.indexOf("body");
+		@SuppressWarnings("unchecked")
+		LRUCacheWithExpirationFactory<Object, Object[]> factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);
 		_cache = factory.getResource(cacheName, maxSize);
 		_ttl = ttl;
 	}
 
-	private boolean isValueBody() {
-		return "body".equals(_valueName);
-	}
-
 	@Override
 	protected boolean isPipelineStop() {
-		return isValueBody() || _nextAction == null || _nextAction.isPipelineStop() || _cacheAction.isPipelineStop();
+		return _indexBody >= 0 || _nextAction == null || _nextAction.isPipelineStop() || _cacheAction.isPipelineStop();
 	}
 
 	@Override
@@ -58,9 +60,13 @@ public class CacheAction extends Action {
 				context.getExecutionStack().push(_nextAction);
 			}
 			Action action = null;
-			if (_notWriteOnly && _cache.containsKey(key)) {
-				if (!isValueBody()) {
-					message.putVariable(_valueName, _cache.get(key));
+			Object[] values = _cache.get(key);
+			if (_notWriteOnly && values != null) {
+				for (int i = 0; i < _valueNames.size(); ++i) {
+					String valueName = _valueNames.get(i);
+					if (!valueName.equals("body")) {
+						message.putVariable(valueName, values[i]);
+					}
 				}
 			} else {
 				action = _cacheAction;
@@ -69,8 +75,11 @@ public class CacheAction extends Action {
 					@Override
 					protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 						super.execute(context, execContext, message, nextActionIsPipelineStop);
-						Object value = isValueBody() ? message.getBodyAsString(context) : resolve(message, _valueName, true);
-						_cache.put(key, value, _ttl);
+						Object[] values = new Object[_valueNames.size()];
+						for (int i = 0; i < _valueNames.size(); ++i) {
+							values[i] = _valueNames.get(i).equals("body") ? message.getBodyAsString(context) : resolve(message, _valueNames.get(i), true);
+						}
+						_cache.put(key, values, _ttl);
 					}
 				});
 			}
@@ -82,11 +91,12 @@ public class CacheAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) {
-		if (_notWriteOnly && isValueBody()) {
+		if (_notWriteOnly && _indexBody >= 0) {
 			Object key = execContext.getResource();
-			if (_cache.containsKey(key)) {
+			Object[] values = _cache.get(key);
+			if (values != null) {
 				message.clearHeaders();
-				message.reset(null, _cache.get(key));
+				message.reset(null, values[_indexBody]);
 			}
 		}
 	}
