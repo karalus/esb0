@@ -62,8 +62,10 @@ public class CacheAction extends Action {
 			Action action = null;
 			Object[] values = _cache.get(key);
 			if (_notWriteOnly && values != null) {
-				for (int i = 0; i != _indexBody && i < _valueNames.size(); ++i) {
-					message.putVariable(_valueNames.get(i), values[i]);
+				for (int i = 0; i < _valueNames.size(); ++i) {
+					if (i != _indexBody) {
+						message.putVariable(_valueNames.get(i), values[i]);
+					}
 				}
 			} else {
 				action = _cacheAction;
@@ -74,7 +76,7 @@ public class CacheAction extends Action {
 						super.execute(context, execContext, message, nextActionIsPipelineStop);
 						Object[] values = new Object[_valueNames.size()];
 						for (int i = 0; i < _valueNames.size(); ++i) {
-							values[i] = i == _indexBody ? message.getBodyAsString(context) : resolve(message, _valueNames.get(i), true);
+							values[i] = i != _indexBody ? resolve(message, _valueNames.get(i), true) : message.getBodyAsString(context);
 						}
 						_cache.put(key, values, _ttl);
 					}
