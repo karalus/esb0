@@ -18,6 +18,7 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
@@ -444,12 +445,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), defaultAction, nullAction);
 			for (BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
-				if (branch.getValue().size() > 0) {
-					branchOnVariableAction.addBranch(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), null)));
-				} else if (branch.getRegEx() != null) {
+				if (branch.getRegEx() != null) {
 					branchOnVariableAction.addBranchRegEx(branch.getRegEx(), Action.linkList(transform(globalContext, branch.getAction(), null)));
 				} else {
-					throw new ValidationException(this, branch.sourceLocation().getLineNumber(), "branch must be either value or regEx");
+					List<String> values = branch.getValue().isEmpty() ? Collections.singletonList("") : branch.getValue();
+					branchOnVariableAction.addBranch(values, Action.linkList(transform(globalContext, branch.getAction(), null)));
 				}
 			}
 			addAction(list, branchOnVariableAction, location);
