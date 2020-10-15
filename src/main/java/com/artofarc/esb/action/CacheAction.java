@@ -62,11 +62,8 @@ public class CacheAction extends Action {
 			Action action = null;
 			Object[] values = _cache.get(key);
 			if (_notWriteOnly && values != null) {
-				for (int i = 0; i < _valueNames.size(); ++i) {
-					String valueName = _valueNames.get(i);
-					if (!valueName.equals("body")) {
-						message.putVariable(valueName, values[i]);
-					}
+				for (int i = 0; i != _indexBody && i < _valueNames.size(); ++i) {
+					message.putVariable(_valueNames.get(i), values[i]);
 				}
 			} else {
 				action = _cacheAction;
@@ -77,7 +74,7 @@ public class CacheAction extends Action {
 						super.execute(context, execContext, message, nextActionIsPipelineStop);
 						Object[] values = new Object[_valueNames.size()];
 						for (int i = 0; i < _valueNames.size(); ++i) {
-							values[i] = _valueNames.get(i).equals("body") ? message.getBodyAsString(context) : resolve(message, _valueNames.get(i), true);
+							values[i] = i == _indexBody ? message.getBodyAsString(context) : resolve(message, _valueNames.get(i), true);
 						}
 						_cache.put(key, values, _ttl);
 					}
@@ -92,8 +89,7 @@ public class CacheAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) {
 		if (_notWriteOnly && _indexBody >= 0) {
-			Object key = execContext.getResource();
-			Object[] values = _cache.get(key);
+			Object[] values = _cache.get(execContext.getResource());
 			if (values != null) {
 				message.clearHeaders();
 				message.reset(null, values[_indexBody]);
