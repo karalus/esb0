@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.action.AssignAction;
@@ -38,6 +40,16 @@ import com.artofarc.util.XQuerySource;
 public abstract class AbstractESBTest {
 
 	private static final boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
+
+	@BeforeClass
+	public static void init() {
+		System.setProperty("esb0.cacheXSGrammars", "false");
+	}
+
+	@AfterClass
+	public static void destroy() {
+		System.setProperty("esb0.cacheXSGrammars", "true");
+	}
 
 	protected Context context;
 
