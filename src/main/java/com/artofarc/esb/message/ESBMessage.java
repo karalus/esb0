@@ -317,7 +317,6 @@ public final class ESBMessage implements Cloneable {
 		case DOM:
 		case SOURCE:
 			writeRawTo(bos = new ByteArrayOutputStream(), context);
-			closeBody();
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
 			break;
@@ -657,6 +656,9 @@ public final class ESBMessage implements Cloneable {
 			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
+		}
+		if (_bodyType == BodyType.WRITER) {
+			((Writer) _body).flush();
 		}
 	}
 
