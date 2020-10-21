@@ -71,6 +71,9 @@ public abstract class ConcurrentResourcePool<R, D, P, E extends Exception> {
 	}
 
 	public final R removeResource(D descriptor) {
+		if (!_pool.containsKey(descriptor)) {
+			return null;
+		}
 		_lock.lock();
 		try {
 			Map<D, R> pool = new HashMap<>(_pool);
