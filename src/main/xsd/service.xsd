@@ -480,7 +480,7 @@
 							</complexType>
 						</element>
 					</sequence>
-					<attribute name="basePath" type="anyURI" use="required" />
+					<attribute name="basePath" type="anyURI" default="" />
 				</extension>
 			</complexContent>
 		</complexType>
