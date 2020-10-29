@@ -378,16 +378,15 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(validate.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			boolean complexExpression = validate.getExpression() != "." && !validate.getExpression().equals("*");
-			if (complexExpression || !USE_SAX_VALIDATION) {
+			if (USE_SAX_VALIDATION && validate.getContextItem() == null && (validate.getExpression() == "." || validate.getExpression().equals("*"))) {
+				SAXValidationAction action = new SAXValidationAction(schemaArtifact.getSchema());
+				addAction(list, action, location);
+			} else {
 				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem());
-				if (complexExpression) {
+				if (validate.getExpression() != "." && !validate.getExpression().equals("*")) {
 					XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), validateAction.getXQuery());
 				}
 				addAction(list, validateAction, location);
-			} else {
-				SAXValidationAction action = new SAXValidationAction(schemaArtifact.getSchema());
-				addAction(list, action, location);
 			}
 			break;
 		}

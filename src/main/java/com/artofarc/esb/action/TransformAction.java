@@ -67,7 +67,7 @@ public class TransformAction extends Action {
 	private final XQuerySource _xquery;
 	private final List<Assignment> _assignments;
 	private final String _baseURI; 
-	private final String _contextItem;
+	protected final String _contextItem;
 	protected List<XQDecl> _bindNames;
 	private final Map<QName, Map.Entry<XQItemType, Boolean>> _bindings = new HashMap<>();
 
