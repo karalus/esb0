@@ -81,7 +81,7 @@ public class SpawnAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		Future<ESBMessage> future;
 		if (_usePipe) {
 			execContext.<PipedOutputStream> getResource().close();

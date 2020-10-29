@@ -36,7 +36,7 @@ public class ForkAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		final WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
 		final Context workerContext = workerPool.getContext();
 		try {
@@ -46,7 +46,7 @@ public class ForkAction extends Action {
 				@Override
 				public void run() {
 					try {
-						copy.putVariable(ESBConstants.timeleftOrigin, copy.getVariables().remove(ESBConstants.timeleft));
+						copy.putVariableIfNotNull(ESBConstants.timeleftOrigin, copy.getVariables().remove(ESBConstants.timeleft));
 						_fork.process(workerContext, copy);
 					} catch (Exception e) {
 						logger.error("Exception in forked action pipeline", e);
