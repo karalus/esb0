@@ -373,6 +373,7 @@
 					</sequence>
 					<attribute name="workerPool" type="anyURI" />
 					<attribute name="copyMessage" type="boolean" default="false" />
+					<attribute name="copyHeaders" type="boolean" default="true" />
 					<attribute name="errorHandler" type="Name" />
 				</extension>
 			</complexContent>

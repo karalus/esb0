@@ -86,7 +86,7 @@ public final class ESBMessage implements Cloneable {
 		return result;
 	}
 
-	private final HashMap<String, Map.Entry<String, Object>> _headers = new HashMap<>();
+	private final HashMap<String, Map.Entry<String, Object>> _headers;
 	private final HashMap<String, Object> _variables = new HashMap<>();
 	private final HashMap<String, MimeBodyPart> _attachments = new HashMap<>();
 
@@ -95,13 +95,14 @@ public final class ESBMessage implements Cloneable {
 	private Charset _charset, _sinkEncoding; 
 	private Schema _schema;
 
-	private ESBMessage(BodyType bodyType, Object body, Charset charset) {
+	private ESBMessage(BodyType bodyType, Object body, Charset charset, HashMap<String, Map.Entry<String, Object>> headers) {
 		_variables.put(ESBConstants.initialTimestamp, System.currentTimeMillis());
+		_headers = headers;
 		init(bodyType, body, charset);
 	}
 
 	public ESBMessage(BodyType bodyType, Object body) {
-		this(bodyType, body, null);
+		this(bodyType, body, null, new HashMap<>());
 	}
 
 	@Override
@@ -690,9 +691,11 @@ public final class ESBMessage implements Cloneable {
 
 	/**
 	 * @param destContext Should be the context of the Thread receiving this copy
+	 * TODO: Attachments are not copied.
 	 */
-	public ESBMessage copy(Context context, Context destContext, boolean withBody) throws Exception {
+	public ESBMessage copy(Context context, Context destContext, boolean withBody, boolean withHeaders) throws Exception {
 		final ESBMessage clone;
+		final HashMap<String, Map.Entry<String, Object>> headers = withHeaders ? new HashMap<>(_headers) : new HashMap<>();
 		if (withBody) {
 			final Object newBody;
 			switch (_bodyType) {
@@ -719,11 +722,10 @@ public final class ESBMessage implements Cloneable {
 				newBody = _body;
 				break;
 			}
-			clone = new ESBMessage(_bodyType, newBody, _charset);
+			clone = new ESBMessage(_bodyType, newBody, _charset, headers);
 		} else {
-			clone = new ESBMessage(BodyType.INVALID, null);
+			clone = new ESBMessage(BodyType.INVALID, null, null, headers);
 		}
-		clone._headers.putAll(_headers);
 		for (Map.Entry<String, Object> entry : _variables.entrySet()) {
 			if (entry.getKey() == ESBConstants.initialTimestamp) {
 				clone._variables.put(ESBConstants.initialTimestampOrigin, entry.getValue());

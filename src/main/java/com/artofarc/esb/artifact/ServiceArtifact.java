@@ -429,8 +429,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "fork":
 			Fork fork = (Fork) actionElement.getValue();
-			ForkAction forkAction = new ForkAction(resolveWorkerPool(fork.getWorkerPool()), fork.isCopyMessage(), Action.linkList(transform(globalContext,
-				fork.getAction(), fork.getErrorHandler())));
+			ForkAction forkAction = new ForkAction(resolveWorkerPool(fork.getWorkerPool()), fork.isCopyMessage(), fork.isCopyHeaders(),
+				Action.linkList(transform(globalContext, fork.getAction(), fork.getErrorHandler())));
 			addAction(list, forkAction, location);
 			break;
 		case "branchOnVariable": {
