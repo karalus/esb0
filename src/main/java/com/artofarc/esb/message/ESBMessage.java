@@ -86,16 +86,16 @@ public final class ESBMessage implements Cloneable {
 		return result;
 	}
 
-	private final HashMap<String, Map.Entry<String, Object>> _headers;
-	private final HashMap<String, Object> _variables = new HashMap<>();
-	private final HashMap<String, MimeBodyPart> _attachments = new HashMap<>();
+	private final Map<String, Map.Entry<String, Object>> _headers;
+	private final Map<String, Object> _variables = new HashMap<>();
+	private final Map<String, MimeBodyPart> _attachments = new HashMap<>();
 
 	private BodyType _bodyType;
 	private Object _body;
 	private Charset _charset, _sinkEncoding; 
 	private Schema _schema;
 
-	private ESBMessage(BodyType bodyType, Object body, Charset charset, HashMap<String, Map.Entry<String, Object>> headers) {
+	private ESBMessage(BodyType bodyType, Object body, Charset charset, Map<String, Map.Entry<String, Object>> headers) {
 		_variables.put(ESBConstants.initialTimestamp, System.currentTimeMillis());
 		_headers = headers;
 		init(bodyType, body, charset);
@@ -695,7 +695,7 @@ public final class ESBMessage implements Cloneable {
 	 */
 	public ESBMessage copy(Context context, Context destContext, boolean withBody, boolean withHeaders) throws Exception {
 		final ESBMessage clone;
-		final HashMap<String, Map.Entry<String, Object>> headers = withHeaders ? new HashMap<>(_headers) : new HashMap<>();
+		final Map<String, Map.Entry<String, Object>> headers = withHeaders ? new HashMap<>(_headers) : new HashMap<>();
 		if (withBody) {
 			final Object newBody;
 			switch (_bodyType) {
