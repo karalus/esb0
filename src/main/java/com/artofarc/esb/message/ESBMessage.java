@@ -86,7 +86,7 @@ public final class ESBMessage implements Cloneable {
 		return result;
 	}
 
-	private final Map<String, Map.Entry<String, Object>> _headers;
+	private final Map<String, Map.Entry<String, Object>> _headers = new HashMap<>(32);
 	private final Map<String, Object> _variables = new HashMap<>();
 	private final Map<String, MimeBodyPart> _attachments = new HashMap<>();
 
@@ -95,14 +95,13 @@ public final class ESBMessage implements Cloneable {
 	private Charset _charset, _sinkEncoding; 
 	private Schema _schema;
 
-	private ESBMessage(BodyType bodyType, Object body, Charset charset, Map<String, Map.Entry<String, Object>> headers) {
+	private ESBMessage(BodyType bodyType, Object body, Charset charset) {
 		_variables.put(ESBConstants.initialTimestamp, System.currentTimeMillis());
-		_headers = headers;
 		init(bodyType, body, charset);
 	}
 
 	public ESBMessage(BodyType bodyType, Object body) {
-		this(bodyType, body, null, new HashMap<>());
+		this(bodyType, body, null);
 	}
 
 	@Override
@@ -691,11 +690,9 @@ public final class ESBMessage implements Cloneable {
 
 	/**
 	 * @param destContext Should be the context of the Thread receiving this copy
-	 * TODO: Attachments are not copied.
 	 */
-	public ESBMessage copy(Context context, Context destContext, boolean withBody, boolean withHeaders) throws Exception {
+	public ESBMessage copy(Context context, Context destContext, boolean withBody, boolean withHeaders, boolean withAttachments) throws Exception {
 		final ESBMessage clone;
-		final Map<String, Map.Entry<String, Object>> headers = withHeaders ? new HashMap<>(_headers) : new HashMap<>();
 		if (withBody) {
 			final Object newBody;
 			switch (_bodyType) {
@@ -722,9 +719,15 @@ public final class ESBMessage implements Cloneable {
 				newBody = _body;
 				break;
 			}
-			clone = new ESBMessage(_bodyType, newBody, _charset, headers);
+			clone = new ESBMessage(_bodyType, newBody, _charset);
 		} else {
-			clone = new ESBMessage(BodyType.INVALID, null, null, headers);
+			clone = new ESBMessage(BodyType.INVALID, null, null);
+		}
+		if (withHeaders) {
+			clone._headers.putAll(_headers);
+		}
+		if (withAttachments) {
+			clone._attachments.putAll(_attachments);
 		}
 		for (Map.Entry<String, Object> entry : _variables.entrySet()) {
 			if (entry.getKey() == ESBConstants.initialTimestamp) {

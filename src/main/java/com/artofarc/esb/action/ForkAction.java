@@ -25,14 +25,15 @@ import com.artofarc.esb.message.ESBMessage;
 public class ForkAction extends Action {
 
 	private final String _workerPool;
-	private final boolean _copyMessage, _copyHeaders;
+	private final boolean _copyMessage, _copyHeaders, _copyAttachments;
 	private final Action _fork;
 
-	public ForkAction(String workerPool, boolean copyMessage, boolean copyHeaders, Action fork) {
+	public ForkAction(String workerPool, boolean copyMessage, boolean copyHeaders, boolean copyAttachments, Action fork) {
 		_pipelineStop = true;
 		_workerPool = workerPool;
 		_copyMessage = copyMessage;
 		_copyHeaders = copyHeaders;
+		_copyAttachments = copyAttachments;
 		_fork = fork;
 	}
 
@@ -41,7 +42,7 @@ public class ForkAction extends Action {
 		final WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
 		final Context workerContext = workerPool.getContext();
 		try {
-			final ESBMessage copy = message.copy(context, workerContext, _copyMessage, _copyHeaders);
+			final ESBMessage copy = message.copy(context, workerContext, _copyMessage, _copyHeaders, _copyAttachments);
 			workerPool.getExecutorService().execute(new Runnable() {
 
 				@Override
