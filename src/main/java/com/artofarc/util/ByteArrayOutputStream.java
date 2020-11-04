@@ -16,9 +16,6 @@
  */
 package com.artofarc.util;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 
 	public ByteArrayOutputStream() {
@@ -37,10 +34,6 @@ public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 
 	public ByteArrayInputStream getByteArrayInputStream() {
 		return new ByteArrayInputStream(buf, 0, count);
-	}
-
-	public void copyTo(OutputStream os) throws IOException {
-		os.write(buf, 0, count);
 	}
 
 }

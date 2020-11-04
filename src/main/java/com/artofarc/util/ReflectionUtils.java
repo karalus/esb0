@@ -250,4 +250,13 @@ public final class ReflectionUtils {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	public static <T> T get(Field field, Object obj) {
+		try {
+			return (T) field.get(obj);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 }

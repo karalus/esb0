@@ -16,12 +16,32 @@
  */
 package com.artofarc.util;
 
+import java.lang.reflect.Field;
+
+import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLFilterImpl;
 
 public class XMLFilterBase extends XMLFilterImpl {
+
+	private final static Field VALUE;
+
+	static {
+		try {
+			Field value = String.class.getDeclaredField("value");
+			if (value.getType().getComponentType() == Character.TYPE) {
+				VALUE = value;
+				VALUE.setAccessible(true);
+			} else {
+				// JDK11
+				VALUE = null;
+			}
+		} catch (NoSuchFieldException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	public XMLFilterBase() {
 	}
@@ -40,6 +60,17 @@ public class XMLFilterBase extends XMLFilterImpl {
 		// Don't throw SAXNotRecognizedException when parent is null, this takes to much performance
 		if (getParent() != null) {
 			getParent().setProperty(name, value);
+		}
+	}
+
+	public final void characters(String str) throws SAXException {
+		if (str.length() > 0) {
+			if (VALUE != null) {
+				// Avoid copying to reduce GC overhead
+				characters(ReflectionUtils.get(VALUE, str), 0, str.length());
+			} else {
+				characters(str.toCharArray(), 0, str.length());
+			}
 		}
 	}
 
