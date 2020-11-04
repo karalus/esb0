@@ -85,22 +85,24 @@ public class BranchOnVariableAction extends Action {
 		Object value = resolve(message, _varName, true);
 		Action action = _nullAction;
 		if (value != null) {
-			checkAtomic(value, _varName);
-			String strValue = value.toString();
 			action = _defaultAction;
-			if (_branchMap.containsKey(strValue)) {
-				action = _branchMap.get(strValue);
-			} else if (_useRegEx) {
-				for (Map.Entry<Object, Action> entry : _branchMap.entrySet()) {
-					if (entry.getKey() instanceof Pattern) {
-						Pattern pattern = (Pattern) entry.getKey();
-						Matcher matcher = pattern.matcher(strValue);
-						if (matcher.matches()) {
-							action = entry.getValue();
-							for (int i = 1; i <= matcher.groupCount(); ++i) {
-								message.getVariables().put(_varName + '#' + i, matcher.group(i));
+			if (_branchMap.size() > 0) {
+				checkAtomic(value, _varName);
+				String strValue = value.toString();
+				if (_branchMap.containsKey(strValue)) {
+					action = _branchMap.get(strValue);
+				} else if (_useRegEx) {
+					for (Map.Entry<Object, Action> entry : _branchMap.entrySet()) {
+						if (entry.getKey() instanceof Pattern) {
+							Pattern pattern = (Pattern) entry.getKey();
+							Matcher matcher = pattern.matcher(strValue);
+							if (matcher.matches()) {
+								action = entry.getValue();
+								for (int i = 1; i <= matcher.groupCount(); ++i) {
+									message.getVariables().put(_varName + '#' + i, matcher.group(i));
+								}
+								break;
 							}
-							break;
 						}
 					}
 				}

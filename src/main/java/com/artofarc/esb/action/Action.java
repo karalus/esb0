@@ -263,7 +263,8 @@ public abstract class Action implements Cloneable {
 			String path = exp.substring(i + 2, j);
 			int k = path.indexOf('.');
 			String name = k < 0 ? path : path.substring(0, k);
-			Object value = "body".equals(name) ? message.getBodyAsString(context) : resolve(message, name, true);
+			Object value = "body".equals(name) ? message.getBodyAsString(context)
+					: "attachments".equals(name) ? message.getAttachments() : resolve(message, name, true);
 			if (value == null) {
 				value = context.getGlobalContext().getProperty(name);
 			}
@@ -277,7 +278,8 @@ public abstract class Action implements Cloneable {
 				throw new ExecutionException(this, "name could not be resolved: " + name);
 			}
 			if (k >= 0) {
-				ReflectionUtils.ParamResolver<ExecutionException> paramResolver = path.indexOf('(', k) < 0 ? null : new ReflectionUtils.ParamResolver<ExecutionException>() {
+				ReflectionUtils.ParamResolver<ExecutionException> paramResolver = path.indexOf('(', k) < 0 ? null
+						: new ReflectionUtils.ParamResolver<ExecutionException>() {
 
 					@Override
 					public Object resolve(String param) throws ExecutionException {
