@@ -57,6 +57,9 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 			} else {
 				throw errorListener.exceptions.get(0);
 			}
+		} catch (StackOverflowError e) {
+			// StackOverflowError can happen when a XQuery is deeply nested
+			throw new ValidationException(owner, e);
 		} finally {
 			connection.close();
 		}

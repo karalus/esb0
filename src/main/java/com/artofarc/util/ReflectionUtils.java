@@ -217,8 +217,11 @@ public final class ReflectionUtils {
 		}
 	}
 
-	public static <T extends Throwable> T convert(Throwable t, Class<T> cls, Object... params) {
-		T result;
+	public static <E extends Exception> E convert(Throwable t, Class<E> cls, Object... params) {
+		if (t instanceof Error) {
+			throw (Error) t;
+		}
+		E result;
 		if (cls.isInstance(t)) {
 			result = cls.cast(t);
 		} else {
@@ -229,7 +232,7 @@ public final class ReflectionUtils {
 				try {
 					List<Object> list = new ArrayList<>(Arrays.asList(params));
 					list.add(t);
-					Constructor<T> con = findConstructor(cls, list);
+					Constructor<E> con = findConstructor(cls, list);
 					result = con.newInstance(list.toArray());
 				} catch (ReflectiveOperationException e) {
 					throw convert(t, RuntimeException.class);
@@ -240,20 +243,11 @@ public final class ReflectionUtils {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <R, T extends Throwable> R invoke(Method method, Class<T> cls, Object obj, Object... params) throws T {
+	public static <T, E extends Exception> T invoke(Method method, Class<E> cls, Object obj, Object... params) throws E {
 		try {
-			return (R) method.invoke(obj, params);
+			return (T) method.invoke(obj, params);
 		} catch (InvocationTargetException e) {
 			throw ReflectionUtils.convert(e.getCause(), cls);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	public static <T> T get(Field field, Object obj) {
-		try {
-			return (T) field.get(obj);
 		} catch (IllegalAccessException e) {
 			throw new RuntimeException(e);
 		}

@@ -201,8 +201,7 @@ public abstract class Artifact {
 			} else {
 				try {
 					validateInternal(globalContext);
-				} catch (Exception | StackOverflowError e) {
-					// StackOverflowError can happen when a XQuery is deeply nested
+				} catch (Exception e) {
 					throw ReflectionUtils.convert(e, ValidationException.class, this);
 				}
 				setValidated();

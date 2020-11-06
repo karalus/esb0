@@ -16,6 +16,8 @@
  */
 package com.artofarc.util;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 
 import org.xml.sax.SAXException;
@@ -26,19 +28,19 @@ import org.xml.sax.helpers.XMLFilterImpl;
 
 public class XMLFilterBase extends XMLFilterImpl {
 
-	private final static Field VALUE;
+	private final static MethodHandle VALUE;
 
 	static {
 		try {
 			Field value = String.class.getDeclaredField("value");
 			if (value.getType().getComponentType() == Character.TYPE) {
-				VALUE = value;
-				VALUE.setAccessible(true);
+				value.setAccessible(true);
+				VALUE = MethodHandles.lookup().unreflectGetter(value);
 			} else {
 				// JDK11
 				VALUE = null;
 			}
-		} catch (NoSuchFieldException e) {
+		} catch (NoSuchFieldException | IllegalAccessException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -67,7 +69,11 @@ public class XMLFilterBase extends XMLFilterImpl {
 		if (str.length() > 0) {
 			if (VALUE != null) {
 				// Avoid copying to reduce GC overhead
-				characters(ReflectionUtils.get(VALUE, str), 0, str.length());
+				try {
+					characters((char[]) VALUE.invokeExact(str), 0, str.length());
+				} catch (Throwable e) {
+					throw ReflectionUtils.convert(e, SAXException.class);
+				}
 			} else {
 				characters(str.toCharArray(), 0, str.length());
 			}

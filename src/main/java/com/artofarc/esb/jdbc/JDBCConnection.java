@@ -16,7 +16,8 @@
  */
 package com.artofarc.esb.jdbc;
 
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -34,14 +35,15 @@ public final class JDBCConnection implements AutoCloseable {
 	protected final static Logger logger = LoggerFactory.getLogger(JDBCConnection.class);
 
 	private static Class<?> ifcOracleConnection;
-	private static Method createARRAY;
-	private static Method getSQLTypeName;
+	private static MethodHandle createARRAY;
+	private static MethodHandle getSQLTypeName;
 
 	static {
 		try {
 			ifcOracleConnection = Class.forName("oracle.jdbc.OracleConnection");
-			createARRAY = ifcOracleConnection.getMethod("createARRAY", String.class, Object.class);
-			getSQLTypeName = Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName");
+			MethodHandles.Lookup lookup = MethodHandles.publicLookup();
+			createARRAY = lookup.unreflect(ifcOracleConnection.getMethod("createARRAY", String.class, Object.class));
+			getSQLTypeName = lookup.unreflect(Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName"));
 		} catch (ReflectiveOperationException e) {
 			logger.warn("Oracle JDBC driver not in classpath. Mapping of Arrays will not work");
 		}
@@ -69,11 +71,19 @@ public final class JDBCConnection implements AutoCloseable {
 			throw new SQLException("Only works with OJDBC");
 		}
 		// https://docs.oracle.com/cd/B28359_01/java.111/b31224/oraarr.htm#i1059642
-		return ReflectionUtils.invoke(createARRAY, SQLException.class, _connection.unwrap(ifcOracleConnection), typeName, elements);
+		try {
+			return (Array) createARRAY.invoke(_connection.unwrap(ifcOracleConnection), typeName, (Object) elements);
+		} catch (Throwable e) {
+			throw ReflectionUtils.convert(e, SQLException.class);
+		}
 	}
 
 	public static String getSQLTypeName(Array array) throws SQLException {
-		return ReflectionUtils.invoke(getSQLTypeName, SQLException.class, array);
+		try {
+			return (String) getSQLTypeName.invoke(array);
+		} catch (Throwable e) {
+			throw ReflectionUtils.convert(e, SQLException.class);
+		}
 	}
 
 }
