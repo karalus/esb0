@@ -32,9 +32,9 @@ public class CacheAction extends Action {
 	private final Action _cacheAction;
 	private final boolean _notWriteOnly;
 	private final LRUCacheWithExpirationFactory<Object, Object[]>.Cache _cache;
-	private final long _ttl;
+	private final String _ttl;
 
-	public CacheAction(GlobalContext globalContext, String keyExp, List<String> valueNames, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, long ttl) {
+	public CacheAction(GlobalContext globalContext, String keyExp, List<String> valueNames, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, String ttl) {
 		_keyExp = keyExp;
 		_valueNames = valueNames;
 		_cacheAction = cacheAction;
@@ -74,11 +74,19 @@ public class CacheAction extends Action {
 					@Override
 					protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 						super.execute(context, execContext, message, nextActionIsPipelineStop);
-						Object[] values = new Object[_valueNames.size()];
-						for (int i = 0; i < _valueNames.size(); ++i) {
-							values[i] = i != _indexBody ? resolve(message, _valueNames.get(i), true) : message.getBodyAsString(context);
+						long ttl;
+						if (Character.isDigit(_ttl.charAt(0))) {
+							ttl = Long.parseLong(_ttl);
+						} else {
+							ttl = this.<Number> resolve(message, _ttl, true).longValue();
 						}
-						_cache.put(key, values, _ttl);
+						if (ttl > 0) {
+							Object[] values = new Object[_valueNames.size()];
+							for (int i = 0; i < _valueNames.size(); ++i) {
+								values[i] = i != _indexBody ? resolve(message, _valueNames.get(i), true) : message.getBodyAsString(context);
+							}
+							_cache.put(key, values, ttl);
+						}
 					}
 				});
 			}
