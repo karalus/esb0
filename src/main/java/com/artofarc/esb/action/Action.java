@@ -32,7 +32,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.ReflectionUtils;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.StringBuilderWriter;
 import com.artofarc.util.TimeGauge;
 
 public abstract class Action implements Cloneable {
@@ -75,10 +75,10 @@ public abstract class Action implements Cloneable {
 	}
 
 	private static void logKeyValues(Context context, Collection<Map.Entry<String, Object>> keyValues, String prolog) throws Exception {
-		StringWriter stringWriter = new StringWriter();
-		stringWriter.write(prolog);
-		ESBMessage.dumpKeyValues(context, keyValues, stringWriter);
-		logger.info(stringWriter.toString());
+		StringBuilderWriter sw = new StringBuilderWriter();
+		sw.write(prolog);
+		ESBMessage.dumpKeyValues(context, keyValues, sw);
+		logger.info(sw.toString());
 	}
 
 	protected long getTimeGaugeThreshold() {

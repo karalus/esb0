@@ -64,13 +64,7 @@ import org.xml.sax.XMLReader;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
-import com.artofarc.util.ByteArrayInputStream;
-import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.Collections;
-import com.artofarc.util.SchemaAwareFastInfosetSerializer;
-import com.artofarc.util.IOUtils;
-import com.artofarc.util.JsonFactoryHelper;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.*;
 
 public final class ESBMessage implements Cloneable {
 
@@ -346,12 +340,12 @@ public final class ESBMessage implements Cloneable {
 
 	public String getBodyAsString(Context context) throws TransformerException, IOException, XQException {
 		String str;
-		StringWriter sw;
+		StringBuilderWriter sw;
 		switch (_bodyType) {
 		case DOM:
 			_body = new DOMSource((Node) _body);
 		case SOURCE:
-			context.transform((Source) _body, new StreamResult(sw = new StringWriter()));
+			context.transform((Source) _body, new StreamResult(sw = new StringBuilderWriter()));
 			str = sw.toString();
 			break;
 		case STRING:
@@ -364,14 +358,14 @@ public final class ESBMessage implements Cloneable {
 			return getBodyAsString(context);
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(sw = new StringWriter(), getSinkProperties());
+			xqItem.writeItem(sw = new StringBuilderWriter(), getSinkProperties());
 			str = sw.toString();
 			break;
 		case READER:
-			if (_body instanceof com.artofarc.util.StringReader) {
+			if (_body instanceof StringBuilderReader) {
 				str = _body.toString();
 			} else {
-				IOUtils.copy((Reader) _body, sw = new StringWriter());
+				IOUtils.copy((Reader) _body, sw = new StringBuilderWriter());
 				str = sw.toString();
 			}
 			break;
@@ -416,10 +410,10 @@ public final class ESBMessage implements Cloneable {
 		case INPUT_STREAM:
 			return init(BodyType.READER, getInputStreamReader((InputStream) _body), null);
 		case XQ_ITEM:
-			StringWriter sw = new StringWriter();
+			StringBuilderWriter sw = new StringBuilderWriter();
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(sw, getSinkProperties());
-			return sw.getStringReader();
+			return sw.getReader();
 		default:
 			return new StringReader(getBodyAsString(context));
 		}
@@ -733,8 +727,8 @@ public final class ESBMessage implements Cloneable {
 				}
 				break;
 			case READER:
-				if (_body instanceof com.artofarc.util.StringReader) {
-					newBody = ((com.artofarc.util.StringReader) _body).clone();
+				if (_body instanceof StringBuilderReader) {
+					newBody = ((StringBuilderReader) _body).clone();
 				} else {
 					newBody = getBodyAsString(context);
 				}

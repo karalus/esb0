@@ -30,7 +30,7 @@ import com.artofarc.esb.util.JsonSchemaGenerator;
 import com.artofarc.esb.util.XmlSampleGenerator;
 import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.NamespaceMap;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.StringBuilderWriter;
 import com.artofarc.util.TimeGauge;
 import com.artofarc.util.XMLParserBase;
 import com.sun.xml.xsom.*;
@@ -124,16 +124,16 @@ public class XSOMTest extends AbstractESBTest {
 		map.put("", "http://aoa.de/xsd/demo/v1/");
 		map.put("ei1", "http://aoa.de/ei/foundation/v1");
 		
-		StringWriter writer1 = new StringWriter();
+		StringBuilderWriter writer1 = new StringBuilderWriter();
 		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, true, map);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest.json"));
 		context.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), new StreamResult(writer1));
 		System.out.println(writer1);
 	
-		StringWriter writer = new StringWriter();
+		StringBuilderWriter writer = new StringBuilderWriter();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, true, null);
 		ContentHandler th = xml2JsonTransformer.createTransformerHandler(writer);
-		context.transform(new StreamSource(writer1.getStringReader()), new SAXResult(th));
+		context.transform(new StreamSource(writer1.getReader()), new SAXResult(th));
 		System.out.println(writer);
 		
 		byteStream.reset();
@@ -173,7 +173,7 @@ public class XSOMTest extends AbstractESBTest {
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest_AnyComplex.json"));
 		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
-		StringWriter writer = new StringWriter();
+		StringBuilderWriter writer = new StringBuilderWriter();
 		byteStream.reset();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, true, true, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
@@ -206,7 +206,7 @@ public class XSOMTest extends AbstractESBTest {
 		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		byteStream.reset();
-		StringWriter writer = new StringWriter();
+		StringBuilderWriter writer = new StringBuilderWriter();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, true, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
 		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
@@ -231,7 +231,7 @@ public class XSOMTest extends AbstractESBTest {
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest.json"));
 		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
-		StringWriter writer = new StringWriter();
+		StringBuilderWriter writer = new StringBuilderWriter();
 		byteStream.reset();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, true, null);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
@@ -257,7 +257,7 @@ public class XSOMTest extends AbstractESBTest {
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest_AnyComplex.json"));
 		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
-		StringWriter writer = new StringWriter();
+		StringBuilderWriter writer = new StringBuilderWriter();
 		byteStream.reset();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, true, null);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));

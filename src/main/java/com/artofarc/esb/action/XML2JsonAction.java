@@ -25,7 +25,7 @@ import com.artofarc.esb.json.Xml2JsonTransformer;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.StringBuilderWriter;
 import com.sun.xml.xsom.XSSchemaSet;
 
 public class XML2JsonAction extends Action {
@@ -53,9 +53,9 @@ public class XML2JsonAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		StringWriter sw = new StringWriter();
+		StringBuilderWriter sw = new StringBuilderWriter();
 		message.writeToSAX(_xml2JsonTransformer.createTransformerHandler(sw), context);
-		message.reset(BodyType.READER, sw.getStringReader());
+		message.reset(BodyType.READER, sw.getReader());
 	}
 
 }

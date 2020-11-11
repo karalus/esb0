@@ -16,11 +16,11 @@
  */
 package com.artofarc.util;
 
-public final class StringWriter extends java.io.Writer {
+public final class StringBuilderWriter extends java.io.Writer {
 
 	private final StringBuilder builder;
 
-	public StringWriter() {
+	public StringBuilderWriter() {
 		builder = new StringBuilder(IOUtils.MTU);
 	}
 
@@ -45,19 +45,19 @@ public final class StringWriter extends java.io.Writer {
 	}
 
 	@Override
-	public StringWriter append(CharSequence s) {
+	public StringBuilderWriter append(CharSequence s) {
 		builder.append(s);
 		return this;
 	}
 
 	@Override
-	public StringWriter append(CharSequence s, int start, int end) {
+	public StringBuilderWriter append(CharSequence s, int start, int end) {
 		builder.append(s, start, end);
 		return this;
 	}
 
 	@Override
-	public StringWriter append(char c) {
+	public StringBuilderWriter append(char c) {
 		builder.append(c);
 		return this;
 	}
@@ -75,8 +75,8 @@ public final class StringWriter extends java.io.Writer {
 	public void close() {
 	}
 
-	public StringReader getStringReader() {
-		return new StringReader(builder);
+	public StringBuilderReader getReader() {
+		return new StringBuilderReader(builder);
 	}
 
 	public void reset() {
