@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PushbackInputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.Writer;
@@ -493,7 +494,7 @@ public final class ESBMessage implements Cloneable {
 		return _bodyType == BodyType.INPUT_STREAM || _bodyType == BodyType.READER;
 	}
 
-	public boolean isEmpty() {
+	public boolean isEmpty() throws IOException {
 		switch (_bodyType) {
 		case INVALID:
 			return true;
@@ -501,6 +502,34 @@ public final class ESBMessage implements Cloneable {
 			return ((String) _body).isEmpty();
 		case BYTES:
 			return ((byte[]) _body).length == 0;
+		case INPUT_STREAM:
+			InputStream is = (InputStream) _body;
+			if (is.available() > 0) {
+				return false;
+			}
+			if (is.markSupported()) {
+				is.mark(1);
+				if (is.read() < 0) {
+					is.close();
+					init(BodyType.STRING, "", null);
+					return true;
+				} else {
+					is.reset();
+					return false;
+				}
+			} else {
+				int b = is.read();
+				if (b < 0) {
+					is.close();
+					init(BodyType.STRING, "", null);
+					return true;
+				} else {
+					PushbackInputStream pis = new PushbackInputStream(is);
+					pis.unread(b);
+					_body = pis;
+					return false;
+				}
+			}
 		default:
 			return false;
 		}
