@@ -422,7 +422,7 @@ public class SOAPTest extends AbstractESBTest {
       consumerPort.setStartAction(action);
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
       SetMessageAction setMessageAction = new SetMessageAction(false, null, null, null, null);
-      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_CONTENT_TYPE, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null);
+      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_CONTENT_TYPE, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null, null);
 		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new DumpAction());
       action = action.setNextAction(createUnwrapSOAPAction(false, true));

@@ -19,8 +19,8 @@ package com.artofarc.esb.action;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 
 import com.artofarc.esb.context.Context;
@@ -40,13 +40,13 @@ public class SetMessageAction extends ForwardAction {
 	public SetMessageAction(boolean clearAll, ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ReflectiveOperationException {
 		_clearAll = clearAll;
 		_classLoader = cl;
-		_body = bodyExpr != null ? new Assignment(null, false, bodyExpr, javaType, method) : null;
+		_body = bodyExpr != null ? new Assignment(null, false, bodyExpr, javaType, method, null) : null;
 		_pipelineStop = bodyExpr != null;
 		_pipelineStart = false;
 	}
 
-	public final void addAssignment(String name, boolean header, String expr, String javaType, String method) throws ReflectiveOperationException {
-		Assignment assignment = new Assignment(name, header, new StringWrapper(expr), javaType, method);
+	public final void addAssignment(String name, boolean header, String expr, String javaType, String method, String field) throws ReflectiveOperationException {
+		Assignment assignment = new Assignment(name, header, new StringWrapper(expr), javaType, method, field);
 		_assignments.add(assignment);
 		if (assignment._needsBody) {
 			_pipelineStop = true;
@@ -93,7 +93,7 @@ public class SetMessageAction extends ForwardAction {
 		final boolean _needsBody;
 		final MethodHandle _methodHandle;
 
-		Assignment(String name, boolean header, StringWrapper expr, String javaType, String method) throws ReflectiveOperationException {
+		Assignment(String name, boolean header, StringWrapper expr, String javaType, String method, String field) throws ReflectiveOperationException {
 			_name = name;
 			_header = header;
 			_expr = expr;
@@ -102,10 +102,15 @@ public class SetMessageAction extends ForwardAction {
 				Class<?> cls = Class.forName(javaType, true, _classLoader);
 				if (method != null) {
 					Method _method = _expr.isEmpty() ? cls.getMethod(method) : ReflectionUtils.findAnyMethod(cls, method, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
-					if ((_method.getModifiers() & Modifier.STATIC) == 0) {
-						throw new IllegalArgumentException("Method must be static: " + method);
-					}
+					ReflectionUtils.checkStatic(_method);
 					_methodHandle = MethodHandles.publicLookup().unreflect(_method);
+				} else if (field != null) {
+					if (!expr.isEmpty()) {
+						throw new IllegalArgumentException("Field must not have an expression");
+					}
+					Field _field = cls.getField(field);
+					ReflectionUtils.checkStatic(_field);
+					_methodHandle = MethodHandles.publicLookup().unreflectGetter(_field);
 				} else {
 					Constructor<?> con = _expr.isEmpty() ? cls.getConstructor() : ReflectionUtils.findAnyConstructor(cls, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
 					_methodHandle = MethodHandles.publicLookup().unreflectConstructor(con);

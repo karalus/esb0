@@ -544,6 +544,7 @@
 				<attribute name="name" type="NCName" use="required" />
 				<attribute name="javaType" type="NCName" />
 				<attribute name="method" type="NCName" />
+				<attribute name="field" type="NCName" />
 			</extension>
 		</simpleContent>
 	</complexType>
