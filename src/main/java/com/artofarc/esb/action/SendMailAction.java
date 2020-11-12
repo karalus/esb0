@@ -39,10 +39,6 @@ public class SendMailAction extends TerminalAction {
 	public SendMailAction(GlobalContext globalContext, Properties properties, String workerPoolName, String from, String to, String cc, String bcc, String replyTo, String subject, String text) {
 		MailSessionFactory mailSessionFactory = globalContext.getResourceFactory(MailSessionFactory.class);
 		WorkerPool workerPool = globalContext.getWorkerPool(workerPoolName);
-		if (workerPool == null) {
-			logger.warn("WorkerPool not found: " + workerPoolName);
-			workerPool = globalContext.getDefaultWorkerPool();
-		}
 		properties.put("mail.event.executor", workerPool.getExecutorService());
 		_session = mailSessionFactory.getResource(properties).getSession();
 		this.from = from;
