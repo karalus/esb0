@@ -28,7 +28,6 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Attr;
 import org.w3c.dom.Node;
@@ -80,7 +79,7 @@ public final class XMLCatalog extends Directory {
 				xsdArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("xml.xsd")));
 				xmlCatalog.addSchemaArtifact("http://www.w3.org/XML/1998/namespace", xsdArtifact);
 			}
-			XPath xPath = XPathFactory.newInstance().newXPath();
+			XPath xPath = JAXPFactoryHelper.getXPathFactory().newXPath();
 			Transformer transformer = JAXPFactoryHelper.newTransformer();
 			// Elements below Body must be strictly validated, with lax we don't detect some kind of errors
 			// TODO: Works only with document/literal WSDL style and messageParts referring to elements

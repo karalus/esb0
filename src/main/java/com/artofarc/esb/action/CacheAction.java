@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.List;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
@@ -24,29 +26,29 @@ import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 
 public class CacheAction extends Action {
 
-	private final String _keyExp, _valueName;
+	private final String _keyExp;
+	private final List<String> _valueNames;
+	private final int _indexBody;
 	private final Action _cacheAction;
 	private final boolean _notWriteOnly;
-	private final LRUCacheWithExpirationFactory.Cache _cache;
-	private final long _ttl;
+	private final LRUCacheWithExpirationFactory<Object, Object[]>.Cache _cache;
+	private final String _ttl;
 
-	public CacheAction(GlobalContext globalContext, String keyExp, String valueName, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, long ttl) {
+	public CacheAction(GlobalContext globalContext, String keyExp, List<String> valueNames, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, String ttl) {
 		_keyExp = keyExp;
-		_valueName = valueName;
+		_valueNames = valueNames;
 		_cacheAction = cacheAction;
 		_notWriteOnly = !writeOnly;
-		LRUCacheWithExpirationFactory factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);
+		_indexBody = valueNames.indexOf("body");
+		@SuppressWarnings("unchecked")
+		LRUCacheWithExpirationFactory<Object, Object[]> factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);
 		_cache = factory.getResource(cacheName, maxSize);
 		_ttl = ttl;
 	}
 
-	private boolean isValueBody() {
-		return "body".equals(_valueName);
-	}
-
 	@Override
 	protected boolean isPipelineStop() {
-		return isValueBody() || _nextAction == null || _nextAction.isPipelineStop() || _cacheAction.isPipelineStop();
+		return _indexBody >= 0 || _nextAction == null || _nextAction.isPipelineStop() || _cacheAction.isPipelineStop();
 	}
 
 	@Override
@@ -58,9 +60,12 @@ public class CacheAction extends Action {
 				context.getExecutionStack().push(_nextAction);
 			}
 			Action action = null;
-			if (_notWriteOnly && _cache.containsKey(key)) {
-				if (!isValueBody()) {
-					message.putVariable(_valueName, _cache.get(key));
+			Object[] values = _cache.get(key);
+			if (_notWriteOnly && values != null) {
+				for (int i = 0; i < _valueNames.size(); ++i) {
+					if (i != _indexBody) {
+						message.putVariable(_valueNames.get(i), values[i]);
+					}
 				}
 			} else {
 				action = _cacheAction;
@@ -69,8 +74,19 @@ public class CacheAction extends Action {
 					@Override
 					protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 						super.execute(context, execContext, message, nextActionIsPipelineStop);
-						Object value = isValueBody() ? message.getBodyAsString(context) : resolve(message, _valueName, true);
-						_cache.put(key, value, _ttl);
+						long ttl;
+						if (Character.isDigit(_ttl.charAt(0))) {
+							ttl = Long.parseLong(_ttl);
+						} else {
+							ttl = this.<Number> resolve(message, _ttl, true).longValue();
+						}
+						if (ttl > 0) {
+							Object[] values = new Object[_valueNames.size()];
+							for (int i = 0; i < _valueNames.size(); ++i) {
+								values[i] = i != _indexBody ? resolve(message, _valueNames.get(i), true) : message.getBodyAsString(context);
+							}
+							_cache.put(key, values, ttl);
+						}
 					}
 				});
 			}
@@ -82,11 +98,11 @@ public class CacheAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) {
-		if (_notWriteOnly && isValueBody()) {
-			Object key = execContext.getResource();
-			if (_cache.containsKey(key)) {
+		if (_notWriteOnly && _indexBody >= 0) {
+			Object[] values = _cache.get(execContext.getResource());
+			if (values != null) {
 				message.clearHeaders();
-				message.reset(null, _cache.get(key));
+				message.reset(null, values[_indexBody]);
 			}
 		}
 	}

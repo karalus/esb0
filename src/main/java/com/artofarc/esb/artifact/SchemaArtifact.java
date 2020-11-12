@@ -43,7 +43,7 @@ public abstract class SchemaArtifact extends Artifact {
 
 	public static final String FILE_SCHEMA = "file://";
 
-	protected static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
+	protected static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars", "true"));
 
 	protected Map<String, Object> _grammars = cacheXSGrammars ? new HashMap<>() : null;
 	protected final AtomicReference<String> _namespace = new AtomicReference<>();
@@ -131,7 +131,7 @@ public abstract class SchemaArtifact extends Artifact {
 		}
 
 		/**
-		 * Used from MOXy.
+		 * Used from {@link #getXSSchemaSet}
 		 */
 		@Override
 		public InputSource resolveEntity(String publicId, String systemId) {

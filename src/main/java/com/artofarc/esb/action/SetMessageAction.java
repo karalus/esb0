@@ -16,28 +16,28 @@
  */
 package com.artofarc.esb.action;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StringWrapper;
 import com.artofarc.util.ReflectionUtils;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
+import com.artofarc.util.StringWrapper;
 
 public class SetMessageAction extends ForwardAction {
 
 	private final boolean _clearAll;
 	private final ClassLoader _classLoader;
-	private final List<Assignment> _assignments = new ArrayList<>();
+	private final ArrayList<Assignment> _assignments = new ArrayList<>();
 	private final Assignment _body; 
 
-	public SetMessageAction(boolean clearAll, ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+	public SetMessageAction(boolean clearAll, ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ReflectiveOperationException {
 		_clearAll = clearAll;
 		_classLoader = cl;
 		_body = bodyExpr != null ? new Assignment(null, false, bodyExpr, javaType, method) : null;
@@ -45,7 +45,7 @@ public class SetMessageAction extends ForwardAction {
 		_pipelineStart = false;
 	}
 
-	public final void addAssignment(String name, boolean header, String expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+	public final void addAssignment(String name, boolean header, String expr, String javaType, String method) throws ReflectiveOperationException {
 		Assignment assignment = new Assignment(name, header, new StringWrapper(expr), javaType, method);
 		_assignments.add(assignment);
 		if (assignment._needsBody) {
@@ -91,10 +91,9 @@ public class SetMessageAction extends ForwardAction {
 		final boolean _header;
 		final StringWrapper _expr;
 		final boolean _needsBody;
-		Constructor<?> _con;
-		Method _method;
+		final MethodHandle _methodHandle;
 
-		Assignment(String name, boolean header, StringWrapper expr, String javaType, String method) throws ClassNotFoundException, NoSuchMethodException {
+		Assignment(String name, boolean header, StringWrapper expr, String javaType, String method) throws ReflectiveOperationException {
 			_name = name;
 			_header = header;
 			_expr = expr;
@@ -102,28 +101,29 @@ public class SetMessageAction extends ForwardAction {
 			if (javaType != null) {
 				Class<?> cls = Class.forName(javaType, true, _classLoader);
 				if (method != null) {
-					_method = _expr.isEmpty() ? cls.getMethod(method) : ReflectionUtils.findAnyMethod(cls, method, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
+					Method _method = _expr.isEmpty() ? cls.getMethod(method) : ReflectionUtils.findAnyMethod(cls, method, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
 					if ((_method.getModifiers() & Modifier.STATIC) == 0) {
 						throw new IllegalArgumentException("Method must be static: " + method);
 					}
+					_methodHandle = MethodHandles.publicLookup().unreflect(_method);
 				} else {
-					_con = _expr.isEmpty() ? cls.getConstructor() : ReflectionUtils.findAnyConstructor(cls, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
+					Constructor<?> con = _expr.isEmpty() ? cls.getConstructor() : ReflectionUtils.findAnyConstructor(cls, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
+					_methodHandle = MethodHandles.publicLookup().unreflectConstructor(con);
 				}
+			} else {
+				_methodHandle = null;
 			}
 		}
 
 		Object convert(Object value) throws Exception {
-			try {
-				if (_con != null) {
-					return _expr.isEmpty() ? _con.newInstance() : _con.newInstance(value);
+			if (_methodHandle != null) {
+				try {
+					return _expr.isEmpty() ? _methodHandle.invoke() : _methodHandle.invoke(value);
+				} catch (Throwable e) {
+					throw ReflectionUtils.convert(e, Exception.class);
 				}
-				if (_method != null) {
-					return _expr.isEmpty() ? _method.invoke(null) : _method.invoke(null, value);
-				}
-				return value;
-			} catch (InvocationTargetException e) {
-				throw ReflectionUtils.convert(e.getCause(), Exception.class);
 			}
+			return value;
 		}
 
 		void assign(ESBMessage message, Object value) throws Exception {

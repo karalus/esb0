@@ -17,6 +17,10 @@
 package com.artofarc.esb.jdbc;
 
 import java.lang.reflect.Field;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
@@ -28,6 +32,9 @@ import java.util.TimeZone;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
+import javax.xml.transform.dom.DOMResult;
+
+import org.w3c.dom.Node;
 
 import com.artofarc.util.Collections;
 
@@ -112,7 +119,7 @@ public final class JDBCParameter {
 		return _xmlElement;
 	}
 
-	public Object alignValue(Object value) {
+	public Object alignValue(Object value, JDBCConnection conn) throws SQLException {
 		switch (_type) {
 		case Types.TIMESTAMP:
 			if (value instanceof XMLGregorianCalendar) {
@@ -129,24 +136,39 @@ public final class JDBCParameter {
 			break;
 		case Types.CHAR:
 		case Types.VARCHAR:
-		case Types.CLOB:
 			if (_truncate != null) {
-				String s = (String) value;
-				return s.length() > _truncate ? s.substring(0, _truncate) : s;
+				return truncate((String) value);
 			}
 			break;
+		case Types.CLOB:
+			Clob clob = conn.getConnection().createClob();
+			clob.setString(1, (String) value);
+			return clob;
 		case Types.BLOB:
-			final byte[] msgBody = (byte[]) value;
-			if (_truncate != null && msgBody.length > _truncate) {
-				final byte[] newMsgBody = new byte[_truncate]; 
-				System.arraycopy(msgBody, 0, newMsgBody, 0, _truncate);
-				return newMsgBody;
-			}
-			break;
+			Blob blob = conn.getConnection().createBlob();
+			blob.setBytes(1, (byte[]) value);
+			return blob;
+		case Types.SQLXML:
+			SQLXML sqlxml = conn.getConnection().createSQLXML();
+			sqlxml.setResult(DOMResult.class).setNode((Node) value);
+			return sqlxml;
 		default:
 			break;
 		}
 		return value;
+	}
+
+	public String truncate(String s) {
+		return s.length() > _truncate ? s.substring(0, _truncate) : s;
+	}
+
+	public byte[] truncate(byte[] ba) {
+		if (ba.length > _truncate) {
+			final byte[] b = new byte[_truncate];
+			System.arraycopy(ba, 0, b, 0, _truncate);
+			return b;
+		}
+		return ba;
 	}
 
 }

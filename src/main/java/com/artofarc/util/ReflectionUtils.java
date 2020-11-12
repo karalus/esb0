@@ -19,6 +19,7 @@ package com.artofarc.util;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -178,15 +179,20 @@ public final class ReflectionUtils {
 		throw new NoSuchMethodException(cls + " has no ctor for any of " + Arrays.asList(anyOfType));
 	}
 
-	public static Method findAnyMethod(Class<?> cls, String method, Class<?>... anyOfType) throws NoSuchMethodException {
+	public static Method findAnyMethod(Class<?> cls, String name, Class<?>... anyOfType) throws NoSuchMethodException {
 		for (Class<?> parameterType : anyOfType) {
 			try {
-				return cls.getMethod(method, parameterType);
+				return cls.getMethod(name, parameterType);
 			} catch (NoSuchMethodException e) {
 				// continue
 			}
 		}
-		throw new NoSuchMethodException(cls + " has no method " + method + " with any parameter type of " + Arrays.asList(anyOfType));
+		for (Method method : cls.getMethods()) {
+			if (method.getParameterCount() == 1 && method.getName().equals(name)) {
+				return method;
+			}
+		}
+		throw new NoSuchMethodException(cls + " has no method " + name + " with any parameter type of " + Arrays.asList(anyOfType));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -211,8 +217,11 @@ public final class ReflectionUtils {
 		}
 	}
 
-	public static <T extends Throwable> T convert(Throwable t, Class<T> cls, Object... params) {
-		T result;
+	public static <E extends Exception> E convert(Throwable t, Class<E> cls, Object... params) {
+		if (t instanceof Error) {
+			throw (Error) t;
+		}
+		E result;
 		if (cls.isInstance(t)) {
 			result = cls.cast(t);
 		} else {
@@ -223,7 +232,7 @@ public final class ReflectionUtils {
 				try {
 					List<Object> list = new ArrayList<>(Arrays.asList(params));
 					list.add(t);
-					Constructor<T> con = findConstructor(cls, list);
+					Constructor<E> con = findConstructor(cls, list);
 					result = con.newInstance(list.toArray());
 				} catch (ReflectiveOperationException e) {
 					throw convert(t, RuntimeException.class);
@@ -231,6 +240,17 @@ public final class ReflectionUtils {
 			}
 		}
 		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T, E extends Exception> T invoke(Method method, Class<E> cls, Object obj, Object... params) throws E {
+		try {
+			return (T) method.invoke(obj, params);
+		} catch (InvocationTargetException e) {
+			throw ReflectionUtils.convert(e.getCause(), cls);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 }

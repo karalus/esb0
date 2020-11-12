@@ -23,34 +23,40 @@ import java.sql.SQLXML;
 import java.sql.Timestamp;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Map;
 
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
-import javax.xml.transform.sax.SAXResult;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.sax.TransformerHandler;
 
 import org.xml.sax.Attributes;
-import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 
+import com.artofarc.util.Collections;
+import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.PrefixHandler;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
 import com.sun.xml.xsom.XSTerm;
 
-public final class XML2JDBCMapper extends DefaultHandler {
+public final class XML2JDBCMapper extends PrefixHandler {
 
 	private final XSSchemaSet _schemaSet;
 	private final JDBCConnection _connection;
 	private final StringBuilder _builder = new StringBuilder(128);
 	private final ArrayDeque<DBObject> _stack = new ArrayDeque<>();
+	private final ArrayDeque<Map.Entry<Integer, String>> _prefixPos = new ArrayDeque<>();
 
 	private XSOMHelper xsomHelper;
 	private boolean root = true, complex;
 	private String primitiveType;
 	private int anyLevel;
 	private Object object;
-	private ContentHandler delegate;
+	private TransformerHandler delegate;
+	private PrefixHandler delegatePrefixHandler;
 
 	private static final class DBObject {
 		String name;
@@ -96,6 +102,12 @@ public final class XML2JDBCMapper extends DefaultHandler {
 	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
 		_builder.setLength(0);
 		if (delegate != null) {
+			int i = qName.indexOf(':');
+			String prefix = i > 0 ? qName.substring(0, i) : XMLConstants.DEFAULT_NS_PREFIX;
+			if (delegatePrefixHandler.getNamespace(prefix) == null) {
+				startPrefixMapping(prefix, getNamespace(prefix));
+				_prefixPos.push(Collections.createEntry(anyLevel, prefix));
+			}
 			delegate.startElement(uri, localName, qName, atts);
 			++anyLevel;
 			return;
@@ -112,14 +124,15 @@ public final class XML2JDBCMapper extends DefaultHandler {
 					dbObject.name = null;
 					try {
 						SQLXML sqlxml = _connection.getConnection().createSQLXML();
-						delegate = sqlxml.setResult(SAXResult.class).getHandler();
+						delegate = JAXPFactoryHelper.newTransformerHandler();
+						delegate.setResult(sqlxml.setResult(DOMResult.class));
+						delegatePrefixHandler = new PrefixHandler();
 						dbObject.add(localName, sqlxml);
-					} catch (SQLException e) {
+					} catch (SQLException | TransformerConfigurationException e) {
 						throw new SAXException(e);
 					}
 					delegate.startDocument();
-					delegate.startElement(uri, localName, qName, atts);
-					anyLevel = 1;
+					startElement(uri, localName, qName, atts);
 					return;
 				}
 				String name = term.apply(XSOMHelper.GetName);
@@ -160,9 +173,16 @@ public final class XML2JDBCMapper extends DefaultHandler {
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		if (delegate != null) {
 			delegate.endElement(uri, localName, qName);
-			if (--anyLevel == 0) {
+			--anyLevel;
+			Map.Entry<Integer, String> entry = _prefixPos.peek();
+			if (entry != null && entry.getKey() == anyLevel) {
+				_prefixPos.pop();
+				endPrefixMapping(entry.getValue());
+			}
+			if (anyLevel == 0) {
 				delegate.endDocument();
 				delegate = null;
+				delegatePrefixHandler = null;
 				xsomHelper.endAny();
 			}
 			return;
@@ -171,7 +191,7 @@ public final class XML2JDBCMapper extends DefaultHandler {
 			if (_stack.peek().array) {
 				xsomHelper.endArray();
 			}
-			for (int level = xsomHelper.getLevel();;) {
+			for (int level = _stack.size();;) {
 				XSTerm term = xsomHelper.nextElement();
 				if (term == null || level > xsomHelper.getLevel()) {
 					if (term != null) {
@@ -255,4 +275,25 @@ public final class XML2JDBCMapper extends DefaultHandler {
 			_builder.append(ch, start, length);
 		}
 	}
+
+	@Override
+	public void startPrefixMapping(String prefix, String uri) throws SAXException {
+		if (delegate != null) {
+			delegate.startPrefixMapping(prefix, uri);
+			delegatePrefixHandler.startPrefixMapping(prefix, uri);
+		} else {
+			super.startPrefixMapping(prefix, uri);
+		}
+	}
+
+	@Override
+	public void endPrefixMapping(String prefix) throws SAXException {
+		if (delegate != null) {
+			delegate.endPrefixMapping(prefix);
+			delegatePrefixHandler.endPrefixMapping(prefix);
+		} else {
+			super.endPrefixMapping(prefix);
+		}
+	}
+
 }

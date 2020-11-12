@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PushbackInputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.Writer;
@@ -42,12 +43,11 @@ import javax.mail.internet.MimeBodyPart;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -64,13 +64,7 @@ import org.xml.sax.XMLReader;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
-import com.artofarc.util.ByteArrayInputStream;
-import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.Collections;
-import com.artofarc.util.SchemaAwareFastInfosetSerializer;
-import com.artofarc.util.IOUtils;
-import com.artofarc.util.JsonFactoryHelper;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.*;
 
 public final class ESBMessage implements Cloneable {
 
@@ -87,9 +81,9 @@ public final class ESBMessage implements Cloneable {
 		return result;
 	}
 
-	private final HashMap<String, Map.Entry<String, Object>> _headers = new HashMap<>();
-	private final HashMap<String, Object> _variables = new HashMap<>();
-	private final HashMap<String, MimeBodyPart> _attachments = new HashMap<>();
+	private final Map<String, Map.Entry<String, Object>> _headers = new HashMap<>(32);
+	private final Map<String, Object> _variables = new HashMap<>();
+	private final Map<String, MimeBodyPart> _attachments = new HashMap<>();
 
 	private BodyType _bodyType;
 	private Object _body;
@@ -180,9 +174,18 @@ public final class ESBMessage implements Cloneable {
 		return result != null ? result : def;
 	}
 
-	@SuppressWarnings("unchecked")
-	public <T> T putVariable(String varName, Object value) {
-		return (T) (value != null ? _variables.put(varName, value) : _variables.remove(varName));
+	public void putVariable(String varName, Object value) {
+		if (value != null) {
+			_variables.put(varName, value);
+		} else {
+			_variables.remove(varName);
+		}
+	}
+
+	public void putVariableIfNotNull(String varName, Object value) {
+		if (value != null) {
+			_variables.put(varName, value);
+		}
 	}
 
 	public <T> T removeVariable(String varName) {
@@ -263,15 +266,19 @@ public final class ESBMessage implements Cloneable {
 
 	private OutputStream getCompressedOutputStream(OutputStream outputStream) throws IOException {
 		final String contentEncoding = getHeader(HTTP_HEADER_CONTENT_ENCODING);
+		final String fileName = getVariable(ESBConstants.filename);
+		final boolean isGZIP = fileName != null && fileName.endsWith(".gz");
 		if (contentEncoding != null) {
 			switch (contentEncoding) {
 			case "gzip":
-				outputStream = new GZIPOutputStream(outputStream, IOUtils.MTU);
-				break;
+				return isGZIP ? outputStream : new GZIPOutputStream(outputStream, IOUtils.MTU);
 			case "deflate":
 				outputStream = new DeflaterOutputStream(outputStream);
 				break;
 			}
+		}
+		if (isGZIP) {
+			_body = new GZIPInputStream((InputStream) _body, IOUtils.MTU);
 		}
 		return outputStream;
 	}
@@ -303,6 +310,7 @@ public final class ESBMessage implements Cloneable {
 		ByteArrayOutputStream bos;
 		switch (_bodyType) {
 		case DOM:
+		case SOURCE:
 			writeRawTo(bos = new ByteArrayOutputStream(), context);
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
@@ -332,10 +340,12 @@ public final class ESBMessage implements Cloneable {
 
 	public String getBodyAsString(Context context) throws TransformerException, IOException, XQException {
 		String str;
-		StringWriter sw;
+		StringBuilderWriter sw;
 		switch (_bodyType) {
 		case DOM:
-			transform(context.getIdenticalTransformer(), new StreamResult(sw = new StringWriter()));
+			_body = new DOMSource((Node) _body);
+		case SOURCE:
+			context.transform((Source) _body, new StreamResult(sw = new StringBuilderWriter()));
 			str = sw.toString();
 			break;
 		case STRING:
@@ -348,14 +358,14 @@ public final class ESBMessage implements Cloneable {
 			return getBodyAsString(context);
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(sw = new StringWriter(), getSinkProperties());
+			xqItem.writeItem(sw = new StringBuilderWriter(), getSinkProperties());
 			str = sw.toString();
 			break;
 		case READER:
-			if (_body instanceof com.artofarc.util.StringReader) {
+			if (_body instanceof StringBuilderReader) {
 				str = _body.toString();
 			} else {
-				IOUtils.copy((Reader) _body, sw = new StringWriter());
+				IOUtils.copy((Reader) _body, sw = new StringBuilderWriter());
 				str = sw.toString();
 			}
 			break;
@@ -400,10 +410,10 @@ public final class ESBMessage implements Cloneable {
 		case INPUT_STREAM:
 			return init(BodyType.READER, getInputStreamReader((InputStream) _body), null);
 		case XQ_ITEM:
-			StringWriter sw = new StringWriter();
+			StringBuilderWriter sw = new StringBuilderWriter();
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(sw, getSinkProperties());
-			return sw.getStringReader();
+			return sw.getReader();
 		default:
 			return new StringReader(getBodyAsString(context));
 		}
@@ -424,7 +434,7 @@ public final class ESBMessage implements Cloneable {
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
 			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
-			return new SAXSource(context.getFastInfosetDeserializer().getFastInfosetReader(), new InputSource(is));
+			return new SAXSource(context.getFastInfosetDeserializer(), new InputSource(is));
 		}
 		return getBodyAsSourceInternal();
 	}
@@ -478,7 +488,7 @@ public final class ESBMessage implements Cloneable {
 		return _bodyType == BodyType.INPUT_STREAM || _bodyType == BodyType.READER;
 	}
 
-	public boolean isEmpty() {
+	public boolean isEmpty() throws IOException {
 		switch (_bodyType) {
 		case INVALID:
 			return true;
@@ -486,13 +496,45 @@ public final class ESBMessage implements Cloneable {
 			return ((String) _body).isEmpty();
 		case BYTES:
 			return ((byte[]) _body).length == 0;
+		case INPUT_STREAM:
+			InputStream is = (InputStream) _body;
+			if (is.available() > 0) {
+				return false;
+			}
+			if (is.markSupported()) {
+				is.mark(1);
+				if (is.read() < 0) {
+					is.close();
+					init(BodyType.STRING, "", null);
+					return true;
+				} else {
+					is.reset();
+					return false;
+				}
+			} else {
+				int b = is.read();
+				if (b < 0) {
+					is.close();
+					init(BodyType.STRING, "", null);
+					return true;
+				} else {
+					PushbackInputStream pis = new PushbackInputStream(is);
+					pis.unread(b);
+					_body = pis;
+					return false;
+				}
+			}
 		default:
 			return false;
 		}
 	}
 
+	public boolean isFI() {
+		return isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
+	}
+
 	public Result getBodyAsSinkResult(Context context) throws Exception {
-		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
+		if (isFI()) {
 			if (_bodyType == BodyType.OUTPUT_STREAM) {
 				SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 				serializer.getFastInfosetSerializer().setOutputStream(getCompressedOutputStream((OutputStream) _body));
@@ -532,48 +574,6 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	private void transform(Transformer transformer, Result result) throws TransformerException, XQException, IOException {
-		Source source;
-		switch (_bodyType) {
-		case SOURCE:
-			source = (Source) _body;
-			break;
-		case DOM:
-			source = new DOMSource((Node) _body);
-			break;
-		case STRING:
-			source = new StreamSource(new StringReader((String) _body));
-			break;
-		case BYTES:
-			source = new StreamSource(new ByteArrayInputStream((byte[]) _body));
-			break;
-		case INPUT_STREAM:
-			_bodyType = BodyType.INVALID;
-			source = new StreamSource(getInputStreamReader((InputStream) _body));
-			break;
-		case READER:
-			source = new StreamSource((Reader) _body);
-			break;
-		case XQ_SEQUENCE:
-			XQSequence xqSequence = (XQSequence) _body;
-			if (xqSequence.next()) {
-				init(BodyType.XQ_ITEM, xqSequence.getItem(), null);
-			} else {
-				throw new IllegalStateException("Message already consumed");
-			}
-			// nobreak
-		case XQ_ITEM:
-			XQItem xqItem = (XQItem) _body;
-			source = new StAXSource(xqItem.getItemAsStream());
-			break;
-		case INVALID:
-			throw new IllegalStateException("Message is invalid");
-		default:
-			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
-		}
-		transformer.transform(source, result);
-	}
-
 	public void writeToSAX(ContentHandler contentHandler, Context context) throws XQException, TransformerException, IOException, SAXException {
 		switch (_bodyType) {
 		case XQ_SEQUENCE:
@@ -599,27 +599,27 @@ public final class ESBMessage implements Cloneable {
 					break;
 				}
 			}
-			context.getIdenticalTransformer().transform(source, new SAXResult(contentHandler));
+			context.transform(source, new SAXResult(contentHandler));
 			break;
 		}
 	}
 
-	public void writeTo(Result result, Context context) throws XQException, TransformerException, IOException {
+	public void writeTo(DOMResult result, Context context) throws XQException, TransformerException, IOException {
 		if (_bodyType == BodyType.XQ_ITEM) {
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItemToResult(result);
+			result.setNode(xqItem.getNode());
 		} else {
-			transform(context.getIdenticalTransformer(), result);
+			context.transform(getBodyAsSource(context), result);
 		}
 	}
 
 	public void writeTo(OutputStream os, Context context) throws Exception {
 		os = getCompressedOutputStream(os);
-		if (isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE))) {
+		if (isFI()) {
 			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 			serializer.getFastInfosetSerializer().setOutputStream(os);
 			serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
-			writeTo(new SAXResult(serializer.getContentHandler()), context);
+			writeToSAX(serializer.getContentHandler(), context);
 		} else {
 			writeRawTo(os, context);
 		}
@@ -631,11 +631,13 @@ public final class ESBMessage implements Cloneable {
 	public void writeRawTo(OutputStream os, Context context) throws XQException, TransformerException, IOException {
 		switch (_bodyType) {
 		case DOM:
-			transform(context.getIdenticalTransformer(), new StreamResult(new OutputStreamWriter(os, getSinkEncodingCharset())));
+			_body = new DOMSource((Node) _body);
+		case SOURCE:
+			context.transform((Source) _body, new StreamResult(init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null)));
 			break;
 		case STRING:
 			String s = (String) _body;
-			init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncoding()), null).write(s);
+			init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null).write(s);
 			break;
 		case BYTES:
 			if (isSinkEncodingdifferent()) {
@@ -678,6 +680,9 @@ public final class ESBMessage implements Cloneable {
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 		}
+		if (_bodyType == BodyType.WRITER) {
+			((Writer) _body).flush();
+		}
 	}
 
 	public void copyFrom(InputStream inputStream) throws IOException {
@@ -707,9 +712,9 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	/**
-	 * @param context Should be the context of the Thread receiving this copy
+	 * @param destContext Should be the context of the Thread receiving this copy
 	 */
-	public ESBMessage copy(Context context, boolean withBody) throws Exception {
+	public ESBMessage copy(Context context, Context destContext, boolean withBody, boolean withHeaders, boolean withAttachments) throws Exception {
 		final ESBMessage clone;
 		if (withBody) {
 			final Object newBody;
@@ -722,14 +727,16 @@ public final class ESBMessage implements Cloneable {
 				}
 				break;
 			case READER:
-				if (_body instanceof com.artofarc.util.StringReader) {
-					newBody = ((com.artofarc.util.StringReader) _body).clone();
+				if (_body instanceof StringBuilderReader) {
+					newBody = ((StringBuilderReader) _body).clone();
 				} else {
 					newBody = getBodyAsString(context);
 				}
 				break;
+			case SOURCE:
+				init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument((Source) _body, null), null);
 			case XQ_ITEM:
-				newBody = context.getXQDataFactory().createItem((XQItem) _body);
+				newBody = destContext.getXQDataFactory().createItem((XQItem) _body);
 				break;
 			default:
 				newBody = _body;
@@ -737,9 +744,14 @@ public final class ESBMessage implements Cloneable {
 			}
 			clone = new ESBMessage(_bodyType, newBody, _charset);
 		} else {
-			clone = new ESBMessage(BodyType.INVALID, null);
+			clone = new ESBMessage(BodyType.INVALID, null, null);
 		}
-		clone._headers.putAll(_headers);
+		if (withHeaders) {
+			clone._headers.putAll(_headers);
+		}
+		if (withAttachments) {
+			clone._attachments.putAll(_attachments);
+		}
 		for (Map.Entry<String, Object> entry : _variables.entrySet()) {
 			if (entry.getKey() == ESBConstants.initialTimestamp) {
 				clone._variables.put(ESBConstants.initialTimestampOrigin, entry.getValue());
@@ -754,9 +766,10 @@ public final class ESBMessage implements Cloneable {
 		logWriter.write('{');
 		for (Iterator<Map.Entry<String, Object>> iter = keyValues.iterator(); iter.hasNext();) {
 			Map.Entry<String, Object> entry = iter.next();
+			if (entry.getKey().startsWith("_")) continue;
 			logWriter.write(entry.getKey() + "=");
 			if (entry.getValue() instanceof Node) {
-				context.getIdenticalTransformer().transform(new DOMSource((Node) entry.getValue()), new StreamResult(logWriter));
+				context.transform(new DOMSource((Node) entry.getValue()), new StreamResult(logWriter));
 			} else {
 				logWriter.write(String.valueOf(entry.getValue()));
 			}

@@ -47,10 +47,10 @@ public final class Attachments2SAX extends XMLFilterBase {
 	}
 
 	@Override
-	public void parse(InputSource source) throws SAXException {
+	public void parse(InputSource source) throws SAXException, IOException {
 		AttributesImpl atts = new AttributesImpl();
-		getContentHandler().startDocument();
-		getContentHandler().startElement(XMLConstants.NULL_NS_URI, "attachments", "attachments", atts);
+		startDocument();
+		startElement(XMLConstants.NULL_NS_URI, "attachments", "attachments", atts);
 		while (_iterator.hasNext()) {
 			Entry<String, MimeBodyPart> entry = _iterator.next();
 			if (atts.getLength() == 0) {
@@ -58,23 +58,20 @@ public final class Attachments2SAX extends XMLFilterBase {
 			} else {
 				atts.setAttribute(0, XMLConstants.NULL_NS_URI, "cid", "cid", "CDATA", "cid:" + entry.getKey());
 			}
-			getContentHandler().startElement(XMLConstants.NULL_NS_URI, "attachment", "attachment", atts);
-			char[] ca;
+			startElement(XMLConstants.NULL_NS_URI, "attachment", "attachment", atts);
 			try (InputStream is = entry.getValue().getInputStream()) {
 				if (_remove) {
 					_iterator.remove();
 				}
 				entry = null;
-				// Bad API - waste of GC time: Creating a String from a char[] and copying it in another char[]
-				ca = DatatypeConverter.printBase64Binary(IOUtils.copy(is)).toCharArray();
-			} catch (IOException | MessagingException e) {
+				characters(DatatypeConverter.printBase64Binary(IOUtils.copy(is)));
+			} catch (MessagingException e) {
 				throw new SAXException(e);
 			}
-			getContentHandler().characters(ca, 0, ca.length);
-			getContentHandler().endElement(XMLConstants.NULL_NS_URI, "attachment", "attachment");
+			endElement(XMLConstants.NULL_NS_URI, "attachment", "attachment");
 		}
-		getContentHandler().endElement(XMLConstants.NULL_NS_URI, "attachments", "attachments");
-		getContentHandler().endDocument();
+		endElement(XMLConstants.NULL_NS_URI, "attachments", "attachments");
+		endDocument();
 	}
 
 }

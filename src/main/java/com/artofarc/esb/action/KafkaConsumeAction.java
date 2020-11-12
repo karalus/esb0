@@ -50,7 +50,7 @@ public class KafkaConsumeAction extends TerminalAction {
 	}
 
 	@Override
-	protected long getThreshold() {
+	protected long getTimeGaugeThreshold() {
 		return Long.MAX_VALUE;
 	}
 

@@ -80,10 +80,10 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		getResource(jmsConnectionData).removeJMSConsumer(jmsConsumer);
 	}
 
-	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws Exception {
+	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws JMSException {
 		if (closeWithTimeout > 0) {
 			// Oracle AQ sometimes waits forever in close()
-			Closer.closeWithTimeout(jmsSession.getSession(), _poolContext.getWorkerPool().getExecutorService(), closeWithTimeout, jmsConnectionData.toString());
+			Closer.closeWithTimeout(jmsSession.getSession(), _poolContext.getWorkerPool().getExecutorService(), closeWithTimeout, jmsConnectionData.toString(), JMSException.class);
 		} else {
 			jmsSession.getSession().close();
 		}
@@ -152,11 +152,11 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			try {
 				if (closeWithTimeout > 0) {
 					// Oracle AQ sometimes waits forever in close()
-					Closer.closeWithTimeout(_connection, _poolContext.getWorkerPool().getExecutorService(), closeWithTimeout, _jmsConnectionData.toString());
+					Closer.closeWithTimeout(_connection, _poolContext.getWorkerPool().getExecutorService(), closeWithTimeout, _jmsConnectionData.toString(), JMSException.class);
 				} else {
 					_connection.close();
 				}
-			} catch (Exception e) {
+			} catch (JMSException e) {
 				// ignore
 			}
 			_connection = null;

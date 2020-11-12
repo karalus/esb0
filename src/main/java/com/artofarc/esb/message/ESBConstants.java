@@ -26,19 +26,21 @@ public interface ESBConstants {
 
 	String QueryString = "QueryString";
 
+	String HttpQueryParameter = "HttpQueryParameter";
+
 	String RemoteUser = "RemoteUser";
 
 	String ClientCertificate = "ClientCertificate";
 
 	String HttpResponseCode = "HttpResponseCode";
 
-	String HttpURLConnection = "HttpURLConnection";
+	String HttpURLConnection = "_HttpURLConnection";
 
 	String HttpURLOutbound = "HttpURLOutbound";
 
 	String appendHttpUrlPath = "appendHttpUrlPath";
 
-	String AsyncContext = "AsyncContext";
+	String AsyncContext = "_AsyncContext";
 
 	String WorkerPool = "WorkerPool";
 
@@ -64,12 +66,20 @@ public interface ESBConstants {
 
 	String JMSTimestamp = "JMSTimestamp";
 
+	String JMSType = "JMSType";
+
 	String JMSOrigin = "JMSOrigin";
+
+	String QueueName = "QueueName";
+
+	String TopicName = "TopicName";
 
 	String Charset = "Charset";
 
 	String FileEventKind = "FileEventKind";
 
 	String filename = "filename";
+
+	String JDBCConnection = "_JDBCConnection";
 
 }

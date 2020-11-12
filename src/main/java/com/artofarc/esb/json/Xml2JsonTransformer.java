@@ -22,38 +22,43 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.json.stream.JsonGenerator;
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.datatype.DatatypeConstants;
+import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 
-import com.artofarc.util.Collections;
 import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.NamespaceMap;
+import com.artofarc.util.PrefixHandler;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.*;
 
 public final class Xml2JsonTransformer {
 
+	/**
+	 * @see https://json-schema.org/draft/2019-09/json-schema-validation.html#rfc.section.7.3.1
+	 */
+	public static final boolean JSON_OMIT_TZ_FROM_DATE = Boolean.parseBoolean(System.getProperty("esb0.json.omitTZfromDate", "true"));
+
 	private static final Pattern whitespacePattern = Pattern.compile("\\s+");
 
 	private final XSSchemaSet _schemaSet;
 	private final XSComplexType _complexType;
-	private final boolean _includeRoot;
+	private final boolean _includeRoot, _wrapperAsArrayName;
 	private final NamespaceMap _namespaceMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
-	public Xml2JsonTransformer(XSSchemaSet schemaSet, String type, boolean includeRoot, Map<String, String> prefixMap) {
+	public Xml2JsonTransformer(XSSchemaSet schemaSet, String type, boolean includeRoot, boolean wrapperAsArrayName, Map<String, String> prefixMap) {
 		_schemaSet = schemaSet != null ? schemaSet : XSOMHelper.anySchema;
 		if (type != null) {
 			QName _type = QName.valueOf(type);
@@ -62,6 +67,7 @@ public final class Xml2JsonTransformer {
 			_complexType = null;
 		}
 		_includeRoot = includeRoot;
+		_wrapperAsArrayName = wrapperAsArrayName;
 		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
 	}
 
@@ -77,11 +83,10 @@ public final class Xml2JsonTransformer {
 		return new TransformerHandler(JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(outputStream, charset));
 	}
 
-	private final class TransformerHandler extends DefaultHandler {
+	private final class TransformerHandler extends PrefixHandler {
 
 		final JsonGenerator jsonGenerator;
 		final StringBuilder _builder = new StringBuilder(128);
-		final ArrayList<Map.Entry<String, String>> prefixes = new ArrayList<>();
 		final ArrayDeque<Integer> ignoreLevel = new ArrayDeque<>();
 
 		XSOMHelper xsomHelper;
@@ -91,31 +96,6 @@ public final class Xml2JsonTransformer {
 
 		TransformerHandler(JsonGenerator jsonGenerator) {
 			this.jsonGenerator = jsonGenerator;
-		}
-
-		@Override
-		public void startPrefixMapping(String prefix, String uri) {
-			prefixes.add(Collections.createEntry(prefix, uri));
-		}
-
-		@Override
-		public void endPrefixMapping(String prefix) {
-			for (int i = prefixes.size(); i > 0;) {
-				if (prefixes.get(--i).getKey().equals(prefix)) {
-					prefixes.remove(i);
-					break;
-				}
-			}
-		}
-
-		private String getNamespace(String prefix) {
-			for (int i = prefixes.size(); i > 0;) {
-				final Map.Entry<String, String> entry = prefixes.get(--i);
-				if (entry.getKey().equals(prefix)) {
-					return entry.getValue();
-				}
-			}
-			return null;
 		}
 
 		@Override
@@ -207,6 +187,10 @@ public final class Xml2JsonTransformer {
 					key = prefix + '.' + localName;
 				}
 			}
+			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
+				jsonGenerator.writeEnd();
+				xsomHelper.endArray();
+			}
 			if (anyLevel < 0 && xsomHelper.isStartArray()) {
 				jsonGenerator.writeStartArray(openKey != null ? openKey : key);
 				openKey = null;
@@ -219,10 +203,6 @@ public final class Xml2JsonTransformer {
 					openKey = key;
 				}
 			}
-			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
-				jsonGenerator.writeEnd();
-				xsomHelper.endArray();
-			}
 			final String nil = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
 			if (nil != null && DatatypeConverter.parseBoolean(nil)) {
 				primitiveType = "nil";
@@ -231,7 +211,7 @@ public final class Xml2JsonTransformer {
 			++level;
 			if (attsLength > 0 || complex && anyLevel < 0) {
 				if (openKey != null) {
-					if (xsomHelper.getWrappedElement() != null) {
+					if (_wrapperAsArrayName && xsomHelper.getWrappedElement() != null) {
 						ignoreLevel.push(level);
 					} else {
 						jsonGenerator.writeStartObject(openKey);
@@ -355,6 +335,9 @@ public final class Xml2JsonTransformer {
 			case "nil":
 				jsonGenerator.writeNull(key);
 				break;
+			case "date":
+				jsonGenerator.write(key, omitTZfromDate(s));
+				break;
 			default:
 				jsonGenerator.write(key, s);
 				break;
@@ -388,12 +371,31 @@ public final class Xml2JsonTransformer {
 			case "nil":
 				jsonGenerator.writeNull();
 				break;
+			case "date":
+				jsonGenerator.write(omitTZfromDate(s));
+				break;
 			default:
 				jsonGenerator.write(s);
 				break;
 			}
 		}
 
+	}
+
+	public static String omitTZfromDate(String date) {
+		if (JSON_OMIT_TZ_FROM_DATE) {
+			if (date.charAt(0) == '-') {
+				throw new IllegalArgumentException("year must not be negative " + date);
+			}
+			date = date.substring(0, 10);
+		}
+		return date;
+	}
+
+	public static void omitTZfromDate(XMLGregorianCalendar date) {
+		if (JSON_OMIT_TZ_FROM_DATE) {
+			date.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+		}
 	}
 
 }

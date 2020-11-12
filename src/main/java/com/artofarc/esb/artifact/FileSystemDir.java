@@ -46,12 +46,8 @@ public class FileSystemDir extends FileSystem {
 	}
 
 	@Override
-	protected InputStream createInputStream(String uri) {
-		try {
-			return new FileInputStream(new File(_anchorDir, uri));
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException("FileSystem corrupted", e);
-		}
+	protected InputStream createInputStream(String uri) throws FileNotFoundException {
+		return new FileInputStream(new File(_anchorDir, uri));
 	}
 
 	@Override

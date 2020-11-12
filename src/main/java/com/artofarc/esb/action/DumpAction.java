@@ -27,7 +27,7 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.IOUtils;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.StringBuilderWriter;
 
 public class DumpAction extends TerminalAction {
 
@@ -53,7 +53,7 @@ public class DumpAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, resource, message, nextActionIsPipelineStop);
-		StringWriter writer = new StringWriter();
+		StringBuilderWriter writer = new StringBuilderWriter();
 		writer.write("Headers: ");
 		ESBMessage.dumpKeyValues(context, message.getHeaders(), writer);
 		logger.info(writer.toString());
@@ -85,7 +85,7 @@ public class DumpAction extends TerminalAction {
 						fileOutputStream.write(message.getBodyAsByteArray(context));
 					}
 					logger.info("Body dumped into " + dumpFile);
-				} else if (_binary) {
+				} else if (_binary || message.isFI()) {
 					ByteArrayInputStream bis = new ByteArrayInputStream(message.getBodyAsByteArray(context));
 					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(bis));
 				} else {

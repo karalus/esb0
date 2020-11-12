@@ -95,8 +95,8 @@ public final class MimeHelper {
 						Header header = allHeaders.nextElement();
 						message.putHeader(header.getName(), header.getValue());
 					}
-					message.setCharset(getValueFromHttpHeader(bodyPart.getContentType(), HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
-					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream());
+					String charset = getValueFromHttpHeader(bodyPart.getContentType(), HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);
+					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream(), charset);
 				} else if (cid != null) {
 					message.addAttachment(cid, bodyPart);
 				} else {

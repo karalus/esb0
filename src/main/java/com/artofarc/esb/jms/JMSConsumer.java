@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Enumeration;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.*;
 import javax.naming.NamingException;
@@ -33,6 +34,8 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
+import com.artofarc.util.ConcurrentResourcePool;
+import com.artofarc.util.ReflectionUtils;
 
 public final class JMSConsumer extends ConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
@@ -98,9 +101,12 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 	private final String _messageSelector;
 	private final JMSWorker[] _jmsWorker;
 	private final long _pollInterval;
+	private final Integer _maximumRetries;
+	private final ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException> _retries;
+	private final Long _redeliveryDelay;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName,
-			String topicName, String subscription, String messageSelector, int workerCount, long pollInterval) throws NamingException, JMSException {
+			String topicName, String subscription, String messageSelector, int workerCount, long pollInterval, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
 
 		super(uri);
 		_workerPool = workerPool;
@@ -126,7 +132,20 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		}
 		_subscription = subscription;
 		_jmsWorker = new JMSWorker[workerCount];
-		_pollInterval = pollInterval; 
+		_pollInterval = pollInterval;
+		_maximumRetries = maximumRetries;
+		if (maximumRetries != null) {
+			_retries = new ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException>() {
+				
+				@Override
+				protected AtomicInteger createResource(String descriptor, Void param) {
+					return new AtomicInteger();
+				}
+			};
+		} else {
+			_retries = null;
+		}
+		_redeliveryDelay = redeliveryDelay;
 	}
 
 	private String getDestinationName() {
@@ -181,6 +200,13 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 	}
 
 	void resume() throws JMSException {
+		if (_retries != null) {
+			try {
+				_retries.reset();
+			} catch (Exception e) {
+				// ignore
+			}
+		}
 		for (JMSWorker jmsWorker : _jmsWorker) {
 			jmsWorker.open();
 		}
@@ -226,13 +252,18 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 			TextMessage textMessage = (TextMessage) message;
 			esbMessage.reset(BodyType.STRING, textMessage.getText());
 			message.clearBody();
-		} else {
-			esbMessage.reset(BodyType.INVALID, null);
 		}
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
-		esbMessage.putVariable(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
-		esbMessage.putVariable(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
 		esbMessage.putVariable(ESBConstants.JMSTimestamp, message.getJMSTimestamp());
+		esbMessage.putVariableIfNotNull(ESBConstants.JMSType, message.getJMSType());
+		esbMessage.putVariableIfNotNull(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
+		esbMessage.putVariableIfNotNull(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
+		final Destination jmsDestination = message.getJMSDestination();
+		if (jmsDestination instanceof Queue) {
+			esbMessage.putVariable(ESBConstants.QueueName, ((Queue) jmsDestination).getQueueName());
+		} else {
+			esbMessage.putVariable(ESBConstants.TopicName, ((Topic) jmsDestination).getTopicName());
+		}
 		for (@SuppressWarnings("unchecked")
 		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
 			String propertyName = propertyNames.nextElement();
@@ -283,11 +314,11 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 				try {
 					if (JMSConnectionProvider.closeWithTimeout > 0) {
 						// Oracle AQ sometimes waits forever in close()
-						Closer.closeWithTimeout(_messageConsumer, _workerPool.getExecutorService(), JMSConnectionProvider.closeWithTimeout, getKey());
+						Closer.closeWithTimeout(_messageConsumer, _workerPool.getExecutorService(), JMSConnectionProvider.closeWithTimeout, getKey(), JMSException.class);
 					} else {
 						_messageConsumer.close();
 					}
-				} catch (Exception e) {
+				} catch (JMSException e) {
 					// ignore
 				}
 				_messageConsumer = null;
@@ -312,12 +343,24 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 				try {
 					processInternal(_context, esbMessage);
 					_session.commit();
+					if (_retries != null && message.getJMSRedelivered()) {
+						_retries.removeResource(message.getJMSMessageID());
+					}
 				} catch (Exception e) {
+					if (_redeliveryDelay != null) {
+						Thread.sleep(_redeliveryDelay);
+					}
 					logger.info("Rolling back for " + getKey(), e);
 					_session.rollback();
+					if (_retries != null) {
+						AtomicInteger retries = _retries.getResource(message.getJMSMessageID());
+						if (retries.incrementAndGet() > _maximumRetries) {
+							suspend();
+						}
+					}
 				}
-			} catch (JMSException e) {
-				throw new RuntimeException(e);
+			} catch (Exception e) {
+				throw ReflectionUtils.convert(e, RuntimeException.class);
 			}
 		}
 	}

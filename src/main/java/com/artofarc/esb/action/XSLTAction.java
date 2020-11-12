@@ -69,7 +69,7 @@ public class XSLTAction extends SAXAction {
 					// We need to make a copy otherwise Saxon complains with:
 					// "A node supplied in a global parameter must be built using the same Configuration that was used to compile the stylesheet or query"
 					DOMResult domResult = new DOMResult();
-					context.getIdenticalTransformer().transform(new DOMSource((Node) value), domResult);
+					context.transform(new DOMSource((Node) value), domResult);
 					value = domResult.getNode();
 				}
 				transformer.setParameter(param, value);

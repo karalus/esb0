@@ -16,7 +16,9 @@
  */
 package com.artofarc.esb;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,8 +31,8 @@ import javax.management.ObjectName;
 import com.artofarc.esb.context.AbstractContext;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
-import com.artofarc.util.PrefixBTree;
 import com.artofarc.util.Closer;
+import com.artofarc.util.PrefixBTree;
 
 public class Registry extends AbstractContext {
 
@@ -75,6 +77,23 @@ public class Registry extends AbstractContext {
 
 	public final ConsumerPort getInternalService(String uri) {
 		return _services.get(uri);
+	}
+
+	public final List<ConsumerPort> getInternalServices() {
+		List<ConsumerPort> result = new ArrayList<>();
+		for (ConsumerPort consumerPort : _services.values()) {
+			if (consumerPort.getClass() == ConsumerPort.class) {
+				result.add(consumerPort);
+			}
+		}
+		result.sort(new Comparator<ConsumerPort>() {
+
+			@Override
+			public int compare(ConsumerPort o1, ConsumerPort o2) {
+				return o1.getUri().compareTo(o2.getUri());
+			}
+		});
+		return result;
 	}
 
 	public final Set<String> getHttpServicePaths() {

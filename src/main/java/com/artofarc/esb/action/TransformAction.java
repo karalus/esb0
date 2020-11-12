@@ -35,12 +35,12 @@ import javax.xml.xquery.XQSequenceType;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.Collections;
+import com.artofarc.util.XQuerySource;
 
 public class TransformAction extends Action {
 
@@ -67,7 +67,7 @@ public class TransformAction extends Action {
 	private final XQuerySource _xquery;
 	private final List<Assignment> _assignments;
 	private final String _baseURI; 
-	private final String _contextItem;
+	protected final String _contextItem;
 	protected List<XQDecl> _bindNames;
 	private final Map<QName, Map.Entry<XQItemType, Boolean>> _bindings = new HashMap<>();
 
@@ -256,7 +256,7 @@ public class TransformAction extends Action {
 	}
 
 	@Override
-	protected final void close(ExecutionContext execContext) throws Exception {
+	protected final void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 		if (execContext != null) {
 			XQResultSequence resultSequence = execContext.getResource();
 			if (resultSequence.next() && _contextItem == null) {

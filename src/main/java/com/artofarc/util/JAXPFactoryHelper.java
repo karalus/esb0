@@ -19,8 +19,6 @@ package com.artofarc.util;
 import java.lang.reflect.Constructor;
 
 import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.Templates;
@@ -29,6 +27,7 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.sax.TransformerHandler;
+import javax.xml.xpath.XPathFactory;
 
 import org.xml.sax.SAXException;
 
@@ -39,13 +38,12 @@ import org.xml.sax.SAXException;
 public final class JAXPFactoryHelper {
 
 	private static final boolean SECURE_PROCESSING = Boolean.parseBoolean(System.getProperty("esb0.jaxp.secure-processing", "true"));
-	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
 	private static final SAXParserFactory SAX_PARSER_FACTORY = SAXParserFactory.newInstance();
 	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
 	private static final Constructor<? extends SAXTransformerFactory> conSAXTransformerFactory;
+	private static final XPathFactory XPATH_FACTORY = XPathFactory.newInstance();
 
 	static {
-		DOCUMENT_BUILDER_FACTORY.setNamespaceAware(true);
 		SAX_PARSER_FACTORY.setNamespaceAware(true);
 		try {
 			SAX_PARSER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
@@ -62,16 +60,20 @@ public final class JAXPFactoryHelper {
 		}
 	}
 
-	public static DocumentBuilder newDocumentBuilder() throws ParserConfigurationException {
-		return DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-	}
-
 	public static SAXParserFactory getSAXParserFactory() {
 		return SAX_PARSER_FACTORY;
 	}
 
+	public static XPathFactory getXPathFactory() {
+		return XPATH_FACTORY;
+	}
+
 	public static Transformer newTransformer() throws TransformerConfigurationException {
 		return SAX_TRANSFORMER_FACTORY.newTransformer();
+	}
+
+	public static TransformerHandler newTransformerHandler() throws TransformerConfigurationException {
+		return SAX_TRANSFORMER_FACTORY.newTransformerHandler();
 	}
 
 	public static TransformerHandler newTransformerHandler(Templates templates) throws TransformerConfigurationException {

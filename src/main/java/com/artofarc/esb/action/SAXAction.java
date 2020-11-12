@@ -114,7 +114,7 @@ public abstract class SAXAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
 			if (message.isSink()) {
-				context.getIdenticalTransformer().transform(execContext.<Source> getResource(), message.getBodyAsSinkResult(context));
+				context.transform(execContext.<Source> getResource(), message.getBodyAsSinkResult(context));
 			} else {
 				message.reset(BodyType.SOURCE, execContext.getResource());
 			}

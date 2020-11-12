@@ -25,7 +25,6 @@ import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
 import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
@@ -35,6 +34,7 @@ import com.artofarc.esb.service.XQDecl;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.Collections;
 import com.artofarc.util.WSDL4JUtil;
+import com.artofarc.util.XQuerySource;
 
 public class SOAPTest extends AbstractESBTest {
    
@@ -69,10 +69,10 @@ public class SOAPTest extends AbstractESBTest {
       @SuppressWarnings("unused")
 		Node node = message.getVariable("header");
       System.out.println();
-      //context.getIdenticalTransformer().transform(new DOMSource(node), new StreamResult(System.out));
+      //context.transform(new DOMSource(node), new StreamResult(System.out));
       node = message.getVariable("messageHeader");
       System.out.println();
-      //context.getIdenticalTransformer().transform(new DOMSource(node), new StreamResult(System.out));
+      //context.transform(new DOMSource(node), new StreamResult(System.out));
       System.out.println();
    }
    
@@ -383,7 +383,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testJMSConsumer() throws Exception {
    	JMSConnectionData jmsConnectionData = new JMSConnectionData(getGlobalContext(), "ConnectionFactory", null, null);
-      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData, "dynamicQueues/test1", null, null, null, null, 1, 0L);
+      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData, "dynamicQueues/test1", null, null, null, null, 1, 0L, null, null);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
       jmsConsumer.init(getGlobalContext());
@@ -420,15 +420,12 @@ public class SOAPTest extends AbstractESBTest {
 		Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), null, null).getBindingOperations(), null, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      SetMessageAction setMessageAction = new SetMessageAction(false, null, null, null, null);
-      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_ACCEPT, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null);
-		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
+      SetMessageAction setMessageAction = new SetMessageAction(false, null, null, null, null);
+      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_CONTENT_TYPE, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null);
+		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new DumpAction());
       action = action.setNextAction(createUnwrapSOAPAction(false, true));
-      setMessageAction = new SetMessageAction(false, null, null, null, null);
-      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_ACCEPT, true, "", null, null);
-		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);

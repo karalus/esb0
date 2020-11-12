@@ -18,6 +18,7 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
@@ -25,8 +26,6 @@ import java.util.Properties;
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
-import javax.xml.xquery.XQConnection;
-import javax.xml.xquery.XQException;
 
 import org.xml.sax.Locator;
 
@@ -34,7 +33,6 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.action.*;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.jdbc.JDBCParameter;
@@ -47,6 +45,7 @@ import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWrapper;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.WSDL4JUtil;
+import com.artofarc.util.XQuerySource;
 import com.sun.xml.xsom.XSSchemaSet;
 
 public class ServiceArtifact extends AbstractServiceArtifact {
@@ -59,7 +58,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	// only used during validation
 	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
-	private XQConnection _connection;
+	private XQConnectionFactory _xqConnectionFactory;
 
 	public ServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -82,11 +81,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return clone;
 	}
 
-	private XQConnection getConnection() throws XQException {
-		if (_connection == null) {
-			_connection = XQConnectionFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this)).getConnection();
+	private XQConnectionFactory getXQConnectionFactory() {
+		if (_xqConnectionFactory == null) {
+			_xqConnectionFactory = XQConnectionFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this));
 		}
-		return _connection;
+		return _xqConnectionFactory;
 	}
 
 	@Override
@@ -100,14 +99,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			switch (_protocol = service.getProtocol()) {
 			case HTTP:
 				final Service.HttpBindURI httpBinding = service.getHttpBindURI();
-				_consumerPort = new HttpConsumer(getURI(), service.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), httpBinding.getRequiredRole(), httpBinding.getMinPool(),
+				_consumerPort = new HttpConsumer(getURI(), service.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
 						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
 				break;
 			case JMS:
 				final Service.JmsBinding jmsBinding = service.getJmsBinding();
 				JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
-				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(),
-						jmsBinding.getTopicName(), jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval());
+				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(), jmsBinding.getTopicName(),
+						jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval(), jmsBinding.getMaximumRetries(), jmsBinding.getRedeliveryDelay());
 				break;
 			case TIMER:
 				final Service.TimerBinding timerBinding = service.getTimerBinding();
@@ -122,10 +121,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			_consumerPort.setEnabled(service.isEnabled());
 		} finally {
 			_actionPipelines.clear();
-			if (_connection != null) {
-				_connection.close();
-				_connection = null;
-			}
+			_xqConnectionFactory = null;
 		}
 	}
 
@@ -191,7 +187,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			ProduceKafka produceKafka = (ProduceKafka) actionElement.getValue();
 			Properties properties = new Properties();
 			for (Property property : produceKafka.getProperty()) {
-				properties.put(property.getKey(), property.getValue());
+				properties.put(property.getKey(), globalContext.bindProperties(property.getValue()));
 			}
 			addAction(list, new KafkaProduceAction(globalContext, properties, produceKafka.getTopic(), produceKafka.getPartition(), produceKafka.isBinary()), location);
 			break;
@@ -200,7 +196,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			ConsumeKafka consumeKafka = (ConsumeKafka) actionElement.getValue();
 			Properties properties = new Properties();
 			for (Property property : consumeKafka.getProperty()) {
-				properties.put(property.getKey(), property.getValue());
+				properties.put(property.getKey(), globalContext.bindProperties(property.getValue()));
 			}
 			KafkaConsumeAction kafkaConsumeAction = new KafkaConsumeAction(properties, consumeKafka.getTopic(), consumeKafka.getTimeout(),
 					resolveWorkerPool(consumeKafka.getWorkerPool()), Action.linkList(transform(globalContext, consumeKafka.getAction(), null)));
@@ -244,8 +240,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				schemaArtifact.validate(globalContext);
 				schemaSet = schemaArtifact.getXSSchemaSet();
 			}
-			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn()
-					.getJdbcParameter()), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter()), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), schemaSet), location);
+			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getJdbcParameter().size() + jdbcProcedure.getOut().getJdbcParameter().size()];
+			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getJdbcParameter(), posUsed),
+					createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter(), posUsed), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.isKeepConnection(), schemaSet), location);
 			break;
 		}
 		case "jdbc": {
@@ -253,7 +250,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			if (jdbc.getWorkerPool() != null) {
 				addAction(list, new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()), location);
 			}
-			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter()), jdbc.getMaxRows(), jdbc.getTimeout()), location);
+			boolean[] posUsed = new boolean[jdbc.getJdbcParameter().size()];
+			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter(), posUsed),
+					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.isKeepConnection()), location);
 			break;
 		}
 		case "setMessage": {
@@ -306,7 +305,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 			}
 			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearAll());
-			XQueryArtifact.validateXQuerySource(this, getConnection(), assignAction.getXQuery());
+			XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;
 		}
@@ -315,8 +314,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			addAction(list, new XML2JsonAction(schemaArtifact.getXSSchemaSet(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(), xml2Json.getNsDecl().isEmpty() ? null :
-				createNsDecls(xml2Json.getNsDecl()), xml2Json.isValidate() ? schemaArtifact.getSchema() : null), location);
+			addAction(list, new XML2JsonAction(schemaArtifact.getXSSchemaSet(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(),
+				xml2Json.isWrapperAsArrayName(), xml2Json.getNsDecl().isEmpty() ? null : createNsDecls(xml2Json.getNsDecl())), location);
 			break;
 		}
 		case "json2xml": {
@@ -324,8 +323,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			addAction(list, new Json2XMLAction(schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(), json2Xml.getNsDecl().isEmpty() ? null :
-				createNsDecls(json2Xml.getNsDecl()), json2Xml.isValidate() ? schemaArtifact.getSchema() : null, json2Xml.isStreaming()), location);
+			addAction(list, new Json2XMLAction(schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(),
+				json2Xml.getNsDecl().isEmpty() ? null : createNsDecls(json2Xml.getNsDecl()), json2Xml.isStreaming()), location);
 			break;
 		}
 		case "transform": {
@@ -334,11 +333,12 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				XQueryArtifact xQueryArtifact = loadArtifact(transform.getXqueryURI());
 				addReference(xQueryArtifact);
 				xQueryArtifact.validate(globalContext);
-				addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getParent().getURI(), transform.getContextItem()), location);
+				String baseURI = XQueryArtifact.legacyXqmResolver ? xQueryArtifact.getParent().getURI() : xQueryArtifact.getURI();
+				addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), baseURI, transform.getContextItem()), location);
 			} else if (transform.getXquery() != null) {
 				XQuerySource xquery = XQuerySource.create(transform.getXquery());
-				XQueryArtifact.validateXQuerySource(this, getConnection(), xquery);
-				addAction(list, new TransformAction(xquery, getParent().getURI(), transform.getContextItem()), location);
+				XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), xquery);
+				addAction(list, new TransformAction(xquery, getURI(), transform.getContextItem()), location);
 			} else {
 				throw new ValidationException(this, "transform has no XQuery");
 			}
@@ -349,7 +349,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			XSLTArtifact xsltArtifact = loadArtifact(applyXSLT.getXslURI());
 			addReference(xsltArtifact);
 			xsltArtifact.validate(globalContext);
-			addAction(list, new XSLTAction(xsltArtifact.getTemplates(), applyXSLT.getParams()), location);
+			addAction(list, new XSLTAction(xsltArtifact.getTemplates(), xsltArtifact.getParams()), location);
 			break;
 		}
 		case "unwrapSOAP": {
@@ -387,16 +387,16 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			SchemaArtifact schemaArtifact = loadArtifact(validate.getSchemaURI());
 			addReference(schemaArtifact);
 			schemaArtifact.validate(globalContext);
-			boolean complexExpression = validate.getExpression() != "." && !validate.getExpression().equals("*");
-			if (complexExpression || !USE_SAX_VALIDATION) {
-				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem());
-				if (complexExpression) {
-					XQueryArtifact.validateXQuerySource(this, getConnection(), validateAction.getXQuery());
-				}
-				addAction(list, validateAction, location);
-			} else {
+			boolean documentElementExpression = validate.getExpression() == "." || validate.getExpression().equals("*");
+			if (USE_SAX_VALIDATION && documentElementExpression && validate.getContextItem() == null) {
 				SAXValidationAction action = new SAXValidationAction(schemaArtifact.getSchema());
 				addAction(list, action, location);
+			} else {
+				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem());
+				if (!documentElementExpression) {
+					XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), validateAction.getXQuery());
+				}
+				addAction(list, validateAction, location);
 			}
 			break;
 		}
@@ -420,7 +420,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			Conditional conditional = (Conditional) actionElement.getValue();
 			ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(),
 				conditional.getBindName(), conditional.getContextItem(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
-			XQueryArtifact.validateXQuerySource(this, getConnection(), conditionalAction.getXQuery());
+			XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), conditionalAction.getXQuery());
 			addAction(list, conditionalAction, location);
 			break;
 		case "cache":
@@ -438,8 +438,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "fork":
 			Fork fork = (Fork) actionElement.getValue();
-			ForkAction forkAction = new ForkAction(resolveWorkerPool(fork.getWorkerPool()), fork.isCopyMessage(), Action.linkList(transform(globalContext,
-				fork.getAction(), fork.getErrorHandler())));
+			ForkAction forkAction = new ForkAction(resolveWorkerPool(fork.getWorkerPool()), fork.isCopyMessage(), fork.isCopyHeaders(),
+				fork.isCopyAttachments(), Action.linkList(transform(globalContext, fork.getAction(), fork.getErrorHandler())));
 			addAction(list, forkAction, location);
 			break;
 		case "branchOnVariable": {
@@ -452,9 +452,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			if (branchOnVariable.getNull() != null) {
 				nullAction = Action.linkList(transform(globalContext, branchOnVariable.getNull().getAction(), null));
 			}
-			BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), branchOnVariable.isUseRegEx(), defaultAction, nullAction);
+			BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction(branchOnVariable.getVariable(), defaultAction, nullAction);
 			for (BranchOnVariable.Branch branch : branchOnVariable.getBranch()) {
-				branchOnVariableAction.addBranch(branch.getValue(), Action.linkList(transform(globalContext, branch.getAction(), null)));
+				if (branch.getRegEx() != null) {
+					branchOnVariableAction.addBranchRegEx(branch.getRegEx(), Action.linkList(transform(globalContext, branch.getAction(), null)));
+				} else {
+					List<String> values = branch.getValue().isEmpty() ? Collections.singletonList("") : branch.getValue();
+					branchOnVariableAction.addBranch(values, Action.linkList(transform(globalContext, branch.getAction(), null)));
+				}
 			}
 			addAction(list, branchOnVariableAction, location);
 			break;
@@ -529,13 +534,23 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return result;
 	}
 
-	private static List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters) {
+	private static List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters, boolean[] posUsed) {
 		List<JDBCParameter> params = new ArrayList<>(jdbcParameters.size());
-		for (int i = 0; i < jdbcParameters.size();) {
-			JdbcParameter jdbcParameter = jdbcParameters.get(i++);
-			int pos = jdbcParameter.getPos() != null ? jdbcParameter.getPos() : i;
-			params.add(new JDBCParameter(pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
-					jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
+		for (JdbcParameter jdbcParameter : jdbcParameters) {
+			if (jdbcParameter.getPos() != null) {
+				params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
+						jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
+				posUsed[jdbcParameter.getPos() - 1] = true;
+			}
+		}
+		int pos = 0;
+		for (JdbcParameter jdbcParameter : jdbcParameters) {
+			if (jdbcParameter.getPos() == null) {
+				while (posUsed[pos]) ++pos;
+				posUsed[pos] = true;
+				params.add(new JDBCParameter(++pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
+						jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
+			}
 		}
 		return params;
 	}

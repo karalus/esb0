@@ -32,14 +32,14 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.ReflectionUtils;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.StringBuilderWriter;
 import com.artofarc.util.TimeGauge;
 
 public abstract class Action implements Cloneable {
 
 	protected final static Logger logger = LoggerFactory.getLogger(Action.class);
 
-	private final static long threshold = Long.parseLong(System.getProperty("esb0.timeGauge.threshold", "250"));
+	private final static long timeGaugeThreshold = Long.parseLong(System.getProperty("esb0.timeGauge.threshold", "250"));
 
 	protected Action _nextAction;
 	protected Action _errorHandler;
@@ -75,14 +75,14 @@ public abstract class Action implements Cloneable {
 	}
 
 	private static void logKeyValues(Context context, Collection<Map.Entry<String, Object>> keyValues, String prolog) throws Exception {
-		StringWriter stringWriter = new StringWriter();
-		stringWriter.write(prolog);
-		ESBMessage.dumpKeyValues(context, keyValues, stringWriter);
-		logger.info(stringWriter.toString());
+		StringBuilderWriter sw = new StringBuilderWriter();
+		sw.write(prolog);
+		ESBMessage.dumpKeyValues(context, keyValues, sw);
+		logger.info(sw.toString());
 	}
 
-	protected long getThreshold() {
-		return threshold;
+	protected long getTimeGaugeThreshold() {
+		return timeGaugeThreshold;
 	}
 
 	/**
@@ -93,7 +93,7 @@ public abstract class Action implements Cloneable {
 		List<ExecutionContext> resources = new ArrayList<>();
 		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
 		context.pushStackPos();
-		TimeGauge timeGauge = new TimeGauge(logger, getThreshold(), false);
+		TimeGauge timeGauge = new TimeGauge(logger, getTimeGaugeThreshold(), false);
 		timeGauge.startTimeMeasurement();
 		for (Action nextAction = this; nextAction != null;) {
 			boolean isPipeline = false;
@@ -157,7 +157,7 @@ public abstract class Action implements Cloneable {
 					action = pipeline.get(--i);
 					ExecutionContext exContext = resources.get(i);
 					try {
-						action.close(exContext);
+						action.close(exContext, message, closeSilently);
 						if (action.getErrorHandler() != null) {
 							context.getStackPos().pop();
 							stackErrorHandler.pop();
@@ -213,9 +213,9 @@ public abstract class Action implements Cloneable {
 	}
 
 	/**
-	 * Cleanup ExecutionContext.
+	 * Cleanup resources.
 	 */
-	protected void close(ExecutionContext execContext) throws Exception {
+	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 	}
 
 	@Override
@@ -263,7 +263,8 @@ public abstract class Action implements Cloneable {
 			String path = exp.substring(i + 2, j);
 			int k = path.indexOf('.');
 			String name = k < 0 ? path : path.substring(0, k);
-			Object value = "body".equals(name) ? message.getBodyAsString(context) : resolve(message, name, true);
+			Object value = "body".equals(name) ? message.getBodyAsString(context)
+					: "attachments".equals(name) ? message.getAttachments() : resolve(message, name, true);
 			if (value == null) {
 				value = context.getGlobalContext().getProperty(name);
 			}
@@ -277,15 +278,16 @@ public abstract class Action implements Cloneable {
 				throw new ExecutionException(this, "name could not be resolved: " + name);
 			}
 			if (k >= 0) {
-				ReflectionUtils.ParamResolver<ExecutionException> paramResolver = path.indexOf('(', k) < 0 ? null : new ReflectionUtils.ParamResolver<ExecutionException>() {
+				ReflectionUtils.ParamResolver<ExecutionException> paramResolver = path.indexOf('(', k) < 0 ? null
+						: new ReflectionUtils.ParamResolver<ExecutionException>() {
 
 					@Override
 					public Object resolve(String param) throws ExecutionException {
 						char firstChar = param.charAt(0);
 						if (firstChar == '\'') {
 							return param.substring(1, param.length() - 1);
-						} else if (Character.isDigit(firstChar)) {
-							return new Integer(param);
+						} else if (Character.isDigit(firstChar) || firstChar == '-') {
+							return Integer.valueOf(param);
 						}
 						return Action.this.resolve(message, param, true);
 					}

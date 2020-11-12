@@ -42,7 +42,7 @@ import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.ReflectionUtils;
 
-public class FileSystem {
+public abstract class FileSystem {
 
 	protected final static Logger logger = LoggerFactory.getLogger(FileSystem.class);
 
@@ -59,26 +59,24 @@ public class FileSystem {
 		_root = fileSystem._root.clone(this, null);
 	}
 
-	public FileSystem copy() {
-		return new FileSystem(this);
-	}
+	public abstract FileSystem copy();
 
-	public final Directory getRoot() {
-		return _root;
-	}
+	public abstract void parse() throws Exception;
 
-	protected InputStream createInputStream(String uri) {
-		try {
-			return new ByteArrayInputStream(reloadContent(uri));
-		} catch (Exception e) {
-			throw ReflectionUtils.convert(e, RuntimeException.class);
-		}
+	public abstract void writeBackChanges() throws Exception;
+
+	protected InputStream createInputStream(String uri) throws Exception {
+		return new ByteArrayInputStream(reloadContent(uri));
 	}
 
 	protected byte[] reloadContent(String uri) throws Exception {
 		try (InputStream contentAsStream = createInputStream(uri)) {
 			return IOUtils.copy(contentAsStream);
 		}
+	}
+
+	public final Directory getRoot() {
+		return _root;
 	}
 
 	public final <A extends Artifact> A getArtifact(String uri) {
@@ -133,9 +131,6 @@ public class FileSystem {
 		return changeSet;
 	}
 
-	public void parse() throws Exception {
-	}
-
 	public final void dehydrateArtifacts(Directory base) {
 		for (Artifact artifact : base.getArtifacts().values()) {
 			if (artifact instanceof Directory) {
@@ -169,6 +164,15 @@ public class FileSystem {
 		} else if (artifact instanceof WorkerPoolArtifact) {
 			artifact.validate(globalContext);
 			changeSet.getWorkerPoolArtifacts().add((WorkerPoolArtifact) artifact);
+		}
+	}
+
+	protected final Artifact createArtifact(String uri) {
+		int i = uri.lastIndexOf('/');
+		if (i < 0) {
+			return createArtifact(_root, uri);
+		} else {
+			return createArtifact(makeDirectory(uri.substring(0, i)), uri.substring(i + 1));
 		}
 	}
 
@@ -355,7 +359,7 @@ public class FileSystem {
 		Artifact artifact = copy.loadArtifact(copy.getRoot(), uri);
 		CRC32 crc = new CRC32();
 		crc.update(content);
-		if (artifact._length != content.length || artifact._crc != crc.getValue()) {
+		if (artifact.isDifferent(content, crc.getValue())) {
 			artifact.setContent(content);
 			artifact.setModificationTime(System.currentTimeMillis());
 			artifact.setCrc(crc.getValue());
@@ -413,7 +417,7 @@ public class FileSystem {
 		}
 		return changeSet;
 	}
-	
+
 	private boolean mergeZIP(InputStream inputStream) throws IOException {
 		boolean tidyOut = false;
 		try (JarInputStream zis = new JarInputStream(inputStream)) {
@@ -432,27 +436,24 @@ public class FileSystem {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				if (!entry.isDirectory()) {
-					int i = entry.getName().lastIndexOf('/');
-					Directory dir = i < 0 ? _root : makeDirectory(entry.getName().substring(0, i));
-					String name = i < 0 ? entry.getName() : entry.getName().substring(i + 1);
-					Artifact old = getArtifact(entry.getName());
-					Artifact artifact = createArtifact(dir, name);
+					Artifact artifact = getArtifact(entry.getName());
 					if (artifact != null) {
-						artifact.setContent(IOUtils.copy(zis));
-						artifact.setModificationTime(entry.getTime());
-						artifact.setCrc(entry.getCrc());
-						if (old != null) {
-							if (old.isEqual(artifact)) {
-								// Undo
-								dir.getArtifacts().put(name, old);
-								if (old.getContent() == null) {
-									// Keep content (until dehydrateArtifacts happens), it might be needed by Resolvers during validation
-									old.setContent(artifact.getContent());
-								}
-							} else {
-								_changes.put(artifact.getURI(), ChangeType.UPDATE);
-							}
-						} else {
+						byte[] content = IOUtils.copy(zis);
+						if (artifact.isDifferent(content, entry.getCrc())) {
+							artifact.setContent(content);
+							artifact.setModificationTime(entry.getTime());
+							artifact.setCrc(entry.getCrc());
+							_changes.put(artifact.getURI(), ChangeType.UPDATE);
+						} else if (artifact.getContent() == null) {
+							// Keep content (until dehydrateArtifacts happens), it might be needed by Resolvers during validation
+							artifact.setContent(content);
+						}
+					} else {
+						artifact = createArtifact(entry.getName());
+						if (artifact != null) {
+							artifact.setContent(IOUtils.copy(zis));
+							artifact.setModificationTime(entry.getTime());
+							artifact.setCrc(entry.getCrc());
 							_changes.put(artifact.getURI(), ChangeType.CREATE);
 						}
 					}
@@ -460,9 +461,6 @@ public class FileSystem {
 			}
 		}
 		return tidyOut;
-	}
-
-	public void writeBackChanges() throws IOException {
 	}
 
 }

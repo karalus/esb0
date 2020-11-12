@@ -25,8 +25,9 @@ import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 public class UncacheAction extends Action {
 
 	private final String _keyExp, _cacheName;
-	private final LRUCacheWithExpirationFactory _factory;
+	private final LRUCacheWithExpirationFactory<Object, Object[]> _factory;
 
+	@SuppressWarnings("unchecked")
 	public UncacheAction(GlobalContext globalContext, String keyExp, String cacheName) {
 		_keyExp = keyExp;
 		_cacheName = cacheName;
@@ -38,7 +39,7 @@ public class UncacheAction extends Action {
 		final Object key = bindVariable(_keyExp, context, message);
 		if (key != null) {
 			checkAtomic(key, _keyExp);
-			LRUCacheWithExpirationFactory.Cache cache = _factory.getResource(_cacheName);
+			LRUCacheWithExpirationFactory<Object, Object[]>.Cache cache = _factory.getResource(_cacheName);
 			cache.remove(key);
 			return null;
 		} else {

@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,24 +25,41 @@ import java.util.regex.Pattern;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.WeakCache;
 
 public class BranchOnVariableAction extends Action {
 
+	private static final WeakCache<String, Pattern> PATTERN_CACHE = new WeakCache<String, Pattern>() {
+		
+		@Override
+		public Pattern create(String regEx) {
+			return Pattern.compile(regEx);
+		}
+	};
+	
 	private final String _varName;
-	private final boolean _useRegEx;
 	private final Map<Object, Action> _branchMap = new LinkedHashMap<>();
 	private final Action _defaultAction, _nullAction;
+	private boolean _useRegEx;
 
-	public BranchOnVariableAction(String varName, boolean useRegEx, Action defaultAction, Action nullAction) {
+	public BranchOnVariableAction(String varName, Action defaultAction, Action nullAction) {
 		_varName = varName;
-		_useRegEx = useRegEx;
 		_defaultAction = defaultAction;
 		_nullAction = nullAction;
 	}
 
-	public final void addBranch(String value, Action action) {
-		_branchMap.put(_useRegEx ? Pattern.compile(value) : value, action);
-	}	
+	public final void addBranch(List<String> values, Action action) {
+		for (String value : values) {
+			if (_branchMap.put(value, action) != null) {
+				throw new IllegalArgumentException("Duplicate branch value " + value);
+			}
+		}
+	}
+
+	public final void addBranchRegEx(String regEx, Action action) {
+		_branchMap.put(PATTERN_CACHE.get(regEx), action);
+		_useRegEx = true;
+	}
 
 	@Override
 	protected boolean isPipelineStop() {
@@ -67,23 +85,27 @@ public class BranchOnVariableAction extends Action {
 		Object value = resolve(message, _varName, true);
 		Action action = _nullAction;
 		if (value != null) {
-			checkAtomic(value, _varName);
-			String strValue = value.toString();
 			action = _defaultAction;
-			if (_useRegEx) {
-				for (Map.Entry<Object, Action> entry : _branchMap.entrySet()) {
-					Pattern pattern = (Pattern) entry.getKey();
-					Matcher matcher = pattern.matcher(strValue);
-					if (matcher.matches()) {
-						action = entry.getValue();
-						for (int i = 1; i <= matcher.groupCount(); ++i) {
-							message.getVariables().put(_varName + '#' + i, matcher.group(i));
+			if (_branchMap.size() > 0) {
+				checkAtomic(value, _varName);
+				String strValue = value.toString();
+				if (_branchMap.containsKey(strValue)) {
+					action = _branchMap.get(strValue);
+				} else if (_useRegEx) {
+					for (Map.Entry<Object, Action> entry : _branchMap.entrySet()) {
+						if (entry.getKey() instanceof Pattern) {
+							Pattern pattern = (Pattern) entry.getKey();
+							Matcher matcher = pattern.matcher(strValue);
+							if (matcher.matches()) {
+								action = entry.getValue();
+								for (int i = 1; i <= matcher.groupCount(); ++i) {
+									message.getVariables().put(_varName + '#' + i, matcher.group(i));
+								}
+								break;
+							}
 						}
-						break;
 					}
 				}
-			} else if (_branchMap.containsKey(strValue)) {
-				action = _branchMap.get(strValue);
 			}
 		}
 		if (_nextAction != null) {

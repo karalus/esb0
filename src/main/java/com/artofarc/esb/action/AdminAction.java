@@ -43,9 +43,11 @@ public class AdminAction extends Action {
 		String resource = "/" + resolve(message, ESBConstants.appendHttpUrlPath, true);
 		switch (verb) {
 		case "GET":
-			BranchOnPathAction.parseQueryString(message);
-			if (message.getVariables().containsKey("delete")) {
+			HttpQueryHelper.parseQueryString(message);
+			String value = message.getVariable("DELETE");
+			if (value != null) {
 				// Dirty hack for standard JSP is not able to send DELETE without ajax
+				message.putVariable(ESBConstants.QueryString, value);
 				deleteArtifact(context.getGlobalContext(), message, resource);
 			} else {
 				readArtifact(context, message, resource);
@@ -126,7 +128,7 @@ public class AdminAction extends Action {
 				globalContext.setFileSystem(newFileSystem);
 				newFileSystem.writeBackChanges();
 				logger.info("Artifact " +  resource + " deleted by " + message.getVariable(ESBConstants.RemoteUser));
-				createResponse(message, null, null, "");
+				createResponse(message, null, null, "?" + message.getVariable(ESBConstants.QueryString));
 			} catch (ValidationException e) {
 				logger.error("Not valid", e);
 				createErrorResponse(message, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
@@ -156,7 +158,7 @@ public class AdminAction extends Action {
 				if (consumerPort != null) {
 					// if header is missing just toggle state
 					consumerPort.enable(enable != null ? Boolean.parseBoolean(enable) : !consumerPort.isEnabled());
-					createResponse(message, null, null, "");
+					createResponse(message, null, null, "?" + message.getVariable(ESBConstants.QueryString));
 				} else {
 					createErrorResponse(message, HttpServletResponse.SC_NOT_FOUND, null);
 				}
@@ -168,7 +170,7 @@ public class AdminAction extends Action {
 		}
 	}
 
-	private static void deployChangeset(GlobalContext globalContext, FileSystem.ChangeSet changeSet, ESBMessage message, String pathInfo) throws IOException {
+	private static void deployChangeset(GlobalContext globalContext, FileSystem.ChangeSet changeSet, ESBMessage message, String pathInfo) throws Exception {
 		if (globalContext.lockFileSystem()) {
 			try {
 				int serviceCount = DeployHelper.deployChangeSet(globalContext, changeSet);

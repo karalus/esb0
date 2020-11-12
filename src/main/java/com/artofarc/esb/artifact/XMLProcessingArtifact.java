@@ -18,7 +18,9 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
@@ -58,6 +60,8 @@ public class XMLProcessingArtifact extends Artifact {
 
 	abstract public static class AbstractURIResolver implements URIResolver {
 
+		private static final String PROTOCOL_FILE = "file:";
+
 		protected abstract Artifact getBaseArtifact();
 
 		Artifact resolveArtifact(String href, String base) throws FileNotFoundException {
@@ -68,7 +72,7 @@ public class XMLProcessingArtifact extends Artifact {
 					return getBaseArtifact().loadArtifact(base).loadArtifact(href);
 				}
 			} else {
-				return getBaseArtifact().loadArtifact(href);
+				return getBaseArtifact().loadArtifact(href.startsWith(PROTOCOL_FILE) ? href.substring(PROTOCOL_FILE.length()) : href);
 			}
 		}
 
@@ -107,6 +111,33 @@ public class XMLProcessingArtifact extends Artifact {
 			Artifact artifact = super.resolveArtifact(href, base);
 			_artifact.get().addReference(artifact);
 			return artifact;
+		}
+	}
+
+	static final class ValidationErrorListener implements ErrorListener {
+
+		final String uri;
+		final ArrayList<TransformerException> exceptions = new ArrayList<>();
+
+		ValidationErrorListener(String uri) {
+			this.uri = uri;
+		}
+
+		@Override
+		public void warning(TransformerException exception) {
+			logger.warn(uri, exception);
+		}
+
+		@Override
+		public void fatalError(TransformerException exception) {
+			logger.error(uri, exception);
+			exceptions.add(exception);
+		}
+
+		@Override
+		public void error(TransformerException exception) {
+			logger.error(uri, exception);
+			exceptions.add(exception);
 		}
 	}
 

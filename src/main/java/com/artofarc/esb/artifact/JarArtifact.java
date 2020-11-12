@@ -18,7 +18,13 @@ package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.HashMap;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
+import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -36,8 +42,16 @@ public class JarArtifact extends Artifact {
 		super(fileSystem, parent, name);
 	}
 
-	public final Jar getJar() {
+	final Jar getJar() {
 		return _jar;
+	}
+
+	public final Set<String> getEntries() {
+		return _jar._entries.keySet();
+	}
+
+	public final boolean isUsed() {
+		return _jar._used;
 	}
 
 	@Override
@@ -57,13 +71,19 @@ public class JarArtifact extends Artifact {
 		_jar = new Jar(getContentAsBytes());
 	}
 
+	@Override
+	protected void invalidate() {
+		_jar = null;
+		super.invalidate();
+	}
+
 	static final class Jar {
 
 		private final byte[] _content;
-		private final HashMap<String, byte[]> _entries = new HashMap<>();
+		private final LinkedHashMap<String, byte[]> _entries = new LinkedHashMap<>();
 
 		// track whether the JAR is used 
-		boolean _used;
+		volatile boolean _used;
 
 		Jar(byte[] content) throws IOException {
 			try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(content))) {
@@ -94,6 +114,30 @@ public class JarArtifact extends Artifact {
 				}
 			}
 			return _entries.get(filename);
+		}
+
+		URL createUrlForEntry(String filename) {
+			try {
+				return new URL(null, "esb0:" + filename, new URLStreamHandler() {
+
+					@Override
+					protected URLConnection openConnection(URL u) {
+						return new URLConnection(u) {
+
+							@Override
+							public void connect() {
+							}
+
+							@Override
+							public InputStream getInputStream() throws IOException {
+								return new ByteArrayInputStream(getEntry(url.getPath()));
+							}
+						};
+					}
+				});
+			} catch (MalformedURLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 

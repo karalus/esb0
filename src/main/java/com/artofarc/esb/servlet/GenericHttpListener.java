@@ -101,13 +101,13 @@ public class GenericHttpListener extends HttpServlet {
 		if (httpConsumer.isPathMapping()) {
 			message.getVariables().put(appendHttpUrlPath, URLDecoder.decode(pathInfo.substring(httpConsumer.getBindPath().length()), "UTF-8"));
 		}
-		message.putVariable(QueryString, request.getQueryString());
+		message.putVariableIfNotNull(QueryString, request.getQueryString());
 		message.setCharset(request.getCharacterEncoding());
 		for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 			String headerName = headerNames.nextElement();
 			message.putHeader(headerName, request.getHeader(headerName));
 		}
-		message.putVariable(RemoteUser, request.getRemoteUser());
+		message.putVariableIfNotNull(RemoteUser, request.getRemoteUser());
 		final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
 		if (certs != null) {
 			// Only for SSL mutual authentication
@@ -118,9 +118,9 @@ public class GenericHttpListener extends HttpServlet {
 			MimeHelper.parseMultipart(message, request.getContentType());
 		}
 		// copy into variable for HttpServletResponseAction
-		message.putVariable(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));
-		message.putVariable(HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HTTP_HEADER_ACCEPT_ENCODING));
-		message.putVariable(HTTP_HEADER_ACCEPT, message.removeHeader(HTTP_HEADER_ACCEPT));
+		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));
+		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HTTP_HEADER_ACCEPT_ENCODING));
+		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT, message.removeHeader(HTTP_HEADER_ACCEPT));
 		message.getVariables().put(AsyncContext, request.startAsync());
 		return message;
 	}

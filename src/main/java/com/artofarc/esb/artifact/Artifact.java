@@ -55,12 +55,12 @@ public abstract class Artifact {
 		}
 	}
 
-	public final boolean isEqual(Artifact other) {
+	public final boolean isDifferent(byte[] content, long crc) {
 		if (_content != null) {
-			return Arrays.equals(_content, other._content);
+			return !Arrays.equals(_content, content);
 		}
 		// not 100% certain, but very likely
-		return _length == other._length && _crc == other._crc;
+		return _length != content.length || _crc != crc;
 	}
 
 	public final Directory getParent() {
@@ -127,7 +127,15 @@ public abstract class Artifact {
 	}
 
 	public final InputStream getContentAsStream() {
-		return _content != null ? new ByteArrayInputStream(_content) : _fileSystem.createInputStream(getURI());
+		if (_content != null) {
+			return new ByteArrayInputStream(_content);
+		} else {
+			try {
+				return _fileSystem.createInputStream(getURI());
+			} catch (Exception e) {
+				throw ReflectionUtils.convert(e, RuntimeException.class);
+			}
+		}
 	}
 
 	protected final byte[] getContentAsBytes() throws Exception {
@@ -177,7 +185,11 @@ public abstract class Artifact {
 		_validated = false;
 		for (Iterator<String> iterator = _referenced.iterator(); iterator.hasNext();) {
 			Artifact artifact = getArtifact(iterator.next());
-			artifact.getReferencedBy().remove(getURI());
+			Collection<String> referencedBy = artifact.getReferencedBy();
+			referencedBy.remove(getURI());
+			if (referencedBy.isEmpty()) {
+				artifact.invalidate();
+			}
 			iterator.remove();
 		}
 	}
@@ -189,8 +201,7 @@ public abstract class Artifact {
 			} else {
 				try {
 					validateInternal(globalContext);
-				} catch (Exception | StackOverflowError e) {
-					// StackOverflowError can happen when a XQuery is deeply nested
+				} catch (Exception e) {
 					throw ReflectionUtils.convert(e, ValidationException.class, this);
 				}
 				setValidated();

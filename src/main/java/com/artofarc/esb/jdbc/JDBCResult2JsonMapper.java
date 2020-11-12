@@ -27,15 +27,15 @@ import javax.xml.bind.DatatypeConverter;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.StringBuilderWriter;
 
 public class JDBCResult2JsonMapper {
 
 	public static void writeResult(JDBCResult result, ESBMessage message) throws SQLException, IOException {
 		if (result.hasComplexContent()) {
-			StringWriter sw = null;
+			StringBuilderWriter sw = null;
 			if (!message.isSink()) {
-				message.reset(BodyType.WRITER, sw = new StringWriter());
+				message.reset(BodyType.WRITER, sw = new StringBuilderWriter());
 			}
 			try (JsonGenerator jsonGenerator = message.getBodyAsJsonGenerator()) {
 				writeStartCurrent(result, jsonGenerator);
@@ -50,7 +50,7 @@ public class JDBCResult2JsonMapper {
 				jsonGenerator.writeEnd();
 			}
 			if (sw != null) {
-				message.reset(BodyType.READER, sw.getStringReader());
+				message.reset(BodyType.READER, sw.getReader());
 			}
 			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 		} else if (result.getCurrentUpdateCount() >= 0) {

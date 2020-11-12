@@ -97,10 +97,4 @@ public abstract class XMLParserBase extends XMLFilterBase {
 		}
 	}
 
-	public final void characters(String value) throws SAXException {
-		if (value.length() > 0) {
-			characters(value.toCharArray(), 0, value.length());
-		}
-	}
-
 }

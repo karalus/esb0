@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConnectionProvider;
+import com.artofarc.util.XQuerySource;
 
 public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 

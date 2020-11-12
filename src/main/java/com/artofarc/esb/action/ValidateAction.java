@@ -44,7 +44,9 @@ public class ValidateAction extends AssignAction {
 		} catch (XQException e) {
 			throw new ExecutionException(this, "Validation failed", e.getCause());
 		}
-		message.setSchema(_schema);
+		if (_contextItem == null) {
+			message.setSchema(_schema);
+		}
 	}
 
 }

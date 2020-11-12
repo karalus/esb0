@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.List;
 
 import javax.naming.NamingException;
@@ -31,8 +32,11 @@ import com.artofarc.esb.message.ESBMessage;
 
 public class JDBCSQLAction extends JDBCAction {
 
-	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout) throws NamingException {
-		super(globalContext, dsName, sql, params, maxRows, timeout, null);
+	private final String[] _generatedKeys;
+
+	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, List<String> generatedKeys, int maxRows, int timeout, boolean keepConnection) throws NamingException {
+		super(globalContext, dsName, sql, params, maxRows, timeout, keepConnection, null);
+		_generatedKeys = generatedKeys.isEmpty() ? null : generatedKeys.toArray(new String[generatedKeys.size()]);
 		if (sql != null) {
 			int count = 0;
 			for (int i = sql.length(); i > 0;) {
@@ -50,15 +54,18 @@ public class JDBCSQLAction extends JDBCAction {
 		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.debug("JDBCSQLAction sql=" + sql);
 		JDBCConnection conn = execContext.getResource();
-		try {
-			PreparedStatement ps = conn.getConnection().prepareStatement(sql);
-			bindParameters(conn, ps, context, execContext, message);
-			ps.execute();
-			return execContext.setResource3(new JDBCResult(ps));
-		} catch (Exception e) {
-			conn.close();
-			throw e;
+		PreparedStatement ps = _generatedKeys != null ? conn.getConnection().prepareStatement(sql, _generatedKeys) : conn.getConnection().prepareStatement(sql);
+		bindParameters(conn, ps, context, execContext, message);
+		ps.execute();
+		if (_generatedKeys != null) {
+			ResultSet generatedKeys = ps.getGeneratedKeys();
+			int i = 0;
+			while (generatedKeys.next()) {
+				message.putVariable(_generatedKeys[i++], generatedKeys.getObject(1));
+			}
+			generatedKeys.close();
 		}
+		return new JDBCResult(ps);
 	} 
 
 }

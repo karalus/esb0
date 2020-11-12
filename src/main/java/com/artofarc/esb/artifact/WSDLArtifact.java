@@ -169,10 +169,12 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				if (wsdlArtifact == null) {
 					throw new IllegalStateException("Reference has already been cleared");
 				}
-				return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(wsdlArtifact._schemas.get(namespaceURI)));
-			} else {
-				return super.resolveResource(type, namespaceURI, publicId, systemId, baseURI);
+				byte[] ba = wsdlArtifact._schemas.get(namespaceURI);
+				if (ba != null) {
+					return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(ba));
+				}
 			}
+			return super.resolveResource(type, namespaceURI, publicId, systemId, baseURI);
 		}
 	}
 
