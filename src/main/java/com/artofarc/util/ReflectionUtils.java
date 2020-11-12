@@ -16,11 +16,7 @@
  */
 package com.artofarc.util;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -214,6 +210,12 @@ public final class ReflectionUtils {
 				return findField(cls.getSuperclass(), name);
 			}
 			throw e;
+		}
+	}
+
+	public static void checkStatic(Member member) {
+		if ((member.getModifiers() & Modifier.STATIC) == 0) {
+			throw new IllegalArgumentException("Member must be static: " + member);
 		}
 	}
 

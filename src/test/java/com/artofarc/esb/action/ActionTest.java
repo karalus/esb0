@@ -109,39 +109,52 @@ public class ActionTest extends AbstractESBTest {
       assertFalse(action2.isExecuted());
       assertTrue(action3.isExecuted());
    }
-   
-   @Test
-   public void testSetMessage() throws Exception {
-      ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), new StringWrapper("${body}"), "java.lang.String", null);
-		action.addAssignment("int", true, "42", "java.lang.Integer", null);
-		action.addAssignment("bool", true, "true", "java.lang.Boolean", "parseBoolean");
-		action.addAssignment("now", true, "", "java.lang.System", "currentTimeMillis");
-		action.addAssignment("_id", false, "", "java.util.UUID", "randomUUID");
-		action.addAssignment("id", true, "${_id.toString}", null, null);
-		action.addAssignment("id2", true, "${id.substring(2)}", null, null);
-		action.addAssignment("_calendar", false, "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime");
-		action.addAssignment("timeInMillis", false, "${_calendar.getTimeInMillis}", null, null);
-		action.addAssignment("_addr", false, "", "java.net.InetAddress", "getLocalHost");
-		action.addAssignment("hostname", false, "${_addr.getHostName}", null, null);
-		action.addAssignment("date", false, "", "java.util.Date", null);
-		action.addAssignment("_dateVoid", false, "${date.setTime(timeInMillis)}", null, null);
-		action.addAssignment("_formatter", false, "", "java.util.Formatter", null);
-		action.addAssignment("formattedInt", false, "${_formatter.format('%04d',int).toString}", null, null);
-		action.addAssignment("_formatter", false, "${formatter.close}", null, null);
+
+	@Test
+	public void testSetMessage() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), new StringWrapper("${body}"), "java.lang.String", null);
+		action.addAssignment("int", true, "42", "java.lang.Integer", null, null);
+		action.addAssignment("bool", true, "true", "java.lang.Boolean", "parseBoolean", null);
+		action.addAssignment("now", true, "", "java.lang.System", "currentTimeMillis", null);
+		action.addAssignment("_id", false, "", "java.util.UUID", "randomUUID", null);
+		action.addAssignment("id", true, "${_id.toString}", null, null, null);
+		action.addAssignment("id2", true, "${id.substring(2)}", null, null, null);
+		action.addAssignment("_calendar", false, "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime", null);
+		action.addAssignment("timeInMillis", false, "${_calendar.getTimeInMillis}", null, null, null);
+		action.addAssignment("_addr", false, "", "java.net.InetAddress", "getLocalHost", null);
+		action.addAssignment("hostname", false, "${_addr.getHostName}", null, null, null);
+		action.addAssignment("date", false, "", "java.util.Date", null, null);
+		action.addAssignment("_dateVoid", false, "${date.setTime(timeInMillis)}", null, null, null);
+		action.addAssignment("_formatter", false, "", "java.util.Formatter", null, null);
+		action.addAssignment("formattedInt", false, "${_formatter.format('%04d',int).toString}", null, null, null);
+		action.addAssignment("_formatter", false, "${formatter.close}", null, null, null);
 		action.setNextAction(action);
-   	action.setNextAction(new DumpAction());
-   	action.process(context, message);
-   	assertEquals("0042", message.getVariable("formattedInt"));
-   	assertEquals(null, Integer.valueOf(42), message.getHeader("int"));
-   	assertEquals(true, message.getHeader("bool"));
-   	assertTrue(message.getHeader("now") instanceof Long);
-   	assertTrue(message.getHeader("id") instanceof String);
-   	Object calendar = message.getVariable("_calendar");
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+		assertEquals("0042", message.getVariable("formattedInt"));
+		assertEquals(null, Integer.valueOf(42), message.getHeader("int"));
+		assertEquals(true, message.getHeader("bool"));
+		assertTrue(message.getHeader("now") instanceof Long);
+		assertTrue(message.getHeader("id") instanceof String);
+		Object calendar = message.getVariable("_calendar");
 		assertTrue("Type is: " + calendar.getClass(), calendar instanceof Calendar);
-   	Object timeInMillis = message.getVariable("timeInMillis");
+		Object timeInMillis = message.getVariable("timeInMillis");
 		assertTrue("Type is: " + timeInMillis.getClass(), timeInMillis instanceof Long);
-   }
+	}
+
+	@Test
+	public void testSetMessageJodaTime() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("Content-Type", true, "", "com.artofarc.esb.http.HttpConstants", null, "HTTP_HEADER_CONTENT_TYPE_JSON");
+		action.addAssignment("now", false, "", "java.time.LocalDateTime", "now", null);
+		action.addAssignment("midnight", false, "${now.withHour(0).withMinute(0).withSecond(0).withNano(0).plusDays(1)}", null, null, null);
+		action.addAssignment("chronoUnit", false, "", "java.time.temporal.ChronoUnit", null, "SECONDS");
+		action.addAssignment("ttl", false, "${chronoUnit.between(now,midnight)}", null, null, null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+	}
 
    @Test
    public void testJsonPointer() throws Exception {
