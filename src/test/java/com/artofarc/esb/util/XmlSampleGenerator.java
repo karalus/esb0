@@ -142,6 +142,12 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 			return "1E2";
 		case "boolean":
 			return "false";
+		case "dateTime":
+			return "2020-08-05T07:54:45.435Z";
+		case "date":
+			return "2020-08-05";
+		case "time":
+			return "07:54:45Z";
 		default:
 			return facets.isEmpty() ? "string" : facets.get(0).getValue().value;
 		}
