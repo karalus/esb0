@@ -37,9 +37,9 @@ public class SendMailAction extends TerminalAction {
 	private final String from, to, cc, bcc, replyTo, subject, text;
 
 	public SendMailAction(GlobalContext globalContext, Properties properties, String workerPoolName, String from, String to, String cc, String bcc, String replyTo, String subject, String text) {
-		MailSessionFactory mailSessionFactory = globalContext.getResourceFactory(MailSessionFactory.class);
 		WorkerPool workerPool = globalContext.getWorkerPool(workerPoolName);
 		properties.put("mail.event.executor", workerPool.getExecutorService());
+		MailSessionFactory mailSessionFactory = globalContext.getResourceFactory(MailSessionFactory.class);
 		_session = mailSessionFactory.getResource(properties).getSession();
 		this.from = from;
 		this.to = to;
@@ -55,9 +55,7 @@ public class SendMailAction extends TerminalAction {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 		MimeMessage msg = new MimeMessage(_session);
 		msg.setFrom(new InternetAddress((String) bindVariable(from, context, message)));
-		if (to != null) {
-			msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse((String) bindVariable(to, context, message), false));
-		}
+		msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse((String) bindVariable(to, context, message), false));
 		if (cc != null) {
 			msg.setRecipients(Message.RecipientType.CC, InternetAddress.parse((String) bindVariable(cc, context, message), false));
 		}
