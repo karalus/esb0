@@ -128,7 +128,8 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 	}
 	
 	private static String getSampleValue(XSSimpleType simpleType, List<XSFacet> facets) {
-		switch (XSOMHelper.getJsonType(simpleType)) {
+		XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
+		switch (XSOMHelper.getJsonType(itemType != null ? itemType : simpleType)) {
 		case "int":
 			return "42";
 		case "long":
