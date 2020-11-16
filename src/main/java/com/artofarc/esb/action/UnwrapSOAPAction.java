@@ -110,14 +110,13 @@ public class UnwrapSOAPAction extends TransformAction {
 	}
 
 	protected String determineOperation(ESBMessage message) throws ExecutionException {
-		String soapAction = message.getHeader(HTTP_HEADER_SOAP_ACTION);
+		String soapAction = removeQuotes(message.getHeader(HTTP_HEADER_SOAP_ACTION));
 		if (soapAction == null && _soap12) {
 			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 			soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
 		}
 		if (soapAction != null) {
-			// soapAction is always embedded in quotes
-			String operation = _mapAction2Operation.get(removeQuotes(soapAction));
+			String operation = _mapAction2Operation.get(soapAction);
 			if (operation != null) {
 				return operation;
 			}

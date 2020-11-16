@@ -50,7 +50,7 @@ public class FileAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
-		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+		String contentType = HttpConstants.parseContentType(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
 		String filename = message.getVariable(ESBConstants.filename);
 		String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(contentType) : "";
 		boolean zip = Boolean.parseBoolean(String.valueOf(message.<Object> getVariable("zip")));

@@ -50,7 +50,7 @@ public final class MimeHelper {
 	}
 
 	public static String getDispositionName(MimeBodyPart bodyPart) throws MessagingException {
-		return removeQuotes(getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), HTTP_HEADER_CONTENT_PARAMETER_NAME));
+		return getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), HTTP_HEADER_CONTENT_PARAMETER_NAME);
 	}
 
 	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
@@ -82,7 +82,7 @@ public final class MimeHelper {
 		final boolean isMultipart = contentType != null && contentType.startsWith("multipart/");
 		if (isMultipart) {
 			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getBodyAsInputStream(null), contentType));
-			String start = removeQuotes(getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START));
+			String start = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START);
 			String soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
 			if (soapAction != null) {
 				message.putHeader(HTTP_HEADER_SOAP_ACTION, soapAction);

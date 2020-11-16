@@ -83,13 +83,21 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_X_METHOD_OVERRIDE = "X-HTTP-Method-Override";
 
+	public static String getValueFromHttpHeader(String httpHeader, int offset) {
+		final int i = httpHeader.indexOf(';', offset);
+		return removeQuotes(i < 0 ? httpHeader.substring(offset) : httpHeader.substring(offset, i));
+	}
+
 	public static String getValueFromHttpHeader(String httpHeader, String key) {
 		if (httpHeader != null) {
-			int i = httpHeader.indexOf(key);
+			int i = httpHeader.indexOf(';');
 			if (i >= 0) {
-				i += key.length();
-				int j = httpHeader.indexOf(';', i);
-				return j < 0 ? httpHeader.substring(i) : httpHeader.substring(i, j);
+				final int keyLen = key.length();
+				for (; i < httpHeader.length() - keyLen; ++i) {
+					if (httpHeader.regionMatches(true, i, key, 0, keyLen)) {
+						return getValueFromHttpHeader(httpHeader, i + keyLen);
+					}
+				}
 			}
 		}
 		return null;
@@ -100,11 +108,11 @@ public class HttpConstants {
 	}
 
 	public static String parseContentType(String contentType) {
-		String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
-		if (type != null) {
-			contentType = removeQuotes(type);
+		if (contentType != null) {
+			final String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
+			return (type != null ? type : getValueFromHttpHeader(contentType, 0)).toLowerCase();
 		}
-		return contentType;
+		return null;
 	}
 
 	public static boolean isFastInfoset(String contentType) {

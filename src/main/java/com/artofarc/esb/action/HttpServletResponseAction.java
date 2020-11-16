@@ -68,7 +68,7 @@ public class HttpServletResponseAction extends Action {
 			}
 			final String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
 			if (acceptCharset != null) {
-				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset, ""));
+				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset, 0));
 			}
 			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
 			if (_supportCompression) checkCompression(message);

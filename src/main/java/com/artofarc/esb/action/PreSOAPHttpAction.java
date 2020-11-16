@@ -48,7 +48,7 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 		if (_soap12) {
 			if (soapAction != null && soapAction.length() > 0) {
 				String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-				message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + soapAction);
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + '"' + soapAction + '"');
 			}
 			message.putHeader(HTTP_HEADER_ACCEPT, SOAP_1_2_CONTENT_TYPE);
 		} else {
