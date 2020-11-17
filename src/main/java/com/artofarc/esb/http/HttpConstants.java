@@ -83,24 +83,54 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_X_METHOD_OVERRIDE = "X-HTTP-Method-Override";
 
-	public static String getValueFromHttpHeader(String httpHeader, int offset) {
-		final int i = httpHeader.indexOf(';', offset);
-		return removeQuotes(i < 0 ? httpHeader.substring(offset) : httpHeader.substring(offset, i));
+	private static int findNextDelim(String s, int i) {
+		for (; i < s.length(); ++i) {
+			final char c = s.charAt(i);
+			if (c == ';' || c == ',' || c == '=') {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	private static String parseValueFromHttpHeader(String s, String key, int len) {
+		int i = findNextDelim(s, 0) + 1;
+		if (i == 0) return null;
+		StringBuilder value = new StringBuilder();
+		while (i < s.length()) {
+			while (Character.isWhitespace(s.charAt(i))) ++i;
+			final int j = findNextDelim(s, i);
+			int k = j + 1;
+			boolean quoted = false, escaped = false;
+			while (k < s.length()) {
+				final char c = s.charAt(k++);
+				if (c == '"' && !escaped) {
+					quoted = !quoted;
+					continue;
+				}
+				if (!quoted && !escaped && (c == ';' || c == ',')) {
+					break;
+				}
+				if (!(escaped = quoted && !escaped && c == '\\')) {
+					value.append(c);
+				}
+			}
+			if (j - i == len && s.regionMatches(true, i, key, 0, len)) {
+				return value.toString();
+			}
+			i = k;
+			value.setLength(0);
+		}
+		return null;
+	}
+
+	public static String getValueFromHttpHeader(String httpHeader) {
+		final int i = findNextDelim(httpHeader, 0);
+		return i < 0 ? httpHeader : httpHeader.substring(0, i);
 	}
 
 	public static String getValueFromHttpHeader(String httpHeader, String key) {
-		if (httpHeader != null) {
-			int i = httpHeader.indexOf(';');
-			if (i >= 0) {
-				final int keyLen = key.length();
-				for (; i < httpHeader.length() - keyLen; ++i) {
-					if (httpHeader.regionMatches(true, i, key, 0, keyLen)) {
-						return getValueFromHttpHeader(httpHeader, i + keyLen);
-					}
-				}
-			}
-		}
-		return null;
+		return httpHeader != null ? parseValueFromHttpHeader(httpHeader, key, key.length() - 1) : null;
 	}
 
 	public static String removeQuotes(String s) {
@@ -110,7 +140,7 @@ public class HttpConstants {
 	public static String parseContentType(String contentType) {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
-			return (type != null ? type : getValueFromHttpHeader(contentType, 0)).toLowerCase();
+			return (type != null ? type : getValueFromHttpHeader(contentType)).toLowerCase();
 		}
 		return null;
 	}
