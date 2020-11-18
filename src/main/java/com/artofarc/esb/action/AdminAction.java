@@ -43,7 +43,7 @@ public class AdminAction extends Action {
 		String resource = "/" + resolve(message, ESBConstants.appendHttpUrlPath, true);
 		switch (verb) {
 		case "GET":
-			HttpQueryHelper.parseQueryString(message);
+			HttpQueryHelper.parseQueryString(message, false);
 			String value = message.getVariable("DELETE");
 			if (value != null) {
 				// Dirty hack for standard JSP is not able to send DELETE without ajax

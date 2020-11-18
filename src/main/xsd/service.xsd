@@ -502,6 +502,7 @@
 						</element>
 					</sequence>
 					<attribute name="basePath" type="anyURI" default="" />
+					<attribute name="genericQuery" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>

@@ -98,8 +98,15 @@ public class BranchOnVariableAction extends Action {
 							Matcher matcher = pattern.matcher(strValue);
 							if (matcher.matches()) {
 								action = entry.getValue();
-								for (int i = 1; i <= matcher.groupCount(); ++i) {
-									message.getVariables().put(_varName + '#' + i, matcher.group(i));
+								int groupCount = matcher.groupCount();
+								if (groupCount > 0) {
+									int count = 0;
+									for (int i = 1; i <= groupCount; ++i) {
+										String group = matcher.group(i);
+										if (group != null) ++count;
+										message.getVariables().put(_varName + '#' + i, group);
+									}
+									message.getVariables().put(_varName + '#', count);
 								}
 								break;
 							}
