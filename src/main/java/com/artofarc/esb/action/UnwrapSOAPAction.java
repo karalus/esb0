@@ -102,7 +102,7 @@ public class UnwrapSOAPAction extends TransformAction {
 			throw new ExecutionException(this, error);
 		}
 		ExecutionContext execContext = super.prepare(context, message, inPipeline);
-		message.putVariable(SOAP_OPERATION, determineOperation(message));
+		message.putVariableIfNotNull(SOAP_OPERATION, determineOperation(message));
 		if (_schema != null) {
 			message.setSchema(_schema);
 		}
