@@ -116,7 +116,7 @@ public class HttpConstants {
 				}
 			}
 			if (j - i == len && s.regionMatches(true, i, key, 0, len)) {
-				return value.toString();
+				return value.length() > 0 ? value.toString() : "";
 			}
 			i = k;
 			value.setLength(0);
@@ -131,10 +131,6 @@ public class HttpConstants {
 
 	public static String getValueFromHttpHeader(String httpHeader, String key) {
 		return httpHeader != null ? parseValueFromHttpHeader(httpHeader, key, key.length() - 1) : null;
-	}
-
-	public static String removeQuotes(String s) {
-		return s != null && s.charAt(0) == '"' ? s.substring(1, s.length() - 1) : s;
 	}
 
 	public static String parseContentType(String contentType) {
