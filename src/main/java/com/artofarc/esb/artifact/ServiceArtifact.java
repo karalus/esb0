@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
+import javax.naming.NamingException;
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
@@ -185,31 +186,20 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "produceKafka": {
 			ProduceKafka produceKafka = (ProduceKafka) actionElement.getValue();
-			Properties properties = new Properties();
-			for (Property property : produceKafka.getProperty()) {
-				properties.put(property.getKey(), globalContext.bindProperties(property.getValue()));
-			}
-			addAction(list, new KafkaProduceAction(globalContext, properties, produceKafka.getTopic(), produceKafka.getPartition(), produceKafka.isBinary()), location);
+			addAction(list, new KafkaProduceAction(globalContext, createProperties(produceKafka.getProperty(), globalContext), produceKafka.getTopic(),
+					produceKafka.getPartition(), produceKafka.isBinary()), location);
 			break;
 		}
 		case "consumeKafka": {
 			ConsumeKafka consumeKafka = (ConsumeKafka) actionElement.getValue();
-			Properties properties = new Properties();
-			for (Property property : consumeKafka.getProperty()) {
-				properties.put(property.getKey(), globalContext.bindProperties(property.getValue()));
-			}
-			KafkaConsumeAction kafkaConsumeAction = new KafkaConsumeAction(properties, consumeKafka.getTopic(), consumeKafka.getTimeout(),
-					resolveWorkerPool(consumeKafka.getWorkerPool()), Action.linkList(transform(globalContext, consumeKafka.getAction(), null)));
-			addAction(list, kafkaConsumeAction, location);
+			addAction(list, new KafkaConsumeAction(createProperties(consumeKafka.getProperty(), globalContext), consumeKafka.getTopic(), consumeKafka.getTimeout(),
+					resolveWorkerPool(consumeKafka.getWorkerPool()), Action.linkList(transform(globalContext, consumeKafka.getAction(), null))), location);
 			break;
 		}
 		case "sendMail": {
 			SendMail sendMail = (SendMail) actionElement.getValue();
-			Properties properties = new Properties();
-			for (Property property : sendMail.getProperty()) {
-				properties.put(property.getKey(), property.getValue());
-			}
-			addAction(list, new SendMailAction(globalContext, properties, resolveWorkerPool(sendMail.getWorkerPool()), sendMail.getFrom(), sendMail.getTo(), sendMail.getCc(), sendMail.getBcc(), sendMail.getReplyTo(), sendMail.getSubject(), sendMail.getText()), location);
+			addAction(list, new SendMailAction(globalContext, createProperties(sendMail.getProperty(), globalContext), resolveWorkerPool(sendMail.getWorkerPool()),
+					sendMail.getFrom(), sendMail.getTo(), sendMail.getCc(), sendMail.getBcc(), sendMail.getReplyTo(), sendMail.getSubject(), sendMail.getText()), location);
 			break;
 		}
 		case "file": {
@@ -553,6 +543,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 		}
 		return params;
+	}
+
+	private static Properties createProperties(List<Property> propertyList, GlobalContext globalContext) throws NamingException {
+		Properties properties = new Properties();
+		for (Property property : propertyList) {
+			properties.put(property.getKey(), globalContext.bindProperties(property.getValue()));
+		}
+		return properties;
 	}
 
 }
