@@ -214,7 +214,7 @@ public abstract class FileSystem {
 			Artifact artifact = result.getArtifacts().get(name);
 			if (artifact == null) {
 				result = new Directory(this, result, name);
-				_changes.put(result.getURI(), ChangeType.CREATE);
+				noteChange(result.getURI(), ChangeType.CREATE);
 			} else if (artifact instanceof Directory) {
 				result = (Directory) artifact;
 			} else {
@@ -261,12 +261,12 @@ public abstract class FileSystem {
 				if (!XMLCatalog.isXMLCatalog(child) && deleteOrphans(child, visited)) {
 					logger.info("Remove: " + artifact.getURI());
 					iterator.remove();
-					_changes.put(artifact.getURI(), ChangeType.DELETE);
+					noteChange(artifact.getURI(), ChangeType.DELETE);
 				}
 			} else if (!visited.contains(artifact.getURI())) {
 				logger.info("Remove: " + artifact);
 				iterator.remove();
-				_changes.put(artifact.getURI(), ChangeType.DELETE);
+				noteChange(artifact.getURI(), ChangeType.DELETE);
 			}
 		}
 		return directory.getArtifacts().isEmpty();
@@ -346,6 +346,10 @@ public abstract class FileSystem {
 		}
 	}
 
+	private void noteChange(String uri, ChangeType type) {
+		_changes.put(uri, type);
+	}
+
 	public final ChangeSet createChangeSet(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {
 		FileSystem copy = copy();
 		boolean tidyOut = copy.mergeZIP(inputStream);
@@ -356,14 +360,22 @@ public abstract class FileSystem {
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, String uri, byte[] content) throws Exception {
 		FileSystem copy = copy();
-		Artifact artifact = copy.loadArtifact(copy.getRoot(), uri);
 		CRC32 crc = new CRC32();
 		crc.update(content);
-		if (artifact.isDifferent(content, crc.getValue())) {
+		Artifact artifact = copy.getArtifact(copy.getRoot(), uri);
+		if (artifact != null) {
+			if (artifact.isDifferent(content, crc.getValue())) {
+				artifact.setContent(content);
+				artifact.setModificationTime(System.currentTimeMillis());
+				artifact.setCrc(crc.getValue());
+				copy.noteChange(uri, ChangeType.UPDATE);
+			}
+		} else {
+			artifact = copy.createArtifact(uri.substring(1));
 			artifact.setContent(content);
 			artifact.setModificationTime(System.currentTimeMillis());
 			artifact.setCrc(crc.getValue());
-			copy._changes.put(uri, ChangeType.UPDATE);
+			copy.noteChange(uri, ChangeType.CREATE);
 		}
 		return validateChanges(globalContext, copy);
 	}
@@ -374,7 +386,7 @@ public abstract class FileSystem {
 		if (!deleteArtifact(artifact)) {
 			throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
 		}
-		copy._changes.put(uriToDelete, ChangeType.DELETE);
+		copy.noteChange(uriToDelete, ChangeType.DELETE);
 		ChangeSet changeSet = copy.new ChangeSet();
 		if (artifact instanceof ServiceArtifact) {
 			changeSet.deletedServiceArtifacts.add((ServiceArtifact) artifact);
@@ -429,7 +441,7 @@ public abstract class FileSystem {
 					StringTokenizer tokenizer = new StringTokenizer(delete, ", ");
 					while (tokenizer.hasMoreTokens()) {
 						String uri = tokenizer.nextToken();
-						_changes.put(loadArtifact(_root, uri).getURI(), ChangeType.DELETE);
+						noteChange(loadArtifact(_root, uri).getURI(), ChangeType.DELETE);
 					}
 				}
 			}
@@ -443,7 +455,7 @@ public abstract class FileSystem {
 							artifact.setContent(content);
 							artifact.setModificationTime(entry.getTime());
 							artifact.setCrc(entry.getCrc());
-							_changes.put(artifact.getURI(), ChangeType.UPDATE);
+							noteChange(artifact.getURI(), ChangeType.UPDATE);
 						} else if (artifact.getContent() == null) {
 							// Keep content (until dehydrateArtifacts happens), it might be needed by Resolvers during validation
 							artifact.setContent(content);
@@ -454,7 +466,7 @@ public abstract class FileSystem {
 							artifact.setContent(IOUtils.copy(zis));
 							artifact.setModificationTime(entry.getTime());
 							artifact.setCrc(entry.getCrc());
-							_changes.put(artifact.getURI(), ChangeType.CREATE);
+							noteChange(artifact.getURI(), ChangeType.CREATE);
 						}
 					}
 				}
