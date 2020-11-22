@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import java.util.Map.Entry;
-import java.util.StringTokenizer;
 
 import javax.mail.internet.MimeMultipart;
 import javax.servlet.AsyncContext;
@@ -68,7 +67,7 @@ public class HttpServletResponseAction extends Action {
 			}
 			final String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
 			if (acceptCharset != null) {
-				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset, ""));
+				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset));
 			}
 			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
 			if (_supportCompression) checkCompression(message);
@@ -107,13 +106,10 @@ public class HttpServletResponseAction extends Action {
 	private static void checkCompression(ESBMessage message) {
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
-			final StringTokenizer tokenizer = new StringTokenizer(acceptEncoding, ", ");
-			while (tokenizer.hasMoreTokens()) {
-				final String contentEncoding = tokenizer.nextToken();
-				if (contentEncoding.equals("gzip") || contentEncoding.equals("deflate")) {
-					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, contentEncoding);
-					break;
-				}
+			if (acceptEncoding.contains("gzip")) {
+				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
+			} else if (acceptEncoding.contains("deflate")) {
+				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "deflate");
 			}
 		}
 	}

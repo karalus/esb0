@@ -22,18 +22,17 @@ import java.util.List;
 
 import javax.xml.namespace.QName;
 
-import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.helpers.AttributesImpl;
 
-import com.artofarc.util.XMLFilterBase;
+import com.artofarc.util.XMLParserBase;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.*;
 
-public final class XmlSampleGenerator extends XMLFilterBase {
+public final class XmlSampleGenerator extends XMLParserBase {
 
 	private final ArrayDeque<QName> stack = new ArrayDeque<>();
 	private final QName _rootElement;
@@ -41,6 +40,7 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 	private LexicalHandler lexicalHandler;
 
 	public XmlSampleGenerator(XSSchemaSet schemaSet, String rootElement) {
+		super(true, null);
 		_rootElement = QName.valueOf(rootElement);
 		_element = schemaSet.getElementDecl(_rootElement.getNamespaceURI(), _rootElement.getLocalPart());
 	}
@@ -62,21 +62,17 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 
 	@Override
 	public void parse(InputSource inputSource) throws SAXException {
-		final ContentHandler ch = getContentHandler();
-		if (ch == null) {
-			throw new SAXException("ContentHandler not set");
-		}
 		final XSOMHelper xsomHelper = new XSOMHelper(_element);
 		final AttributesImpl atts = new AttributesImpl();
-		ch.startDocument();
-		ch.startElement(_rootElement.getNamespaceURI(), _rootElement.getLocalPart(), _rootElement.getLocalPart(), atts);
+		startDocument();
+		startElement(_rootElement.getNamespaceURI(), _rootElement.getLocalPart(), _rootElement.getLocalPart(), atts);
 		stack.push(_rootElement);
 		for (;;) {
 			final XSTerm term = xsomHelper.nextElement();
 			int level = xsomHelper.getLevel();
 			while (level < stack.size()) {
 				QName element = stack.pop();
-				ch.endElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart());
+				endElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart());
 			}
 			if (term == null) break;
 			if (!xsomHelper.isLastElementRequired()) {
@@ -94,13 +90,21 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 				if (complexType != null) {
 					for (XSAttributeUse attributeUse : complexType.getAttributeUses()) {
 						XSAttributeDecl decl = attributeUse.getDecl();
+						XSSimpleType itemType = XSOMHelper.getItemType(decl.getType());
+						XSSimpleType simpleType = itemType != null ? itemType : decl.getType();
 						String value = attributeUse.getDefaultValue() != null ? attributeUse.getDefaultValue().value
-								: getSampleValue(decl.getType(), decl.getType().getFacets(XSFacet.FACET_ENUMERATION));
+								: attributeUse.getFixedValue() != null ? attributeUse.getFixedValue().value
+										: getSampleValue(simpleType, simpleType.getFacets(XSFacet.FACET_ENUMERATION));
 						atts.addAttribute(decl.getTargetNamespace(), decl.getName(), decl.getName(), "CDATA", value);
 					}
 				}
 				XSSimpleType simpleType = xsomHelper.getSimpleType();
 				if (simpleType != null) {
+					XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
+					if (itemType != null) {
+						comment("Simple list:");
+						simpleType = itemType;
+					}
 					for (XSFacet facet : simpleType.getFacets(XSFacet.FACET_PATTERN)) {
 						comment("Pattern: " + facet.getValue());
 					}
@@ -112,21 +116,26 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 						}
 						comment("Enumeration: " + values);
 					}
-					ch.startElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart(), atts);
-					String s = term.asElementDecl().getDefaultValue() != null ? term.asElementDecl().getDefaultValue().value
-							: getSampleValue(simpleType, facets);
-					ch.characters(s.toCharArray(), 0, s.length());
-					ch.endElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart());
+					startElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart(), atts);
+					XSElementDecl elementDecl = term.asElementDecl();
+					if (elementDecl.getDefaultValue() != null ) {
+						characters(elementDecl.getDefaultValue().value);
+					} else if (elementDecl.getFixedValue() != null) {
+						characters(elementDecl.getFixedValue().value);
+					} else {
+						characters(getSampleValue(simpleType, facets));
+					}
+					endElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart());
 				} else {
-					ch.startElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart(), atts);
+					startElement(element.getNamespaceURI(), element.getLocalPart(), element.getLocalPart(), atts);
 					stack.push(element);
 				}
 				atts.clear();
 			}
 		}
-		ch.endDocument();
+		endDocument();
 	}
-	
+
 	private static String getSampleValue(XSSimpleType simpleType, List<XSFacet> facets) {
 		switch (XSOMHelper.getJsonType(simpleType)) {
 		case "int":
@@ -151,7 +160,6 @@ public final class XmlSampleGenerator extends XMLFilterBase {
 		default:
 			return facets.isEmpty() ? "string" : facets.get(0).getValue().value;
 		}
-
 	}
 
 }

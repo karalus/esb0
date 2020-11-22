@@ -29,18 +29,31 @@ public class HttpQueryHelper {
 
 	private static final String UTF_8 = "UTF-8";
 
-	public static void parseQueryString(ESBMessage message) throws UnsupportedEncodingException {
+	public static void parseQueryString(ESBMessage message, boolean generic) throws UnsupportedEncodingException {
 		String queryString = message.getVariable(ESBConstants.QueryString);
 		if (queryString != null) {
+			int count = 0;
 			StringTokenizer st = new StringTokenizer(queryString, "&");
 			while (st.hasMoreTokens()) {
 				String pair = st.nextToken();
 				final int i = pair.indexOf("=");
+				final String key, value;
 				if (i > 0) {
-					message.getVariables().put(URLDecoder.decode(pair.substring(0, i), UTF_8), URLDecoder.decode(pair.substring(i + 1), UTF_8));
+					key = URLDecoder.decode(pair.substring(0, i), UTF_8);
+					value = URLDecoder.decode(pair.substring(i + 1), UTF_8);
 				} else {
-					message.getVariables().put(URLDecoder.decode(pair, UTF_8), null);
+					key = URLDecoder.decode(pair, UTF_8);
+					value = null;
 				}
+				if (generic) {
+					message.getVariables().put(ESBConstants.QueryString + '#' + ++count, key);
+					message.getVariables().put(ESBConstants.QueryString + '#' + ++count, value);
+				} else {
+					message.getVariables().put(key, value);
+				}
+			}
+			if (generic) {
+				message.getVariables().put(ESBConstants.QueryString + '#', count);
 			}
 		}
 	}

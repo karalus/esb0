@@ -10,6 +10,15 @@
 <%@page import="com.artofarc.esb.http.HttpUrlSelector"%>
 <%@page import="com.artofarc.esb.artifact.*"%>
 <html>
+<head>
+<style>
+textarea, pre {
+	-moz-tab-size: 4;
+	-o-tab-size: 4;
+	tab-size: 4;
+}
+</style>
+</head>
 <body>
 <%
 	GlobalContext globalContext = (GlobalContext) application.getAttribute(ESBServletContextListener.CONTEXT);

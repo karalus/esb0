@@ -293,6 +293,8 @@ public final class ESBMessage implements Cloneable {
 			case "deflate":
 				inputStream = new InflaterInputStream(inputStream);
 				break;
+			case "identity":
+				break;
 			default:
 				throw new IOException("Unsupported content encoding " + contentEncoding);
 			}

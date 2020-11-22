@@ -179,7 +179,13 @@ public final class JsonSchemaGenerator {
 	}
 
 	private void generateType(XSSimpleType simpleType, XmlString defaultValue, JsonGenerator jsonGenerator) {
-		if (simpleType.isUnion()) {
+		XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
+		if (itemType != null) {
+			jsonGenerator.write("type", "array");
+			jsonGenerator.writeStartObject("items");
+			generateType(itemType, defaultValue, jsonGenerator);
+			jsonGenerator.writeEnd();
+		} else if (simpleType.isUnion()) {
 			jsonGenerator.writeStartArray("anyOf");
 			XSUnionSimpleType unionType = simpleType.asUnion();
 			for (int i = 0; i < unionType.getMemberSize(); ++i) {
@@ -187,11 +193,6 @@ public final class JsonSchemaGenerator {
 				generateType(unionType.getMember(i), defaultValue, jsonGenerator);
 				jsonGenerator.writeEnd();
 			}
-			jsonGenerator.writeEnd();
-		} else if (simpleType.isList()) {
-			jsonGenerator.write("type", "array");
-			jsonGenerator.writeStartObject("items");
-			generateType(simpleType.asList().getItemType(), defaultValue, jsonGenerator);
 			jsonGenerator.writeEnd();
 		} else {
 			String jsonType = XSOMHelper.getJsonType(simpleType);

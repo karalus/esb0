@@ -470,7 +470,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			if (branchOnPath.getDefault() != null) {
 				defaultAction = Action.linkList(transform(globalContext, branchOnPath.getDefault().getAction(), null));
 			}
-			BranchOnPathAction branchOnPathAction = new BranchOnPathAction(branchOnPath.getBasePath(), defaultAction);
+			BranchOnPathAction branchOnPathAction = new BranchOnPathAction(branchOnPath.getBasePath(), defaultAction, branchOnPath.isGenericQuery());
 			for (BranchOnPath.Branch branch : branchOnPath.getBranch()) {
 				branchOnPathAction.addBranch(branch.getPathTemplate(), Action.linkList(transform(globalContext, branch.getAction(), null)));
 			}

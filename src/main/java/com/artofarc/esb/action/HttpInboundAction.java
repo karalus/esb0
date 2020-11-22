@@ -46,9 +46,7 @@ public class HttpInboundAction extends Action {
 			}
 		}
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null) {
-			message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
-		}
+		message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 		InputStream inputStream = conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST ? conn.getInputStream() : conn.getErrorStream();
 		if (inputStream == null) {
 			inputStream = new java.io.ByteArrayInputStream(new byte[0]);

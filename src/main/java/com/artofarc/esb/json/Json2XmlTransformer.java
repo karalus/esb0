@@ -420,7 +420,7 @@ public final class Json2XmlTransformer {
 								startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 							}
 							if (simpleList) {
-								XSListSimpleType listSimpleType = xsomHelper.getListSimpleTypeFromUnion(type != null ? type : "string");
+								XSSimpleType listSimpleType = xsomHelper.getListSimpleTypeFromUnion(type != null ? type : "string");
 								startPrefixMapping("ns", listSimpleType.getTargetNamespace());
 								type = "ns:" + listSimpleType.getName();
 							} else {
@@ -621,7 +621,7 @@ public final class Json2XmlTransformer {
 						}
 						String prefix = null;
 						if (union) {
-							XSListSimpleType listSimpleType = xsomHelper.getListSimpleTypeFromUnion(primitiveType);
+							XSSimpleType listSimpleType = xsomHelper.getListSimpleTypeFromUnion(primitiveType);
 							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 							prefix = getPrefix(listSimpleType.getTargetNamespace());
 							if (prefix != null) {

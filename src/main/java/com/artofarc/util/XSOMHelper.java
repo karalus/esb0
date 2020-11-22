@@ -407,13 +407,13 @@ public final class XSOMHelper {
 
 	public boolean isListSimpleType() {
 		if (_simpleType != null) {
-			if (_simpleType.isList()) {
+			if (getItemType(_simpleType) != null) {
 				return true;
 			}
 			if (_simpleType.isUnion()) {
 				XSUnionSimpleType unionType = _simpleType.asUnion();
 				for (int i = unionType.getMemberSize(); i > 0;) {
-					if (unionType.getMember(--i).isList()) {
+					if (getItemType(unionType.getMember(--i)) != null) {
 						return true;
 					}
 				}
@@ -422,20 +422,20 @@ public final class XSOMHelper {
 		return false;
 	}
 
-	public XSListSimpleType getListSimpleTypeFromUnion(String xsdType) throws SAXException {
+	public XSSimpleType getListSimpleTypeFromUnion(String xsdType) throws SAXException {
 		if (_simpleType == null || !_simpleType.isUnion()) {
 			throw new SAXException("Current type is not xs:union");
 		}
 		XSUnionSimpleType unionType = _simpleType.asUnion();
 		for (int i = unionType.getMemberSize(); i > 0;) {
 			XSSimpleType simpleType = unionType.getMember(--i);
-			if (simpleType.isList()) {
-				XSListSimpleType listSimpleType = simpleType.asList();
-				if (xsdType == null || xsdType.equals(getJsonBaseType(listSimpleType.getItemType()))) {
-					if (listSimpleType.getName() == null) {
+			XSSimpleType itemType = getItemType(simpleType);
+			if (itemType != null) {
+				if (xsdType == null || xsdType.equals(getJsonBaseType(itemType))) {
+					if (simpleType.getName() == null) {
 						throw new SAXException("xs:union type must not contain anonymous xs:list type");
 					}
-					return listSimpleType;
+					return simpleType;
 				}
 			}
 		}
@@ -524,6 +524,20 @@ public final class XSOMHelper {
 		}
 		if (!typeName.equals(_complexType.getName())) {
 			throw new SAXException("Expected complex type " + typeName + ", but got " + _complexType.getName());
+		}
+	}
+
+	public static XSSimpleType getItemType(XSSimpleType simpleType) {
+		for (;;) {
+			if (simpleType.isList()) {
+				return simpleType.asList().getItemType();
+			}
+			final XSType baseType = simpleType.getBaseType();
+			if (baseType.isSimpleType()) {
+				simpleType = baseType.asSimpleType();
+			} else {
+				return null;
+			}
 		}
 	}
 

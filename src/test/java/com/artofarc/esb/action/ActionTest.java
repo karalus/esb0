@@ -59,7 +59,7 @@ public class ActionTest extends AbstractESBTest {
    public void testResolveTemplate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
       message.getVariables().put(ESBConstants.appendHttpUrlPath, "partner/4711/order/0815");
-      BranchOnPathAction action = new BranchOnPathAction("", null);
+      BranchOnPathAction action = new BranchOnPathAction("", null, false);
       MarkAction markAction = new MarkAction();
 		action.addBranch("partner/{partnerId}/order/{orderId}", markAction);
       ConsumerPort consumerPort = new ConsumerPort(null);
@@ -74,12 +74,24 @@ public class ActionTest extends AbstractESBTest {
    public void testResolveQuery() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
       message.getVariables().put(ESBConstants.QueryString, "wsdl&version=1%2E0");
-      BranchOnPathAction action = new BranchOnPathAction("", null);
+      BranchOnPathAction action = new BranchOnPathAction("", null, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       consumerPort.process(context, message);
       assertTrue(message.getVariables().containsKey("wsdl"));
       assertEquals("1.0", message.getVariable("version"));
+   }
+
+   @Test
+   public void testResolveQueryGeneric() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+      message.getVariables().put(ESBConstants.QueryString, "wsdl&version=1%2E0");
+      BranchOnPathAction action = new BranchOnPathAction("", null, true);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
+      assertEquals(Integer.valueOf(4), message.getVariable(ESBConstants.QueryString + "#"));
+      assertEquals("1.0", message.getVariable(ESBConstants.QueryString + "#4"));
    }
 
    @Test

@@ -117,25 +117,6 @@
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="sendMail" substitutionGroup="tns:action">
-		<complexType>
-			<complexContent>
-				<extension base="tns:ActionBase">
-					<sequence>
-						<element ref="tns:property" maxOccurs="unbounded"/>
-					</sequence>
-					<attribute name="workerPool" type="anyURI" />
-					<attribute name="from" type="tns:string1" use="required" />
-					<attribute name="to" type="tns:string1" use="required" />
-					<attribute name="cc" type="tns:string1" />
-					<attribute name="bcc" type="tns:string1" />
-					<attribute name="replyTo" type="tns:string1" />
-					<attribute name="subject" type="tns:string1" use="required" />
-					<attribute name="text" type="tns:string1" use="required" />
-				</extension>
-			</complexContent>
-		</complexType>
-	</element>
 	<element name="file" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
@@ -166,7 +147,7 @@
 			<attribute name="pos" type="int" />
 			<attribute name="body" type="boolean" default="false" />
 			<attribute name="attachments" type="boolean" default="false" />
-			<attribute name="variable" type="Name" />
+			<attribute name="variable" type="tns:identifier" />
 			<attribute name="type" type="Name" use="required" />
 			<attribute name="truncate" type="int" />
 			<attribute name="xmlElement" type="tns:string1" />			
@@ -234,7 +215,7 @@
 		<simpleContent>
 			<extension base="tns:string1">
 				<attribute name="nullable" type="boolean" default="false" />
-				<attribute name="type" type="tns:string1" />
+				<attribute name="type" type="NMTOKEN" />
 			</extension>
 		</simpleContent>
 	</complexType>
@@ -245,7 +226,7 @@
 					<element name="bindName" type="tns:XQDecl" minOccurs="0" maxOccurs="unbounded"/>
 					<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 				</sequence>
-				<attribute name="contextItem" type="NCName" />
+				<attribute name="contextItem" type="tns:identifier" />
 			</extension>
 		</complexContent>
 	</complexType>
@@ -258,8 +239,8 @@
 							<complexType>
 								<simpleContent>
 									<extension base="tns:XQDecl">
-										<attribute name="variable" type="NCName" />
-										<attribute name="header" type="NCName" />
+										<attribute name="variable" type="tns:identifier" />
+										<attribute name="header" type="tns:identifier" />
 									</extension>
 								</simpleContent>
 							</complexType>
@@ -310,7 +291,7 @@
 						<element name="xquery" type="string" minOccurs="0" />
 					</sequence>
 					<attribute name="xqueryURI" type="anyURI" />
-					<attribute name="contextItem" type="NCName" />
+					<attribute name="contextItem" type="tns:identifier" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -409,7 +390,7 @@
 					<attribute name="key" type="tns:string1" use="required" />
 					<attribute name="value" use="required" >
 						<simpleType>
-						    <list itemType="NCName" />
+						    <list itemType="tns:identifier" />
 						</simpleType>
 					</attribute>
 					<attribute name="writeOnly" type="boolean" default="false" />
@@ -475,7 +456,7 @@
 							</complexType>
 						</element>
 					</sequence>
-					<attribute name="variable" type="NCName" use="required" />
+					<attribute name="variable" type="tns:identifier" use="required" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -502,6 +483,7 @@
 						</element>
 					</sequence>
 					<attribute name="basePath" type="anyURI" default="" />
+					<attribute name="genericQuery" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -515,7 +497,7 @@
 					</sequence>
 					<attribute name="schemaURI" type="anyURI" use="required" />
 					<attribute name="expression" type="tns:string1" default="." />
-					<attribute name="contextItem" type="NCName" />
+					<attribute name="contextItem" type="tns:identifier" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -541,8 +523,8 @@
 	<complexType name="HeaderOrVariable">
 		<simpleContent>
 			<extension base="string">
-				<attribute name="name" type="NCName" use="required" />
-				<attribute name="javaType" type="NCName" />
+				<attribute name="name" type="tns:identifier" use="required" />
+				<attribute name="javaType" type="tns:identifier" />
 				<attribute name="method" type="NCName" />
 				<attribute name="field" type="NCName" />
 			</extension>
@@ -584,7 +566,7 @@
 							<complexType>
 								<simpleContent>
 									<extension base="string">
-										<attribute name="name" type="NCName" use="required" />
+										<attribute name="name" type="tns:identifier" use="required" />
 									</extension>
 								</simpleContent>
 							</complexType>
@@ -593,7 +575,7 @@
 							<complexType>
 								<simpleContent>
 									<extension base="string">
-										<attribute name="name" type="NCName" use="required" />
+										<attribute name="name" type="tns:identifier" use="required" />
 									</extension>
 								</simpleContent>
 							</complexType>
@@ -625,7 +607,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase" >
-					<attribute name="correlationID" type="Name" use="required" />
+					<attribute name="correlationID" type="tns:string1" use="required" />
 					<attribute name="workerPool" type="anyURI" />
 				</extension>
 			</complexContent>
@@ -759,6 +741,11 @@
 		<restriction base="anyURI">
 			<minLength value="1" />
 			<pattern value="[^*]*\*?" />
+		</restriction>
+	</simpleType>
+	<simpleType name="identifier">
+		<restriction base="token">
+		 	<pattern value="(\c|#)+"/>
 		</restriction>
 	</simpleType>
 	<attributeGroup name="JMSConnectionData">

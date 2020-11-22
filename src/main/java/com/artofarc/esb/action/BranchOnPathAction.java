@@ -30,12 +30,14 @@ import com.artofarc.esb.message.ESBConstants;
 public class BranchOnPathAction extends Action {
 
 	private final String _basePath;
-	private final Map<PathTemplate, Action> _branchMap = new TreeMap<>();
+	private final boolean _genericQuery;
 	private final Action _defaultAction;
+	private final Map<PathTemplate, Action> _branchMap = new TreeMap<>();
 
-	public BranchOnPathAction(String basePath, Action defaultAction) {
+	public BranchOnPathAction(String basePath, Action defaultAction, boolean genericQuery) {
 		_basePath = basePath;
 		_defaultAction = defaultAction;
+		_genericQuery = genericQuery;
 	}
 
 	public final void addBranch(String pathTemplate, Action action) {
@@ -76,7 +78,7 @@ public class BranchOnPathAction extends Action {
 				}
 			}
 		}
-		HttpQueryHelper.parseQueryString(message);
+		HttpQueryHelper.parseQueryString(message, _genericQuery);
 		if (_nextAction != null) {
 			context.getExecutionStack().push(_nextAction);
 		}
