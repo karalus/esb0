@@ -39,14 +39,15 @@ import com.artofarc.util.Closer;
 public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionProvider.JMSConnectionGuard, JMSConnectionData, Void, RuntimeException> {
 
 	protected final static Logger logger = LoggerFactory.getLogger(JMSConnectionProvider.class);
-	protected final static String instanceId = System.getProperty("esb0.jms.instanceId");
 	protected final static long closeWithTimeout = Long.parseLong(System.getProperty("esb0.jms.closeWithTimeout", "0"));
 	protected final static long reconnectInterval = Long.parseLong(System.getProperty("esb0.jms.reconnectInterval", "60"));
 
 	private final PoolContext _poolContext;
+	private final String _instanceId;
 
-	public JMSConnectionProvider(PoolContext poolContext) {
+	public JMSConnectionProvider(PoolContext poolContext) throws javax.naming.NamingException {
 		_poolContext = poolContext;
+		_instanceId = poolContext.getGlobalContext().bindProperties(System.getProperty("esb0.jms.instanceId"));
 	}
 
 	private String getObjectName(JMSConnectionData jmsConnectionData) {
@@ -100,7 +101,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		private JMSConnectionGuard(JMSConnectionData jmsConnectionData) {
 			_jmsConnectionData = jmsConnectionData;
-			_clientID = instanceId != null ? instanceId + "-" + jmsConnectionData + "-" + _poolContext.getWorkerPool().getName() : null;
+			_clientID = _instanceId != null ? _instanceId + "-" + jmsConnectionData + "-" + _poolContext.getWorkerPool().getName() : null;
 		}
 
 		synchronized void addJMSConsumer(JMSConsumer jmsConsumer, boolean enabled) {
