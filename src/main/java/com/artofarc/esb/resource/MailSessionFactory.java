@@ -21,7 +21,7 @@ import java.util.Properties;
 import javax.mail.Authenticator;
 import javax.mail.Session;
 
-public class MailSessionFactory	extends ResourceFactory<MailSessionFactory.MailSession, Properties, Authenticator, RuntimeException> {
+public class MailSessionFactory extends ResourceFactory<MailSessionFactory.MailSession, Properties, Authenticator, RuntimeException> {
 
 	public static final class MailSession implements AutoCloseable {
 

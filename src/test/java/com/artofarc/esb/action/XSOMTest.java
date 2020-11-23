@@ -280,7 +280,7 @@ public class XSOMTest extends AbstractESBTest {
 	@Test
 	public void testXMLSample() throws Exception {
 		XSSchemaSet schemaSet = createXSSchemaSet();
-		XmlSampleGenerator generator = new XmlSampleGenerator(schemaSet, "{http://aoa.de/xsd/demo/v1/}demoElementRequest");
+		XmlSampleGenerator generator = new XmlSampleGenerator(schemaSet, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null);
 		context.transform(new SAXSource(generator, null),  new StreamResult(System.out));
 	}
 

@@ -168,7 +168,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			for (Http.Url url : http.getUrl()) {
 				endpoints.add(new HttpUrl(globalContext.bindProperties(url.getValue()), url.getWeight(), url.isActive()));
 			}
-			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(), http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
+			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(),
+					http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 			addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), http.getMultipartRequest()), location);
 			if (http.getWorkerPool() != null) {

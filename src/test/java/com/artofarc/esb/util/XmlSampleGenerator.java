@@ -36,13 +36,19 @@ public final class XmlSampleGenerator extends XMLParserBase {
 
 	private final ArrayDeque<QName> stack = new ArrayDeque<>();
 	private final QName _rootElement;
-	private final XSElementDecl _element;
+	private final XSComplexType _complexType;
 	private LexicalHandler lexicalHandler;
 
-	public XmlSampleGenerator(XSSchemaSet schemaSet, String rootElement) {
+	public XmlSampleGenerator(XSSchemaSet schemaSet, String rootElement, String typeName) {
 		super(true, null);
 		_rootElement = QName.valueOf(rootElement);
-		_element = schemaSet.getElementDecl(_rootElement.getNamespaceURI(), _rootElement.getLocalPart());
+		XSElementDecl element = schemaSet.getElementDecl(_rootElement.getNamespaceURI(), _rootElement.getLocalPart());
+		if (element != null) {
+			_complexType = element.getType().asComplexType();
+		} else {
+			QName type = QName.valueOf(typeName);
+			_complexType = schemaSet.getComplexType(type.getNamespaceURI(), type.getLocalPart());
+		}
 	}
 
 	@Override
@@ -62,7 +68,7 @@ public final class XmlSampleGenerator extends XMLParserBase {
 
 	@Override
 	public void parse(InputSource inputSource) throws SAXException {
-		final XSOMHelper xsomHelper = new XSOMHelper(_element);
+		final XSOMHelper xsomHelper = new XSOMHelper(_complexType, null);
 		final AttributesImpl atts = new AttributesImpl();
 		startDocument();
 		startElement(_rootElement.getNamespaceURI(), _rootElement.getLocalPart(), _rootElement.getLocalPart(), atts);
