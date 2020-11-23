@@ -101,7 +101,7 @@ public class JMSAction extends TerminalAction {
 		final Destination destination = _destination != null ? _destination : getDestination(message, jmsSession);
 		context.getTimeGauge().startTimeMeasurement();
 		Message jmsMessage;
-		if (message.getBody() == BodyType.INVALID) {
+		if (message.getBodyType() == BodyType.INVALID) {
 			jmsMessage = session.createMessage();
 		} else if (_isBytesMessage) {
 			BytesMessage bytesMessage = session.createBytesMessage();
