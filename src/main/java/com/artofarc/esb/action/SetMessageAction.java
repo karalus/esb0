@@ -40,7 +40,7 @@ public class SetMessageAction extends ForwardAction {
 	public SetMessageAction(boolean clearAll, ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ReflectiveOperationException {
 		_clearAll = clearAll;
 		_classLoader = cl;
-		_body = bodyExpr != null ? new Assignment(null, false, bodyExpr, javaType, method, null) : null;
+		_body = bodyExpr != null ? new Assignment("body", false, bodyExpr, javaType, method, null) : null;
 		_pipelineStop = bodyExpr != null;
 		_pipelineStart = false;
 	}
@@ -94,7 +94,7 @@ public class SetMessageAction extends ForwardAction {
 		final MethodHandle _methodHandle;
 
 		Assignment(String name, boolean header, StringWrapper expr, String javaType, String method, String field) throws ReflectiveOperationException {
-			_name = name;
+			_name = name.intern();
 			_header = header;
 			_expr = expr;
 			_needsBody = expr.getString().contains("${body");

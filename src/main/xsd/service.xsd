@@ -654,7 +654,9 @@
 	<element name="admin" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:ActionBase" />
+				<extension base="tns:ActionBase">
+					<attribute name="resourceExp" type="string" default="" />
+				</extension>
 			</complexContent>
 		</complexType>
 	</element>

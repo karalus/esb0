@@ -488,7 +488,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			addAction(list, new DumpAction(dump.isBinary(), globalContext.bindProperties(dump.getDir())), location);
 			break;
 		case "admin":
-			addAction(list, new AdminAction(), location);
+			Admin admin = (Admin) actionElement.getValue();
+			addAction(list, new AdminAction(admin.getResourceExp()), location);
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown action " + actionElement.getName().getLocalPart());

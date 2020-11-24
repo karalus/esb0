@@ -190,6 +190,9 @@
 			<resource>
 				<directory>src/main/xsd</directory>
 			</resource>
+			<resource>
+				<directory>src/main/xservice</directory>
+			</resource>
 		</resources>
 	</build>
 </project>

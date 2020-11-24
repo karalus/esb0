@@ -52,11 +52,11 @@ public class TransformAction extends Action {
 		String type;
 
 		public Assignment(String name, boolean header, String expr, boolean nullable, String type) {
-			this.name = name;
+			this.name = name != null ? name.intern() : null;
 			this.header = header;
 			this.expr = expr;
 			this.nullable = nullable;
-			this.type = type;
+			this.type = type != null ? type.intern() : null;
 		}
 	}
 

@@ -375,7 +375,10 @@ public final class ESBMessage implements Cloneable {
 			Exception e = (Exception) _body;
 			String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 			if (isNotSOAP(contentType)) {
-				str = e.getCause() != null ? e + "\nCause: " + e.getCause() : e.toString();
+				str = e.toString();
+				if (e.getCause() != null && !e.getCause().toString().equals(e.getMessage())) {
+					str += "\nCause: " + e.getCause();
+				}
 			} else {
 				str = asXMLString(e);
 			}

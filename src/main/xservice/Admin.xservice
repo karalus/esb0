@@ -1,0 +1,63 @@
+<service protocol="http" version="1" errorHandler="errorHandler" xmlns="http://www.artofarc.com/esb/service"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="../xsd/service.xsd">
+	<httpBindURI maxPool="2">/admin/deploy/*</httpBindURI>
+	<actionPipeline name="errorHandler">
+		<setMessage clearAll="true">
+			<header name="Content-Type">text/plain</header>
+			<body>${body.toString}</body>
+		</setMessage>
+	</actionPipeline>
+	<branchOnPath>
+		<default>
+			<!-- Dirty hack for standard JSP is not able to send DELETE without ajax -->
+			<branchOnVariable variable="DELETE">
+				<default>
+					<setMessage>
+						<variable name="HttpMethod">DELETE</variable>
+						<variable name="QueryString">${DELETE}</variable>
+					</setMessage>
+				</default>
+			</branchOnVariable>
+			<branchOnVariable variable="HttpMethod">
+				<branch value="POST PUT">
+					<branchOnVariable variable="appendHttpUrlPath">
+						<branch value="">
+							<admin />
+							<setMessage clearAll="true">
+								<variable name="redirect">${ContextPath}/admin</variable>
+							</setMessage>
+						</branch>
+						<default>
+							<branchOnVariable variable="body">
+								<branch regEx="(?s)content=(.*)\r\n">
+									<setMessage>
+										<body>${body#1}</body>
+									</setMessage>
+									<admin resourceExp="/${appendHttpUrlPath}" />
+									<setMessage clearAll="true">
+										<variable name="redirect">${ContextPath}/admin/${appendHttpUrlPath}</variable>
+									</setMessage>
+								</branch>
+								<default>
+									<admin resourceExp="/${appendHttpUrlPath}" />
+									<setMessage clearAll="true">
+										<variable name="redirect">${ContextPath}/admin?${QueryString}</variable>
+									</setMessage>
+								</default>
+							</branchOnVariable>
+						</default>
+					</branchOnVariable>
+				</branch>
+				<branch value="DELETE">
+					<admin resourceExp="/${appendHttpUrlPath}" />
+					<setMessage clearAll="true">
+						<variable name="redirect">${ContextPath}/admin?${QueryString}</variable>
+					</setMessage>
+				</branch>
+				<default>
+					<admin resourceExp="/${appendHttpUrlPath}" />
+				</default>
+			</branchOnVariable>
+		</default>
+	</branchOnPath>
+</service>

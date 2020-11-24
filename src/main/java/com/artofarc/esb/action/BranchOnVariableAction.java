@@ -43,7 +43,7 @@ public class BranchOnVariableAction extends Action {
 	private boolean _useRegEx;
 
 	public BranchOnVariableAction(String varName, Action defaultAction, Action nullAction) {
-		_varName = varName;
+		_varName = varName.intern();
 		_defaultAction = defaultAction;
 		_nullAction = nullAction;
 	}
@@ -63,7 +63,7 @@ public class BranchOnVariableAction extends Action {
 
 	@Override
 	protected boolean isPipelineStop() {
-		boolean pipelineStop = _nextAction == null || _nextAction.isPipelineStop();
+		boolean pipelineStop = _varName == "body" || _nextAction == null || _nextAction.isPipelineStop();
 		if (_defaultAction != null) {
 			pipelineStop |= _defaultAction.isPipelineStop();
 		}
@@ -82,7 +82,7 @@ public class BranchOnVariableAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Object value = resolve(message, _varName, true);
+		Object value = _varName == "body" ? message.getBody() != null ? message.getBodyAsString(context) : null : resolve(message, _varName, true);
 		Action action = _nullAction;
 		if (value != null) {
 			action = _defaultAction;

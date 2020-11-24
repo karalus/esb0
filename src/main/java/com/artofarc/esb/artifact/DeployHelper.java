@@ -122,12 +122,12 @@ public final class DeployHelper {
 		return serviceArtifacts.size();
 	}
 
-	public static void createAdminService(GlobalContext globalContext, String path) throws ValidationException {
+	public static void createAdminService(GlobalContext globalContext, String path) throws Exception {
 		HttpConsumer adminService = globalContext.getHttpService(path);
 		if (adminService == null) {
 			Directory parent = globalContext.getFileSystem().makeDirectory("admin");
 			ServiceArtifact serviceArtifact = new ServiceArtifact(globalContext.getFileSystem(), parent, "Admin.xservice");
-			serviceArtifact.setContent(("<service protocol=\"http\" version=\"1\" xmlns=\"http://www.artofarc.com/esb/service\">\n\t<httpBindURI maxPool=\"2\">" + path + "</httpBindURI>\n\t<admin/>\n</service>").getBytes());
+			serviceArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("Admin.xservice")));
 			serviceArtifact.validate(globalContext);
 			adminService = serviceArtifact.getConsumerPort();
 			adminService.init(globalContext);
