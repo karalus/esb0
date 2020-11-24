@@ -126,7 +126,7 @@ public class AdminAction extends Action {
 		GlobalContext globalContext = context.getGlobalContext();
 		if (resource.isEmpty()) {
 			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-			if (contentType != null && "bin".equals(MimeHelper.getFileExtension(contentType))) {
+			if (contentType == null || "bin".equals(MimeHelper.getFileExtension(contentType))) {
 				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
 				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
 				deployChangeset(globalContext, changeSet, message);

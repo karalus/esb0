@@ -55,17 +55,18 @@ public class HttpServletResponseAction extends Action {
 		}
 		HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
 		ExecutionContext executionContext = new ExecutionContext(asyncContext);
+		String redirect = message.getVariable(ESBConstants.redirect);
 		if (message.getBodyType() == BodyType.EXCEPTION) {
 			GenericHttpListener.sendError(response, message.<Exception> getBody());
-		} else if (message.getVariable(ESBConstants.redirect) != null) {
-			response.sendRedirect(message.<String> getVariable(ESBConstants.redirect));
+		} else if (redirect != null && !redirect.isEmpty()) {
+			response.sendRedirect(redirect);
 		} else {
 			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 			if (httpResponseCode != null) {
 				response.setStatus(httpResponseCode.intValue());
 			}
-			final String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
+			String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
 			if (acceptCharset != null) {
 				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset));
 			}
