@@ -172,7 +172,7 @@ public class SOAPTest extends AbstractESBTest {
       message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.putHeader(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
-      assertTrue(markAction.isExecuted(1000l));
+      assertTrue(markAction.isExecuted(1500l));
       endpoint.stop();
    }
 

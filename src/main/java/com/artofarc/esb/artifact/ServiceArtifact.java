@@ -433,6 +433,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				fork.isCopyAttachments(), Action.linkList(transform(globalContext, fork.getAction(), fork.getErrorHandler())));
 			addAction(list, forkAction, location);
 			break;
+		case "iterate":
+			Iterate iterate = (Iterate) actionElement.getValue();
+			IterateAction iterateAction = new IterateAction(iterate.getIterable(), "_iter" + location, iterate.isRemove(), iterate.getVariable(), Action.linkList(transform(globalContext, iterate.getAction(), null)));
+			addAction(list, iterateAction, location);
+			break;
 		case "branchOnVariable": {
 			BranchOnVariable branchOnVariable = (BranchOnVariable) actionElement.getValue();
 			Action defaultAction = null;

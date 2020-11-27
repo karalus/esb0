@@ -54,7 +54,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl, Schema schema) {
 		super("declare namespace soapenv=\"" + (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
 				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
-				+ (singlePart && bindingOperations != null ? "node-name($b), " : "") + "if ($h) then (true(), $h) else false(), $b)",
+				+ (singlePart && bindingOperations != null ? "node-name($b), " : "") + "count($h), $h, $b)",
 				singlePart && bindingOperations != null ?
 						Arrays.asList(new Assignment(SOAP_OPERATION, false, null, false, null), new Assignment(SOAP_HEADER, false, null, true, null)) :
 						java.util.Collections.singletonList(new Assignment(SOAP_HEADER, false, null, true, null)));

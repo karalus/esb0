@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,29 +40,26 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
-import com.artofarc.util.Collections;
 import com.artofarc.util.XQuerySource;
 
 public class TransformAction extends Action {
 
 	public final static class Assignment {
-		final String name;
-		final boolean header;
+		final String name, type;
+		final boolean header, nullable, list;
 		String expr;
-		final boolean nullable;
-		String type;
 
 		public Assignment(String name, boolean header, String expr, boolean nullable, String type) {
 			this.name = name != null ? name.intern() : null;
-			this.header = header;
-			this.expr = expr;
-			this.nullable = nullable;
 			this.type = type != null ? type.intern() : null;
+			this.header = header;
+			this.nullable = nullable;
+			list = type != null && (type.endsWith("+") || type.endsWith("*"));
+			if (list && header) {
+				throw new IllegalArgumentException("header must not be a list");
+			}
+			this.expr = expr;
 		}
-	}
-
-	private static List<Assignment> emptyNames() {
-		return java.util.Collections.emptyList();
 	}
 
 	private final XQuerySource _xquery;
@@ -80,7 +78,7 @@ public class TransformAction extends Action {
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
-		this(xquery, contextItem != null ? java.util.Collections.singletonList(new Assignment(contextItem, false, null, false, null)) : emptyNames(), baseURI, contextItem);
+		this(xquery, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false, null, false, null)) : Collections.emptyList(), baseURI, contextItem);
 	}
 
 	protected TransformAction(String xquery, List<Assignment> varNames) {
@@ -88,7 +86,7 @@ public class TransformAction extends Action {
 	}
 
 	protected TransformAction(String xquery) {
-		this(XQuerySource.create(xquery), emptyNames(), null, null);
+		this(XQuerySource.create(xquery), Collections.emptyList(), null, null);
 	}
 
 	public final XQuerySource getXQuery() {
@@ -105,14 +103,14 @@ public class TransformAction extends Action {
 				xqDecl.setNullable(nullable);
 				_bindNames.add(xqDecl);
 				XQSequenceType sequenceType = xqExpression.getStaticVariableType(qName);
-				_bindings.put(qName, Collections.createEntry(sequenceType.getItemType(), nullable));
+				_bindings.put(qName, com.artofarc.util.Collections.createEntry(sequenceType.getItemType(), nullable));
 			}
 		} else {
 			for (XQDecl bindName : _bindNames) {
 				QName qName = new QName(bindName.getValue());
 				if (bindName.getType() != null) {
 					XQSequenceType sequenceType = xqExpression.getStaticVariableType(qName);
-					_bindings.put(qName, Collections.createEntry(sequenceType.getItemType(), bindName.isNullable()));
+					_bindings.put(qName, com.artofarc.util.Collections.createEntry(sequenceType.getItemType(), bindName.isNullable()));
 				} else {
 					// type cannot be determined statically, take sample from message
 					Object value = resolve(message, bindName.getValue(), true);
@@ -122,7 +120,7 @@ public class TransformAction extends Action {
 					} else {
 						logger.warn("No value provided. Could not determine type for " + bindName.getValue());
 					}
-					_bindings.put(qName, Collections.createEntry(itemType, bindName.isNullable()));
+					_bindings.put(qName, com.artofarc.util.Collections.createEntry(itemType, bindName.isNullable()));
 				}
 			}
 		}
@@ -215,25 +213,48 @@ public class TransformAction extends Action {
 
 	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws Exception {
 		for (Assignment assignment : _assignments) {
-			boolean notNull = true;
-			if (assignment.nullable) {
+			int count = 1;
+			if (assignment.nullable || assignment.list) {
 				checkNext(resultSequence, assignment.name);
-				notNull = resultSequence.getBoolean();
+				count = resultSequence.getInt();
 			}
-			if (notNull) {
-				checkNext(resultSequence, assignment.name);
-				final Object value;
-				if (resultSequence.getItemType().getItemKind() == XQItemType.XQITEMKIND_TEXT) {
-					value = resultSequence.getItemAsString(null);
-				} else {
-					value = resultSequence.getObject();
+			switch (count) {
+			case 0:
+				if (assignment.list && !assignment.nullable) {
+					message.getVariables().put(assignment.name, Collections.emptyList());
 				}
+				break;
+			case 1:
+				checkNext(resultSequence, assignment.name);
+				Object value = next(resultSequence);
 				if (assignment.header) {
 					message.putHeader(assignment.name, value);
 				} else {
-					message.getVariables().put(assignment.name, value);
+					message.getVariables().put(assignment.name, assignment.list ? Collections.singletonList(value) : value);
 				}
+				break;
+			default:
+				List<Object> result = new ArrayList<>(count);
+				while (count-- > 0) {
+					checkNext(resultSequence, assignment.name);
+					result.add(next(resultSequence));
+				}
+				if (assignment.list) {
+					message.getVariables().put(assignment.name, result);
+				} else {
+					logger.warn("Result is a list in " + toString());
+					message.getVariables().put(assignment.name, result.get(0));
+				}
+				break;
 			}
+		}
+	}
+
+	private Object next(XQResultSequence resultSequence) throws XQException {
+		if (resultSequence.getItemType().getItemKind() == XQItemType.XQITEMKIND_TEXT) {
+			return resultSequence.getItemAsString(null);
+		} else {
+			return resultSequence.getObject();
 		}
 	}
 

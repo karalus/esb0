@@ -155,7 +155,7 @@ public class ProcessJsonAction extends Action {
 					JsonNumber jsonNumber = (JsonNumber) value;
 					return jsonNumber.isIntegral() ? jsonNumber.longValueExact() : jsonNumber.bigDecimalValue();
 				default:
-					return value.toString();
+					return value;
 				}
 			} catch (JsonException e) {
 				return null;

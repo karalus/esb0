@@ -68,12 +68,11 @@ public class AssignAction extends TransformAction {
 		builder.append('(');
 		for (Assignment assignment : assignments) {
 			boolean hasAtomicType = assignment.type != null && assignment.type.startsWith("xs:");
-			if (assignment.nullable) {
-				builder.append("if ($").append(assignment.name).append(") then (true(), ");
+			if (assignment.nullable || assignment.list) {
+				builder.append("count($").append(assignment.name).append("), ");
 				if (hasAtomicType) builder.append(assignment.type).append('(');
 				builder.append('$').append(assignment.name);
 				if (hasAtomicType) builder.append(')');
-				builder.append(") else false()");
 			} else {
 				if (hasAtomicType) builder.append(assignment.type).append('(');
 				if (createLet(assignment, variables)) {
@@ -84,8 +83,8 @@ public class AssignAction extends TransformAction {
 				if (hasAtomicType) builder.append(')');
 			}
 			builder.append(", ");
+			// save some bytes memory
 			assignment.expr = null;
-			assignment.type = null;
 		}
 		builder.append(bodyExpr).append(')');
 		return XQuerySource.create(builder.toString());

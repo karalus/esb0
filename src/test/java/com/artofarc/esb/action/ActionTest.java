@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Properties;
 
 import org.junit.Before;
@@ -193,9 +194,40 @@ public class ActionTest extends AbstractESBTest {
    	assertEquals(null, Long.valueOf(1), message.getVariable("numresult"));
    	assertTrue(message.getVariable("decresult") instanceof BigDecimal);
    	assertEquals("baz", message.getHeader("h1"));
-   	assertEquals(msgStr, message.getVariable("whole"));
+   	assertEquals(msgStr, message.getVariable("whole").toString());
    	assertFalse(message.getVariables().containsKey("noresult"));
    	assertEquals("{\"productName\":\"esb0\"}", message.getBodyAsString(context));
    }
 
+	@Test
+	public void testJsonArray() throws Exception {
+		String msgStr = "{\"name\":\"esb0\",\"alive\":true,\"surname\":null,\"no\":1,\"amount\":5.0,\"foo\":[\"bar\",\"baz\"]}";
+		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
+		ProcessJsonAction processJsonAction = new ProcessJsonAction(null);
+		processJsonAction.addVariable("foes", "/foo");
+		processJsonAction.addVariable("all", "");
+		Action action = processJsonAction;
+		action = action.setNextAction(new IterateAction("${all.entrySet}", "_iterator", false, "_entry", new DumpAction()));
+		action = action.setNextAction(new IterateAction("${foes}", "_iterator", false, "foo", new DumpAction()));
+		action = action.setNextAction(new DumpAction());
+		processJsonAction.process(context, message);
+	}
+   
+	@Test
+	public void testNodeList() throws Exception {
+		String msgStr = "<root>\r\n" + 
+				"	<node1>Text1</node1>\r\n" + 
+				"	<node2>Text2</node2>\r\n" + 
+				"</root>";
+		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
+	      List<AssignAction.Assignment> assignments = createAssignments(false);
+	      assignments.add(new AssignAction.Assignment("nodes", false, "*/*", true, "element()"));
+		AssignAction assignAction = createAssignAction(assignments, ".", null);
+		Action action = assignAction;
+		//action = action.setNextAction(new IterateAction("${nodes}", "_iterator", false, "node", new DumpAction()));
+		action = action.setNextAction(new DumpAction());
+		assignAction.process(context, message);
+		//assertTrue(message.getVariable("nodes") instanceof Iterable);
+	}
+   
 }
