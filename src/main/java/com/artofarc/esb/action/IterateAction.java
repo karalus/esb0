@@ -61,7 +61,7 @@ public class IterateAction extends Action {
 			}
 			context.getExecutionStack().push(this);
 		} else {
-			message.removeVariable(_varName);
+			message.getVariables().remove(_varName);
 			message.removeVariable(_iterName);
 		}
 	}
