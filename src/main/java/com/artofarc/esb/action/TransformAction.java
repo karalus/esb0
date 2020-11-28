@@ -211,41 +211,45 @@ public class TransformAction extends Action {
 		}
 	}
 
-	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws Exception {
+	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws ExecutionException {
 		for (Assignment assignment : _assignments) {
-			int count = 1;
-			if (assignment.nullable || assignment.list) {
-				checkNext(resultSequence, assignment.name);
-				count = resultSequence.getInt();
-			}
-			switch (count) {
-			case 0:
-				if (assignment.list && !assignment.nullable) {
-					message.getVariables().put(assignment.name, Collections.emptyList());
-				}
-				break;
-			case 1:
-				checkNext(resultSequence, assignment.name);
-				Object value = next(resultSequence);
-				if (assignment.header) {
-					message.putHeader(assignment.name, value);
-				} else {
-					message.getVariables().put(assignment.name, assignment.list ? Collections.singletonList(value) : value);
-				}
-				break;
-			default:
-				List<Object> result = new ArrayList<>(count);
-				while (count-- > 0) {
+			try {
+				int count = 1;
+				if (assignment.nullable || assignment.list) {
 					checkNext(resultSequence, assignment.name);
-					result.add(next(resultSequence));
+					count = resultSequence.getInt();
 				}
-				if (assignment.list) {
-					message.getVariables().put(assignment.name, result);
-				} else {
-					logger.warn("Result is a list in " + toString());
-					message.getVariables().put(assignment.name, result.get(0));
+				switch (count) {
+				case 0:
+					if (assignment.list && !assignment.nullable) {
+						message.getVariables().put(assignment.name, Collections.emptyList());
+					}
+					break;
+				case 1:
+					checkNext(resultSequence, assignment.name);
+					Object value = next(resultSequence);
+					if (assignment.header) {
+						message.putHeader(assignment.name, value);
+					} else {
+						message.getVariables().put(assignment.name, assignment.list ? Collections.singletonList(value) : value);
+					}
+					break;
+				default:
+					List<Object> result = new ArrayList<>(count);
+					while (count-- > 0) {
+						checkNext(resultSequence, assignment.name);
+						result.add(next(resultSequence));
+					}
+					if (assignment.list) {
+						message.getVariables().put(assignment.name, result);
+					} else {
+						logger.warn("Result is a list in " + toString());
+						message.getVariables().put(assignment.name, result.get(0));
+					}
+					break;
 				}
-				break;
+			} catch (XQException e) {
+				throw new ExecutionException(this, "processing " + assignment.name + " failed", e);
 			}
 		}
 	}

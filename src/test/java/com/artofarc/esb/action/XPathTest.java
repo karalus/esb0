@@ -106,6 +106,35 @@ public class XPathTest extends AbstractESBTest {
    }
    
    @Test
+   public void testNullableNumber() throws Exception {
+//      ESBMessage message = new ESBMessage(BodyType.STRING, "<test><number>?</number></test>");
+      ESBMessage message = new ESBMessage(BodyType.STRING, "<test></test>");
+      List<AssignAction.Assignment> assignments = createAssignments(false);
+      assignments.add(new AssignAction.Assignment("result1", false, "if (number(*/number)) then number(*/number) else ()", true, "xs:int"));
+      assignments.add(new AssignAction.Assignment("result2", false, "*/number", true, "xs:int"));
+	  Action action = createAssignAction(assignments, ".", null);
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
+      assertNull(message.getVariable("result1"));
+      assertNull(message.getVariable("result2"));
+   }
+   
+   @Test
+   public void testIllegalNumber() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.STRING, "<test><number>?</number></test>");
+      List<AssignAction.Assignment> assignments = createAssignments(false);
+      assignments.add(new AssignAction.Assignment("result1", false, "if (number(*/number)) then number(*/number) else ()", true, "xs:int"));
+ 	  Action action = createAssignAction(assignments, ".", null);
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
+      assertNull(message.getVariable("result"));
+   }
+   
+ @Test
    public void testJavaExtensionEvaluate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
       List<AssignAction.Assignment> assignments = createAssignments(false);

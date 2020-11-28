@@ -82,7 +82,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	private final Map<String, Map.Entry<String, Object>> _headers = new HashMap<>(32);
-	private final Map<String, Object> _variables = new HashMap<>();
+	private final Map<String, Object> _variables = new HashMap<>(32);
 	private final Map<String, MimeBodyPart> _attachments = new HashMap<>();
 
 	private BodyType _bodyType;

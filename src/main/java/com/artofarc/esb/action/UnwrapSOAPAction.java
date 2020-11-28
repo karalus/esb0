@@ -56,7 +56,7 @@ public class UnwrapSOAPAction extends TransformAction {
 				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
 				+ (singlePart && bindingOperations != null ? "node-name($b), " : "") + "count($h), $h, $b)",
 				singlePart && bindingOperations != null ?
-						Arrays.asList(new Assignment(SOAP_OPERATION, false, null, false, null), new Assignment(SOAP_HEADER, false, null, true, null)) :
+						Arrays.asList(new Assignment(SOAP_ELEMENT_NAME, false, null, false, null), new Assignment(SOAP_HEADER, false, null, true, null)) :
 						java.util.Collections.singletonList(new Assignment(SOAP_HEADER, false, null, true, null)));
 		
 		_soap12 = soap12;
@@ -124,7 +124,7 @@ public class UnwrapSOAPAction extends TransformAction {
 			}
 		}
 		if (_operations != null) {
-			QName inputElementName = message.getVariable(SOAP_OPERATION);
+			QName inputElementName = message.getVariable(SOAP_ELEMENT_NAME);
 			if (_operations.containsKey(inputElementName.getLocalPart())) {
 				return inputElementName.getLocalPart();
 			} else {

@@ -52,6 +52,8 @@ public interface ESBConstants {
 
 	String timeleftOrigin = "timeleftOrigin";
 
+	String SOAP_ELEMENT_NAME = "soapElementName";
+
 	String SOAP_OPERATION = "operation";
 
 	String SOAP_HEADER = "header";
