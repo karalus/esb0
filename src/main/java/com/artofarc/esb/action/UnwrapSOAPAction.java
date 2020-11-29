@@ -46,18 +46,18 @@ public class UnwrapSOAPAction extends TransformAction {
 	private final boolean _getWsdl;
 	private final Schema _schema;
 
+	private static final List<Assignment> ARG2 = Arrays.asList(new Assignment(SOAP_HEADER, false, null, true, null), new Assignment(SOAP_ELEMENT_NAME, false, null, false, null));
+	private static final List<Assignment> ARG1 = java.util.Collections.singletonList(new Assignment(SOAP_HEADER, false, null, true, null));
+
 	/**
-	 * @param singlePart whether body can contain more than one element.
+	 * @param singlePart whether body cannot contain more than one element.
 	 *
 	 * @see <a href="https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/">WSDL styles/</a>
 	 */
 	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl, Schema schema) {
 		super("declare namespace soapenv=\"" + (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
-				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
-				+ (singlePart && bindingOperations != null ? "node-name($b), " : "") + "count($h), $h, $b)",
-				singlePart && bindingOperations != null ?
-						Arrays.asList(new Assignment(SOAP_ELEMENT_NAME, false, null, false, null), new Assignment(SOAP_HEADER, false, null, true, null)) :
-						java.util.Collections.singletonList(new Assignment(SOAP_HEADER, false, null, true, null)));
+				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return (count($h), $h, "
+				+ (singlePart && bindingOperations != null ? "node-name($b), " : "") + "$b)", singlePart && bindingOperations != null ? ARG2 : ARG1);
 		
 		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;
