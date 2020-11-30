@@ -417,7 +417,9 @@ public abstract class FileSystem {
 		for (Map.Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
 			Artifact artifact = changedFileSystem.getArtifact(entry.getKey());
 			if (entry.getValue() == ChangeType.CREATE) {
-				validateServices(globalContext, artifact, changeSet);
+				if (artifact instanceof AbstractServiceArtifact) {
+					validateServices(globalContext, artifact, changeSet);
+				}
 			} else if (entry.getValue() == ChangeType.DELETE) {
 				if (!deleteArtifact(artifact)) {
 					throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
