@@ -155,7 +155,7 @@ public abstract class AbstractESBTest {
 	protected static TransformAction createTransformAction(XQueryArtifact xqueryArtifact, String... varNames) {
 		List<AssignAction.Assignment> assignments = new ArrayList<>();
 		for (String varName : varNames) {
-			assignments.add(new AssignAction.Assignment(varName, false, null, false, null));
+			assignments.add(new AssignAction.Assignment(varName, false));
 		}
 		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), assignments, xqueryArtifact.getParent().getURI(), null);
 	}

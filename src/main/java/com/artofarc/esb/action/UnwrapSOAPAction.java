@@ -46,8 +46,8 @@ public class UnwrapSOAPAction extends TransformAction {
 	private final boolean _getWsdl;
 	private final Schema _schema;
 
-	private static final List<Assignment> ARG2 = Arrays.asList(new Assignment(SOAP_HEADER, false, null, true, null), new Assignment(SOAP_ELEMENT_NAME, false, null, false, null));
-	private static final List<Assignment> ARG1 = java.util.Collections.singletonList(new Assignment(SOAP_HEADER, false, null, true, null));
+	private static final List<Assignment> ARG2 = Arrays.asList(new Assignment(SOAP_HEADER, true), new Assignment(SOAP_ELEMENT_NAME, false));
+	private static final List<Assignment> ARG1 = java.util.Collections.singletonList(new Assignment(SOAP_HEADER, true));
 
 	/**
 	 * @param singlePart whether body cannot contain more than one element.

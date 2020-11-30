@@ -60,6 +60,10 @@ public class TransformAction extends Action {
 			}
 			this.expr = expr;
 		}
+
+		public Assignment(String name, boolean nullable) {
+			this(name, false, null, nullable, null);
+		}
 	}
 
 	private final XQuerySource _xquery;
@@ -78,7 +82,7 @@ public class TransformAction extends Action {
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
-		this(xquery, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false, null, false, null)) : Collections.emptyList(), baseURI, contextItem);
+		this(xquery, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), baseURI, contextItem);
 	}
 
 	protected TransformAction(String xquery, List<Assignment> varNames) {
