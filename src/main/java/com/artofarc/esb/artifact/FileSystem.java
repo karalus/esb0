@@ -148,7 +148,13 @@ public abstract class FileSystem {
 			for (Artifact child : ((Directory) artifact).getArtifacts().values()) {
 				validateServices(globalContext, child, changeSet);
 			}
-		} else if (artifact instanceof ServiceArtifact) {
+		} else {
+			validateService(globalContext, artifact, changeSet);
+		}
+	}
+
+	private static void validateService(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
+		if (artifact instanceof ServiceArtifact) {
 			final ServiceArtifact serviceArtifact = (ServiceArtifact) artifact;
 			Callable<ServiceArtifact> task = new Callable<ServiceArtifact>() {
 
@@ -157,7 +163,7 @@ public abstract class FileSystem {
 					serviceArtifact.validate(globalContext);
 					return serviceArtifact;
 				}
-				
+
 			};
 			Future<ServiceArtifact> future = globalContext.getDefaultWorkerPool().getExecutorService().submit(task);
 			changeSet.futures.add(future);
@@ -412,14 +418,12 @@ public abstract class FileSystem {
 		// validate
 		for (String original : visited) {
 			Artifact artifact = changedFileSystem.getArtifact(original);
-			validateServices(globalContext, artifact, changeSet);
+			validateService(globalContext, artifact, changeSet);
 		}
 		for (Map.Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
 			Artifact artifact = changedFileSystem.getArtifact(entry.getKey());
 			if (entry.getValue() == ChangeType.CREATE) {
-				if (artifact instanceof AbstractServiceArtifact) {
-					validateServices(globalContext, artifact, changeSet);
-				}
+				validateService(globalContext, artifact, changeSet);
 			} else if (entry.getValue() == ChangeType.DELETE) {
 				if (!deleteArtifact(artifact)) {
 					throw new ValidationException(artifact, "Could not delete " + artifact.getURI());

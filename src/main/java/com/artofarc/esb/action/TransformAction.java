@@ -101,13 +101,12 @@ public class TransformAction extends Action {
 		if (_bindNames == null) {
 			_bindNames = new ArrayList<>();
 			for (QName qName : xqExpression.getAllExternalVariables()) {
-				Boolean nullable = true;
 				XQDecl xqDecl = new XQDecl();
 				xqDecl.setValue(qName.getLocalPart());
-				xqDecl.setNullable(nullable);
+				xqDecl.setNullable(Boolean.TRUE);
 				_bindNames.add(xqDecl);
 				XQSequenceType sequenceType = xqExpression.getStaticVariableType(qName);
-				_bindings.put(qName, com.artofarc.util.Collections.createEntry(sequenceType.getItemType(), nullable));
+				_bindings.put(qName, com.artofarc.util.Collections.createEntry(sequenceType.getItemType(), Boolean.TRUE));
 			}
 		} else {
 			for (XQDecl bindName : _bindNames) {
