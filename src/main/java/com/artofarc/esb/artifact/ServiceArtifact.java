@@ -454,7 +454,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					branchOnVariableAction.addBranchRegEx(branch.getRegEx(), Action.linkList(transform(globalContext, branch.getAction(), null)));
 				} else {
 					List<String> values = branch.getValue().isEmpty() ? Collections.singletonList("") : branch.getValue();
-					branchOnVariableAction.addBranch(values, Action.linkList(transform(globalContext, branch.getAction(), null)));
+					branchOnVariableAction.addBranch(globalContext, values, Action.linkList(transform(globalContext, branch.getAction(), null)));
 				}
 			}
 			addAction(list, branchOnVariableAction, location);

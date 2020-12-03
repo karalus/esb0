@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.WeakCache;
 
@@ -48,9 +49,9 @@ public class BranchOnVariableAction extends Action {
 		_nullAction = nullAction;
 	}
 
-	public final void addBranch(List<String> values, Action action) {
+	public final void addBranch(GlobalContext globalContext, List<String> values, Action action) throws Exception {
 		for (String value : values) {
-			if (_branchMap.put(value, action) != null) {
+			if (_branchMap.put(globalContext.bindProperties(value), action) != null) {
 				throw new IllegalArgumentException("Duplicate branch value " + value);
 			}
 		}
