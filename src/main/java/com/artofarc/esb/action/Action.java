@@ -257,7 +257,7 @@ public abstract class Action implements Cloneable {
 				builder.append(exp.substring(pos));
 				break;
 			}
-			builder.append(exp.substring(pos, i));
+			if (i > pos) builder.append(exp.substring(pos, i));
 			int j = exp.indexOf('}', i);
 			if (j < 0) throw new IllegalArgumentException("Matching } is missing");
 			String path = exp.substring(i + 2, j);

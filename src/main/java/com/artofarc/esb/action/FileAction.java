@@ -36,8 +36,9 @@ import com.artofarc.util.IOUtils;
 public class FileAction extends TerminalAction {
 
 	private final File _destDir;
+	private final String _verb, _filename, _append, _zip;
 
-	public FileAction(String destDir) throws FileNotFoundException {
+	public FileAction(String destDir, String verb, String filename, String append, String zip) throws FileNotFoundException {
 		_destDir = new File(destDir);
 		if (!_destDir.exists()) {
 			throw new FileNotFoundException(destDir);
@@ -45,22 +46,23 @@ public class FileAction extends TerminalAction {
 		if (!_destDir.isDirectory()) {
 			throw new IllegalStateException("Is not a directory " + destDir);
 		}
+		_verb = verb;
+		_filename = filename;
+		_append = append;
+		_zip = zip;
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		super.execute(context, execContext, message, nextActionIsPipelineStop);
 		String contentType = HttpConstants.parseContentType(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
-		String filename = message.getVariable(ESBConstants.filename);
+		String filename = (String) bindVariable(_filename, context, message);
 		String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(contentType) : "";
-		boolean zip = Boolean.parseBoolean(String.valueOf(message.<Object> getVariable("zip")));
+		boolean zip = Boolean.parseBoolean(String.valueOf(bindVariable(_zip, context, message)));
 		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
-		String method = message.getVariable(ESBConstants.FileEventKind);
-		if (method == null) {
-			method = message.getVariable(ESBConstants.HttpMethod);
-		}
+		String verb = (String) bindVariable(_verb, context, message);
 		boolean append = false;
-		switch (method) {
+		switch (verb) {
 		case "GET":
 			message.clearHeaders();
 			if (IOUtils.getExt(filename).equals("gz")) {
@@ -70,7 +72,7 @@ public class FileAction extends TerminalAction {
 			message.reset(BodyType.INPUT_STREAM, new FileInputStream(file));
 			break;
 		case "ENTRY_MODIFY":
-			append = Boolean.parseBoolean(String.valueOf(message.<Object> getVariable("append")));
+			append = Boolean.parseBoolean(String.valueOf(bindVariable(_append, context, message)));
 		case "ENTRY_CREATE":
 			if (append && zip) {
 				throw new ExecutionException(this, "zip plus append is not supported, yet");
@@ -100,7 +102,7 @@ public class FileAction extends TerminalAction {
 			message.getVariables().put("deleted", file.delete());
 			break;
 		default:
-			throw new ExecutionException(this, "Method not supported: " + method);
+			throw new ExecutionException(this, "Verb not supported: " + verb);
 		}
 	}
 

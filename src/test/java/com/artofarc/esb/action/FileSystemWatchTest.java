@@ -46,10 +46,8 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		SetMessageAction setMessageAction = new SetMessageAction(false, getClass().getClassLoader(), new StringWrapper("${filenameOrigin}: ${tstmp}\n"), null, null);
 		setMessageAction.addAssignment("filenameOrigin", false, "${filename}", null, null, null);
 		setMessageAction.addAssignment("filename", false, "log.txt", null, null, null);
-		setMessageAction.addAssignment("HttpMethod", false, "ENTRY_MODIFY", null, null, null);
-		setMessageAction.addAssignment("append", false, "true", null, null, null);
 		setMessageAction.addAssignment("tstmp", false, "${initialTimestamp}", "java.sql.Date", null, null);
-		Action actionOnFile = Action.linkList(Arrays.asList(new FileAction(outDir.getPath()), setMessageAction, new FileAction(dir.getPath())));
+		Action actionOnFile = Action.linkList(Arrays.asList(new FileAction(outDir.getPath(), "ENTRY_MODIFY", "${filename}", "true", "false"), setMessageAction, new FileAction(dir.getPath(), "ENTRY_MODIFY", "${filename}", "true", "false")));
 		actionOnFile.setErrorHandler(new DumpAction());
 		String move = null; //moveDir.getPath() + "/${filenameOrigin}";
 		FileSystemWatchAction action = new FileSystemWatchAction(Arrays.asList(new String[] { inDir.getPath() }), move, null, 90l, null, actionOnFile);
