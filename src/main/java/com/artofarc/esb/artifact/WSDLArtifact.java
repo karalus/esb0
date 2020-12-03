@@ -203,6 +203,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				artifact = loadArtifact(latestImportURI = importLocation);
 			}
 		} catch (FileNotFoundException e) {
+			logger.error("Could not resolve InputSource", e);
 			return null;
 		}
 		return new InputSource(artifact.getContentAsStream());
