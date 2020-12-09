@@ -36,6 +36,7 @@ import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.http.HttpEndpointRegistry;
+import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.ConcurrentResourcePool;
@@ -251,6 +252,12 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 	public String getVersion() throws NamingException {
 		return (String) getProperty(VERSION);
+	}
+
+	public Set<String> getCaches() {
+		@SuppressWarnings("unchecked")
+		LRUCacheWithExpirationFactory<Object, Object[]> factory = getResourceFactory(LRUCacheWithExpirationFactory.class);
+		return factory.getResourceDescriptors();
 	}
 
 	public String bindProperties(String exp) throws NamingException {

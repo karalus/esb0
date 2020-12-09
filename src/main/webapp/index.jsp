@@ -8,6 +8,7 @@
 <%@page import="com.artofarc.esb.context.WorkerPool"%>
 <%@page import="com.artofarc.esb.http.HttpEndpoint"%>
 <%@page import="com.artofarc.esb.http.HttpUrlSelector"%>
+<%@page import="com.artofarc.esb.resource.LRUCacheWithExpirationFactory"%>
 <%@page import="com.artofarc.esb.artifact.*"%>
 <html>
 <head>
@@ -172,6 +173,23 @@ textarea, pre {
 </table>
 			<%
 			break;
+		case "Caches":
+			%>
+<br>Caches:
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Keys with expiration in secondsss</b></td></tr> 
+<%
+		@SuppressWarnings("unchecked")
+		LRUCacheWithExpirationFactory<Object, Object[]> factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);
+		for (String cacheName : factory.getResourceDescriptors()) {
+			LRUCacheWithExpirationFactory<Object, Object[]>.Cache cache = factory.getResource(cacheName, null);
+		   %>
+		   <tr><td><%=cacheName%></td><td><%=cache.getExpirations()%></td></tr>
+		   <%
+		}
+%>
+</table>
+			<%
+			break;
 		default:
 			%>
 <h4>
@@ -182,6 +200,7 @@ textarea, pre {
 <a href="<%=request.getContextPath()%>/admin?InternalServices">InternalServices</a><br><br>
 <a href="<%=request.getContextPath()%>/admin?WorkerPools">WorkerPools</a><br><br>
 <a href="<%=request.getContextPath()%>/admin?HttpEndpoints">HttpEndpoints</a><br><br>
+<a href="<%=request.getContextPath()%>/admin?Caches">Caches</a><br><br>
 </h4>
 Upload Service-JAR:
 <form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%>/" enctype="multipart/form-data" method="POST">
@@ -244,7 +263,7 @@ Upload Service-JAR:
 		   <%
 		   	   for (String r : a.getReferenced()) {
 		   %>
-		  	<tr><td><a href="<%=request.getContextPath() + request.getServletPath() + r%>"><%=r%></a></td></tr>
+		  	<tr><td><a href="<%=request.getContextPath() + request.getServletPath() + r%>"><%=r%></a></td></tr>s
 		   <%
 		       }
 		   %>

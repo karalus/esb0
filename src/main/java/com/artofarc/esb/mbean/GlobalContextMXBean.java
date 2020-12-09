@@ -35,4 +35,6 @@ public interface GlobalContextMXBean {
 
 	Set<String> getCachedProperties();
 
+	Set<String> getCaches();
+
 }

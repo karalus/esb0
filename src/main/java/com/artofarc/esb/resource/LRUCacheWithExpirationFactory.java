@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.resource;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,6 +50,11 @@ public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCach
 		@Override
 		public int compareTo(Delayed other) {
 			return Long.compare(_expiration, ((Expiration<?>) other)._expiration);
+		}
+
+		@Override
+		public String toString() {
+			return "{key=" + _key + ", delay=" + getDelay(TimeUnit.SECONDS) + "}";
 		}
 	}
 
@@ -105,6 +111,10 @@ public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCach
 				}
 			}
 			return _cache.remove(key);
+		}
+
+		public Collection<Expiration<K>> getExpirations() {
+			return _expirationKeys.values();
 		}
 
 		@Override
