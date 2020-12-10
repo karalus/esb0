@@ -433,7 +433,7 @@
 					<attribute name="writeOnly" type="boolean" default="false" />
 					<attribute name="name" type="Name" use="required" />
 					<attribute name="maxSize" type="int" use="required" />
-					<attribute name="ttl" type="NMTOKEN" use="required" />
+					<attribute name="ttl" type="tns:string1" use="required" />
 				</extension>
 			</complexContent>
 		</complexType>

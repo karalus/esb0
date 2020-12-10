@@ -176,7 +176,7 @@ textarea, pre {
 		case "Caches":
 			%>
 <br>Caches:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Keys with expiration in secondsss</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Keys with expiration in seconds</b></td></tr> 
 <%
 		@SuppressWarnings("unchecked")
 		LRUCacheWithExpirationFactory<Object, Object[]> factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);

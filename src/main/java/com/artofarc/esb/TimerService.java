@@ -17,9 +17,11 @@
 package com.artofarc.esb;
 
 import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import com.artofarc.esb.context.Context;
@@ -87,16 +89,20 @@ public final class TimerService extends ConsumerPort implements Runnable, com.ar
 	}
 
 	private long getNextDelay() {
-		Calendar now = Calendar.getInstance(_at.getTimeZone(javax.xml.datatype.DatatypeConstants.FIELD_UNDEFINED));
+		return millisUntilNext(_at.getHour(), _at.getMinute(), _at.getSecond(), _at.getTimeZone(DatatypeConstants.FIELD_UNDEFINED)) % _timeUnit.toMillis(_period);
+	}
+
+	public static long millisUntilNext(int hour, int minute, int second, TimeZone timeZone) {
+		Calendar now = Calendar.getInstance(timeZone);
 		Calendar atTime = (Calendar) now.clone();
-		atTime.set(Calendar.HOUR_OF_DAY, _at.getHour());
-		atTime.set(Calendar.MINUTE, _at.getMinute());
-		atTime.set(Calendar.SECOND, _at.getSecond());
+		atTime.set(Calendar.HOUR_OF_DAY, hour);
+		atTime.set(Calendar.MINUTE, minute);
+		atTime.set(Calendar.SECOND, second);
 		atTime.set(Calendar.MILLISECOND, 0);
 		if (now.after(atTime)) {
 			atTime.add(Calendar.DATE, 1);
 		}
-		return (atTime.getTimeInMillis() - now.getTimeInMillis()) % _timeUnit.toMillis(_period);
+		return atTime.getTimeInMillis() - now.getTimeInMillis();
 	}
 
 	public final Long getDelay() {

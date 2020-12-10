@@ -16,8 +16,12 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.Calendar;
 import java.util.List;
 
+import javax.xml.bind.DatatypeConverter;
+
+import com.artofarc.esb.TimerService;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
@@ -76,7 +80,12 @@ public class CacheAction extends Action {
 						super.execute(context, execContext, message, nextActionIsPipelineStop);
 						long ttl;
 						if (Character.isDigit(_ttl.charAt(0))) {
-							ttl = Long.parseLong(_ttl);
+							try {
+								ttl = Long.parseLong(_ttl);
+							} catch (NumberFormatException e) {
+								Calendar time = DatatypeConverter.parseTime(_ttl);
+								ttl = TimerService.millisUntilNext(time.get(Calendar.HOUR_OF_DAY), time.get(Calendar.MINUTE), time.get(Calendar.SECOND), time.getTimeZone()) / 1000;
+							}
 						} else {
 							ttl = this.<Number> resolve(message, _ttl, true).longValue();
 						}
