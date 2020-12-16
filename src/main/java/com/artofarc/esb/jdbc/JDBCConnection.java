@@ -30,7 +30,7 @@ import com.artofarc.util.ReflectionUtils;
 /**
  * Encapsulate the oddities of OJDBC.
  */
-public final class JDBCConnection implements AutoCloseable {
+public final class JDBCConnection {
 
 	protected final static Logger logger = LoggerFactory.getLogger(JDBCConnection.class);
 
@@ -61,8 +61,10 @@ public final class JDBCConnection implements AutoCloseable {
 		return _connection;
 	}
 
-	@Override
-	public void close() throws SQLException {
+	public void close(boolean commit) throws SQLException {
+		if (commit && !_connection.getAutoCommit()) {
+			_connection.commit();
+		}
 		_connection.close();
 	}
 

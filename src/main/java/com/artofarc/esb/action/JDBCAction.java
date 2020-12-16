@@ -38,14 +38,14 @@ import com.sun.xml.xsom.XSSchemaSet;
 public abstract class JDBCAction extends Action {
 
 	private final String _dsName;
-	protected final String _sql;
+	private final String _sql;
 	private final List<JDBCParameter> _params;
 	private final int _maxRows;
 	private final Integer _timeout;
-	private final boolean _keepConnection;
+	private final String _keepConnection;
 	protected XSSchemaSet _schemaSet;
 
-	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, boolean keepConnection, XSSchemaSet schemaSet) throws NamingException {
+	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) throws NamingException {
 		if (dsName != null && !dsName.contains("${")) {
 			globalContext.getProperty(dsName);
 		}
@@ -55,7 +55,7 @@ public abstract class JDBCAction extends Action {
 		_params = params;
 		_maxRows = maxRows;
 		_timeout = timeout;
-		_keepConnection = keepConnection;
+		_keepConnection = keepConnection.intern();
 		_schemaSet = schemaSet;
 		checkParameters(params);
 	}
@@ -84,18 +84,21 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		boolean keepConnection = Boolean.parseBoolean(bindVariable(_keepConnection, context, message).toString());
 		JDBCConnection connection = message.getVariable(ESBConstants.JDBCConnection);
 		if (connection == null) {
 			if (_dsName == null) {
-				throw new ExecutionException(this, "No DataSource configured and no Connection set");
+				throw new ExecutionException(this, "No DataSource configured and no Connection kept");
 			}
 			String dsName = (String) bindVariable(_dsName, context, message);
 			DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
 			connection = new JDBCConnection(dataSource.getConnection());
-			if (_keepConnection) {
+			if (keepConnection) {
 				message.putVariable(ESBConstants.JDBCConnection, connection);
 				connection.getConnection().setAutoCommit(false);
 			}
+		} else if (!keepConnection) {
+			message.getVariables().remove(ESBConstants.JDBCConnection);
 		}
 		ExecutionContext execContext = new ExecutionContext(connection);
 		if (inPipeline) {
@@ -130,26 +133,28 @@ public abstract class JDBCAction extends Action {
 		return execContext;
 	}
 
-	abstract protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception;
+	abstract protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message, String sql) throws Exception;
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		try (JDBCResult result = executeStatement(context, execContext, message)) {
-			if (result.hasComplexContent()) {
-				message.clearHeaders();
+		String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
+		logger.debug("JDBCAction sql=" + sql);
+		if (sql.length() > 0) {
+			try (JDBCResult result = executeStatement(context, execContext, message, sql)) {
+				if (result.hasComplexContent()) {
+					message.clearHeaders();
+				}
+				JDBCResult2JsonMapper.writeResult(result, message);
 			}
-			JDBCResult2JsonMapper.writeResult(result, message);
 		}
 	}
 
 	@Override
 	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
-		if (exception || !_keepConnection) {
+		boolean keepConnection = message.getVariables().containsKey(ESBConstants.JDBCConnection);
+		if (exception || !keepConnection) {
 			JDBCConnection connection = execContext.getResource();
-			if (message.getVariables().remove(ESBConstants.JDBCConnection) != null) {
-				connection.getConnection().commit();
-			}
-			connection.close();
+			connection.close(!exception);
 		}
 	}
 

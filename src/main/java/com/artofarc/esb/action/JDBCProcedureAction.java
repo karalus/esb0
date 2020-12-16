@@ -47,16 +47,14 @@ public class JDBCProcedureAction extends JDBCAction {
 
 	private final List<JDBCParameter> _outParams;
 
-	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout, boolean keepConnection, XSSchemaSet schemaSet) throws NamingException {
+	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) throws NamingException {
 		super(globalContext, dsName, sql, inParams, maxRows, timeout, keepConnection, schemaSet);
 		checkParameters(outParams);
 		_outParams = outParams;
 	}
 
 	@Override
-	protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
-		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
-		logger.debug("JDBCProcedureAction sql=" + sql);
+	protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message, String sql) throws Exception {
 		JDBCConnection conn = execContext.getResource();
 		CallableStatement cs = conn.getConnection().prepareCall(sql);
 		for (JDBCParameter param : _outParams) {

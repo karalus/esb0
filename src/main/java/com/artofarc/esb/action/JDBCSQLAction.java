@@ -34,7 +34,7 @@ public class JDBCSQLAction extends JDBCAction {
 
 	private final String[] _generatedKeys;
 
-	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, List<String> generatedKeys, int maxRows, int timeout, boolean keepConnection) throws NamingException {
+	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, List<String> generatedKeys, int maxRows, int timeout, String keepConnection) throws NamingException {
 		super(globalContext, dsName, sql, params, maxRows, timeout, keepConnection, null);
 		_generatedKeys = generatedKeys.isEmpty() ? null : generatedKeys.toArray(new String[generatedKeys.size()]);
 		if (sql != null) {
@@ -50,9 +50,7 @@ public class JDBCSQLAction extends JDBCAction {
 	}
 
 	@Override
-	protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
-		final String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
-		logger.debug("JDBCSQLAction sql=" + sql);
+	protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message, String sql) throws Exception {
 		JDBCConnection conn = execContext.getResource();
 		PreparedStatement ps = _generatedKeys != null ? conn.getConnection().prepareStatement(sql, _generatedKeys) : conn.getConnection().prepareStatement(sql);
 		bindParameters(conn, ps, context, execContext, message);

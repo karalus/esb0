@@ -233,7 +233,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getJdbcParameter().size() + jdbcProcedure.getOut().getJdbcParameter().size()];
 			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getJdbcParameter(), posUsed),
-					createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter(), posUsed), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.isKeepConnection(), schemaSet), location);
+					createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter(), posUsed), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.getKeepConnection(), schemaSet), location);
 			break;
 		}
 		case "jdbc": {
@@ -243,7 +243,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			boolean[] posUsed = new boolean[jdbc.getJdbcParameter().size()];
 			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter(), posUsed),
-					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.isKeepConnection()), location);
+					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.getKeepConnection()), location);
 			break;
 		}
 		case "setMessage": {
