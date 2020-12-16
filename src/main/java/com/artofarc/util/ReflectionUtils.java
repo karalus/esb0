@@ -120,7 +120,7 @@ public final class ReflectionUtils {
 	}
 
 	private static boolean isMatch(String prefix, String name, String methodName) {
-		return name.startsWith(prefix) && name.charAt(prefix.length()) == Character.toUpperCase(methodName.charAt(0))
+		return prefix.length() + methodName.length() == name.length() && name.startsWith(prefix) && name.charAt(prefix.length()) == Character.toUpperCase(methodName.charAt(0))
 				&& name.substring(prefix.length() + 1).equals(methodName.substring(1));
 	}
 
