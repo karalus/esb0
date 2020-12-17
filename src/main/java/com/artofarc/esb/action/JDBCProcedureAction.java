@@ -86,7 +86,7 @@ public class JDBCProcedureAction extends JDBCAction {
 					break;
 				case STRUCT:
 					JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
-					SAXSource saxSource = new SAXSource(mapper.createParser(context, (Struct) cs.getObject(param.getPos())), null);
+					SAXSource saxSource = new SAXSource(mapper.createParser(context, conn, (Struct) cs.getObject(param.getPos())), null);
 					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
 					break;
 				default:
@@ -96,7 +96,7 @@ public class JDBCProcedureAction extends JDBCAction {
 				Struct struct = (Struct) cs.getObject(param.getPos());
 				if (struct != null) {
 					JDBCAttachments jdbcAttachments = new JDBCAttachments(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-					jdbcAttachments.parseAttachments(struct, message);
+					jdbcAttachments.parseAttachments(conn, struct, message);
 				}
 			} else {
 				message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));

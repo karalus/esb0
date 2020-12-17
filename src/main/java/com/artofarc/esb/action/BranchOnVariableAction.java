@@ -37,7 +37,7 @@ public class BranchOnVariableAction extends Action {
 			return Pattern.compile(regEx);
 		}
 	};
-	
+
 	private final String _varName;
 	private final Map<Object, Action> _branchMap = new LinkedHashMap<>();
 	private final Action _defaultAction, _nullAction;

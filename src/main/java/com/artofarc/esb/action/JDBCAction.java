@@ -92,10 +92,9 @@ public abstract class JDBCAction extends Action {
 			}
 			String dsName = (String) bindVariable(_dsName, context, message);
 			DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
-			connection = new JDBCConnection(dataSource.getConnection());
+			connection = new JDBCConnection(dataSource.getConnection(), keepConnection);
 			if (keepConnection) {
 				message.putVariable(ESBConstants.JDBCConnection, connection);
-				connection.getConnection().setAutoCommit(false);
 			}
 		} else if (!keepConnection) {
 			message.getVariables().remove(ESBConstants.JDBCConnection);

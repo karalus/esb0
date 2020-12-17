@@ -52,9 +52,12 @@ public final class JDBCConnection {
 	private final Connection _connection;
 	private final boolean _isOracleConnection;
 
-	public JDBCConnection(Connection connection) throws SQLException {
+	public JDBCConnection(Connection connection, boolean manualCommit) throws SQLException {
 		_connection = connection;
 		_isOracleConnection = ifcOracleConnection != null && connection.isWrapperFor(ifcOracleConnection);
+		if (manualCommit) {
+			connection.setAutoCommit(false);
+		}
 	}
 
 	public Connection getConnection() {
@@ -80,7 +83,10 @@ public final class JDBCConnection {
 		}
 	}
 
-	public static String getSQLTypeName(Array array) throws SQLException {
+	public String getSQLTypeName(Array array) throws SQLException {
+		if (!_isOracleConnection) {
+			throw new SQLException("Only works with OJDBC");
+		}
 		try {
 			return (String) getSQLTypeName.invoke(array);
 		} catch (Throwable e) {
