@@ -13,6 +13,9 @@
 <html>
 <head>
 <style>
+body {
+	background-color: <%=System.getProperty("esb0.adminUI.bgcolor", "transparent")%>;
+}
 textarea, pre {
 	-moz-tab-size: 4;
 	-o-tab-size: 4;
@@ -263,7 +266,7 @@ Upload Service-JAR:
 		   <%
 		   	   for (String r : a.getReferenced()) {
 		   %>
-		  	<tr><td><a href="<%=request.getContextPath() + request.getServletPath() + r%>"><%=r%></a></td></tr>s
+		  	<tr><td><a href="<%=request.getContextPath() + request.getServletPath() + r%>"><%=r%></a></td></tr>
 		   <%
 		       }
 		   %>
