@@ -297,7 +297,7 @@ public abstract class Action implements Cloneable {
 			if (standalone) {
 				return value;						
 			}
-			builder.append(value);
+			builder.append(value.toString());
 			pos = j;
 		}
 		return builder.toString();
