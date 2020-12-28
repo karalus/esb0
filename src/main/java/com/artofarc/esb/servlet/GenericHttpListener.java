@@ -24,6 +24,7 @@ import java.util.Enumeration;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -70,18 +71,28 @@ public class GenericHttpListener extends HttpServlet {
 			if (secure) {
 				if (consumerPort.isEnabled()) {
 					try {
-						Context context = consumerPort.getContextPool().getContext();
-						if (context != null) {
-							try {
-								consumerPort.process(context, createESBMessage(request, pathInfo, consumerPort));
-							} finally {
-								consumerPort.getContextPool().releaseContext(context);
+						ESBMessage message = createESBMessage(request, pathInfo, consumerPort);
+						AsyncContext asyncContext = request.startAsync();
+						message.getVariables().put(AsyncContext, asyncContext);
+						try {
+							Context context = consumerPort.getContextPool().getContext();
+							if (context != null) {
+								try {
+									consumerPort.process(context, message);
+								} finally {
+									consumerPort.getContextPool().releaseContext(context);
+								}
+							} else {
+								sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
 							}
-						} else {
-							sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
+						} catch (Exception e) {
+							if (!response.isCommitted()) {
+								sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
+							}
+							asyncContext.complete();
 						}
 					} catch (Exception e) {
-						sendError(response, e);
+						sendError(response, HttpServletResponse.SC_BAD_REQUEST, e);
 					}
 				} else {
 					sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
@@ -121,18 +132,16 @@ public class GenericHttpListener extends HttpServlet {
 		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));
 		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HTTP_HEADER_ACCEPT_ENCODING));
 		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT, message.removeHeader(HTTP_HEADER_ACCEPT));
-		message.getVariables().put(AsyncContext, request.startAsync());
 		return message;
 	}
 
-	public static void sendError(HttpServletResponse response, Exception e) throws IOException {
-		int httpRetCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+	public static void sendError(HttpServletResponse response, int sc, Exception e) throws IOException {
 		if (e instanceof TimeoutException || e instanceof SocketTimeoutException) {
-			httpRetCode = HttpServletResponse.SC_GATEWAY_TIMEOUT;
+			sc = HttpServletResponse.SC_GATEWAY_TIMEOUT;
 		} else if (e instanceof RejectedExecutionException) {
-			httpRetCode = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+			sc = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 		}
-		response.setStatus(httpRetCode);
+		response.setStatus(sc);
 		response.setContentType(SOAP_1_1_CONTENT_TYPE);
 		response.getWriter().print(ESBMessage.asXMLString(e));
 	}
