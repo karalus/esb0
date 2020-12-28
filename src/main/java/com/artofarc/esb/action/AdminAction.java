@@ -136,8 +136,8 @@ public class AdminAction extends Action {
 			}
 		} else {
 			String enable = message.getHeader("enable");
-			String content = message.getBodyAsString(context);
-			if (enable != null || content.isEmpty()) {
+			byte[] content = message.getBodyAsByteArray(context);
+			if (enable != null || content.length == 0) {
 				ConsumerPort consumerPort = globalContext.getInternalService(resource);
 				if (consumerPort != null) {
 					// if header is missing just toggle state
@@ -149,7 +149,7 @@ public class AdminAction extends Action {
 					throw new ExecutionException(this, resource);
 				}
 			} else {
-				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, content.getBytes());
+				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, content);
 				deployChangeset(globalContext, changeSet, message);
 			}
 		}
