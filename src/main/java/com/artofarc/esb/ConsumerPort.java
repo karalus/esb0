@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.action.Action;
+import com.artofarc.esb.action.JDBCAction;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.ESBMessage;
@@ -84,7 +85,14 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	}
 
 	public final long processInternal(Context context, ESBMessage message) throws Exception {
-		_startAction.process(context, message);
+		try {
+			_startAction.process(context, message);
+		} catch (Exception e) {
+			JDBCAction.closeKeptConnection(message, false);
+			throw e;
+		} finally {
+			JDBCAction.closeKeptConnection(message, true);
+		}
 		if (context.getExecutionStack().size() > 0) {
 			context.getExecutionStack().clear();
 			throw new IllegalStateException("ExecutionStack not empty");

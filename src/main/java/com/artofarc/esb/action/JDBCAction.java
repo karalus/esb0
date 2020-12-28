@@ -157,6 +157,13 @@ public abstract class JDBCAction extends Action {
 		}
 	}
 
+	public static void closeKeptConnection(ESBMessage message, boolean commit) throws SQLException {
+		JDBCConnection connection = (JDBCConnection) message.getVariables().remove(ESBConstants.JDBCConnection);
+		if (connection != null) {
+			connection.close(commit);
+		}
+	}
+
 	protected final void bindParameters(JDBCConnection conn, PreparedStatement ps, Context context, ExecutionContext execContext, ESBMessage message) throws Exception {
 		for (JDBCParameter param : _params) {
 			if (param.isBody()) {
