@@ -18,7 +18,7 @@ package com.artofarc.esb.message;
 
 public enum BodyType {
 	INVALID(false), INPUT_STREAM(true), READER(false), STRING(false), BYTES(true), DOM(false), XQ_SEQUENCE(false), OUTPUT_STREAM(true), WRITER(false),
-		SOURCE(false), RESULT(false), XQ_ITEM(false), EXCEPTION(false);
+		SOURCE(false), RESULT(false), XQ_ITEM(false), EXCEPTION(false), JDBC_RESULT(false), JSON_VALUE(false);
 
 	private final boolean _hasCharset;
 

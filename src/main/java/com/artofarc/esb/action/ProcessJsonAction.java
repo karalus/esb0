@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +28,6 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.JsonFactoryHelper;
 
 /**
  * Extract data from message using JSON Pointer.
@@ -62,13 +60,7 @@ public class ProcessJsonAction extends Action {
 		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		// Materialize message in case it is a stream thus it will not be consumed
-		String content = message.getBodyAsString(context);
-		JsonStructure json;
-		try (JsonReader jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(new StringReader(content))) {
-			json = jsonReader.read();
-		}
-
+		JsonStructure json = (JsonStructure) message.getBodyAsJsonValue(context);
 		for (Assignment variable : _variables) {
 			Object value = variable.getValueAsObject(json);
 			if (value != null) {

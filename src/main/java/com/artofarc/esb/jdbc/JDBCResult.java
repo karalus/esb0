@@ -16,9 +16,12 @@
  */
 package com.artofarc.esb.jdbc;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.math.BigDecimal;
+import java.sql.*;
+import static java.sql.Types.*;
+
+import javax.json.stream.JsonGenerator;
+import javax.xml.bind.DatatypeConverter;
 
 public final class JDBCResult implements AutoCloseable {
 
@@ -87,6 +90,122 @@ public final class JDBCResult implements AutoCloseable {
 	@Override
 	public void close() throws SQLException {
 		_statement.close();
+	}
+
+	public void writeJson(JsonGenerator jsonGenerator) throws SQLException {
+		writeStartCurrent(jsonGenerator);
+		if (next()) {
+			jsonGenerator.writeStartArray("more");
+			do {
+				writeStartCurrent(jsonGenerator);
+				jsonGenerator.writeEnd();
+			} while (next());
+			jsonGenerator.writeEnd();
+		}
+		jsonGenerator.writeEnd();
+	}
+
+	private void writeStartCurrent(JsonGenerator jsonGenerator) throws SQLException {
+		if (getCurrentUpdateCount() >= 0) {
+			jsonGenerator.writeStartObject();
+			jsonGenerator.write(JDBCResult.SQL_UPDATE_COUNT, getCurrentUpdateCount());
+		} else {
+			writeJson(getCurrentResultSet(), jsonGenerator);
+		}
+	}
+
+	private static void writeJson(ResultSet resultSet, JsonGenerator json) throws SQLException {
+		ResultSetMetaData metaData = resultSet.getMetaData();
+		final int colSize = metaData.getColumnCount();
+		json.writeStartObject();
+		json.writeStartArray("header");
+		for (int i = 1; i <= colSize; ++i) {
+			int precision = metaData.getPrecision(i);
+			int scale = metaData.getScale(i);
+			String type = JDBCParameter.CODES.get(metaData.getColumnType(i)) + (precision > 0 ? "(" + precision + (scale > 0 ? ", " + scale : "") + ')' : "");
+			json.writeStartObject();
+			json.write(metaData.getColumnLabel(i), type);
+			json.writeEnd();
+		}
+		json.writeEnd();
+		json.writeStartArray("rows");
+		while (resultSet.next()) {
+			json.writeStartArray();
+			for (int i = 1; i <= colSize; ++i) {
+				switch (metaData.getColumnType(i)) {
+				case SMALLINT:
+				case INTEGER:
+					int integer = resultSet.getInt(i);
+					if (checkNotNull(resultSet, json)) {
+						json.write(integer);
+					}
+					break;
+				case BIT:
+					boolean bool = resultSet.getBoolean(i);
+					if (checkNotNull(resultSet, json)) {
+						json.write(bool);
+					}
+					break;
+				case NUMERIC:
+				case DECIMAL:
+					BigDecimal bigDecimal = resultSet.getBigDecimal(i);
+					if (checkNotNull(resultSet, json)) {
+						json.write(bigDecimal);
+					}
+					break;
+				case TIMESTAMP:
+					Timestamp timestamp = resultSet.getTimestamp(i);
+					if (checkNotNull(resultSet, json)) {
+						json.write(DatatypeConverter.printDateTime(JDBCParameter.convert(timestamp)));
+					}
+					break;
+				case DATE:
+					Date date = resultSet.getDate(i);
+					if (checkNotNull(resultSet, json)) {
+						json.write(DatatypeConverter.printDate(JDBCParameter.convert(date)));
+					}
+					break;
+				case BLOB:
+					Blob blob = resultSet.getBlob(i);
+					if (checkNotNull(resultSet, json)) {
+						json.write(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
+						blob.free();
+					}
+					break;
+				case CLOB:
+					Clob clob = resultSet.getClob(i);
+					if (checkNotNull(resultSet, json)) {
+						json.write(clob.getSubString(1, (int) clob.length()));
+						clob.free();
+					}
+					break;
+				case VARBINARY:
+				case LONGVARBINARY:
+					byte[] bytes = resultSet.getBytes(i);
+					if (checkNotNull(resultSet, json)) {
+						json.write(DatatypeConverter.printBase64Binary(bytes));
+					}
+					break;
+				default:
+					Object value = resultSet.getObject(i);
+					if (checkNotNull(resultSet, json)) {
+						json.write(value.toString());
+					}
+					break;
+				}
+			}
+			json.writeEnd();
+		}
+		json.writeEnd();
+	}
+
+	private static boolean checkNotNull(ResultSet resultSet, JsonGenerator json) throws SQLException {
+		if (resultSet.wasNull()) {
+			json.writeNull();
+			return false;
+		} else {
+			return true;
+		}
 	}
 
 }

@@ -60,11 +60,17 @@ public class Json2XMLAction extends SAXAction {
 	}
 
 	@Override
-	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception {
 		if (parent != null) {
 			throw new IllegalArgumentException("JSON expected: parent must be null");
 		}
-		return _streaming ? _json2xml.createStreamingParser() : _json2xml.createParser();
+		switch (message.getBodyType()) {
+		case JSON_VALUE:
+		case JDBC_RESULT:
+			return _json2xml.createParser(message.getBodyAsJsonValue(context));
+		default:
+			return _streaming ? _json2xml.createStreamingParser() : _json2xml.createParser();
+		}
 	}
 
 }

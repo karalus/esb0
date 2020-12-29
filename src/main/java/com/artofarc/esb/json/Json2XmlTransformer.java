@@ -94,6 +94,12 @@ public final class Json2XmlTransformer {
 		return new Parser();
 	}
 
+	public XMLParserBase createParser(JsonValue jsonValue) {
+		Parser parser = new Parser();
+		parser._jsonValue = jsonValue;
+		return parser;
+	}
+
 	private static final class Source implements Locator {
 
 		final JsonParser jsonParser;
@@ -483,17 +489,19 @@ public final class Json2XmlTransformer {
 
 	private final class Parser extends AbstractParser {
 
+		JsonValue _jsonValue;
 		String primitiveType;
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
-			JsonValue jsonValue;
-			try (JsonReader jsonReader = createJsonReader(inputSource)) {
-				jsonValue = jsonReader.readValue();
+			if (_jsonValue == null) {
+				try (JsonReader jsonReader = createJsonReader(inputSource)) {
+					_jsonValue = jsonReader.readValue();
+				}
 			}
 			startDocument();
 			if (_includeRoot) {
-				JsonObject jsonObject = (JsonObject) jsonValue;
+				JsonObject jsonObject = (JsonObject) _jsonValue;
 				Set<String> keySet = jsonObject.keySet();
 				if (keySet.size() != 1) {
 					throw new SAXException("JSON with root must consist of exactly one value");
@@ -507,17 +515,17 @@ public final class Json2XmlTransformer {
 				} else {
 					uri = getDefaultUri();
 				}
-				jsonValue = jsonObject.getJsonObject(keyName);
+				_jsonValue = jsonObject.getJsonObject(keyName);
 			} else {
 				keyName = _rootName;
 				uri = _rootUri;
 			}
 			Element e = new Element(uri, keyName, createQName(uri, keyName));
 			if (_type instanceof XSSimpleType) {
-				parse(e, jsonValue, (XSSimpleType) _type);
+				parse(e, _jsonValue, (XSSimpleType) _type);
 			} else {
 				xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
-				parse(e, (JsonObject) jsonValue);
+				parse(e, (JsonObject) _jsonValue);
 			}
 			endDocument();
 		}

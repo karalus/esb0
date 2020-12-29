@@ -37,6 +37,9 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import javax.json.JsonReader;
+import javax.json.JsonValue;
+import javax.json.JsonWriter;
 import javax.json.stream.JsonGenerator;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
@@ -62,6 +65,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.jdbc.JDBCResult;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.*;
@@ -306,7 +310,7 @@ public final class ESBMessage implements Cloneable {
 		return new InputStreamReader(getUncompressedInputStream(inputStream), getCharset());
 	}
 
-	public byte[] getBodyAsByteArray(Context context) throws TransformerException, IOException, XQException {
+	public byte[] getBodyAsByteArray(Context context) throws Exception {
 		byte[] ba;
 		Charset charset = _charset;
 		ByteArrayOutputStream bos;
@@ -340,7 +344,7 @@ public final class ESBMessage implements Cloneable {
 		return init(BodyType.BYTES, ba, charset);
 	}
 
-	public String getBodyAsString(Context context) throws TransformerException, IOException, XQException {
+	public String getBodyAsString(Context context) throws Exception {
 		String str;
 		StringBuilderWriter sw;
 		switch (_bodyType) {
@@ -383,6 +387,16 @@ public final class ESBMessage implements Cloneable {
 				str = asXMLString(e);
 			}
 			break;
+		case JDBC_RESULT:
+			JDBCResult result = (JDBCResult) _body;
+			try (JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(sw = new StringBuilderWriter())) {
+				result.writeJson(jsonGenerator);
+			}
+			str = sw.toString();
+			break;
+		case JSON_VALUE:
+			str = _body.toString();
+			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");
 		default:
@@ -394,7 +408,7 @@ public final class ESBMessage implements Cloneable {
 	/**
 	 * @param context Can be null if we don't expect BodyType DOM
 	 */
-	public InputStream getBodyAsInputStream(Context context) throws TransformerException, IOException, XQException {
+	public InputStream getBodyAsInputStream(Context context) throws Exception {
 		switch (_bodyType) {
 		case INPUT_STREAM:
 			return getUncompressedInputStream((InputStream) _body);
@@ -408,7 +422,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public Reader getBodyAsReader(Context context) throws TransformerException, IOException, XQException {
+	public Reader getBodyAsReader(Context context) throws Exception {
 		switch (_bodyType) {
 		case READER:
 			return (Reader) _body;
@@ -567,6 +581,22 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
+	public JsonValue getBodyAsJsonValue(Context context) throws Exception  {
+		switch (_bodyType) {
+		case JSON_VALUE:
+			return (JsonValue) _body;
+		case JDBC_RESULT:
+			JDBCResult result = (JDBCResult) _body;
+			JsonValueGenerator jsonValueGenerator = new JsonValueGenerator();
+			result.writeJson(jsonValueGenerator);
+			return init(BodyType.JSON_VALUE, jsonValueGenerator.getJsonValue(), null);
+		default:
+			try (JsonReader jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(getBodyAsReader(context))) {
+				return init(BodyType.JSON_VALUE, jsonReader.readValue(), null);
+			}
+		}
+	}
+
 	public JsonGenerator getBodyAsJsonGenerator() throws IOException {
 		switch (_bodyType) {
 		case OUTPUT_STREAM:
@@ -633,7 +663,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public void writeRawTo(OutputStream os, Context context) throws XQException, TransformerException, IOException {
+	public void writeRawTo(OutputStream os, Context context) throws Exception {
 		switch (_bodyType) {
 		case DOM:
 			_body = new DOMSource((Node) _body);
@@ -679,6 +709,17 @@ public final class ESBMessage implements Cloneable {
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(os, getSinkProperties());
+			break;
+		case JDBC_RESULT:
+			JDBCResult result = (JDBCResult) _body;
+			try (JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(os, getSinkEncodingCharset())) {
+				result.writeJson(jsonGenerator);
+			}
+			break;
+		case JSON_VALUE:
+			try (JsonWriter jsonWriter = JsonFactoryHelper.JSON_WRITER_FACTORY.createWriter(os, getSinkEncodingCharset())) {
+				jsonWriter.write((JsonValue) _body);
+			}
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");

@@ -22,6 +22,7 @@ import java.sql.*;
 import static java.sql.Types.*;
 import java.util.List;
 
+import javax.json.stream.JsonGenerator;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 import javax.xml.transform.dom.DOMResult;
@@ -29,6 +30,7 @@ import javax.xml.transform.dom.DOMResult;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jdbc.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
@@ -142,8 +144,17 @@ public abstract class JDBCAction extends Action {
 			try (JDBCResult result = executeStatement(context, execContext, message, sql)) {
 				if (result.hasComplexContent()) {
 					message.clearHeaders();
+					if (message.isSink()) {
+						try (JsonGenerator jsonGenerator = message.getBodyAsJsonGenerator()) {
+							result.writeJson(jsonGenerator);
+						}
+					} else {
+						message.reset(BodyType.JDBC_RESULT, result);
+					}
+					message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+				} else if (result.getCurrentUpdateCount() >= 0) {
+					message.getVariables().put(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
 				}
-				JDBCResult2JsonMapper.writeResult(result, message);
 			}
 		}
 	}
