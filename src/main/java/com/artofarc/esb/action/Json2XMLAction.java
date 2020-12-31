@@ -27,6 +27,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.json.Json2XmlTransformer;
+import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.XMLFilterBase;
 import com.sun.xml.xsom.XSSchemaSet;
@@ -51,7 +52,11 @@ public class Json2XMLAction extends SAXAction {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		message.putHeader(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
-		return super.prepare(context, message, inPipeline);
+		if (message.getBodyType() == BodyType.JSON_VALUE) {
+			return new ExecutionContext(new SAXSource(_json2xml.createParser(message.getBody()), null));
+		} else {
+			return super.prepare(context, message, inPipeline);
+		}
 	}
 
 	@Override
@@ -60,17 +65,11 @@ public class Json2XMLAction extends SAXAction {
 	}
 
 	@Override
-	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception {
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
 		if (parent != null) {
 			throw new IllegalArgumentException("JSON expected: parent must be null");
 		}
-		switch (message.getBodyType()) {
-		case JSON_VALUE:
-		case JDBC_RESULT:
-			return _json2xml.createParser(message.getBodyAsJsonValue(context));
-		default:
-			return _streaming ? _json2xml.createStreamingParser() : _json2xml.createParser();
-		}
+		return _streaming ? _json2xml.createStreamingParser() : _json2xml.createParser();
 	}
 
 }

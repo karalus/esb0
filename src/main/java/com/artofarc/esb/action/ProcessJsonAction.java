@@ -28,6 +28,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.JsonFactoryHelper;
 
 /**
  * Extract data from message using JSON Pointer.
@@ -60,7 +61,12 @@ public class ProcessJsonAction extends Action {
 		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		JsonStructure json = (JsonStructure) message.getBodyAsJsonValue(context);
+		if (message.getBodyType() != BodyType.JSON_VALUE) {
+			try (JsonReader jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(message.getBodyAsReader(context))) {
+				message.reset(BodyType.JSON_VALUE, jsonReader.readValue());
+			}
+		}
+		JsonStructure json = message.getBody();
 		for (Assignment variable : _variables) {
 			Object value = variable.getValueAsObject(json);
 			if (value != null) {

@@ -35,6 +35,7 @@ import com.artofarc.esb.jdbc.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.JsonValueGenerator;
 import com.sun.xml.xsom.XSSchemaSet;
 
 public abstract class JDBCAction extends Action {
@@ -149,7 +150,9 @@ public abstract class JDBCAction extends Action {
 							result.writeJson(jsonGenerator);
 						}
 					} else {
-						message.reset(BodyType.JDBC_RESULT, result);
+						JsonValueGenerator jsonValueGenerator = new JsonValueGenerator();
+						result.writeJson(jsonValueGenerator);
+						message.reset(BodyType.JSON_VALUE, jsonValueGenerator.getJsonValue());
 					}
 					message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 				} else if (result.getCurrentUpdateCount() >= 0) {

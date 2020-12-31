@@ -37,7 +37,6 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
-import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.json.JsonWriter;
 import javax.json.stream.JsonGenerator;
@@ -65,7 +64,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.jdbc.JDBCResult;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.*;
@@ -317,6 +315,7 @@ public final class ESBMessage implements Cloneable {
 		switch (_bodyType) {
 		case DOM:
 		case SOURCE:
+		case JSON_VALUE:
 			writeRawTo(bos = new ByteArrayOutputStream(), context);
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
@@ -386,13 +385,6 @@ public final class ESBMessage implements Cloneable {
 			} else {
 				str = asXMLString(e);
 			}
-			break;
-		case JDBC_RESULT:
-			JDBCResult result = (JDBCResult) _body;
-			try (JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(sw = new StringBuilderWriter())) {
-				result.writeJson(jsonGenerator);
-			}
-			str = sw.toString();
 			break;
 		case JSON_VALUE:
 			str = _body.toString();
@@ -581,22 +573,6 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public JsonValue getBodyAsJsonValue(Context context) throws Exception  {
-		switch (_bodyType) {
-		case JSON_VALUE:
-			return (JsonValue) _body;
-		case JDBC_RESULT:
-			JDBCResult result = (JDBCResult) _body;
-			JsonValueGenerator jsonValueGenerator = new JsonValueGenerator();
-			result.writeJson(jsonValueGenerator);
-			return init(BodyType.JSON_VALUE, jsonValueGenerator.getJsonValue(), null);
-		default:
-			try (JsonReader jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(getBodyAsReader(context))) {
-				return init(BodyType.JSON_VALUE, jsonReader.readValue(), null);
-			}
-		}
-	}
-
 	public JsonGenerator getBodyAsJsonGenerator() throws IOException {
 		switch (_bodyType) {
 		case OUTPUT_STREAM:
@@ -709,12 +685,6 @@ public final class ESBMessage implements Cloneable {
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(os, getSinkProperties());
-			break;
-		case JDBC_RESULT:
-			JDBCResult result = (JDBCResult) _body;
-			try (JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(os, getSinkEncodingCharset())) {
-				result.writeJson(jsonGenerator);
-			}
 			break;
 		case JSON_VALUE:
 			try (JsonWriter jsonWriter = JsonFactoryHelper.JSON_WRITER_FACTORY.createWriter(os, getSinkEncodingCharset())) {
