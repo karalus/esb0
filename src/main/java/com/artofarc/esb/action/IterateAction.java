@@ -52,7 +52,7 @@ public class IterateAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) {
 		Iterator<?> iterator = execContext.getResource();
 		if (iterator.hasNext()) {
 			message.putVariable(_varName, iterator.next());

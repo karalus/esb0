@@ -39,7 +39,7 @@ public abstract class WeakCache<K, V> {
 		}
 		ref = cache.get(key);
 		if (ref == null) {
-			ref = new WeakReference<V>(create(key), queue);
+			ref = new WeakReference<>(create(key), queue);
 			cache.put(key, ref);
 		}
 		return ref.get();

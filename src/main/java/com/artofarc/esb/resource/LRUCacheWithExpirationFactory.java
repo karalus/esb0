@@ -84,7 +84,7 @@ public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCach
 
 		public Object put(K key, V value, long ttl) {
 			long ttlNanos = TimeUnit.NANOSECONDS.convert(ttl, TimeUnit.SECONDS);
-			Expiration<K> expiration = new Expiration<K>(System.nanoTime() + ttlNanos, key, _name);
+			Expiration<K> expiration = new Expiration<>(System.nanoTime() + ttlNanos, key, _name);
 			Expiration<K> expirationOld = _expirationKeys.put(key, expiration);
 			synchronized (LRUCacheWithExpirationFactory.this) {
 				if (expirationOld != null) {

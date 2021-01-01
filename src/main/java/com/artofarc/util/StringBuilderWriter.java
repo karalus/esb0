@@ -41,7 +41,7 @@ public final class StringBuilderWriter extends java.io.Writer {
 
 	@Override
 	public void write(String str, int off, int len) {
-		builder.append(str.substring(off, off + len));
+		builder.append(str, off, off + len);
 	}
 
 	@Override
