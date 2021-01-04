@@ -40,8 +40,8 @@ public abstract class Artifact {
 	private final LinkedHashSet<String> _referenced = new LinkedHashSet<>();
 	private final LinkedHashSet<String> _referencedBy = new LinkedHashSet<>();
 
-	private byte[] _content;
-	private int _length;
+	protected byte[] _content;
+	protected int _length;
 	private long _crc;
 	private long _modificationTime;
 	private boolean _validated;
@@ -97,7 +97,7 @@ public abstract class Artifact {
 		return _validated;
 	}
 
-	final void setValidated() {
+	protected final void setValidated() {
 		_validated = true;
 	}
 
@@ -229,8 +229,9 @@ public abstract class Artifact {
 			clone.getReferencedBy().addAll(getReferencedBy());
 		}
 		clone.setModificationTime(getModificationTime());
-		clone.setContent(_content);
 		clone.setCrc(_crc);
+		clone._content = _content;
+		clone._length = _length;
 		return clone;
 	}
 

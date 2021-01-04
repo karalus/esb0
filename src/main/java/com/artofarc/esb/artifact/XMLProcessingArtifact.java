@@ -72,7 +72,10 @@ public class XMLProcessingArtifact extends Artifact {
 					return getBaseArtifact().loadArtifact(base).loadArtifact(href);
 				}
 			} else {
-				return getBaseArtifact().loadArtifact(href.startsWith(PROTOCOL_FILE) ? href.substring(PROTOCOL_FILE.length()) : href);
+				if (href.startsWith(PROTOCOL_FILE)) {
+					href = href.substring(PROTOCOL_FILE.length());
+				}
+				return getBaseArtifact().loadArtifact(href);
 			}
 		}
 
@@ -80,9 +83,7 @@ public class XMLProcessingArtifact extends Artifact {
 		public StreamSource resolve(String href, String base) throws TransformerException {
 			try {
 				Artifact artifact = resolveArtifact(href, base);
-				StreamSource source = new StreamSource(artifact.getContentAsStream());
-				source.setSystemId(artifact.getURI());
-				return source;
+				return new StreamSource(artifact.getContentAsStream(), artifact.getURI());
 			} catch (FileNotFoundException e) {
 				throw new TransformerException(e);
 			}
