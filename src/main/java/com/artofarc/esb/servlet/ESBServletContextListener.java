@@ -58,6 +58,7 @@ public final class ESBServletContextListener implements ServletContextListener {
 			XMLCatalog.attachToFileSystem(globalContext);
 			FileSystem.ChangeSet changeSet = fileSystem.init(globalContext);
 			DeployHelper.deployChangeSet(globalContext, changeSet);
+			fileSystem.writeBackChanges();
 			DeployHelper.createAdminService(globalContext, '/' + ADMIN_SERVLET_PATH + "/*");
 		} catch (ValidationException e) {
 			globalContext.close();

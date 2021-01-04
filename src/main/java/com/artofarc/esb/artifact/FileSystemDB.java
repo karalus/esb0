@@ -67,7 +67,7 @@ public class FileSystemDB extends FileSystem {
 	}
 
 	@Override
-	public void parse() throws SQLException {
+	public void load() throws SQLException {
 		CRC32 crc = new CRC32();
 		String sql = "select URI, MODIFIED, CONTENT from " + FILESYSTEM_TABLE + " where ENVIRONMENT='" + environment + "'";
 		try (Connection conn = _dataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet resultSet = ps.executeQuery()) {

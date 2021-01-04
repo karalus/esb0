@@ -91,6 +91,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
+		migrate(globalContext);
 		Service service = unmarshal();
 		try {
 			for (ActionPipeline actionPipeline : service.getActionPipeline()) {

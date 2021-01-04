@@ -71,7 +71,7 @@ public abstract class AbstractESBTest {
 			}
 
 			@Override
-			public void parse() {
+			public void load() {
 			}
 
 			@Override

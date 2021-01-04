@@ -61,7 +61,7 @@ public abstract class FileSystem {
 
 	public abstract FileSystem copy();
 
-	public abstract void parse() throws Exception;
+	public abstract void load() throws Exception;
 
 	public abstract void writeBackChanges() throws Exception;
 
@@ -124,8 +124,7 @@ public abstract class FileSystem {
 	}
 
 	public final ChangeSet init(GlobalContext globalContext) throws Exception {
-		parse();
-		_changes.clear();
+		load();
 		ChangeSet changeSet = new ChangeSet();
 		validateServices(globalContext, _root, changeSet);
 		return changeSet;
@@ -352,8 +351,8 @@ public abstract class FileSystem {
 		}
 	}
 
-	private void noteChange(String uri, ChangeType type) {
-		_changes.put(uri, type);
+	final void noteChange(String uri, ChangeType type) {
+		_changes.putIfAbsent(uri, type);
 	}
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {

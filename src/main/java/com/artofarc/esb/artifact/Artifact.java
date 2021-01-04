@@ -40,9 +40,9 @@ public abstract class Artifact {
 	private final LinkedHashSet<String> _referenced = new LinkedHashSet<>();
 	private final LinkedHashSet<String> _referencedBy = new LinkedHashSet<>();
 
-	protected byte[] _content;
-	protected int _length;
-	protected long _crc;
+	private byte[] _content;
+	private int _length;
+	private long _crc;
 	private long _modificationTime;
 	private boolean _validated;
 
@@ -52,6 +52,12 @@ public abstract class Artifact {
 		_name = name;
 		if (parent != null) {
 			parent.getArtifacts().put(name, this);
+		}
+	}
+
+	protected final void noteChange() {
+		synchronized (_fileSystem) {
+			_fileSystem.noteChange(getURI(), FileSystem.ChangeType.UPDATE);
 		}
 	}
 
@@ -122,7 +128,7 @@ public abstract class Artifact {
 		_modificationTime = modificationTime;
 	}
 
-	public final void setCrc(long crc) {
+	protected final void setCrc(long crc) {
 		_crc = crc;
 	}
 
@@ -223,9 +229,8 @@ public abstract class Artifact {
 			clone.getReferencedBy().addAll(getReferencedBy());
 		}
 		clone.setModificationTime(getModificationTime());
-		clone._crc = _crc;
-		clone._content = _content;
-		clone._length = _length;
+		clone.setContent(_content);
+		clone.setCrc(_crc);
 		return clone;
 	}
 
