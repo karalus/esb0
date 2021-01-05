@@ -267,7 +267,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			for (JAXBElement<HeaderOrVariable> jaxbElement : setMessage.getHeaderOrVariable()) {
 				HeaderOrVariable hov = jaxbElement.getValue();
-				setMessageAction.addAssignment(hov.getName(), jaxbElement.getName().getLocalPart().equals("header"), hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
+				try {
+					setMessageAction.addAssignment(hov.getName(), jaxbElement.getName().getLocalPart().equals("header"), hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
+				} catch (LinkageError e) {
+					throw new ValidationException(this, hov.sourceLocation().getLineNumber(), e.getCause() != null ? e.getCause() : e);
+				}
 			}
 			addAction(list, setMessageAction, location);
 			break;
