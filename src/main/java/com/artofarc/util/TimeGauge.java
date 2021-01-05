@@ -20,7 +20,7 @@ import java.util.ArrayDeque;
 
 import org.slf4j.Logger;
 
-public final class TimeGauge implements AutoCloseable {
+public final class TimeGauge {
 
 	private final Logger _logger; 
 	private final boolean _debug;
@@ -49,8 +49,8 @@ public final class TimeGauge implements AutoCloseable {
 		_measuredPoints.push(System.nanoTime());
 	}
 
-	public void stopTimeMeasurement() {
-		_measuredPoints.pop();
+	public long stopTimeMeasurement() {
+		return (System.nanoTime() - _measuredPoints.pop()) / 1000000L;
 	}
 
 	public long stopTimeMeasurement(String text, boolean restart, Object... args) {
@@ -67,20 +67,8 @@ public final class TimeGauge implements AutoCloseable {
 		return diff;
 	}
 
-	@Override
-	public void close() {
+	public void clear() {
 		_measuredPoints.clear();
-	}
-
-	public AutoCloseable createTimer(final String message) {
-		startTimeMeasurement();
-		return new AutoCloseable() {
-
-			@Override
-			public void close() {
-				stopTimeMeasurement(message, false);
-			}
-		};
 	}
 
 }
