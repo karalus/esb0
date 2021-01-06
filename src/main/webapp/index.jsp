@@ -31,7 +31,12 @@ textarea, pre {
 <%
 	String pathInfo = request.getPathInfo();
 	if (pathInfo == null) {
-		if (!FileSystem.environment.equals("default")) {
+		String banner = System.getProperty("esb0.adminUI.banner");
+		if (banner != null) {
+%>
+	<h3><%=globalContext.bindProperties(banner)%></h3>
+<%
+		} else if (!FileSystem.environment.equals("default")) {
 %>
 	<h3>Environment: <%=FileSystem.environment%></h3>
 <%
