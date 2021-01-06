@@ -82,9 +82,6 @@ public abstract class SAXAction extends Action {
 			parent = saxSource.getXMLReader();
 		}
 		InputSource inputSource = SAXSource.sourceToInputSource(source);
-		if (inputSource == null) {
-			throw new IllegalStateException("Message is invalid");			
-		}
 		return new SAXSource(createXMLFilter(context, message, parent), inputSource);
 	}
 

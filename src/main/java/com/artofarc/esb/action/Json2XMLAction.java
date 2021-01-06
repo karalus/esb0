@@ -53,7 +53,9 @@ public class Json2XMLAction extends SAXAction {
 		}
 		message.putHeader(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
 		if (message.getBodyType() == BodyType.JSON_VALUE) {
-			return new ExecutionContext(new SAXSource(_json2xml.createParser(message.getBody()), null));
+			SAXSource source = new SAXSource(_json2xml.createParser(message.getBody()), null);
+			message.reset(BodyType.SOURCE, source);
+			return new ExecutionContext(source);
 		} else {
 			return super.prepare(context, message, inPipeline);
 		}
