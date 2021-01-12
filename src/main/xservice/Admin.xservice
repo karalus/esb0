@@ -1,11 +1,23 @@
-<service protocol="http" version="1" errorHandler="errorHandler" xmlns="http://www.artofarc.com/esb/service"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="../xsd/service.xsd">
+<service protocol="http" version="1" errorHandler="errorHandler" xmlns="http://www.artofarc.com/esb/service">
 	<httpBindURI maxPool="2">/admin/deploy/*</httpBindURI>
 	<actionPipeline name="errorHandler">
 		<setMessage clearAll="true">
 			<header name="Content-Type">text/plain</header>
 			<body>${body.toString}</body>
 		</setMessage>
+	</actionPipeline>
+	<actionPipeline name="createUpdateDelete">
+		<admin resourceExp="/${appendHttpUrlPath}" />
+		<branchOnVariable variable="QueryString">
+			<default>
+				<setMessage clearAll="true">
+					<variable name="redirect">${ContextPath}/admin?${QueryString}</variable>
+				</setMessage>
+			</default>
+			<null>
+				<setMessage clearAll="true" />
+			</null>
+		</branchOnVariable>
 	</actionPipeline>
 	<branchOnPath>
 		<default>
@@ -39,20 +51,14 @@
 									</setMessage>
 								</branch>
 								<default>
-									<admin resourceExp="/${appendHttpUrlPath}" />
-									<setMessage clearAll="true">
-										<variable name="redirect">${ContextPath}/admin?${QueryString}</variable>
-									</setMessage>
+									<actionPipelineRef ref="createUpdateDelete" />
 								</default>
 							</branchOnVariable>
 						</default>
 					</branchOnVariable>
 				</branch>
 				<branch value="DELETE">
-					<admin resourceExp="/${appendHttpUrlPath}" />
-					<setMessage clearAll="true">
-						<variable name="redirect">${ContextPath}/admin?${QueryString}</variable>
-					</setMessage>
+					<actionPipelineRef ref="createUpdateDelete" />
 				</branch>
 				<default>
 					<admin resourceExp="/${appendHttpUrlPath}" />
