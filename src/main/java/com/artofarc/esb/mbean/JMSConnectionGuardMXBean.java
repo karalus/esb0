@@ -22,4 +22,6 @@ public interface JMSConnectionGuardMXBean {
 
 	void reconnect();
 
+	void close() throws Exception;
+
 }

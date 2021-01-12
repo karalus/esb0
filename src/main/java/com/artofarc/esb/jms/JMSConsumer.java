@@ -258,10 +258,10 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSType, message.getJMSType());
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
-		final Destination jmsDestination = message.getJMSDestination();
+		Destination jmsDestination = message.getJMSDestination();
 		if (jmsDestination instanceof Queue) {
 			esbMessage.putVariable(ESBConstants.QueueName, ((Queue) jmsDestination).getQueueName());
-		} else {
+		} else if (jmsDestination instanceof Topic) {
 			esbMessage.putVariable(ESBConstants.TopicName, ((Topic) jmsDestination).getTopicName());
 		}
 		for (@SuppressWarnings("unchecked")

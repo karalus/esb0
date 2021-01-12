@@ -244,6 +244,9 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		@Override
 		public void close() throws JMSException {
 			_poolContext.getGlobalContext().unregisterMBean(getObjectName(_jmsConnectionData));
+			if (_future != null) {
+				_future.cancel(false);
+			}
 			if (_connection != null) {
 				_connection.close();
 			}
