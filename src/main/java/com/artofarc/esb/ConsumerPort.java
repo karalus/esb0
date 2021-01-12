@@ -86,6 +86,9 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 
 	public final long processInternal(Context context, ESBMessage message) throws Exception {
 		try {
+			if (_startAction.getLocation() != null) {
+				message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
+			}
 			_startAction.process(context, message);
 		} catch (Exception e) {
 			JDBCAction.closeKeptConnection(message, false);
