@@ -64,7 +64,6 @@ public class AdminAction extends Action {
 	private void readArtifact(Context context, ESBMessage message, String resource) throws IOException, ExecutionException {
 		Artifact artifact = context.getGlobalContext().getFileSystem().getArtifact(resource);
 		if (artifact != null) {
-			message.clearHeaders();
 			if (artifact instanceof Directory) {
 				Directory directory = (Directory) artifact;
 				JsonArrayBuilder builder = Json.createArrayBuilder();
@@ -72,6 +71,7 @@ public class AdminAction extends Action {
 					builder.add(artifactName);
 				}
 				message.reset(BodyType.STRING, builder.build().toString());
+				message.clearHeaders();
 				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				String headerAccept = message.getVariable(HTTP_HEADER_ACCEPT);
@@ -89,6 +89,7 @@ public class AdminAction extends Action {
 					} else {
 						message.reset(BodyType.INPUT_STREAM, contentAsStream);
 					}
+					message.clearHeaders();
 					message.putHeader(HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
 					message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
 				} else {
