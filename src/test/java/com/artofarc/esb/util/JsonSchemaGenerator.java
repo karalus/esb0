@@ -17,6 +17,7 @@
 package com.artofarc.esb.util;
 
 import java.io.StringWriter;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -159,6 +160,9 @@ public final class JsonSchemaGenerator {
 		// decide object, array or primitive
 		if (xsomHelper.isLastElementRepeated()) {
 			jsonGenerator.write("type", "array");
+			if (xsomHelper.isLastElementRequired()) {
+				jsonGenerator.write("minItems", 1);
+			}
 			jsonGenerator.writeStartObject("items");
 			if (xsomHelper.getComplexType() != null) {
 				generateObject(xsomHelper, jsonGenerator);
@@ -240,8 +244,40 @@ public final class JsonSchemaGenerator {
 			if (format != null) {
 				jsonGenerator.write("format", format);
 			}
-			for (XSFacet facet : simpleType.getFacets(XSFacet.FACET_PATTERN)) {
-				jsonGenerator.write("pattern", "^" + facet.getValue() + "$");
+			if (jsonType.equals("string")) {
+				XSFacet facetMinlength = simpleType.getFacet(XSFacet.FACET_MINLENGTH);
+				if (facetMinlength != null) {
+					jsonGenerator.write("minLength", Integer.parseInt(facetMinlength.getValue().value));
+				}
+				XSFacet facetMaxlength = simpleType.getFacet(XSFacet.FACET_MAXLENGTH);
+				if (facetMaxlength != null) {
+					jsonGenerator.write("maxLength", Integer.parseInt(facetMaxlength.getValue().value));
+				}
+				for (XSFacet facet : simpleType.getFacets(XSFacet.FACET_PATTERN)) {
+					jsonGenerator.write("pattern", "^" + facet.getValue() + "$");
+				}
+			} else if ((jsonType.equals("integer") || jsonType.equals("number")) && format == null) {
+				// if a format is given then we omit the given minimum & maximum
+				XSFacet facetMinexclusive = simpleType.getFacet(XSFacet.FACET_MINEXCLUSIVE);
+				if (facetMinexclusive != null) {
+					jsonGenerator.write("minimum", new BigDecimal(facetMinexclusive.getValue().value));
+					jsonGenerator.write("exclusiveMinimum", true);
+				} else {
+					XSFacet facetMininclusive = simpleType.getFacet(XSFacet.FACET_MININCLUSIVE);
+					if (facetMininclusive != null) {
+						jsonGenerator.write("minimum", new BigDecimal(facetMininclusive.getValue().value));
+					}
+				}
+				XSFacet facetMaxexclusive = simpleType.getFacet(XSFacet.FACET_MAXEXCLUSIVE);
+				if (facetMaxexclusive != null) {
+					jsonGenerator.write("maximum", new BigDecimal(facetMaxexclusive.getValue().value));
+					jsonGenerator.write("exclusiveMaximum", true);
+				} else {
+					XSFacet facetMaxinclusive = simpleType.getFacet(XSFacet.FACET_MAXINCLUSIVE);
+					if (facetMaxinclusive != null) {
+						jsonGenerator.write("maximum", new BigDecimal(facetMaxinclusive.getValue().value));
+					}
+				}
 			}
 			List<XSFacet> facets = simpleType.getFacets(XSFacet.FACET_ENUMERATION);
 			if (facets.size() > 0) {
