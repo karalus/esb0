@@ -16,10 +16,14 @@
  */
 package com.artofarc.esb.mbean;
 
+import java.util.Date;
+
 public interface JMSConsumerMXBean extends ConsumerPortMXBean {
 
 	String getKey();
 
 	int getWorkerCount();
+
+	Date getLastChangeOfState();
 
 }

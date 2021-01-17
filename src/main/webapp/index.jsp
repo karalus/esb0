@@ -95,7 +95,7 @@ textarea, pre {
 		case "JMSServices":
 			%>
 <br>JMSServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>WorkerCount</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>WorkerCount</b></td><td><b>Completed tasks</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
 <%
 		List<JMSConsumer> jmsConsumers = new ArrayList<JMSConsumer>(globalContext.getJMSConsumers());
 		Collections.sort(jmsConsumers);
@@ -106,6 +106,7 @@ textarea, pre {
 		    <td><a href="<%=request.getContextPath() + request.getServletPath() + jmsConsumer.getUri()%>"><%=jmsConsumer.getUri()%></a></td>
 		    <td><%=jmsConsumer.getWorkerCount()%></td>
 		    <td><%=jmsConsumer.getCompletedTaskCount()%></td>
+		    <td><%=jmsConsumer.getLastChangeOfState()%></td>
 		    <td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=jmsConsumer.getUri()%>?JMSServices"><input type="submit" value="<%=jmsConsumer.isEnabled()%>"/></form></td>
 		    <td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=jmsConsumer.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=jmsConsumer.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="JMSServices"/></form></td>
 		   </tr>

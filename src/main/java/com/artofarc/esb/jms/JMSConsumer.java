@@ -18,6 +18,7 @@ package com.artofarc.esb.jms;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -104,6 +105,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 	private final Integer _maximumRetries;
 	private final ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException> _retries;
 	private final Long _redeliveryDelay;
+	private volatile long lastChangeOfState;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName,
 			String topicName, String subscription, String messageSelector, int workerCount, long pollInterval, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
@@ -174,6 +176,10 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		return _jmsWorker.length;
 	}
 
+	public Date getLastChangeOfState() {
+		return new Date(lastChangeOfState);
+	}
+
 	@Override
 	public int compareTo(JMSConsumer o) {
 		return getKey().compareTo(o.getKey());
@@ -212,6 +218,10 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		}
 	}
 
+	boolean isToBeEnabled() {
+		return isEnabled() || _jmsWorker[0]._session == null && super.isEnabled();
+	}
+
 	@Override
 	public boolean isEnabled() {
 		return _jmsWorker[0]._messageConsumer != null;
@@ -227,9 +237,11 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 				jmsWorker.stopListening();
 			}
 		}
+		lastChangeOfState = System.currentTimeMillis();
 	}
 
 	void suspend() throws Exception {
+		enable(false);
 		for (JMSWorker jmsWorker : _jmsWorker) {
 			jmsWorker.close();
 		}

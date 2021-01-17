@@ -189,7 +189,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 				for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
 					JMSConsumer jmsConsumer = entry.getKey();
 					// save current state
-					entry.setValue(jmsConsumer.isEnabled());
+					entry.setValue(jmsConsumer.isToBeEnabled());
 					try {
 						logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey());
 						jmsConsumer.suspend();
