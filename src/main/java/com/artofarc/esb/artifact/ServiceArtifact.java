@@ -204,6 +204,20 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					sendMail.getFrom(), sendMail.getTo(), sendMail.getCc(), sendMail.getBcc(), sendMail.getReplyTo(), sendMail.getSubject(), sendMail.getText()), location);
 			break;
 		}
+		case "executeJava": {
+			ExecuteJava executeJava = (ExecuteJava) actionElement.getValue();
+			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, executeJava.getClassLoader());
+			@SuppressWarnings("unchecked")
+			Class<? extends Action> cls = (Class<? extends Action>) Class.forName(executeJava.getJavaType(), true, classLoader);
+			Action action; 
+			try {
+				action = cls.getConstructor(Properties.class).newInstance(createProperties(executeJava.getProperty(), globalContext));
+			} catch (NoSuchMethodException e) {
+				action = cls.newInstance();
+			}
+			addAction(list, action, location);
+			break;
+		}
 		case "file": {
 			File file = (File) actionElement.getValue();
 			addAction(list, new FileAction(globalContext.bindProperties(file.getDir()), file.getVerb(), file.getFilename(), file.getAppend(), file.getZip()), location);

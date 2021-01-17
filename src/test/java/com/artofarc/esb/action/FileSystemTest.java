@@ -1,15 +1,10 @@
 package com.artofarc.esb.action;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
-import javax.xml.soap.SOAPConstants;
-
+import static org.junit.Assert.*;
 import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
@@ -59,7 +54,7 @@ public class FileSystemTest extends AbstractESBTest {
          // Call
          ESBMessage message = new ESBMessage(BodyType.BYTES, ConfigServiceTest.readFile("src/test/resources/SOAPRequest.xml"));
          message.getVariables().put(ESBConstants.HttpMethod, "POST");
-         message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+         message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.SOAP_1_1_CONTENT_TYPE);
          message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
          message.getVariables().put("hasFault", false);
          try {
@@ -68,7 +63,17 @@ public class FileSystemTest extends AbstractESBTest {
          } catch (IOException e) {
 		      // ignore
          }
+         Boolean dynamic = message.getVariable("dynamic");
+         assertEquals(Boolean.TRUE, dynamic);
       }
    }
+   
+	public static class DynamicAction extends TerminalAction {
+
+		@Override
+		protected void execute(Context context, ESBMessage message) throws Exception {
+			message.putVariable("dynamic", true);
+		}
+	}
    
 }
