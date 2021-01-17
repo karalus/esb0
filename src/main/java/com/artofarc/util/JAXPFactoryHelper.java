@@ -16,10 +16,10 @@
  */
 package com.artofarc.util;
 
-import java.lang.reflect.Constructor;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 
 import javax.xml.XMLConstants;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
@@ -28,8 +28,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.sax.TransformerHandler;
 import javax.xml.xpath.XPathFactory;
-
-import org.xml.sax.SAXException;
 
 /**
  * In this millennium XML processors should be namespace aware by default.
@@ -40,23 +38,23 @@ public final class JAXPFactoryHelper {
 	private static final boolean SECURE_PROCESSING = Boolean.parseBoolean(System.getProperty("esb0.jaxp.secure-processing", "true"));
 	private static final SAXParserFactory SAX_PARSER_FACTORY = SAXParserFactory.newInstance();
 	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
-	private static final Constructor<? extends SAXTransformerFactory> conSAXTransformerFactory;
+	private static final MethodHandle conSAXTransformerFactory;
 	private static final XPathFactory XPATH_FACTORY = XPathFactory.newInstance();
 
 	static {
-		SAX_PARSER_FACTORY.setNamespaceAware(true);
 		try {
+			SAX_PARSER_FACTORY.setNamespaceAware(true);
 			SAX_PARSER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
 			if (transformerFactory.getFeature(SAXTransformerFactory.FEATURE)) {
 				SAX_TRANSFORMER_FACTORY = (SAXTransformerFactory) transformerFactory;
 				SAX_TRANSFORMER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
-				conSAXTransformerFactory = SAX_TRANSFORMER_FACTORY.getClass().getConstructor();
+				conSAXTransformerFactory = MethodHandles.publicLookup().unreflectConstructor(SAX_TRANSFORMER_FACTORY.getClass().getConstructor());
 			} else {
 				throw new RuntimeException("Cannot be casted to SAXTransformerFactory: " + transformerFactory.getClass());
 			}
-		} catch (ParserConfigurationException | SAXException | TransformerConfigurationException | ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+		} catch (Exception e) {
+			throw ReflectionUtils.convert(e, RuntimeException.class);
 		}
 	}
 
@@ -82,11 +80,11 @@ public final class JAXPFactoryHelper {
 
 	public static SAXTransformerFactory createSAXTransformerFactory() {
 		try {
-			SAXTransformerFactory saxTransformerFactory = conSAXTransformerFactory.newInstance();
+			SAXTransformerFactory saxTransformerFactory = (SAXTransformerFactory) conSAXTransformerFactory.invoke();
 			saxTransformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 			return saxTransformerFactory;
-		} catch (TransformerConfigurationException | ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+		} catch (Throwable e) {
+			throw ReflectionUtils.convert(e, RuntimeException.class);
 		}
 	}
 

@@ -16,7 +16,8 @@
  */
 package com.artofarc.esb.resource;
 
-import java.lang.reflect.Constructor;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.URIResolver;
@@ -30,14 +31,22 @@ public class XQConnectionFactory {
 	public static final String XPATH_EXTENSION_NS_URI = "http://artofarc.com/xpath-extension";
 	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
 
-	private static final Constructor<? extends XQConnectionFactory> conXQConnectionFactory = ReflectionUtils.findConstructor(
-			System.getProperty("esb0.XQConnectionFactory", "com.artofarc.esb.resource.XQDataSourceFactory"), URIResolver.class);
+	private static final MethodHandle conXQConnectionFactory;
+
+	static {
+		try {
+			conXQConnectionFactory = MethodHandles.lookup().unreflectConstructor(ReflectionUtils.findConstructor(
+				System.getProperty("esb0.XQConnectionFactory", "com.artofarc.esb.resource.XQDataSourceFactory"), URIResolver.class));
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	public static XQConnectionFactory newInstance(URIResolver uriResolver) {
 		try {
-			return conXQConnectionFactory.newInstance(uriResolver);
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			return (XQConnectionFactory) conXQConnectionFactory.invoke(uriResolver);
+		} catch (Throwable e) {
+			throw ReflectionUtils.convert(e, RuntimeException.class);
 		}
 	}
 
