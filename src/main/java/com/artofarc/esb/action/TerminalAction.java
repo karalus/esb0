@@ -29,7 +29,7 @@ public abstract class TerminalAction extends Action {
 	}
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
+	protected final ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
 		if (inPipeline) {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -40,12 +40,16 @@ public abstract class TerminalAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (execContext != null && execContext.getResource() instanceof ByteArrayOutputStream) {
 			ByteArrayOutputStream bos = execContext.getResource();
 			message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 			message.setCharset(message.getSinkEncoding());
 		}
+		execute(context, message);
+	}
+
+	protected void execute(Context context, ESBMessage message) throws Exception {
 	}
 
 }

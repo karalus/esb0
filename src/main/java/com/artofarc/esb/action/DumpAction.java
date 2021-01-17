@@ -21,7 +21,6 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
@@ -51,8 +50,7 @@ public class DumpAction extends TerminalAction {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, resource, message, nextActionIsPipelineStop);
+	protected void execute(Context context, ESBMessage message) throws Exception {
 		StringBuilderWriter writer = new StringBuilderWriter();
 		writer.write("Headers: ");
 		ESBMessage.dumpKeyValues(context, message.getHeaders(), writer);

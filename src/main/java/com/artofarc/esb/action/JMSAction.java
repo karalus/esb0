@@ -24,7 +24,6 @@ import javax.jms.*;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
@@ -86,8 +85,7 @@ public class JMSAction extends TerminalAction {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, execContext, message, nextActionIsPipelineStop);
+	protected void execute(Context context, ESBMessage message) throws Exception {
 		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
 		JMSSession jmsSession = jmsSessionFactory.getResource(_jmsConnectionData, false);
 		final Session session = jmsSession.getSession();

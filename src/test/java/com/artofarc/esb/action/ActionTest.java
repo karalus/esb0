@@ -169,6 +169,35 @@ public class ActionTest extends AbstractESBTest {
 		action.process(context, message);
 	}
 
+	@Test
+	public void testCompareTo() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("LogTimeStamp1", true, "1598427971440", "java.lang.Long", null, null);
+		action.addAssignment("LogTimeStamp2", true, "1607954675000", "java.lang.Long", null, null);
+		action.addAssignment("_LogTimeStamp", false, "${LogTimeStamp1}", "java.math.BigInteger", "valueOf", null);
+		action.addAssignment("_LogTimeStamp14d", false, "${_LogTimeStamp.add(1209600000)}", null, null, null);
+		action.addAssignment("_initialTimestamp", false, "${initialTimestamp}", "java.math.BigInteger", "valueOf", null);
+		action.addAssignment("compareTo", false, "${_LogTimeStamp14d.longValue.compareTo(initialTimestamp)}", null, null, null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+	}
+	
+	@Test
+	public void testSetMessageOptional() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("optional", false, "${messageType}", "java.util.Optional", "ofNullable", null);
+		action.addAssignment("keepConnection", false, "${optional.present}", null, null, null);
+		action.addAssignment("messageType", true, "request", null, null, null);
+		action.addAssignment("optional2", false, "${messageType}", "java.util.Optional", "ofNullable", null);
+		action.addAssignment("keepConnection2", false, "${optional2.present}", null, null, null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+		assertFalse(message.getVariable("keepConnection"));
+		assertTrue(message.getVariable("keepConnection2"));
+	}
+
    @Test
    public void testJsonPointer() throws Exception {
       String msgStr = "{\"name\":\"esb0\",\"alive\":true,\"surname\":null,\"no\":1,\"amount\":5.0,\"foo\":[\"bar\",\"baz\"]}";

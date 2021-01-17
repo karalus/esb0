@@ -25,7 +25,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.KafkaProducerFactory;
@@ -46,8 +45,7 @@ public class KafkaProduceAction extends TerminalAction {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, execContext, message, nextActionIsPipelineStop);
+	protected void execute(Context context, ESBMessage message) throws Exception {
 		@SuppressWarnings("rawtypes")
 		ProducerRecord record = new ProducerRecord<>(_topic, _partition, message.getVariable("record.key"), _binary ? message.getBodyAsByteArray(context) : message.getBodyAsString(context));
 		for (Entry<String, Object> entry : message.getHeaders()) {

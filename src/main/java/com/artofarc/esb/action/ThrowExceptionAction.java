@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
 
 public class ThrowExceptionAction extends TerminalAction {
@@ -29,8 +28,7 @@ public class ThrowExceptionAction extends TerminalAction {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, resource, message, nextActionIsPipelineStop);
+	protected void execute(Context context, ESBMessage message) throws Exception {
 		throw new ExecutionException(this, (String) bindVariable(_message, context, message));
 	}
 

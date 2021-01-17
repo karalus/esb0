@@ -50,7 +50,7 @@ import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.resource.DirWatchServiceFactory;
 import com.artofarc.util.IOUtils;
 
-public class FileSystemWatchAction extends TerminalAction {
+public class FileSystemWatchAction extends Action {
 
 	private static final String INPUT_STREAM = "InputStream";
 

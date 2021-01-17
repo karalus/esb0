@@ -33,7 +33,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.KafkaConsumerFactory;
 
-public class KafkaConsumeAction extends TerminalAction {
+public class KafkaConsumeAction extends Action {
 
 	private final Properties _properties;
 	private final List<String> _topics;

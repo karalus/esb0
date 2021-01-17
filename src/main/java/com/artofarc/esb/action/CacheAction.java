@@ -76,8 +76,7 @@ public class CacheAction extends Action {
 				context.getExecutionStack().push(new TerminalAction() {
 
 					@Override
-					protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-						super.execute(context, execContext, message, nextActionIsPipelineStop);
+					protected void execute(Context context, ESBMessage message) throws Exception {
 						long ttl;
 						if (Character.isDigit(_ttl.charAt(0))) {
 							try {

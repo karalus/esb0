@@ -28,7 +28,6 @@ import java.util.zip.ZipOutputStream;
 import javax.mail.internet.MimeBodyPart;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.IOUtils;
@@ -53,8 +52,7 @@ public class FileAction extends TerminalAction {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, execContext, message, nextActionIsPipelineStop);
+	protected void execute(Context context, ESBMessage message) throws Exception {
 		String contentType = HttpConstants.parseContentType(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
 		String filename = (String) bindVariable(_filename, context, message);
 		String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(contentType) : "";

@@ -1,15 +1,13 @@
 package com.artofarc.esb.action;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
 
 public class MarkAction extends DumpAction {
    private boolean executed;
    
    @Override
-   protected synchronized void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-      super.execute(context, execContext, message, nextActionIsPipelineStop);
+   protected synchronized void execute(Context context, ESBMessage message) throws Exception {
       setExecuted(true);
       notify();
    }

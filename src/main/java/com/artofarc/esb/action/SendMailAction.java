@@ -25,7 +25,6 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.ESBMessage;
@@ -51,8 +50,7 @@ public class SendMailAction extends TerminalAction {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, execContext, message, nextActionIsPipelineStop);
+	protected void execute(Context context, ESBMessage message) throws Exception {
 		MimeMessage msg = new MimeMessage(_session);
 		msg.setFrom(new InternetAddress((String) bindVariable(from, context, message)));
 		msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse((String) bindVariable(to, context, message), false));
