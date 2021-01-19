@@ -330,10 +330,12 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 					} else {
 						_messageConsumer.close();
 					}
-				} catch (JMSException e) {
+				} catch (Exception e) {
 					// ignore
+					logger.debug(getKey(), e);
+				} finally {
+					_messageConsumer = null;
 				}
-				_messageConsumer = null;
 			}
 		}
 
