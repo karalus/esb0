@@ -97,8 +97,10 @@ public class HttpServletResponseAction extends Action {
 					Long contentLength = message.getBodyLength();
 					if (contentLength != null) {
 						response.setContentLengthLong(contentLength);
+						message.writeTo(response.getOutputStream(), context);
+					} else {
+						message.writeTo(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), context);
 					}
-					message.writeTo(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), context);
 				}
 				if (message.getAttachments().size() > 0) {
 					logger.warn("Message has attachments");
