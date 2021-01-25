@@ -16,8 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.net.HttpURLConnection;
-
 import javax.mail.internet.MimeMultipart;
 import javax.xml.bind.DatatypeConverter;
 
@@ -51,7 +49,7 @@ public class HttpOutboundAction extends Action {
 		_pipelineStop = true;
 	}
 
-	private HttpUrlSelector.HttpUrlConnectionWrapper createHttpURLConnection(Context context, ESBMessage message, String contentType) throws Exception {
+	private HttpUrlSelector.HttpUrlConnectionWrapper createHttpURLConnection(Context context, ESBMessage message, String contentType, Long contentLength) throws Exception {
 		HttpUrlSelector httpUrlSelector = context.getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
@@ -69,7 +67,7 @@ public class HttpOutboundAction extends Action {
 			message.putHeader("Authorization", "Basic " + DatatypeConverter.printBase64Binary(basicAuthCredential.getBytes()));
 		}
 		int timeout = message.getTimeleft(_readTimeout).intValue();
-		HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders(), _chunkLength);
+		HttpUrlConnectionWrapper wrapper = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders(), _chunkLength, contentLength);
 		message.getVariables().put(HttpURLConnection, wrapper);
 		message.getVariables().put(HttpURLOutbound, wrapper.getHttpUrl().getUrlStr());
 		return wrapper;
@@ -89,14 +87,14 @@ public class HttpOutboundAction extends Action {
 			if (contentType != null) {
 				contentType += ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
 			}
-			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentType);
-			HttpURLConnection conn = wrapper.getHttpURLConnection();
+			Long contentLength = inPipeline ? null : message.getBodyLength();
+			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentType, contentLength);
 			try {
 				if (inPipeline) {
-					message.reset(BodyType.OUTPUT_STREAM, conn.getOutputStream());
+					message.reset(BodyType.OUTPUT_STREAM, wrapper.getHttpURLConnection().getOutputStream());
 				} else {
 					if (!message.isEmpty()) {
-						message.writeTo(conn.getOutputStream(), context);
+						message.writeTo(wrapper.getHttpURLConnection().getOutputStream(), context);
 					}
 				}
 			} catch (Exception e) {
@@ -113,7 +111,7 @@ public class HttpOutboundAction extends Action {
 		if (_multipartRequest != null) {
 			ByteArrayOutputStream bos = execContext.getResource();
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartRequest, bos);
-			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, mmp.getContentType());
+			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, mmp.getContentType(), null);
 			mmp.writeTo(wrapper.getHttpURLConnection().getOutputStream());
 		}
 	}

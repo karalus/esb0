@@ -19,7 +19,7 @@ package com.artofarc.util;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public final class ByteArrayInputStream extends java.io.ByteArrayInputStream implements Cloneable {
+public final class ByteArrayInputStream extends java.io.ByteArrayInputStream implements Cloneable, IOUtils.PredictableInputStream {
 
 	public ByteArrayInputStream(byte[] buf) {
 		super(buf);
@@ -27,6 +27,11 @@ public final class ByteArrayInputStream extends java.io.ByteArrayInputStream imp
 
 	public ByteArrayInputStream(byte[] buf, int offset, int length) {
 		super(buf, offset, length);
+	}
+
+	@Override
+	public long length() {
+		return count - pos;
 	}
 
 	public void copyTo(OutputStream os) throws IOException {

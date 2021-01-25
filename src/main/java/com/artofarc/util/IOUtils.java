@@ -45,6 +45,10 @@ public final class IOUtils {
 		}
 	}
 
+	public interface PredictableInputStream {
+		long length();
+	}
+
 	public static void copy(InputStream is, OutputStream os) throws IOException {
 		if (is instanceof ByteArrayInputStream) {
 			ByteArrayInputStream bis = (ByteArrayInputStream) is;

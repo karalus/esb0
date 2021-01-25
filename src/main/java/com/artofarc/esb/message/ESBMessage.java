@@ -540,6 +540,20 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
+	public Long getBodyLength() {
+		switch (_bodyType) {
+		case BYTES:
+			return Long.valueOf(((byte[]) _body).length);
+		case INPUT_STREAM:
+			if (_body instanceof IOUtils.PredictableInputStream) {
+				return ((IOUtils.PredictableInputStream) _body).length();
+			}
+			// nobreak
+		default:
+			return null;
+		}
+	}
+
 	public boolean isFI() {
 		return isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
 	}

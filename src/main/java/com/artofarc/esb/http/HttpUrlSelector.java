@@ -64,7 +64,6 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		public void close() {
 			inUse.decrementAndGet(_pos);
 		}
-
 	}
 
 	private HttpEndpoint _httpEndpoint;
@@ -152,24 +151,24 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
-		return connectTo(httpEndpoint, timeout, method, appendUrl, headers, chunkLength, httpEndpoint.getRetries());
+	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, Long contentLength) throws IOException {
+		return connectTo(httpEndpoint, timeout, method, appendUrl, headers, chunkLength, contentLength, httpEndpoint.getRetries());
 	}
 
-	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, int retryCount) throws IOException {
+	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, Long contentLength, int retryCount) throws IOException {
 		int pos = computeNextPos();
 		if (pos < 0) {
 			throw new ConnectException("No active url");
 		}
 		try {
 			HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(pos);
-			return new HttpUrlConnectionWrapper(httpUrl, pos, connectTo(httpUrl, timeout, method, appendUrl, headers, chunkLength));
+			return new HttpUrlConnectionWrapper(httpUrl, pos, connectTo(httpUrl, timeout, method, appendUrl, headers, chunkLength, contentLength));
 		} catch (ConnectException | NoRouteToHostException e) {
 			if (_httpEndpoint.getCheckAliveInterval() != null) {
 				setActive(pos, false);
 			}
 			if (retryCount > 0) {
-				return connectTo(httpEndpoint, timeout, method, appendUrl, headers, chunkLength, --retryCount);
+				return connectTo(httpEndpoint, timeout, method, appendUrl, headers, chunkLength, contentLength, --retryCount);
 			}
 			throw e;
 		}
@@ -197,7 +196,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	private HttpURLConnection connectTo(HttpUrl httpUrl, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
+	private HttpURLConnection connectTo(HttpUrl httpUrl, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, Long contentLength) throws IOException {
 		URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setConnectTimeout(_httpEndpoint.getConnectionTimeout());
@@ -213,6 +212,8 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		conn.setInstanceFollowRedirects(false);
 		if (chunkLength != null) {
 			conn.setChunkedStreamingMode(chunkLength);
+		} else if (contentLength != null) {
+			conn.setFixedLengthStreamingMode(contentLength);
 		}
 		for (Entry<String, Object> entry : headers) {
 			if (entry.getValue() != null) {

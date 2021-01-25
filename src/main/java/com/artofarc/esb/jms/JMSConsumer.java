@@ -36,17 +36,23 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
 import com.artofarc.util.ConcurrentResourcePool;
+import com.artofarc.util.IOUtils;
 import com.artofarc.util.ReflectionUtils;
 
 public final class JMSConsumer extends ConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
-	static class BytesMessageInputStream extends InputStream {
+	static class BytesMessageInputStream extends InputStream implements IOUtils.PredictableInputStream{
 		final BytesMessage _bytesMessage;
 		long available;
 
 		BytesMessageInputStream(BytesMessage bytesMessage) throws JMSException {
 			_bytesMessage = bytesMessage;
 			available = bytesMessage.getBodyLength();
+		}
+
+		@Override
+		public long length() {
+			return available;
 		}
 
 		@Override
