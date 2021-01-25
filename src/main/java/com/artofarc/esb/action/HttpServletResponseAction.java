@@ -94,6 +94,10 @@ public class HttpServletResponseAction extends Action {
 				if (inPipeline) {
 					message.reset(BodyType.OUTPUT_STREAM, new IOUtils.PreventFlushOutputStream(response.getOutputStream()));
 				} else if (message.getBodyType() != BodyType.INVALID) {
+					Long contentLength = message.getBodyLength();
+					if (contentLength != null) {
+						response.setContentLengthLong(contentLength);
+					}
 					message.writeTo(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), context);
 				}
 				if (message.getAttachments().size() > 0) {
