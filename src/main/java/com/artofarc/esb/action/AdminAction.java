@@ -20,7 +20,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.servlet.http.HttpServletResponse;
 
@@ -30,6 +29,7 @@ import com.artofarc.esb.context.*;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.IOUtils;
+import com.artofarc.util.JsonFactoryHelper;
 
 public class AdminAction extends Action {
 
@@ -66,11 +66,16 @@ public class AdminAction extends Action {
 		if (artifact != null) {
 			if (artifact instanceof Directory) {
 				Directory directory = (Directory) artifact;
-				JsonArrayBuilder builder = Json.createArrayBuilder();
-				for (String artifactName : directory.getArtifacts().keySet()) {
-					builder.add(artifactName);
+				boolean formatLong = message.getVariables().containsKey("long");
+				JsonArrayBuilder builder = JsonFactoryHelper.JSON_BUILDER_FACTORY.createArrayBuilder();
+				for (Artifact a : directory.getArtifacts().values()) {
+					if (formatLong) {
+						builder.add(JsonFactoryHelper.JSON_BUILDER_FACTORY.createObjectBuilder().add("name", a.getName()).add("modificationTime", a.getModificationTime()).build());
+					} else {
+						builder.add(a.getName());
+					}
 				}
-				message.reset(BodyType.STRING, builder.build().toString());
+				message.reset(BodyType.JSON_VALUE, builder.build());
 				message.clearHeaders();
 				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
