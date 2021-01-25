@@ -19,7 +19,6 @@ package com.artofarc.esb.jms;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
-import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +26,9 @@ import java.util.concurrent.TimeUnit;
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.management.AttributeChangeNotification;
+import javax.management.MBeanNotificationInfo;
+import javax.management.NotificationBroadcasterSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,16 +91,19 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		}
 	}
 
-	final class JMSConnectionGuard extends TimerTask implements AutoCloseable, ExceptionListener, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
+	final class JMSConnectionGuard extends NotificationBroadcasterSupport implements AutoCloseable, ExceptionListener, Runnable, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
 
 		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
 		private final HashSet<JMSSessionFactory> _jmsSessionFactories = new HashSet<>();
 		private final JMSConnectionData _jmsConnectionData;
 		private final String _clientID; 
 		private volatile Connection _connection;
-		private ScheduledFuture<?> _future;
+		private volatile ScheduledFuture<?> _future;
+		private long _sequenceNumber;
 
 		private JMSConnectionGuard(JMSConnectionData jmsConnectionData) {
+			super(_poolContext.getWorkerPool().getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
+					AttributeChangeNotification.class.getName(), "A JMS Connection of " + jmsConnectionData + " changes its state"));
 			_jmsConnectionData = jmsConnectionData;
 			_clientID = instanceId != null ? instanceId + "-" + jmsConnectionData + "-" + _poolContext.getWorkerPool().getName() : null;
 		}
@@ -113,6 +118,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		private void createConnection() throws JMSException {
 			_connection = _jmsConnectionData.createConnection();
+			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Connection state changed", "connected", "boolean", false, true));
 			try {
 				if (_clientID != null) {
 					_connection.setClientID(_clientID);
@@ -160,6 +166,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 				// ignore
 			}
 			_connection = null;
+			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Connection state changed", "connected", "boolean", true, false));
 		}
 
 		private void startReconnectThread() {
