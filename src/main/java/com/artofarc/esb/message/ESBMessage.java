@@ -266,6 +266,16 @@ public final class ESBMessage implements Cloneable {
 		_schema = schema;
 	}
 
+	private boolean isOutputCompressed() {
+		final String contentEncoding = getHeader(HTTP_HEADER_CONTENT_ENCODING);
+		if (contentEncoding != null) {
+			final String fileName = getVariable(ESBConstants.filename);
+			final boolean isGZIP = fileName != null && fileName.endsWith(".gz");
+			return !("gzip".equals(contentEncoding) && isGZIP);
+		}
+		return false;
+	}
+
 	private OutputStream getCompressedOutputStream(OutputStream outputStream) throws IOException {
 		final String contentEncoding = getHeader(HTTP_HEADER_CONTENT_ENCODING);
 		final String fileName = getVariable(ESBConstants.filename);
@@ -277,6 +287,8 @@ public final class ESBMessage implements Cloneable {
 			case "deflate":
 				outputStream = new DeflaterOutputStream(outputStream);
 				break;
+			default:
+				throw new IOException("Content-Encoding not supported: " + contentEncoding);
 			}
 		}
 		if (isGZIP) {
@@ -541,7 +553,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Long getBodyLength() {
-		if (isSinkEncodingdifferent()) {
+		if (isSinkEncodingdifferent() || isOutputCompressed() || isFI()) {
 			return null;
 		} else {
 			switch (_bodyType) {
