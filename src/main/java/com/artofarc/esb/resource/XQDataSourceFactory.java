@@ -191,7 +191,7 @@ final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURI
 
 				@Override
 				public Sequence<?> call(XPathContext context, Sequence[] arguments) throws XPathException {
-					StringValue xpath = (StringValue) arguments[0];
+					StringValue xpath = (StringValue) arguments[0].head();
 					XPathExpression xPathExpression = getXPathExpression(context, xpath.getStringValue());
 					XPathDynamicContext dynamicContext = xPathExpression.createDynamicContext(context.getController(), context.getContextItem());
 					return xPathExpression.iterate(dynamicContext).materialize();
