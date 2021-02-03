@@ -28,6 +28,8 @@ public interface ESBConstants {
 
 	String HttpQueryParameter = "HttpQueryParameter";
 
+	String RemoteAddr = "RemoteAddr";
+
 	String RemoteUser = "RemoteUser";
 
 	String ClientCertificate = "ClientCertificate";
