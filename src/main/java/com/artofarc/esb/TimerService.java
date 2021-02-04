@@ -131,8 +131,8 @@ public final class TimerService extends ConsumerPort implements Runnable, com.ar
 					_future = _workerPool.getScheduledExecutorService().schedule(this, getNextDelay(), TimeUnit.MILLISECONDS);
 				}
 			}
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+		} catch (InterruptedException e) {
+			// cancelled
 		}
 	}
 

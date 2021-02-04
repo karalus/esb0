@@ -36,7 +36,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 
 	private final String _uri;
 	private List<Action> _serviceFlow;
-	private Action _startAction;
+	protected Action _startAction;
 	private volatile boolean _enabled = true;
 	protected final AtomicLong _completedTaskCount = new AtomicLong();
 

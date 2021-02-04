@@ -19,6 +19,7 @@ package com.artofarc.esb.artifact;
 import java.util.List;
 
 import com.artofarc.esb.ConsumerPort;
+import com.artofarc.esb.FileWatchEventConsumer;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
@@ -47,6 +48,11 @@ public final class DeployHelper {
 				} catch (Exception e) {
 					// ignore
 				}
+				break;
+			case FILE:
+				FileWatchEventConsumer fileWatchEventConsumer = service.getConsumerPort();
+				globalContext.unbindFileWatchEventService(fileWatchEventConsumer);
+				fileWatchEventConsumer.close();
 				break;
 			case TIMER:
 				TimerService timerService = service.getConsumerPort();
@@ -99,6 +105,14 @@ public final class DeployHelper {
 					Artifact.logger.info("Could not init JMSConsumer " + jmsConsumer.getKey(), e);
 					// ignore, if JMS is down we reconnect later
 				}
+				break;
+			case FILE:
+				FileWatchEventConsumer fileWatchEventConsumer = service.getConsumerPort();
+				oldConsumerPort = globalContext.bindFileWatchEventService(fileWatchEventConsumer);
+				if (oldConsumerPort != null) {
+					closer.closeAsync(oldConsumerPort);
+				}
+				fileWatchEventConsumer.init(globalContext);
 				break;
 			case TIMER:
 				TimerService timerService = service.getConsumerPort();

@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -43,6 +44,7 @@ public class Registry extends AbstractContext {
 	private final PrefixBTree<HttpConsumer> _mappedHttpServices = new PrefixBTree<>();
 	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
 	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Path, FileWatchEventConsumer> _fileWatchEventServices = new ConcurrentHashMap<>();
 
 	private final MBeanServer _mbs;
 	private final String OBJECT_NAME = "com.artofarc.esb:type=" + getClass().getSimpleName();
@@ -217,6 +219,35 @@ public class Registry extends AbstractContext {
 
 	public final void unbindTimerService(TimerService timerService) {
 		unbindInternalService(_timerServices.remove(timerService.getUri()));
+	}
+
+	public final ConsumerPort bindFileWatchEventService(FileWatchEventConsumer fileWatchEventConsumer) {
+		ConsumerPort oldConsumerPort = null;
+		for (Path dir : fileWatchEventConsumer.getDirs()) {
+			if (_fileWatchEventServices.containsKey(dir)) {
+				oldConsumerPort = _fileWatchEventServices.get(dir);
+				if (!oldConsumerPort.getUri().equals(fileWatchEventConsumer.getUri())) {
+					throw new IllegalArgumentException("A different service is already bound: " + oldConsumerPort.getUri());
+				}
+			}
+		}
+		if (oldConsumerPort == null) {
+			oldConsumerPort = getInternalService(fileWatchEventConsumer.getUri());
+			unbindService(oldConsumerPort);
+		}
+		bindService(fileWatchEventConsumer);
+		for (Path dir : fileWatchEventConsumer.getDirs()) {
+			_fileWatchEventServices.put(dir, fileWatchEventConsumer);
+		}
+		return oldConsumerPort;
+	}
+
+	public final void unbindFileWatchEventService(FileWatchEventConsumer fileWatchEventConsumer) {
+		ConsumerPort oldConsumerPort = null;
+		for (Path dir : fileWatchEventConsumer.getDirs()) {
+			oldConsumerPort = _fileWatchEventServices.remove(dir);
+		}
+		unbindInternalService(oldConsumerPort);
 	}
 
 	public final void stopIngress() {

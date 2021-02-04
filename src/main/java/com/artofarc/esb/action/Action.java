@@ -248,7 +248,7 @@ public abstract class Action implements Cloneable {
 		return startAction;
 	}
 
-	protected final Object bindVariable(String exp, Context context, final ESBMessage message) throws Exception {
+	public final Object bindVariable(String exp, Context context, final ESBMessage message) throws Exception {
 		StringBuilder builder = new StringBuilder();
 		for (int pos = 0;;) {
 			int i = exp.indexOf("${", pos);

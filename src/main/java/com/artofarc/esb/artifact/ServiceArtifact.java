@@ -31,6 +31,7 @@ import javax.xml.bind.JAXBElement;
 import org.xml.sax.Locator;
 
 import com.artofarc.esb.ConsumerPort;
+import com.artofarc.esb.FileWatchEventConsumer;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.action.*;
 import com.artofarc.esb.context.GlobalContext;
@@ -100,18 +101,22 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			List<Action> list = transform(globalContext, service.getAction(), service.getErrorHandler());
 			switch (_protocol = service.getProtocol()) {
 			case HTTP:
-				final Service.HttpBindURI httpBinding = service.getHttpBindURI();
+				Service.HttpBindURI httpBinding = service.getHttpBindURI();
 				_consumerPort = new HttpConsumer(getURI(), service.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
 						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
 				break;
 			case JMS:
-				final Service.JmsBinding jmsBinding = service.getJmsBinding();
+				Service.JmsBinding jmsBinding = service.getJmsBinding();
 				JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
 				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(), jmsBinding.getTopicName(),
 						jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval(), jmsBinding.getMaximumRetries(), jmsBinding.getRedeliveryDelay());
 				break;
+			case FILE:
+				Service.FileWatchBinding fileWatchBinding = service.getFileWatchBinding();
+				_consumerPort = new FileWatchEventConsumer(getURI(), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError(), fileWatchBinding.getTimeout(), fileWatchBinding.getWorkerPool());
+				break;
 			case TIMER:
-				final Service.TimerBinding timerBinding = service.getTimerBinding();
+				Service.TimerBinding timerBinding = service.getTimerBinding();
 				_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getAt(), timerBinding.getTimeUnit(), timerBinding.getPeriod(),
 						timerBinding.getInitialDelay(), timerBinding.isFixedDelay());
 				break;

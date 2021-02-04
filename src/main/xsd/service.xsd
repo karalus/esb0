@@ -695,6 +695,7 @@
 		<restriction base="string">
 			<enumeration value="http" />
 			<enumeration value="jms" />
+			<enumeration value="file" />
 			<enumeration value="timer" />
 			<enumeration value="internal" />
 		</restriction>
@@ -738,6 +739,17 @@
 							<attribute name="pollInterval" type="int" default="0" />
 							<attribute name="maximumRetries" type="int" />
 							<attribute name="redeliveryDelay" type="unsignedInt" />
+						</complexType>
+					</element>
+					<element name="fileWatchBinding">
+						<complexType>
+							<sequence>
+								<element name="dir" type="anyURI" maxOccurs="unbounded"/>
+							</sequence>
+							<attribute name="move" type="anyURI" />
+							<attribute name="moveOnError" type="anyURI" />
+							<attribute name="workerPool" type="anyURI" />
+							<attribute name="timeout" type="long" default="300000" />
 						</complexType>
 					</element>
 					<element name="timerBinding">

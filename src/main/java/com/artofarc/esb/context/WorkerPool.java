@@ -92,7 +92,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		return _asyncProcessingPool;
 	}
 
-	public Context getContext() throws Exception {
+	public Context getContext() throws InterruptedException {
 		return _contextPool.getContext();
 	}
 
