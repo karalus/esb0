@@ -33,39 +33,24 @@ import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.WorkerPool;
-import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBConstants;
-import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.MimeHelper;
+import com.artofarc.esb.message.*;
 import com.artofarc.util.IOUtils;
 
-public final class FileWatchEventConsumer extends ConsumerPort implements Runnable {
+public final class FileWatchEventConsumer extends PollingConsumerPort {
 
 	private final static long initialDelay = Long.parseLong(System.getProperty("esb0.fileWatch.initialDelay", "50"));
 
-	private final long _timeout;
-	private final String _workerPoolName;
 	private final List<Path> _dirs = new ArrayList<>();
 	private final String _move, _moveOnError;
 	private final StandardOpenOption[] _options;
 
-	private WorkerPool _workerPool;
-
-	private volatile Future<?> _future;
-
-	public FileWatchEventConsumer(String uri, List<String> dirs, String move, String moveOnError, long timeout, String workerPool) throws IOException {
-		super(uri);
-		_timeout = timeout;
-		_workerPoolName = workerPool;
+	public FileWatchEventConsumer(String uri, String workerPool, long pollInterval, List<String> dirs, String move, String moveOnError) throws IOException {
+		super(uri, workerPool, pollInterval);
 		for (String dir : dirs) {
 			Path path = Paths.get(dir);
 			if (!Files.isDirectory(path)) {
@@ -87,54 +72,13 @@ public final class FileWatchEventConsumer extends ConsumerPort implements Runnab
 	}
 
 	@Override
-	public void init(GlobalContext globalContext) {
-		_workerPool = globalContext.getWorkerPool(_workerPoolName);
-		if (super.isEnabled()) {
-			enable(true);
-		}
-	}
-
-	private void submit(Callable<?> callable) throws InterruptedException {
-		for (;;) {
-			try {
-				_workerPool.getExecutorService().submit(callable);
-				break;
-			} catch (RejectedExecutionException e) {
-				logger.warn("Could not submit to worker pool " + _workerPoolName);
-				Thread.sleep(100L);
-			}
-		}
-	}
-
-	@Override
-	public boolean isEnabled() {
-		return _future != null && !_future.isDone();
-	}
-
-	@Override
-	public void enable(boolean enable) {
-		if (enable) {
-			if (_future == null || _future.isDone()) {
-				_future = _workerPool.getExecutorService().submit(this);
-			}
-		} else {
-			close();
-		}
-	}
-
-	@Override
-	public void close() {
-		if (_future != null) {
-			_future.cancel(true);
-			_future = null;
-		}
-	}
-
-	@Override
 	public void run() {
-		try (WatchService watchService = createWatchService()) {
+		try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
+			for (Path dir : _dirs) {
+				dir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+			}
 			for (;;) {
-				WatchKey watchKey = watchService.poll(_timeout, TimeUnit.MILLISECONDS);
+				WatchKey watchKey = watchService.poll(_pollInterval, TimeUnit.MILLISECONDS);
 				if (watchKey != null) {
 					// File ready?
 					Thread.sleep(initialDelay);
@@ -175,7 +119,7 @@ public final class FileWatchEventConsumer extends ConsumerPort implements Runnab
 								fileChannel.close();
 							}
 						} catch (IOException e) {
-							logger.warn("File could not be opened" + absolutePath, e);
+							logger.warn("File could not be opened " + absolutePath, e);
 						}
 					}
 					if (!watchKey.reset()) {
@@ -188,14 +132,6 @@ public final class FileWatchEventConsumer extends ConsumerPort implements Runnab
 		} catch (InterruptedException e) {
 			// cancelled
 		}
-	}
-
-	private WatchService createWatchService() throws IOException {
-		WatchService watchService = FileSystems.getDefault().newWatchService();
-		for (Path dir : _dirs) {
-			dir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
-		}
-		return watchService;
 	}
 
 	private static void fillESBMessage(ESBMessage msg, InputStream inputStream, String filename) throws Exception {

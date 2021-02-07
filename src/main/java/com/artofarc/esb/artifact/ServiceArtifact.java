@@ -32,6 +32,7 @@ import org.xml.sax.Locator;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.FileWatchEventConsumer;
+import com.artofarc.esb.KafkaConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.action.*;
 import com.artofarc.esb.context.GlobalContext;
@@ -111,14 +112,18 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(), jmsBinding.getTopicName(),
 						jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval(), jmsBinding.getMaximumRetries(), jmsBinding.getRedeliveryDelay());
 				break;
-			case FILE:
-				Service.FileWatchBinding fileWatchBinding = service.getFileWatchBinding();
-				_consumerPort = new FileWatchEventConsumer(getURI(), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError(), fileWatchBinding.getTimeout(), fileWatchBinding.getWorkerPool());
-				break;
 			case TIMER:
 				Service.TimerBinding timerBinding = service.getTimerBinding();
 				_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getAt(), timerBinding.getTimeUnit(), timerBinding.getPeriod(),
 						timerBinding.getInitialDelay(), timerBinding.isFixedDelay());
+				break;
+			case FILE:
+				Service.FileWatchBinding fileWatchBinding = service.getFileWatchBinding();
+				_consumerPort = new FileWatchEventConsumer(getURI(), fileWatchBinding.getWorkerPool(), fileWatchBinding.getPollInterval(), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
+				break;
+			case KAFKA:
+				Service.KafkaBinding kafkaBinding = service.getKafkaBinding();
+				_consumerPort = new KafkaConsumerPort(getURI(), kafkaBinding.getWorkerPool(), kafkaBinding.getPollInterval(), createProperties(kafkaBinding.getProperty(), globalContext), kafkaBinding.getTopic(), kafkaBinding.getTimeout());
 				break;
 			default:
 				_consumerPort = new ConsumerPort(getURI());

@@ -693,11 +693,12 @@
 	</element>
 	<simpleType name="Protocol">
 		<restriction base="string">
+			<enumeration value="internal" />
 			<enumeration value="http" />
 			<enumeration value="jms" />
-			<enumeration value="file" />
 			<enumeration value="timer" />
-			<enumeration value="internal" />
+			<enumeration value="file" />
+			<enumeration value="kafka" />
 		</restriction>
 	</simpleType>
 	<element name="actionPipeline">
@@ -741,17 +742,6 @@
 							<attribute name="redeliveryDelay" type="unsignedInt" />
 						</complexType>
 					</element>
-					<element name="fileWatchBinding">
-						<complexType>
-							<sequence>
-								<element name="dir" type="anyURI" maxOccurs="unbounded"/>
-							</sequence>
-							<attribute name="move" type="anyURI" />
-							<attribute name="moveOnError" type="anyURI" />
-							<attribute name="workerPool" type="anyURI" />
-							<attribute name="timeout" type="long" default="300000" />
-						</complexType>
-					</element>
 					<element name="timerBinding">
 						<complexType>
 							<attribute name="workerPool" type="anyURI" />
@@ -760,6 +750,28 @@
 							<attribute name="period" type="int" default="300" />
 							<attribute name="initialDelay" type="int" default="60" />
 							<attribute name="fixedDelay" type="boolean" default="false" />
+						</complexType>
+					</element>
+					<element name="fileWatchBinding">
+						<complexType>
+							<sequence>
+								<element name="dir" type="anyURI" maxOccurs="unbounded"/>
+							</sequence>
+							<attribute name="move" type="anyURI" />
+							<attribute name="moveOnError" type="anyURI" />
+							<attribute name="workerPool" type="anyURI" />
+							<attribute name="pollInterval" type="long" default="300000" />
+						</complexType>
+					</element>
+					<element name="kafkaBinding">
+						<complexType>
+							<sequence>
+								<element name="topic" type="Name" maxOccurs="unbounded"/>
+								<element ref="tns:property" maxOccurs="unbounded"/>
+							</sequence>
+							<attribute name="workerPool" type="anyURI" />
+							<attribute name="pollInterval" type="long" default="300000" />
+							<attribute name="timeout" type="long" default="60000" />
 						</complexType>
 					</element>
 				</choice>
