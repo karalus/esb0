@@ -91,6 +91,13 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return _xqConnectionFactory;
 	}
 
+	private <T> T checkBindingPresent(T binding) throws ValidationException {
+		if (binding == null) {
+			throw new ValidationException(this, "No binding found for protocol " + _protocol.value());
+		}
+		return binding;
+	}
+
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		migrate(globalContext);
@@ -102,27 +109,27 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			List<Action> list = transform(globalContext, service.getAction(), service.getErrorHandler());
 			switch (_protocol = service.getProtocol()) {
 			case HTTP:
-				Service.HttpBindURI httpBinding = service.getHttpBindURI();
+				Service.HttpBindURI httpBinding = checkBindingPresent(service.getHttpBindURI());
 				_consumerPort = new HttpConsumer(getURI(), service.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
 						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
 				break;
 			case JMS:
-				Service.JmsBinding jmsBinding = service.getJmsBinding();
+				Service.JmsBinding jmsBinding = checkBindingPresent(service.getJmsBinding());
 				JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
 				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(), jmsBinding.getTopicName(),
 						jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval(), jmsBinding.getMaximumRetries(), jmsBinding.getRedeliveryDelay());
 				break;
 			case TIMER:
-				Service.TimerBinding timerBinding = service.getTimerBinding();
+				Service.TimerBinding timerBinding = checkBindingPresent(service.getTimerBinding());
 				_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getAt(), timerBinding.getTimeUnit(), timerBinding.getPeriod(),
 						timerBinding.getInitialDelay(), timerBinding.isFixedDelay());
 				break;
 			case FILE:
-				Service.FileWatchBinding fileWatchBinding = service.getFileWatchBinding();
+				Service.FileWatchBinding fileWatchBinding = checkBindingPresent(service.getFileWatchBinding());
 				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), fileWatchBinding.getWorkerPool(), fileWatchBinding.getPollInterval(), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
 				break;
 			case KAFKA:
-				Service.KafkaBinding kafkaBinding = service.getKafkaBinding();
+				Service.KafkaBinding kafkaBinding = checkBindingPresent(service.getKafkaBinding());
 				_consumerPort = new KafkaConsumerPort(getURI(), kafkaBinding.getWorkerPool(), kafkaBinding.getPollInterval(), createProperties(kafkaBinding.getProperty(), globalContext), kafkaBinding.getTopic(), kafkaBinding.getTimeout());
 				break;
 			default:
