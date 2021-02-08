@@ -1,7 +1,6 @@
 <%@page import="java.util.*"%>
+<%@page import="com.artofarc.esb.*"%>
 <%@page import="com.artofarc.esb.context.GlobalContext"%>
-<%@page import="com.artofarc.esb.ConsumerPort"%>
-<%@page import="com.artofarc.esb.TimerService"%>
 <%@page import="com.artofarc.esb.servlet.ESBServletContextListener"%>
 <%@page import="com.artofarc.esb.servlet.HttpConsumer"%>
 <%@page import="com.artofarc.esb.jms.JMSConsumer"%>
@@ -119,14 +118,56 @@ textarea, pre {
 		case "TimerServices":
 			%>
 <br>TimerServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Delay</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Delay</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
 <%
 		for (TimerService consumerPort : globalContext.getTimerServices()) {
 		   %>
 		   <tr>
 		    <td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 		    <td><%=consumerPort.getDelay() != null ? consumerPort.getDelay() + " " + consumerPort.getTimeUnit().toString().toLowerCase() : "N/A"%></td>
+		    <td><%=consumerPort.getCompletedTaskCount()%></td>
 		    <td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?TimerServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+		    <td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="TimerServices"/></form></td>
+		   </tr>
+		   <%
+		}
+%>
+</table>
+			<%
+			break;
+		case "FileWatchEventConsumer":
+			%>
+<br>FileWatchEventConsumer:
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Dirs</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
+<%
+		for (FileWatchEventConsumer consumerPort : globalContext.getFileWatchEventConsumer()) {
+		   %>
+		   <tr>
+		    <td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
+		    <td><%=consumerPort.getDirs()%></td>
+		    <td><%=consumerPort.getCompletedTaskCount()%></td>
+		    <td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?FileWatchEventConsumer"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+		    <td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="TimerServices"/></form></td>
+		   </tr>
+		   <%
+		}
+%>
+</table>
+			<%
+			break;
+		case "KafkaConsumerServices":
+			%>
+<br>KafkaConsumerServices:
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Config</b></td><td><b>Topics</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
+<%
+		for (KafkaConsumerPort consumerPort : globalContext.getKafkaConsumer()) {
+		   %>
+		   <tr>
+		    <td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
+		    <td><%=consumerPort.getConfig()%></td>
+		    <td><%=consumerPort.getTopics()%></td>
+		    <td><%=consumerPort.getCompletedTaskCount()%></td>
+		    <td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?KafkaConsumerServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
 		    <td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="TimerServices"/></form></td>
 		   </tr>
 		   <%
@@ -201,16 +242,27 @@ textarea, pre {
 			break;
 		default:
 			%>
-<h4>
-<a href="<%=request.getContextPath()%>/admin?HttpServices">HttpServices</a><br><br>
-<a href="<%=request.getContextPath()%>/admin?MappedHttpServices">HttpServices with path mapping</a><br><br>
-<a href="<%=request.getContextPath()%>/admin?JMSServices">JMSServices</a><br><br>
-<a href="<%=request.getContextPath()%>/admin?TimerServices">TimerServices</a><br><br>
-<a href="<%=request.getContextPath()%>/admin?InternalServices">InternalServices</a><br><br>
-<a href="<%=request.getContextPath()%>/admin?WorkerPools">WorkerPools</a><br><br>
-<a href="<%=request.getContextPath()%>/admin?HttpEndpoints">HttpEndpoints</a><br><br>
-<a href="<%=request.getContextPath()%>/admin?Caches">Caches</a><br><br>
-</h4>
+<table border="1" width="960" cellpadding="10">
+	<tr bgcolor="#EEEEEE">
+		<td><a href="<%=request.getContextPath()%>/admin?HttpServices">HttpServices</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?MappedHttpServices">HttpServices with path mapping</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?JMSServices">JMSServices</a></td>
+	</tr>
+	<tr bgcolor="#EEEEEE">
+		<td><a href="<%=request.getContextPath()%>/admin?TimerServices">TimerServices</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?FileWatchEventConsumer">FileWatchEventConsumer</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?KafkaConsumerServices">KafkaConsumerServices</a></td>
+	</tr>
+	<tr bgcolor="#EEEEEE">
+		<td><a href="<%=request.getContextPath()%>/admin?InternalServices">InternalServices</a></td>
+	</tr>
+	<tr bgcolor="#EEEEEE">
+		<td><a href="<%=request.getContextPath()%>/admin?WorkerPools">WorkerPools</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?HttpEndpoints">HttpEndpoints</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?Caches">Caches</a></td>
+	</tr>
+</table>
+<br>
 Upload Service-JAR:
 <form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%>/" enctype="multipart/form-data" method="POST">
 	<input type="file" name="file">

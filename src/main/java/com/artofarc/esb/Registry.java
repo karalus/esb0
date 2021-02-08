@@ -37,7 +37,7 @@ import com.artofarc.util.PrefixBTree;
 
 public class Registry extends AbstractContext {
 
-	private static final int DEFAULT_NO_SERVICES = 256;
+	private static final int DEFAULT_NO_SERVICES = 512;
 
 	private final ConcurrentHashMap<String, ConsumerPort> _services = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES);
 	private final ConcurrentHashMap<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
@@ -45,6 +45,7 @@ public class Registry extends AbstractContext {
 	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
 	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Path, FileWatchEventConsumer> _fileWatchEventServices = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, KafkaConsumerPort> _kafkaConsumer = new ConcurrentHashMap<>();
 
 	private final MBeanServer _mbs;
 	private final String OBJECT_NAME = "com.artofarc.esb:type=" + getClass().getSimpleName();
@@ -118,6 +119,14 @@ public class Registry extends AbstractContext {
 
 	public final Collection<TimerService> getTimerServices() {
 		return _timerServices.values();
+	}
+
+	public final Collection<FileWatchEventConsumer> getFileWatchEventConsumer() {
+		return _fileWatchEventServices.values();
+	}
+
+	public final Collection<KafkaConsumerPort> getKafkaConsumer() {
+		return _kafkaConsumer.values();
 	}
 
 	public final HttpConsumer getHttpService(String path) {
@@ -248,6 +257,25 @@ public class Registry extends AbstractContext {
 			oldConsumerPort = _fileWatchEventServices.remove(dir);
 		}
 		unbindInternalService(oldConsumerPort);
+	}
+
+	public final ConsumerPort bindKafkaConsumer(KafkaConsumerPort kafkaConsumer) {
+		ConsumerPort oldConsumerPort = _kafkaConsumer.get(kafkaConsumer.getKey());
+		if (oldConsumerPort != null) {
+			if (!oldConsumerPort.getUri().equals(kafkaConsumer.getUri())) {
+				throw new IllegalArgumentException("A different service is already bound: " + oldConsumerPort.getUri());
+			}
+		} else {
+			oldConsumerPort = getInternalService(kafkaConsumer.getUri());
+			unbindService(oldConsumerPort);
+		}
+		bindService(kafkaConsumer);
+		_kafkaConsumer.put(kafkaConsumer.getKey(), kafkaConsumer);
+		return oldConsumerPort;
+	}
+
+	public final void unbindKafkaConsumer(KafkaConsumerPort kafkaConsumer) {
+		unbindInternalService(_kafkaConsumer.remove(kafkaConsumer.getKey()));
 	}
 
 	public final void stopIngress() {

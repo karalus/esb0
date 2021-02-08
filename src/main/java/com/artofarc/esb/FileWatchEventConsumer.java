@@ -38,6 +38,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.IOUtils;
 
@@ -49,10 +50,10 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 	private final String _move, _moveOnError;
 	private final StandardOpenOption[] _options;
 
-	public FileWatchEventConsumer(String uri, String workerPool, long pollInterval, List<String> dirs, String move, String moveOnError) throws IOException {
+	public FileWatchEventConsumer(GlobalContext globalContext, String uri, String workerPool, long pollInterval, List<String> dirs, String move, String moveOnError) throws Exception {
 		super(uri, workerPool, pollInterval);
 		for (String dir : dirs) {
-			Path path = Paths.get(dir);
+			Path path = Paths.get(dir = globalContext.bindProperties(dir));
 			if (!Files.isDirectory(path)) {
 				throw new IOException("is not an existing directory " + dir);
 			}

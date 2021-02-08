@@ -34,28 +34,32 @@ import com.artofarc.esb.message.ESBMessage;
 
 public final class KafkaConsumerPort extends PollingConsumerPort {
 
-	private final Properties _properties;
+	private final Properties _config;
 	private final List<String> _topics;
 	private final long _timeout;
 
-	public KafkaConsumerPort(String uri, String workerPool, long pollInterval, Properties properties, List<String> topics, long timeout) {
+	public KafkaConsumerPort(String uri, String workerPool, long pollInterval, Properties config, List<String> topics, long timeout) {
 		super(uri, workerPool, pollInterval);
-		_properties = properties;
+		_config = config;
 		_topics = topics;
 		_timeout = timeout;
 	}
 
-	public Properties getProperties() {
-		return _properties;
+	public Properties getConfig() {
+		return _config;
 	}
 
 	public List<String> getTopics() {
 		return _topics;
 	}
 
+	public String getKey() {
+		return _topics + "@" + _config;
+	}
+
 	@Override
 	public void run() {
-		try (KafkaConsumer<?, ?> consumer = new KafkaConsumer<>(_properties)) {
+		try (KafkaConsumer<?, ?> consumer = new KafkaConsumer<>(_config)) {
 			consumer.subscribe(_topics);
 			for (LinkedHashMap<Future<Void>, ConsumerRecord<?, ?>> futures = new LinkedHashMap<>();; futures.clear()) {
 				for (final ConsumerRecord<?, ?> record : consumer.poll(_pollInterval)) {
