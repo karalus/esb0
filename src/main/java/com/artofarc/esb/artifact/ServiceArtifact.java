@@ -209,12 +209,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					produceKafka.getPartition(), produceKafka.isBinary()), location);
 			break;
 		}
-		case "consumeKafka": {
-			ConsumeKafka consumeKafka = (ConsumeKafka) actionElement.getValue();
-			addAction(list, new KafkaConsumeAction(createProperties(consumeKafka.getProperty(), globalContext), consumeKafka.getTopic(), consumeKafka.getTimeout(),
-					resolveWorkerPool(consumeKafka.getWorkerPool()), Action.linkList(transform(globalContext, consumeKafka.getAction(), null))), location);
-			break;
-		}
 		case "sendMail": {
 			SendMail sendMail = (SendMail) actionElement.getValue();
 			addAction(list, new SendMailAction(globalContext, createProperties(sendMail.getProperty(), globalContext), resolveWorkerPool(sendMail.getWorkerPool()),
@@ -238,17 +232,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		case "file": {
 			File file = (File) actionElement.getValue();
 			addAction(list, new FileAction(globalContext.bindProperties(file.getDir()), file.getVerb(), file.getFilename(), file.getAppend(), file.getZip()), location);
-			break;
-		}
-		case "fileSystemWatch": {
-			FileSystemWatch fileSystemWatch = (FileSystemWatch) actionElement.getValue();
-			List<String> dirs = new ArrayList<>();
-			for (String dir : fileSystemWatch.getDir()) {
-				dirs.add(globalContext.bindProperties(dir));
-			}
-			FileSystemWatchAction fileSystemWatchAction = new FileSystemWatchAction(dirs, fileSystemWatch.getMove(), fileSystemWatch.getMoveOnError(), fileSystemWatch.getTimeout(),
-					resolveWorkerPool(fileSystemWatch.getWorkerPool()), Action.linkList(transform(globalContext, fileSystemWatch.getAction(), null)));
-			addAction(list, fileSystemWatchAction, location);
 			break;
 		}
 		case "jdbcProcedure": {

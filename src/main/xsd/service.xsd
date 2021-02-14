@@ -102,21 +102,6 @@
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="consumeKafka" substitutionGroup="tns:action">
-		<complexType>
-			<complexContent>
-				<extension base="tns:ActionBase">
-					<sequence>
-						<element name="topic" type="Name" maxOccurs="unbounded"/>
-						<element ref="tns:property" maxOccurs="unbounded"/>
-						<element ref="tns:action" maxOccurs="unbounded" />
-					</sequence>
-					<attribute name="workerPool" type="anyURI" />
-					<attribute name="timeout" type="long" use="required" />
-				</extension>
-			</complexContent>
-		</complexType>
-	</element>
 	<element name="sendMail" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
@@ -158,22 +143,6 @@
 					<attribute name="filename" type="tns:string1" default="${filename}" />
 					<attribute name="append" type="tns:string1" default="${append}" />
 					<attribute name="zip" type="tns:string1" default="${zip}" />
-				</extension>
-			</complexContent>
-		</complexType>
-	</element>
-	<element name="fileSystemWatch" substitutionGroup="tns:action">
-		<complexType>
-			<complexContent>
-				<extension base="tns:ActionBase">
-					<sequence>
-						<element name="dir" type="anyURI" maxOccurs="unbounded"/>
-						<element ref="tns:action" maxOccurs="unbounded" />
-					</sequence>
-					<attribute name="move" type="anyURI" />
-					<attribute name="moveOnError" type="anyURI" />
-					<attribute name="workerPool" type="anyURI" />
-					<attribute name="timeout" type="long" use="required" />
 				</extension>
 			</complexContent>
 		</complexType>
