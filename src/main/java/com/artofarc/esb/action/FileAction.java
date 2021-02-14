@@ -36,8 +36,9 @@ public class FileAction extends TerminalAction {
 
 	private final File _destDir;
 	private final String _verb, _filename, _append, _zip;
+	private final Boolean _readable, _writable;
 
-	public FileAction(String destDir, String verb, String filename, String append, String zip) throws FileNotFoundException {
+	public FileAction(String destDir, String verb, String filename, String append, String zip, Boolean readable, Boolean writable) throws FileNotFoundException {
 		_destDir = new File(destDir);
 		if (!_destDir.exists()) {
 			throw new FileNotFoundException(destDir);
@@ -49,6 +50,8 @@ public class FileAction extends TerminalAction {
 		_filename = filename;
 		_append = append;
 		_zip = zip;
+		_readable = readable;
+		_writable = writable;
 	}
 
 	@Override
@@ -76,6 +79,12 @@ public class FileAction extends TerminalAction {
 				throw new ExecutionException(this, "zip plus append is not supported, yet");
 			}
 			context.getTimeGauge().startTimeMeasurement();
+			if (_readable != null) {
+				file.setReadable(_readable, false);
+			}
+			if (_writable != null) {
+				file.setWritable(_writable, false);
+			}
 			try (FileOutputStream fileOutputStream = new FileOutputStream(file, append)) {
 				if (zip) {
 					try (ZipOutputStream zos = new ZipOutputStream(fileOutputStream)) {

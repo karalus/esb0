@@ -143,6 +143,8 @@
 					<attribute name="filename" type="tns:string1" default="${filename}" />
 					<attribute name="append" type="tns:string1" default="${append}" />
 					<attribute name="zip" type="tns:string1" default="${zip}" />
+					<attribute name="readable" type="boolean" />
+					<attribute name="writable" type="boolean" />
 				</extension>
 			</complexContent>
 		</complexType>
