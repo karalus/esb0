@@ -84,13 +84,13 @@ public class FileAction extends TerminalAction {
 				throw new ExecutionException(this, "zip plus append is not supported, yet");
 			}
 			context.getTimeGauge().startTimeMeasurement();
-			if (_readable != null) {
-				file.setReadable(_readable, false);
-			}
-			if (_writable != null) {
-				file.setWritable(_writable, false);
-			}
 			try (FileOutputStream fileOutputStream = new FileOutputStream(file, append)) {
+				if (_readable != null) {
+					file.setReadable(_readable, false);
+				}
+				if (_writable != null) {
+					file.setWritable(_writable, false);
+				}
 				if (zip) {
 					try (ZipOutputStream zos = new ZipOutputStream(fileOutputStream)) {
 						zos.putNextEntry(new ZipEntry(filename + fileExtension));
