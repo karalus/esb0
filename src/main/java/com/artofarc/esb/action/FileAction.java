@@ -36,9 +36,10 @@ public class FileAction extends TerminalAction {
 
 	private final File _destDir;
 	private final String _verb, _filename, _append, _zip;
+	private final boolean _mkdirs;
 	private final Boolean _readable, _writable;
 
-	public FileAction(String destDir, String verb, String filename, String append, String zip, Boolean readable, Boolean writable) throws FileNotFoundException {
+	public FileAction(String destDir, String verb, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable) throws FileNotFoundException {
 		_destDir = new File(destDir);
 		if (!_destDir.exists()) {
 			throw new FileNotFoundException(destDir);
@@ -48,6 +49,7 @@ public class FileAction extends TerminalAction {
 		}
 		_verb = verb;
 		_filename = filename;
+		_mkdirs = mkdirs;
 		_append = append;
 		_zip = zip;
 		_readable = readable;
@@ -61,6 +63,9 @@ public class FileAction extends TerminalAction {
 		String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(contentType) : "";
 		boolean zip = Boolean.parseBoolean(String.valueOf(bindVariable(_zip, context, message)));
 		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
+		if (_mkdirs) {
+			file.getParentFile().mkdirs();
+		}
 		String verb = (String) bindVariable(_verb, context, message);
 		boolean append = false;
 		switch (verb) {

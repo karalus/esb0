@@ -36,10 +36,11 @@ public final class KafkaConsumerPort extends PollingConsumerPort {
 
 	private final Properties _config;
 	private final List<String> _topics;
-	private final long _timeout;
+	private final long _pollInterval, _timeout;
 
 	public KafkaConsumerPort(String uri, String workerPool, long pollInterval, Properties config, List<String> topics, long timeout) {
-		super(uri, workerPool, pollInterval);
+		super(uri, workerPool);
+		_pollInterval = pollInterval;
 		_config = config;
 		_topics = topics;
 		_timeout = timeout;

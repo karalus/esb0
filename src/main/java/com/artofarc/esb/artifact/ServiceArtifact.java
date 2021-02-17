@@ -126,7 +126,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			case FILE:
 				Service.FileWatchBinding fileWatchBinding = checkBindingPresent(service.getFileWatchBinding());
-				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), fileWatchBinding.getWorkerPool(), fileWatchBinding.getPollInterval(), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
+				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), fileWatchBinding.getWorkerPool(), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
 				break;
 			case KAFKA:
 				Service.KafkaBinding kafkaBinding = checkBindingPresent(service.getKafkaBinding());
@@ -231,7 +231,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "file": {
 			File file = (File) actionElement.getValue();
-			addAction(list, new FileAction(globalContext.bindProperties(file.getDir()), file.getVerb(), file.getFilename(), file.getAppend(), file.getZip(), file.isReadable(), file.isWritable()), location);
+			addAction(list, new FileAction(globalContext.bindProperties(file.getDir()), file.getVerb(), file.getFilename(), file.isMkdirs(), file.getAppend(), file.getZip(), file.isReadable(), file.isWritable()), location);
 			break;
 		}
 		case "jdbcProcedure": {

@@ -47,10 +47,10 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		setMessageAction.addAssignment("filenameOrigin", false, "${filename}", null, null, null);
 		setMessageAction.addAssignment("filename", false, "log.txt", null, null, null);
 		setMessageAction.addAssignment("tstmp", false, "${initialTimestamp}", "java.sql.Date", null, null);
-		Action actionOnFile = Action.linkList(Arrays.asList(new FileAction(outDir.getPath(), "ENTRY_MODIFY", "${filename}", "true", "false", null, null), setMessageAction, new FileAction(dir.getPath(), "ENTRY_MODIFY", "${filename}", "true", "false", null, null)));
+		Action actionOnFile = Action.linkList(Arrays.asList(new FileAction(outDir.getPath(), "ENTRY_MODIFY", "${filename}", false, "true", "false", null, null), setMessageAction, new FileAction(dir.getPath(), "ENTRY_MODIFY", "${filename}", false, "true", "false", null, null)));
 		actionOnFile.setErrorHandler(new DumpAction());
 		String move = null; //moveDir.getPath() + "/${filenameOrigin}";
-		FileWatchEventConsumer fileWatchEventConsumer = new FileWatchEventConsumer(getGlobalContext(), "/MyFileWatchEventConsumer", null, 90L, Arrays.asList(new String[] { inDir.getPath() }), move, null);
+		FileWatchEventConsumer fileWatchEventConsumer = new FileWatchEventConsumer(getGlobalContext(), "/MyFileWatchEventConsumer", null, Arrays.asList(new String[] { inDir.getPath() }), move, null);
 		fileWatchEventConsumer.setStartAction(actionOnFile);
 		fileWatchEventConsumer.init(getGlobalContext());
 		Thread.sleep(50);

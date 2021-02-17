@@ -26,15 +26,13 @@ import com.artofarc.esb.context.WorkerPool;
 public abstract class PollingConsumerPort extends ConsumerPort implements Runnable {
 
 	private final String _workerPoolName;
-	protected final long _pollInterval;
 	protected WorkerPool _workerPool;
 
 	private volatile Future<?> _future;
 
-	public PollingConsumerPort(String uri, String workerPool, long pollInterval) {
+	public PollingConsumerPort(String uri, String workerPool) {
 		super(uri);
 		_workerPoolName = workerPool;
-		_pollInterval = pollInterval;
 	}
 
 	@Override
