@@ -47,9 +47,15 @@ public class ValidationException extends Exception {
 		_lineNumber = lineNumber;
 	}
 
-	public final String getArtifactLocation() {
+	private String getArtifactLocation() {
 		String s = _artifact.getURI();
 		return _lineNumber != null ? s + '@' + _lineNumber : s;
+	}
+
+	@Override
+	public String toString() {
+		return getCause() != null ? "Could not validate artifact " + getArtifactLocation()
+				: "Could not validate artifact " + getArtifactLocation() + ": " + getMessage();
 	}
 
 }

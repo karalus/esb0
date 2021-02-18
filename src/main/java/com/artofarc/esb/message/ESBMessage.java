@@ -390,10 +390,7 @@ public final class ESBMessage implements Cloneable {
 			Exception e = (Exception) _body;
 			String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 			if (contentType == null || isNotSOAP(contentType)) {
-				str = e.toString();
-				if (e.getCause() != null && !e.getCause().toString().equals(e.getMessage())) {
-					str += "\nCause: " + e.getCause();
-				}
+				str = asString(e);
 			} else {
 				str = asXMLString(e);
 			}
@@ -494,13 +491,27 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public static String asXMLString(Exception e) {
+	public static String asXMLString(Throwable e) {
 		String xml = "<exception><message><![CDATA[" + e + "]]></message>";
 		if (e.getCause() != null) {
 			xml += "<cause><![CDATA[" + e.getCause() + "]]></cause>";
 		}
+		for (Throwable t : e.getSuppressed()) {
+			xml += "<suppressed>" + asXMLString(t) + "</suppressed>";
+		}
 		xml += "</exception>";
 		return xml;
+	}
+
+	public static String asString(Throwable e) {
+		String str = e.toString();
+		if (e.getCause() != null) {
+			str += "\nCause: " + e.getCause();
+		}
+		for (Throwable t : e.getSuppressed()) {
+			str += '\n' + asString(t);
+		}
+		return str;
 	}
 
 	public boolean isSink() {

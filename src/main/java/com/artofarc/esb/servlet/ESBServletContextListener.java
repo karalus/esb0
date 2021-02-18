@@ -29,7 +29,6 @@ import com.artofarc.esb.artifact.DeployHelper;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystemDB;
 import com.artofarc.esb.artifact.FileSystemDir;
-import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.GlobalContext;
 
@@ -60,9 +59,6 @@ public final class ESBServletContextListener implements ServletContextListener {
 			DeployHelper.deployChangeSet(globalContext, changeSet);
 			fileSystem.writeBackChanges();
 			DeployHelper.createAdminService(globalContext, '/' + ADMIN_SERVLET_PATH + "/*");
-		} catch (ValidationException e) {
-			globalContext.close();
-			throw new RuntimeException("Could not validate artifact " + e.getArtifactLocation(), e.getCause());
 		} catch (Exception e) {
 			globalContext.close();
 			throw new RuntimeException("Could not initialize services", e);
