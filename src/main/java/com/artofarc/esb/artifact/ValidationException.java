@@ -35,13 +35,13 @@ public class ValidationException extends Exception {
 		_lineNumber = null;
 	}
 
-	public ValidationException(Artifact artifact, Integer lineNumber, String message) {
+	public ValidationException(Artifact artifact, int lineNumber, String message) {
 		super(message);
 		_artifact = artifact;
 		_lineNumber = lineNumber;
 	}
 
-	public ValidationException(Artifact artifact, Integer lineNumber, Throwable cause) {
+	public ValidationException(Artifact artifact, int lineNumber, Throwable cause) {
 		super(cause);
 		_artifact = artifact;
 		_lineNumber = lineNumber;

@@ -81,7 +81,7 @@ From version 1.4 on Java 8 is required at runtime.
 
 ### How to deploy ###
 
-ESB Zero requires a Java Servlet Container conforming to the servlet 3.0 API. 
+ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API. 
 It has been tested with Tomcat 8 and 8.5, Wildfly, Jetty 9 and JBoss EAP 7.x.
 
 JBoss EAP 7.2 has been tested with Oracle JDK8 and OpenJDK 11.
@@ -94,7 +94,7 @@ In a cluster setup it is also possible to use a DB(via JNDI DataSource) for stor
 __Note__: This folder can be empty but it must exist!
 
 If you are using JMS or JDBC actions within your flows you'll need to configure JMS-Providers and/or Datasources in your Servlet Container. These resources will be acquired by JNDI lookup.
-For JDBC there is special support for Oracle built in (e.g. handling java.sql.Array), but any other DB works as well.
+For JDBC there is special support for Oracle DB built in (e.g. handling java.sql.Array), but any other DB works as well.
 JMS-Providers being successfully used in productive environments are ActiveMQ, Oracle AQ, TIBCO EMS, IBM MQ.
 
 Note: Some JMS Providers do not offer ootb JNDI Integration (e.g. Oracle AQ) or deliver a RAR which only enables heavy weight EJB MDBs.
