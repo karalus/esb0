@@ -8,7 +8,7 @@ Features:
 - Service flows can make use of XPath 2.0, XQuery 3.1 and XSLT 3.0 interchangeably within one streaming pipeline
 - For accessing data inside of JSON we use [JSON Pointer](https://tools.ietf.org/html/rfc6901) (Message transformation with JSON data can be done with XSLT or XQuery)
 - Java code can be invoked dynamically if necessary e.g. for special transformations
-- Supports HTTP(S), JMS, JDBC, Files and [Kafka](https://kafka.apache.org/)
+- Supports HTTP(S), JMS, JDBC, SMTP, Files and [Kafka](https://kafka.apache.org/)
 - Can map between synchronous and asynchronous messages exchange patterns
 - Supports GZIP and [Fast Infoset](https://en.wikipedia.org/wiki/Fast_Infoset) encoding/decoding and MTOM/XOP
 - Uses resource- and thread pools for effective resource utilization, thus supporting QoS per service.
@@ -24,13 +24,13 @@ Features:
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.7.0.
+Current stable version is 1.8.1.
 
 ### Design goals ###
 
 Most ESB products are very heavy suites which is counterproductive for their main purpose - to act as a fast and simple service gateway to control and monitor service usage within your enterprise.
 
-ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently below 100k of size!
+ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently about 100k of size!
 
 The minimal set of features is supported based on the VETRO pattern. All basic EAI components that are needed are built-in with the exemption of stateful components (e.g. [resquencer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Resequencer.html)). As the ESB Zero does not maintain state on its own, it can be easily scaled up and runs very stable.
 
@@ -102,7 +102,7 @@ To get them available via JNDI in your servlet container of choice you can use a
 
 Deploy it in your servlet container of choice.
 
-Test if the admin UI is accessible: http://localhost:8080/esb0/admin
+Test if the admin UI is accessible (For access use a user which has the role "esb0admin" assigned): http://localhost:8080/esb0/admin
 
 ### Working with the sources ###
 
@@ -115,7 +115,7 @@ Any other IDE will also do since there is nothing special about it:
 ### On which projects/technology does ESB Zero depend on? ###
 There are only very few dependencies:
 
-It is written in Java 7 and implements a servlet based on 3.0.1 API.
+It is written in Java 8 and implements a servlet based on 3.1 API.
 
 - For WSDL parsing [WSDL4J](https://sourceforge.net/projects/wsdl4j/) is used.
 - For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/)

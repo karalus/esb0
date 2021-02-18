@@ -133,9 +133,14 @@ public class AdminAction extends Action {
 		if (resource.isEmpty()) {
 			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 			if (contentType == null || "bin".equals(MimeHelper.getFileExtension(contentType))) {
+				boolean simulate = Boolean.parseBoolean(message.getHeader("simulate"));
 				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
 				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
-				deployChangeset(globalContext, changeSet, message);
+				if (simulate) {
+					changeSet.getServiceArtifacts();
+				} else {
+					deployChangeset(globalContext, changeSet, message);
+				}
 			} else {
 				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
 				throw new ExecutionException(this, contentType);
