@@ -20,6 +20,7 @@ import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 public final class ReflectionUtils {
@@ -99,8 +100,29 @@ public final class ReflectionUtils {
 		return null;
 	}
 
+	private final static Map<Class<?>, Class<?>[]> primitiveMapper = Collections.createMap(
+			double.class, new Class[] { Double.class, Float.class, Long.class, Integer.class, Short.class, Byte.class },
+			float.class, new Class[] { Float.class, Long.class, Integer.class, Short.class, Byte.class },
+			long.class, new Class[] { Long.class, Integer.class, Short.class, Byte.class },
+			int.class, new Class[] { Integer.class, Short.class, Byte.class },
+			short.class, new Class[] { Short.class, Byte.class },
+			byte.class, new Class[] { Byte.class },
+			boolean.class, new Class[] { Boolean.class },
+			char.class, new Class[] { Character.class });
+
 	private static boolean isNotAssignable(Class<?> parameterType, Object arg) {
-		return parameterType.isPrimitive() ? arg == null : arg != null && !parameterType.isInstance(arg);
+		if (parameterType.isPrimitive()) {
+			if (arg == null) {
+				return true;
+			}
+			for (Class<?> cls : primitiveMapper.get(parameterType)) {
+				if (cls.isInstance(arg)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return arg != null && !parameterType.isInstance(arg);
 	}
 
 	private static boolean isMatch(String name, String methodName, int argssize) {
@@ -145,7 +167,7 @@ public final class ReflectionUtils {
 			Class<?>[] parameterTypes = con.getParameterTypes();
 			if (parameterTypes.length == params.size()) {
 				for (int i = 0; i < parameterTypes.length; ++i) {
-					if (!parameterTypes[i].isInstance(params.get(i))) {
+					if (isNotAssignable(parameterTypes[i], params.get(i))) {
 						continue outer;
 					}
 				}

@@ -30,6 +30,15 @@ public final class Collections {
 		return new AbstractMap.SimpleImmutableEntry<>(key, value);
 	}
 
+	@SuppressWarnings("unchecked")
+	public static <K, V> Map<V, K> createMap(Object... keyValues) {
+		Map<Object, Object> result = new HashMap<>();
+		for (int i = 0; i < keyValues.length; i += 2) {
+			result.put(keyValues[i], keyValues[i + 1]);
+		}
+		return (Map<V, K>) result;
+	}
+
 	/**
 	 * @param unique If true throw an Exception in case of a collision else return empty map.
 	 */
