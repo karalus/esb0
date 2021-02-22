@@ -55,14 +55,12 @@ public final class Collections {
 		return result;
 	}
 
-	public static <T> List<T> newList(Collection<T> coll, boolean empty, boolean move) {
-		if (empty) {
+	public static <T> List<T> moveToNewList(Collection<T> coll, boolean noop) {
+		if (noop) {
 			return java.util.Collections.emptyList();
 		}
 		ArrayList<T> list = new ArrayList<>(coll);
-		if (move) {
-			coll.clear();
-		}
+		coll.clear();
 		return list;
 	}
 
