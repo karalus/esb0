@@ -51,6 +51,8 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
 
+	public static final String HTTP_HEADER_CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
+
 	public static final String HTTP_HEADER_CONTENT_DISPOSITION = "Content-Disposition";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_TEXT = "text/plain";
