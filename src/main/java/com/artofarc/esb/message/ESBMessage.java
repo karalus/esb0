@@ -206,7 +206,9 @@ public final class ESBMessage implements Cloneable {
 
 	public void addAttachment(String contentID, String contentType, byte[] content, String filename) throws MessagingException {
 		String cid = '<' + contentID + '>';
-		addAttachment(cid, MimeHelper.createMimeBodyPart(cid, contentType, content, filename));
+		MimeBodyPart part = MimeHelper.createMimeBodyPart(cid, contentType, content, filename);
+		part.setHeader(HTTP_HEADER_CONTENT_TRANSFER_ENCODING, "binary");
+		addAttachment(cid, part);
 	}
 
 	public Charset getCharset() {

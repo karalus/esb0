@@ -41,7 +41,6 @@ public final class MimeHelper {
 	static MimeBodyPart createMimeBodyPart(String contentID, String contentType, byte[] content, String name) throws MessagingException {
 		InternetHeaders headers = new InternetHeaders();
 		headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
-		headers.setHeader(HTTP_HEADER_CONTENT_TRANSFER_ENCODING, "binary");
 		MimeBodyPart part = new MimeBodyPart(headers, content);
 		part.setContentID(contentID);
 		if (name != null) {
