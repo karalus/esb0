@@ -26,4 +26,8 @@ public interface JMSConsumerMXBean extends ConsumerPortMXBean {
 
 	Date getLastChangeOfState();
 
+	long getCurrentSentReceiveDelay();
+
+	int getRetries();
+
 }

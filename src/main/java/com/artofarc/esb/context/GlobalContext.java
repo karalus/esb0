@@ -36,6 +36,7 @@ import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.http.HttpEndpointRegistry;
+import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
@@ -47,7 +48,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	public static final String BUILD_TIME = "esb0.build.time";
 
 	private static final int DEPLOY_TIMEOUT = Integer.parseInt(System.getProperty("esb0.deploy.timeout", "60"));
-	private static final int HTTPCONSUMER_IDLETIMEOUT = Integer.parseInt(System.getProperty("esb0.httpconsumer.idletimeout", "600"));
+	private static final int CONSUMER_IDLETIMEOUT = Integer.parseInt(System.getProperty("esb0.consumer.idletimeout", "300"));
 	private static final String GLOBALPROPERTIES = System.getProperty("esb0.globalproperties");
 	private static final String DEFAULT_WORKER_POOL = "default";
 
@@ -110,8 +111,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
 		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
-		if (HTTPCONSUMER_IDLETIMEOUT > 0) {
-			getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, HTTPCONSUMER_IDLETIMEOUT, HTTPCONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
+		if (CONSUMER_IDLETIMEOUT > 0) {
+			getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, CONSUMER_IDLETIMEOUT, CONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
 		}
 	}
 
@@ -215,6 +216,10 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	public void run() {
 		for (HttpConsumer httpConsumer : getHttpConsumers()) {
 			httpConsumer.getContextPool().shrinkPool();
+		}
+		long now = System.currentTimeMillis();
+		for (JMSConsumer jmsConsumer : getJMSConsumers()) {
+			jmsConsumer.controlJMSWorkerPool(0, now);
 		}
 	}
 

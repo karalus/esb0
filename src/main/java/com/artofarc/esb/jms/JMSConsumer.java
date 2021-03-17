@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -99,7 +101,8 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		}
 	}
 
-	private final String _workerPool;
+	private final String _workerPoolName;
+	private WorkerPool _workerPool; 
 	private final JMSConnectionData _jmsConnectionData;
 	private Destination _destination;
 	private final String _queueName;
@@ -111,13 +114,24 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 	private final Integer _maximumRetries;
 	private final ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException> _retries;
 	private final Long _redeliveryDelay;
-	private volatile long lastChangeOfState;
+	private final long _rampUpThreshold = 1000L;
+	private final long _rampUpDelay = 2000L;
+	private final long _rampDownThreshold = 100L;
+	private final long _rampDownDelay = 10000L;
+	private final int _minWorkerCount;
+	private final int _significance = 10;
+	private long _lastControlChange;
+	private volatile boolean _operating;
+	private volatile int _workerCount;
+	private volatile long _currentSentReceiveDelay;
+	private volatile long _lastChangeOfState;
+	private Future<?> _control;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName,
-			String topicName, String subscription, String messageSelector, int workerCount, long pollInterval, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
+			String topicName, String subscription, String messageSelector, int workerCount, int minWorkerCount, long pollInterval, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
 
 		super(uri);
-		_workerPool = workerPool;
+		_workerPoolName = workerPool;
 		_jmsConnectionData = jmsConnectionData;
 		_messageSelector = globalContext.bindProperties(messageSelector);
 		if (jndiDestination != null) {
@@ -154,6 +168,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 			_retries = null;
 		}
 		_redeliveryDelay = redeliveryDelay;
+		_minWorkerCount = minWorkerCount;
 	}
 
 	private String getDestinationName() {
@@ -172,18 +187,26 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		String key = _jmsConnectionData.toString() + '|' + getDestinationName();
 		if (_subscription != null) key += '|' + _subscription;
 		if (_messageSelector != null) key += '|' + _messageSelector;
-		if (_workerPool != null) {
-			key += '@' + _workerPool;
+		if (_workerPoolName != null) {
+			key += '@' + _workerPoolName;
 		}
 		return key;
 	}
 
 	public int getWorkerCount() {
-		return _jmsWorker.length;
+		return _workerCount;
 	}
 
 	public Date getLastChangeOfState() {
-		return new Date(lastChangeOfState);
+		return new Date(_lastChangeOfState);
+	}
+
+	public long getCurrentSentReceiveDelay() {
+		return _currentSentReceiveDelay;
+	}
+
+	public int getRetries() {
+		return _retries != null ? _retries.getResourceDescriptors().size() : -1;
 	}
 
 	@Override
@@ -193,13 +216,13 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 
 	@Override
 	public void init(GlobalContext globalContext) throws JMSException {
-		WorkerPool workerPool = globalContext.getWorkerPool(_workerPool);
+		_workerPool = globalContext.getWorkerPool(_workerPoolName);
 		// distribute evenly over poll interval
 		long initialDelay = _pollInterval / _jmsWorker.length;
-		for (int i = 0; i < _jmsWorker.length; ++i) {
-			_jmsWorker[i] = _pollInterval > 0L ? new JMSPollingWorker(workerPool, initialDelay * i) : new JMSWorker(workerPool);
+		for (; _workerCount < _minWorkerCount; ++_workerCount) {
+			_jmsWorker[_workerCount] = _pollInterval > 0L ? new JMSPollingWorker(initialDelay * _workerCount) : new JMSWorker();
 		}
-		JMSConnectionProvider jmsConnectionProvider = workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
+		JMSConnectionProvider jmsConnectionProvider = _workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 		jmsConnectionProvider.registerJMSConsumer(_jmsConnectionData, this, super.isEnabled());
 		resume();
 		if (super.isEnabled()) {
@@ -211,6 +234,38 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		}
 	}
 
+	public synchronized void controlJMSWorkerPool(long sentReceiveDelay, long receiveTimestamp) {
+		boolean notBusy = _control == null || _control.isDone();
+		if (_operating && _workerCount < _jmsWorker.length && sentReceiveDelay > _rampUpThreshold && notBusy && _lastControlChange + _rampUpDelay < receiveTimestamp) {
+			// add Worker
+			final JMSWorker jmsWorker = _pollInterval > 0L ? new JMSPollingWorker(0L) : new JMSWorker();
+			_control = _workerPool.getExecutorService().submit(() -> {
+				try {
+					jmsWorker.open();
+					jmsWorker.startListening();
+				} catch (Exception e) {
+					logger.error("Could not add JMSWorker", e);
+				}
+			});
+			_jmsWorker[_workerCount++] = jmsWorker;
+			_lastControlChange = System.currentTimeMillis();
+		}
+		if (_operating && _workerCount > _minWorkerCount && sentReceiveDelay < _rampDownThreshold && notBusy && _lastControlChange + _rampDownDelay < receiveTimestamp) {
+			// remove Worker
+			final JMSWorker jmsWorker = _jmsWorker[--_workerCount];
+			_control = _workerPool.getExecutorService().submit(() -> {
+				try {
+					jmsWorker.close();
+				} catch (Exception e) {
+					logger.debug("Could not close JMSWorker", e);
+				}
+				jmsWorker._context.close();
+			});
+			_jmsWorker[_workerCount] = null;
+			_lastControlChange = System.currentTimeMillis();
+		}
+	}
+
 	void resume() throws JMSException {
 		if (_retries != null) {
 			try {
@@ -219,7 +274,8 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 				// ignore
 			}
 		}
-		for (JMSWorker jmsWorker : _jmsWorker) {
+		for (int i = 0; i < _workerCount;) {
+			JMSWorker jmsWorker = _jmsWorker[i++];
 			jmsWorker.open();
 		}
 	}
@@ -235,31 +291,69 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 
 	@Override
 	public void enable(boolean enable) throws JMSException {
-		for (int i = 0; i < _jmsWorker.length;) {
-			JMSWorker jmsWorker = _jmsWorker[i++];
-			if (enable) {
-				jmsWorker.startListening();
-			} else {
-				jmsWorker.stopListening();
+		int workerCount;
+		synchronized (this) {
+			_operating = enable;
+			if (_control != null) {
+				await(_control);
+				_control = null;
+			}
+			workerCount = _workerCount;
+			if (!enable) {
+				_workerCount = _minWorkerCount;
 			}
 		}
-		lastChangeOfState = System.currentTimeMillis();
+		try {
+			Future<?>[] futures = new Future<?>[workerCount];
+			for (int i = 0; i < workerCount; ++i) {
+				final JMSWorker jmsWorker = _jmsWorker[i];
+				Callable<Void> task;
+				if (enable) {
+					task = () -> { jmsWorker.startListening(); return null; };
+				} else {
+					task = i < _minWorkerCount ? () -> { jmsWorker.stopListening(); return null; } : () -> { jmsWorker.close(); return null; };
+				}
+				futures[i] = _workerPool.getExecutorService().submit(task);
+			}
+			for (int i = 0; i < workerCount; ++i) {
+				await(futures[i]);
+			}
+		} finally {
+			_operating = true;
+		}
+		_lastChangeOfState = System.currentTimeMillis();
+	}
+
+	private void await(Future<?> future) throws JMSException {
+		try {
+			future.get();
+		} catch (InterruptedException e) {
+			logger.error("Unexpected cancellation during control of " + getKey());
+		} catch (ExecutionException e) {
+			if (e.getCause() instanceof JMSException) {
+				throw (JMSException) e.getCause();
+			}
+			logger.error("Unexpected Exception during control of " + getKey(), e);
+		}
 	}
 
 	void suspend() throws Exception {
 		enable(false);
-		for (JMSWorker jmsWorker : _jmsWorker) {
+		for (int i = 0; i < _workerCount;) {
+			JMSWorker jmsWorker = _jmsWorker[i++];
 			jmsWorker.close();
 		}
 	}
 
 	@Override
 	public void close() throws Exception {
-		for (JMSWorker jmsWorker : _jmsWorker) {
+		for (int i = 0; i < _workerCount;) {
+			JMSWorker jmsWorker = _jmsWorker[i++];
+			// close silently
 			jmsWorker.close();
 			jmsWorker._context.close();
 		}
-		JMSConnectionProvider jmsConnectionProvider = _jmsWorker[0]._workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
+		JMSConnectionProvider jmsConnectionProvider = _workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 		jmsConnectionProvider.unregisterJMSConsumer(_jmsConnectionData, this);
 	}
 
@@ -290,15 +384,9 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 	}
 
 	class JMSWorker implements MessageListener {
-		final WorkerPool _workerPool;
-		final Context _context;
+		final Context _context = new Context(_workerPool.getPoolContext());
 		volatile Session _session;
 		volatile MessageConsumer _messageConsumer;
-
-		JMSWorker(WorkerPool workerPool) {
-			_workerPool = workerPool;
-			_context = new Context(workerPool.getPoolContext());
-		}
 
 		final void open() throws JMSException {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
@@ -363,8 +451,13 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 				try {
 					processInternal(_context, esbMessage);
 					_session.commit();
-					if (_retries != null && message.getJMSRedelivered()) {
-						_retries.removeResource(message.getJMSMessageID());
+					if (message.getJMSRedelivered() ) {
+						if (_retries != null) {
+							_retries.removeResource(message.getJMSMessageID());
+						}
+					} else {
+						long receiveTimestamp = esbMessage.getVariable(ESBConstants.initialTimestamp);
+						controlJMSWorkerPool(_currentSentReceiveDelay = (_currentSentReceiveDelay * _significance + receiveTimestamp - message.getJMSDeliveryMode()) / (_significance + 1), receiveTimestamp);
 					}
 				} catch (Exception e) {
 					if (_redeliveryDelay != null) {
@@ -375,7 +468,11 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 					if (_retries != null) {
 						AtomicInteger retries = _retries.getResource(message.getJMSMessageID());
 						if (retries.incrementAndGet() > _maximumRetries) {
-							suspend();
+							try {
+								enable(false);
+							} catch (JMSException je) {
+								logger.error("Failed to disable after reaching maximumRetries: " + getKey(), je);
+							}
 						}
 					}
 				}
@@ -390,8 +487,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		final long _initialDelay;
 		volatile Future<?> _poller;
 
-		JMSPollingWorker(WorkerPool workerPool, long initialDelay) {
-			super(workerPool);
+		JMSPollingWorker(long initialDelay) {
 			_initialDelay = initialDelay;
 		}
 

@@ -115,9 +115,10 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			case JMS:
 				Service.JmsBinding jmsBinding = checkBindingPresent(service.getJmsBinding());
+				int minWorkerCount = jmsBinding.getMinWorkerCount() != null ? jmsBinding.getMinWorkerCount() : jmsBinding.getWorkerCount();
 				JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
 				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(), jmsBinding.getTopicName(),
-						jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), jmsBinding.getPollInterval(), jmsBinding.getMaximumRetries(), jmsBinding.getRedeliveryDelay());
+						jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getPollInterval(), jmsBinding.getMaximumRetries(), jmsBinding.getRedeliveryDelay());
 				break;
 			case TIMER:
 				Service.TimerBinding timerBinding = checkBindingPresent(service.getTimerBinding());

@@ -192,6 +192,7 @@ public class SOAPTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      //message.putHeader("Expect", "100-continue");
       //message.putHeader(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       try {
          consumerPort.process(context, message);
@@ -383,7 +384,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testJMSConsumer() throws Exception {
    	JMSConnectionData jmsConnectionData = new JMSConnectionData(getGlobalContext(), "ConnectionFactory", null, null);
-      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData, "dynamicQueues/test1", null, null, null, null, 1, 0L, null, null);
+      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData, "dynamicQueues/test1", null, null, null, null, 1, 1, 0L, null, null);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
       jmsConsumer.init(getGlobalContext());
@@ -408,6 +409,7 @@ public class SOAPTest extends AbstractESBTest {
    public void testFastinfoset() throws Exception {
       File dir = new File("src/test/resources");
       assertTrue(dir.exists());
+      closeContext();
       createContext(dir);
       FileSystem fileSystem = getGlobalContext().getFileSystem();
       fileSystem.init(getGlobalContext()).getServiceArtifacts();
@@ -435,6 +437,7 @@ public class SOAPTest extends AbstractESBTest {
    public void testFastinfosetValidate() throws Exception {
       File dir = new File("src/test/resources");
       assertTrue(dir.exists());
+      closeContext();
       createContext(dir);
       FileSystem fileSystem = getGlobalContext().getFileSystem();
       fileSystem.init(getGlobalContext()).getServiceArtifacts();
