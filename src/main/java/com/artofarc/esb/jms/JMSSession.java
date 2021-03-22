@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.jms;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 import javax.jms.*;
@@ -93,8 +95,27 @@ public final class JMSSession implements AutoCloseable {
 			_consumer.close();
 			_temporaryQueue.delete();
 		}
+		for (Destination destination : _producers.keySet()) {
+			if (destination instanceof Queue) {
+				JMSConnectionProvider.logger.info("Closing producer for " + ((Queue) destination).getQueueName());
+			}
+		}
 		_producers.clear();
 		_jmsConnectionProvider.closeSession(_jmsConnectionData, this);
+	}
+
+	public Collection<String> getProducerDestinations() throws JMSException {
+		ArrayList<String> result = new ArrayList<>();
+		for (Destination destination : _producers.keySet()) {
+			if (destination instanceof Queue) {
+				Queue queue = (Queue) destination;
+				result.add(queue.getQueueName());
+			} else if (destination instanceof Topic) {
+				Topic topic = (Topic) destination;
+				result.add(topic.getTopicName());
+			}
+		}
+		return result;
 	}
 
 }

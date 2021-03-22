@@ -457,7 +457,8 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 						}
 					} else {
 						long receiveTimestamp = esbMessage.getVariable(ESBConstants.initialTimestamp);
-						controlJMSWorkerPool(_currentSentReceiveDelay = (_currentSentReceiveDelay * _significance + receiveTimestamp - message.getJMSDeliveryMode()) / (_significance + 1), receiveTimestamp);
+						long sentReceiveDelay = (_currentSentReceiveDelay * _significance + receiveTimestamp - message.getJMSTimestamp()) / (_significance + 1);
+						controlJMSWorkerPool(_currentSentReceiveDelay = sentReceiveDelay, receiveTimestamp);
 					}
 				} catch (Exception e) {
 					if (_redeliveryDelay != null) {
