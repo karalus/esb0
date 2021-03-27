@@ -436,7 +436,9 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		final void close() throws Exception {
 			stopListening();
 			_session = null;
+			JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
+			jmsConnectionProvider.unregisterJMSSessionFactory(_jmsConnectionData, jmsSessionFactory);
 			jmsSessionFactory.close(_jmsConnectionData);
 		}
 
@@ -521,7 +523,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 					}
 				}
 			} catch (JMSException e) {
-				JMSConnectionProvider jmsConnectionProvider = _workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
+				JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 				jmsConnectionProvider.getExceptionListener(_jmsConnectionData).onException(e);
 			} catch (InterruptedException e) {
 				// stopListening
