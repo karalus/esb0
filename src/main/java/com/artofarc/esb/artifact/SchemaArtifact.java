@@ -41,7 +41,7 @@ import com.sun.xml.xsom.XSSchemaSet;
 
 public abstract class SchemaArtifact extends Artifact {
 
-	public static final String FILE_SCHEMA = "file://";
+	private static final String FILE_SCHEMA = "file://";
 
 	protected static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars", "true"));
 
@@ -114,6 +114,17 @@ public abstract class SchemaArtifact extends Artifact {
 		}
 	}
 
+	protected static String getPathFromFileURI(String uriString) {
+		if (uriString.indexOf(':') >= 0) {
+			URI uri = URI.create(uriString);
+			if (!FILE_SCHEMA.startsWith(uri.getScheme())) {
+				throw new IllegalArgumentException("uri must have file scheme " + uriString);
+			}
+			return uri.getPath();
+		}
+		return uriString;
+	}
+
 	protected abstract XSDArtifact resolveArtifact(String namespaceURI, String systemId, String baseURI) throws FileNotFoundException;
 
 	protected SchemaArtifactResolver getResolver() {
@@ -140,17 +151,17 @@ public abstract class SchemaArtifact extends Artifact {
 				throw new IllegalStateException("Reference has already been cleared");
 			}
 			try {
-				URI uri = new URI(systemId);
+				URI uri = URI.create(systemId);
 				XSDArtifact artifact = schemaArtifact.getArtifact(uri.getPath());
 				if (artifact == null) {
-					uri = lastUri.resolve(systemId);
+					uri = lastUri.resolve(uri);
 					artifact = schemaArtifact.loadArtifact(uri.getPath());
 				}
 				lastUri = uri;
 				InputSource is = new InputSource(artifact.getContentAsStream());
 				is.setSystemId(systemId);
 				return is;
-			} catch (java.net.URISyntaxException | FileNotFoundException e) {
+			} catch (FileNotFoundException e) {
 				throw new RuntimeException(e);
 			}
 		}

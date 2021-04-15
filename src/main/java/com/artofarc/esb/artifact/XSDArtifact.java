@@ -64,10 +64,7 @@ public class XSDArtifact extends SchemaArtifact {
 	protected XSDArtifact resolveArtifact(String namespaceURI, String systemId, String baseURI) throws FileNotFoundException {
 		SchemaArtifact base = this;
 		if (baseURI != null) {
-			if (!baseURI.startsWith(FILE_SCHEMA)) {
-				throw new IllegalArgumentException("baseURI must start with " + FILE_SCHEMA);
-			}
-			base = loadArtifact(baseURI.substring(FILE_SCHEMA.length()));
+			base = loadArtifact(getPathFromFileURI(baseURI));
 		}
 		XSDArtifact artifact = XMLCatalog.get(base, namespaceURI);
 		if (artifact == null) {
