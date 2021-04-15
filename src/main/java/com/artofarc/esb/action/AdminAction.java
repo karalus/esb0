@@ -135,11 +135,16 @@ public class AdminAction extends Action {
 			if (contentType == null || "bin".equals(MimeHelper.getFileExtension(contentType))) {
 				boolean simulate = Boolean.parseBoolean(message.getHeader("simulate"));
 				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
-				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
-				if (simulate) {
-					changeSet.getServiceArtifacts();
-				} else {
-					deployChangeset(globalContext, changeSet, message);
+				try {
+					FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
+					if (simulate) {
+						changeSet.getServiceArtifacts();
+					} else {
+						deployChangeset(globalContext, changeSet, message);
+					}
+				} catch (IOException e) {
+					message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_BAD_REQUEST);
+					throw e;
 				}
 			} else {
 				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
@@ -178,7 +183,7 @@ public class AdminAction extends Action {
 				logger.info("Number of deleted services: " + changeSet.getDeletedServiceArtifacts().size());
 				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
 				message.reset(BodyType.INVALID, null);
-			} catch (ValidationException e) {
+			} catch (ValidationException | RuntimeException e) {
 				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_BAD_REQUEST);
 				throw e;
 			} finally {
