@@ -89,7 +89,7 @@ public final class JDBCAttachments {
 			String cid = iter.next();
 			MimeBodyPart mimeBodyPart = message.getAttachments().get(cid);
 			Object[] attributes = new Object[size];
-			Blob blob = connection.getConnection().createBlob();
+			Blob blob = connection.createBlob();
 			try (InputStream is = mimeBodyPart.getInputStream(); OutputStream os = blob.setBinaryStream(1)) {
 				IOUtils.copy(is, os);
 			}

@@ -141,15 +141,15 @@ public final class JDBCParameter {
 			}
 			break;
 		case Types.CLOB:
-			Clob clob = conn.getConnection().createClob();
+			Clob clob = conn.createClob();
 			clob.setString(1, (String) value);
 			return clob;
 		case Types.BLOB:
-			Blob blob = conn.getConnection().createBlob();
+			Blob blob = conn.createBlob();
 			blob.setBytes(1, (byte[]) value);
 			return blob;
 		case Types.SQLXML:
-			SQLXML sqlxml = conn.getConnection().createSQLXML();
+			SQLXML sqlxml = conn.createSQLXML();
 			sqlxml.setResult(DOMResult.class).setNode((Node) value);
 			return sqlxml;
 		default:

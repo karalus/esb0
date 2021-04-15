@@ -123,7 +123,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 					DBObject dbObject = _stack.peek();
 					dbObject.name = null;
 					try {
-						SQLXML sqlxml = _connection.getConnection().createSQLXML();
+						SQLXML sqlxml = _connection.createSQLXML();
 						delegate = JAXPFactoryHelper.newTransformerHandler();
 						delegate.setResult(sqlxml.setResult(DOMResult.class));
 						delegatePrefixHandler = new PrefixHandler();
@@ -238,7 +238,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 				break;
 			case "base64Binary":
 				try {
-					Blob blob = _connection.getConnection().createBlob();
+					Blob blob = _connection.createBlob();
 					blob.setBytes(1, DatatypeConverter.parseBase64Binary(s));
 					object = blob;
 				} catch (SQLException e) {

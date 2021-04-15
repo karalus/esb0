@@ -53,7 +53,7 @@ public abstract class JDBCAction extends Action {
 			globalContext.getProperty(dsName);
 		}
 		_pipelineStop = true;
-		_dsName = dsName;
+		_dsName = dsName.intern();
 		_sql = sql;
 		_params = params;
 		_maxRows = maxRows;
@@ -108,17 +108,17 @@ public abstract class JDBCAction extends Action {
 				if (param.isBody()) {
 					switch (param.getType()) {
 					case SQLXML:
-						SQLXML xmlObject = connection.getConnection().createSQLXML();
+						SQLXML xmlObject = connection.createSQLXML();
 						message.reset(BodyType.RESULT, xmlObject.setResult(DOMResult.class));
 						execContext.setResource2(xmlObject);
 						break;
 					case CLOB:
-						Clob clob = connection.getConnection().createClob();
+						Clob clob = connection.createClob();
 						message.reset(BodyType.WRITER, clob.setCharacterStream(1L));
 						execContext.setResource2(clob);
 						break;
 					case BLOB:
-						Blob blob = connection.getConnection().createBlob();
+						Blob blob = connection.createBlob();
 						message.reset(BodyType.OUTPUT_STREAM, blob.setBinaryStream(1L));
 						message.setCharset(message.getSinkEncoding());						
 						execContext.setResource2(blob);
@@ -163,7 +163,7 @@ public abstract class JDBCAction extends Action {
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
+	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception  {
 		boolean keepConnection = message.getVariables().containsKey(ESBConstants.JDBCConnection);
 		if (exception || !keepConnection) {
 			JDBCConnection connection = execContext.getResource();
@@ -185,7 +185,7 @@ public abstract class JDBCAction extends Action {
 				case SQLXML:
 					SQLXML xmlObject = execContext.getResource2();
 					if (xmlObject == null) {
-						xmlObject = conn.getConnection().createSQLXML();
+						xmlObject = conn.createSQLXML();
 						message.writeTo(xmlObject.setResult(DOMResult.class), context);
 					}
 					ps.setSQLXML(param.getPos(), xmlObject);

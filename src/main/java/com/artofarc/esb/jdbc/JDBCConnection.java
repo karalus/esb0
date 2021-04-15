@@ -18,9 +18,8 @@ package com.artofarc.esb.jdbc;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.sql.Array;
-import java.sql.Connection;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +50,7 @@ public final class JDBCConnection {
 
 	private final Connection _connection;
 	private final boolean _isOracleConnection;
+	private final ArrayList<Object> _resources = new ArrayList<>();
 
 	public JDBCConnection(Connection connection, boolean manualCommit) throws SQLException {
 		_connection = connection;
@@ -65,10 +65,34 @@ public final class JDBCConnection {
 	}
 
 	public void close(boolean commit) throws SQLException {
+		for (Object resource : _resources) {
+			try {
+				ReflectionUtils.invoke(resource.getClass().getMethod("free"), SQLException.class, resource);
+			} catch (NoSuchMethodException | SQLException e) {
+				logger.warn("Could not free resource", e);
+			}
+		}
 		if (commit && !_connection.getAutoCommit()) {
 			_connection.commit();
 		}
 		_connection.close();
+	}
+
+	private <T> T logResource(T resource) {
+		_resources.add(resource);
+		return resource;
+	}
+
+	public Blob createBlob() throws SQLException {
+		return logResource(_connection.createBlob());
+	}
+
+	public Clob createClob() throws SQLException {
+		return logResource(_connection.createClob());
+	}
+
+	public SQLXML createSQLXML() throws SQLException {
+		return logResource(_connection.createSQLXML());
 	}
 
 	public Array createArray(String typeName, Object[] elements) throws SQLException {
@@ -77,7 +101,7 @@ public final class JDBCConnection {
 		}
 		// https://docs.oracle.com/cd/B28359_01/java.111/b31224/oraarr.htm#i1059642
 		try {
-			return (Array) createARRAY.invoke(_connection.unwrap(ifcOracleConnection), typeName, (Object) elements);
+			return logResource((Array) createARRAY.invoke(_connection.unwrap(ifcOracleConnection), typeName, (Object) elements));
 		} catch (Throwable e) {
 			throw ReflectionUtils.convert(e, SQLException.class);
 		}
