@@ -53,7 +53,7 @@ public abstract class JDBCAction extends Action {
 			globalContext.getProperty(dsName);
 		}
 		_pipelineStop = true;
-		_dsName = dsName.intern();
+		_dsName = dsName != null ? dsName.intern() : null;
 		_sql = sql;
 		_params = params;
 		_maxRows = maxRows;
