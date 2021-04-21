@@ -18,11 +18,9 @@ package com.artofarc.esb.context;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -31,15 +29,18 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.xml.transform.URIResolver;
 
+import com.artofarc.esb.FileWatchEventConsumer;
+import com.artofarc.esb.KafkaConsumerPort;
 import com.artofarc.esb.Registry;
+import com.artofarc.esb.TimerService;
 import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
-import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
+import com.artofarc.util.Closer;
 import com.artofarc.util.ConcurrentResourcePool;
 
 public final class GlobalContext extends Registry implements Runnable, com.artofarc.esb.mbean.GlobalContextMXBean {
@@ -50,15 +51,12 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private static final int DEPLOY_TIMEOUT = Integer.parseInt(System.getProperty("esb0.deploy.timeout", "60"));
 	private static final int CONSUMER_IDLETIMEOUT = Integer.parseInt(System.getProperty("esb0.consumer.idletimeout", "300"));
 	private static final String GLOBALPROPERTIES = System.getProperty("esb0.globalproperties");
-	private static final String DEFAULT_WORKER_POOL = "default";
 
 	private final ClassLoader _classLoader;
 	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache;
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
 	private final XQConnectionFactory _xqConnectionFactory;
-	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
-	private final Map<String, WorkerPool> _workerPoolMap = new ConcurrentHashMap<>();
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
 	private volatile FileSystem _fileSystem;
 
@@ -168,10 +166,6 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		return _xqConnectionFactory;
 	}
 
-	public HttpEndpointRegistry getHttpEndpointRegistry() {
-		return httpEndpointRegistry;
-	}
-
 	public boolean lockFileSystem() {
 		try {
 			return _fileSystemLock.tryLock(DEPLOY_TIMEOUT, TimeUnit.SECONDS);
@@ -192,26 +186,6 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		_fileSystem = fileSystem;
 	}
 
-	public Collection<WorkerPool> getWorkerPools() {
-		return _workerPoolMap.values();
-	}
-
-	public WorkerPool getWorkerPool(String name) {
-		return _workerPoolMap.get(name != null ? name : DEFAULT_WORKER_POOL);
-	}
-
-	public WorkerPool getDefaultWorkerPool() {
-		return _workerPoolMap.get(DEFAULT_WORKER_POOL);
-	}
-
-	public void putWorkerPool(String name, WorkerPool workerPool) {
-		WorkerPool old = _workerPoolMap.put(name, workerPool);
-		if (old != null) {
-			unregisterMBean(",group=WorkerPool,name=" + name);
-		}
-		registerMBean(workerPool, ",group=WorkerPool,name=" + name);
-	}
-
 	@Override
 	public void run() {
 		for (HttpConsumer httpConsumer : getHttpConsumers()) {
@@ -225,15 +199,31 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 	@Override
 	public void close() {
-		// Phase 1
-		stopIngress();
+		// Phase 1: Stop ingress
+		for (TimerService timerService : getTimerServices()) {
+			timerService.close();
+		}
+		for (HttpConsumer httpConsumer : getHttpConsumers()) {
+			try {
+				httpConsumer.enable(false);
+			} catch (Exception e1) {
+				// ignore
+			}
+		}
+		for (JMSConsumer jmsConsumer : getJMSConsumers()) {
+			Closer.closeQuietly(jmsConsumer);
+		}
+		for (FileWatchEventConsumer fileWatchEventConsumer : getFileWatchEventConsumers()) {
+			fileWatchEventConsumer.close();			
+		}
+		for (KafkaConsumerPort kafkaConsumer : getKafkaConsumers()) {
+			kafkaConsumer.close();
+		}
 		// Phase 2
-		httpEndpointRegistry.close();
-		for (Map.Entry<String, WorkerPool> entry : _workerPoolMap.entrySet()) {
-			WorkerPool workerPool = entry.getValue();
+		getHttpEndpointRegistry().close();
+		for (WorkerPool workerPool : getWorkerPools()) {
 			workerPool.close();
 			workerPool.getPoolContext().close();
-			unregisterMBean(",group=WorkerPool,name=" + entry.getKey());
 		}
 		try {
 			_initialContext.close();

@@ -142,8 +142,8 @@ textarea, pre {
 <br>FileWatchEventConsumer:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Dirs</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
 <%
-		for (FileWatchEventConsumer consumerPort : globalContext.getFileWatchEventConsumer()) {
-		   %>
+ 	for (FileWatchEventConsumer consumerPort : globalContext.getFileWatchEventConsumers()) {
+    %>
 		   <tr>
 		    <td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 		    <td><%=consumerPort.getDirs()%></td>
@@ -162,8 +162,8 @@ textarea, pre {
 <br>KafkaConsumerServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Config</b></td><td><b>Topics</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr> 
 <%
-		for (KafkaConsumerPort consumerPort : globalContext.getKafkaConsumer()) {
-		   %>
+ 	for (KafkaConsumerPort consumerPort : globalContext.getKafkaConsumers()) {
+    %>
 		   <tr>
 		    <td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 		    <td><%=consumerPort.getConfig()%></td>

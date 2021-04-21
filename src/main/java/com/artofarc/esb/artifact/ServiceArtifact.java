@@ -112,6 +112,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				Service.HttpBindURI httpBinding = checkBindingPresent(service.getHttpBindURI());
 				_consumerPort = new HttpConsumer(getURI(), service.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
 						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
+				globalContext.checkBindHttpService((HttpConsumer) _consumerPort);
 				break;
 			case JMS:
 				Service.JmsBinding jmsBinding = checkBindingPresent(service.getJmsBinding());
@@ -119,6 +120,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
 				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(), jmsBinding.getTopicName(),
 						jmsBinding.getSubscription(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getPollInterval(), jmsBinding.getMaximumRetries(), jmsBinding.getRedeliveryDelay());
+				globalContext.checkBindJmsConsumer((JMSConsumer) _consumerPort);
 				break;
 			case TIMER:
 				Service.TimerBinding timerBinding = checkBindingPresent(service.getTimerBinding());
@@ -128,10 +130,12 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			case FILE:
 				Service.FileWatchBinding fileWatchBinding = checkBindingPresent(service.getFileWatchBinding());
 				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), fileWatchBinding.getWorkerPool(), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
+				globalContext.checkBindFileWatchEventService((FileWatchEventConsumer) _consumerPort);
 				break;
 			case KAFKA:
 				Service.KafkaBinding kafkaBinding = checkBindingPresent(service.getKafkaBinding());
 				_consumerPort = new KafkaConsumerPort(getURI(), kafkaBinding.getWorkerPool(), kafkaBinding.getPollInterval(), createProperties(kafkaBinding.getProperty(), globalContext), kafkaBinding.getTopic(), kafkaBinding.getTimeout());
+				globalContext.checkBindKafkaConsumer((KafkaConsumerPort) _consumerPort);
 				break;
 			default:
 				_consumerPort = new ConsumerPort(getURI());
