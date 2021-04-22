@@ -74,7 +74,7 @@ public class FileAction extends TerminalAction {
 			if (file.isDirectory()) {
 				JsonArrayBuilder builder = JsonFactoryHelper.JSON_BUILDER_FACTORY.createArrayBuilder();
 				for (File f : file.listFiles()) {
-					builder.add(JsonFactoryHelper.JSON_BUILDER_FACTORY.createObjectBuilder().add("name", f.getName()).add("modificationTime", f.lastModified()).build());
+					builder.add(JsonFactoryHelper.JSON_BUILDER_FACTORY.createObjectBuilder().add("name", f.getName()).add("length", f.length()).add("modificationTime", f.lastModified()).build());
 				}
 				message.reset(BodyType.JSON_VALUE, builder.build());
 				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
