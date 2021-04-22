@@ -25,12 +25,14 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javax.json.JsonArrayBuilder;
 import javax.mail.internet.MimeBodyPart;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.IOUtils;
+import com.artofarc.util.JsonFactoryHelper;
 
 public class FileAction extends TerminalAction {
 
@@ -67,54 +69,64 @@ public class FileAction extends TerminalAction {
 			file.getParentFile().mkdirs();
 		}
 		String verb = (String) bindVariable(_verb, context, message);
-		boolean append = false;
-		switch (verb) {
-		case "GET":
+		if (verb == null) {
 			message.clearHeaders();
-			if (IOUtils.getExt(filename).equals("gz")) {
-				filename = IOUtils.stripExt(filename);
-			}
-			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MimeHelper.guessContentTypeFromName(filename));
-			message.reset(BodyType.INPUT_STREAM, new FileInputStream(file));
-			break;
-		case "ENTRY_MODIFY":
-			append = Boolean.parseBoolean(String.valueOf(bindVariable(_append, context, message)));
-		case "ENTRY_CREATE":
-			if (append && zip) {
-				throw new ExecutionException(this, "zip plus append is not supported, yet");
-			}
-			context.getTimeGauge().startTimeMeasurement();
-			try (FileOutputStream fileOutputStream = new FileOutputStream(file, append)) {
-				if (_readable != null) {
-					file.setReadable(_readable, false);
+			if (file.isDirectory()) {
+				JsonArrayBuilder builder = JsonFactoryHelper.JSON_BUILDER_FACTORY.createArrayBuilder();
+				for (File f : file.listFiles()) {
+					builder.add(JsonFactoryHelper.JSON_BUILDER_FACTORY.createObjectBuilder().add("name", f.getName()).add("modificationTime", f.lastModified()).build());
 				}
-				if (_writable != null) {
-					file.setWritable(_writable, false);
+				message.reset(BodyType.JSON_VALUE, builder.build());
+				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+			} else {
+				if (IOUtils.getExt(filename).equals("gz")) {
+					filename = IOUtils.stripExt(filename);
 				}
-				if (zip) {
-					try (ZipOutputStream zos = new ZipOutputStream(fileOutputStream)) {
-						zos.putNextEntry(new ZipEntry(filename + fileExtension));
-						message.writeRawTo(zos, context);
-						for (Iterator<Map.Entry<String, MimeBodyPart>> iter = message.getAttachments().entrySet().iterator(); iter.hasNext();) {
-							Map.Entry<String, MimeBodyPart> entry = iter.next();
-							String name = MimeHelper.getDispositionName(entry.getValue());
-							zos.putNextEntry(new ZipEntry(name != null ? name : entry.getKey()));
-							IOUtils.copy(entry.getValue().getInputStream(), zos);
-							iter.remove();
-						}
+				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MimeHelper.guessContentTypeFromName(filename));
+				message.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFilterInputStream(new FileInputStream(file), file.length()));
+			}
+		} else {
+			boolean append = false;
+			switch (verb) {
+			case "ENTRY_MODIFY":
+				append = Boolean.parseBoolean(String.valueOf(bindVariable(_append, context, message)));
+			case "ENTRY_CREATE":
+				if (append && zip) {
+					throw new ExecutionException(this, "zip plus append is not supported, yet");
+				}
+				context.getTimeGauge().startTimeMeasurement();
+				try (FileOutputStream fileOutputStream = new FileOutputStream(file, append)) {
+					if (_readable != null) {
+						file.setReadable(_readable, false);
 					}
-				} else {
-					message.writeRawTo(fileOutputStream, context);
+					if (_writable != null) {
+						file.setWritable(_writable, false);
+					}
+					if (zip) {
+						try (ZipOutputStream zos = new ZipOutputStream(fileOutputStream)) {
+							zos.putNextEntry(new ZipEntry(filename + fileExtension));
+							message.writeRawTo(zos, context);
+							for (Iterator<Map.Entry<String, MimeBodyPart>> iter = message.getAttachments().entrySet().iterator(); iter.hasNext();) {
+								Map.Entry<String, MimeBodyPart> entry = iter.next();
+								String name = MimeHelper.getDispositionName(entry.getValue());
+								zos.putNextEntry(new ZipEntry(name != null ? name : entry.getKey()));
+								IOUtils.copy(entry.getValue().getInputStream(), zos);
+								iter.remove();
+							}
+						}
+					} else {
+						message.writeRawTo(fileOutputStream, context);
+					}
+				} finally {
+					context.getTimeGauge().stopTimeMeasurement("write file %s", false, file);
 				}
-			} finally {
-				context.getTimeGauge().stopTimeMeasurement("write file %s", false, file);
+				break;
+			case "ENTRY_DELETE":
+				message.getVariables().put("deleted", file.delete());
+				break;
+			default:
+				throw new ExecutionException(this, "Verb not supported: " + verb);
 			}
-			break;
-		case "ENTRY_DELETE":
-			message.getVariables().put("deleted", file.delete());
-			break;
-		default:
-			throw new ExecutionException(this, "Verb not supported: " + verb);
 		}
 	}
 

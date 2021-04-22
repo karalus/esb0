@@ -49,6 +49,20 @@ public final class IOUtils {
 		long length();
 	}
 
+	public static class PredictableFilterInputStream extends FilterInputStream implements PredictableInputStream{
+		private final long _length;
+		
+		public PredictableFilterInputStream(InputStream is, long length) {
+			super(is);
+			_length = length;
+		}
+
+		@Override
+		public long length() {
+			return _length;
+		}
+	}
+
 	public static void copy(InputStream is, OutputStream os) throws IOException {
 		if (is instanceof ByteArrayInputStream) {
 			ByteArrayInputStream bis = (ByteArrayInputStream) is;
@@ -75,17 +89,31 @@ public final class IOUtils {
 			ByteArrayInputStream bis = (ByteArrayInputStream) is;
 			return bis.toByteArray();
 		}
+		if (is instanceof PredictableInputStream) {
+			final byte[] ba = new byte[Math.toIntExact(((PredictableInputStream) is).length())];
+			readFully(is, ba);
+			return ba;
+		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		copy(is, os);
 		return os.toByteArray();
 	}
 
-	public static byte[] readFile(final File file) throws IOException {
-		final byte[] ba = new byte[(int) file.length()];
-		try (final DataInputStream dis = new DataInputStream(new FileInputStream(file))) {
-			dis.readFully(ba);
+	public static void readFully(InputStream is, byte ba[]) throws IOException {
+		int n = 0, len = ba.length;
+		while (n < len) {
+			final int count = is.read(ba, n, len - n);
+			if (count < 0) throw new EOFException();
+			n += count;
 		}
-		return ba;
+	}
+
+	public static byte[] readFile(File file) throws IOException {
+		try (InputStream is = new FileInputStream(file)) {
+			final byte[] ba = new byte[Math.toIntExact(file.length())];
+			readFully(is, ba);
+			return ba;
+		}
 	}
 
 	public static String convertToHexDump(InputStream is) throws IOException {
