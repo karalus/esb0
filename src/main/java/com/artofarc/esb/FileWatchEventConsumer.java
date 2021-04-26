@@ -102,7 +102,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 									msg.getVariables().put(ESBConstants.FileEventKind, kind.toString());
 									msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
 									try (InputStream inputStream = Channels.newInputStream(fileChannel)) {
-										fillESBMessage(msg, inputStream, path.toString(), fileChannel.size());
+										fillESBMessage(msg, inputStream, path.toString());
 										processInternal(context, msg);
 										moveFile(context, msg, absolutePath, _move);
 									} catch (Exception e) {
@@ -133,7 +133,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 		}
 	}
 
-	private static void fillESBMessage(ESBMessage msg, InputStream inputStream, String filename, long filesize) throws Exception {
+	private static void fillESBMessage(ESBMessage msg, InputStream inputStream, String filename) throws Exception {
 		msg.getVariables().put(ESBConstants.filename, filename);
 		if ("zip".equals(IOUtils.getExt(filename))) {
 			try (ZipInputStream zis = new ZipInputStream(inputStream)) {
@@ -151,7 +151,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 				}
 			}
 		} else {
-			msg.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFilterInputStream(inputStream, filesize));
+			msg.reset(BodyType.INPUT_STREAM, inputStream);
 		}
 	}
 

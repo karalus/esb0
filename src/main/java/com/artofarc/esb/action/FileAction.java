@@ -17,7 +17,6 @@
 package com.artofarc.esb.action;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.Iterator;
@@ -83,7 +82,7 @@ public class FileAction extends TerminalAction {
 					filename = IOUtils.stripExt(filename);
 				}
 				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MimeHelper.guessContentTypeFromName(filename));
-				message.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFilterInputStream(new FileInputStream(file), file.length()));
+				message.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFileInputStream(file));
 			}
 		} else {
 			boolean append = false;

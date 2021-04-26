@@ -49,17 +49,17 @@ public final class IOUtils {
 		long length();
 	}
 
-	public static class PredictableFilterInputStream extends FilterInputStream implements PredictableInputStream{
-		private final long _length;
-		
-		public PredictableFilterInputStream(InputStream is, long length) {
-			super(is);
-			_length = length;
+	public static class PredictableFileInputStream extends FileInputStream implements PredictableInputStream {
+		private final File _file;
+
+		public PredictableFileInputStream(File file) throws FileNotFoundException {
+			super(file);
+			_file = file;
 		}
 
 		@Override
 		public long length() {
-			return _length;
+			return _file.length();
 		}
 	}
 
