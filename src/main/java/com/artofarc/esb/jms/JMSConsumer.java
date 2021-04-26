@@ -446,41 +446,47 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		public void onMessage(Message message) {
 			// monitor threads not started by us but by the JMS provider 
 			_workerPool.addThread(Thread.currentThread(), getDestinationName());
+			try {
+				processMessage(message);
+			} catch (Exception e) {
+				throw ReflectionUtils.convert(e, RuntimeException.class);
+			}
+		}
+
+		final boolean processMessage(Message message) throws JMSException, InterruptedException {
 			ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
 			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
+			fillESBMessage(esbMessage, message);
 			try {
-				fillESBMessage(esbMessage, message);
-				try {
-					processInternal(_context, esbMessage);
-					_session.commit();
-					if (message.getJMSRedelivered() ) {
-						if (_retries != null) {
-							_retries.removeResource(message.getJMSMessageID());
-						}
-					} else {
-						long receiveTimestamp = esbMessage.getVariable(ESBConstants.initialTimestamp);
-						long sentReceiveDelay = (_currentSentReceiveDelay * _significance + receiveTimestamp - message.getJMSTimestamp()) / (_significance + 1);
-						controlJMSWorkerPool(_currentSentReceiveDelay = sentReceiveDelay, receiveTimestamp);
-					}
-				} catch (Exception e) {
-					if (_redeliveryDelay != null) {
-						Thread.sleep(_redeliveryDelay);
-					}
-					logger.info("Rolling back for " + getKey(), e);
-					_session.rollback();
+				processInternal(_context, esbMessage);
+				_session.commit();
+				if (message.getJMSRedelivered() ) {
 					if (_retries != null) {
-						AtomicInteger retries = _retries.getResource(message.getJMSMessageID());
-						if (retries.incrementAndGet() > _maximumRetries) {
-							try {
-								enable(false);
-							} catch (JMSException je) {
-								logger.error("Failed to disable after reaching maximumRetries: " + getKey(), je);
-							}
+						_retries.removeResource(message.getJMSMessageID());
+					}
+				} else {
+					long receiveTimestamp = esbMessage.getVariable(ESBConstants.initialTimestamp);
+					long sentReceiveDelay = (_currentSentReceiveDelay * _significance + receiveTimestamp - message.getJMSTimestamp()) / (_significance + 1);
+					controlJMSWorkerPool(_currentSentReceiveDelay = sentReceiveDelay, receiveTimestamp);
+				}
+				return true;
+			} catch (Exception e) {
+				if (_redeliveryDelay != null) {
+					Thread.sleep(_redeliveryDelay);
+				}
+				logger.info("Rolling back for " + getKey(), e);
+				_session.rollback();
+				if (_retries != null) {
+					AtomicInteger retries = _retries.getResource(message.getJMSMessageID());
+					if (retries.incrementAndGet() > _maximumRetries) {
+						try {
+							enable(false);
+						} catch (JMSException je) {
+							logger.error("Failed to disable after reaching maximumRetries: " + getKey(), je);
 						}
 					}
 				}
-			} catch (Exception e) {
-				throw ReflectionUtils.convert(e, RuntimeException.class);
+				return false;
 			}
 		}
 	}
@@ -515,9 +521,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 				Thread.sleep(_initialDelay);
 				for (long last = System.nanoTime();;) {
 					Message message = _messageConsumer.receiveNoWait();
-					if (message != null) {
-						onMessage(message);
-					} else {
+					if (message == null || !processMessage(message)) {
 						Thread.sleep(_pollInterval - (System.nanoTime() - last) / 1000000L % _pollInterval);
 						last = System.nanoTime();
 					}
