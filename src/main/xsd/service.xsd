@@ -83,6 +83,7 @@
 					<attribute name="deliveryMode" type="int" default="2" />
 					<attribute name="priority" type="int" default="4" />
 					<attribute name="timeToLive" type="long" default="0" />
+					<attribute name="deliveryDelay" type="long" />
 					<attribute name="receiveFromTempQueue" type="boolean" default="false" />
 				</extension>
 			</complexContent>

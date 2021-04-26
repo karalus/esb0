@@ -383,16 +383,18 @@ public class SOAPTest extends AbstractESBTest {
    
    @Test
    public void testJMSConsumer() throws Exception {
-   	JMSConnectionData jmsConnectionData = new JMSConnectionData(getGlobalContext(), "ConnectionFactory", null, null);
+//	   org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ embeddedActiveMQ = new org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ();
+//	   embeddedActiveMQ.start();
+	   
+	   JMSConnectionData jmsConnectionData = new JMSConnectionData(getGlobalContext(), "ConnectionFactory", null, null);
       JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData, "dynamicQueues/test1", null, null, null, null, 1, 1, 0L, null, null);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
       jmsConsumer.init(getGlobalContext());
       
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       
-      JMSAction jmsAction = new JMSAction(getGlobalContext(), jmsConnectionData, "dynamicQueues/test1", null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 100, false);
+      JMSAction jmsAction = new JMSAction(getGlobalContext(), jmsConnectionData, "dynamicQueues/test1", null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 10000, null, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(jmsAction);
       assertFalse(markAction.isExecuted());
@@ -403,6 +405,7 @@ public class SOAPTest extends AbstractESBTest {
       assertTrue(markAction.isExecuted());
       
       jmsConsumer.close();
+//      embeddedActiveMQ.stop();
    }
    
    @Test

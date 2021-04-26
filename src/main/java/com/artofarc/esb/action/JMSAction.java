@@ -66,11 +66,11 @@ public class JMSAction extends TerminalAction {
 	private final boolean _isBytesMessage;
 	private final int _deliveryMode;
 	private final int _priority;
-	private final Long _timeToLive;
+	private final Long _timeToLive, _deliveryDelay;
 	private final boolean _receiveFromTempQueue;
 
 	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName,
-			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, boolean receiveFromTempQueue) throws NamingException {
+			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, Long deliveryDelay, boolean receiveFromTempQueue) throws NamingException {
 		_queueName = globalContext.bindProperties(queueName);
 		_topicName = globalContext.bindProperties(topicName);
 		if (jndiDestination != null) {
@@ -81,6 +81,7 @@ public class JMSAction extends TerminalAction {
 		_deliveryMode = deliveryMode;
 		_priority = priority;
 		_timeToLive = timeToLive;
+		_deliveryDelay = deliveryDelay;
 		_receiveFromTempQueue = receiveFromTempQueue;
 	}
 
@@ -143,7 +144,11 @@ public class JMSAction extends TerminalAction {
 			JMSConsumer.fillESBMessage(message, replyMessage);
 		} else {
 			if (destination != null) {
-				jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
+				MessageProducer producer = jmsSession.createProducer(destination);
+				if (_deliveryDelay != null) {
+					producer.setDeliveryDelay(_deliveryDelay);
+				}
+				producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
 			} else {
 				MessageProducer producer = session.createProducer(message.<Destination> getVariable(ESBConstants.JMSReplyTo));
 				producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
