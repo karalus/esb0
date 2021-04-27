@@ -67,10 +67,11 @@ public class JMSAction extends TerminalAction {
 	private final int _deliveryMode;
 	private final int _priority;
 	private final Long _timeToLive, _deliveryDelay;
+	private final String _expiryQueue;
 	private final boolean _receiveFromTempQueue;
 
-	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName,
-			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, Long deliveryDelay, boolean receiveFromTempQueue) throws NamingException {
+	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
+			int deliveryMode, int priority, Long timeToLive, Long deliveryDelay, String expiryQueue, boolean receiveFromTempQueue) throws NamingException {
 		_queueName = globalContext.bindProperties(queueName);
 		_topicName = globalContext.bindProperties(topicName);
 		if (jndiDestination != null) {
@@ -82,6 +83,7 @@ public class JMSAction extends TerminalAction {
 		_priority = priority;
 		_timeToLive = timeToLive;
 		_deliveryDelay = deliveryDelay;
+		_expiryQueue = expiryQueue;
 		_receiveFromTempQueue = receiveFromTempQueue;
 	}
 
@@ -131,7 +133,18 @@ public class JMSAction extends TerminalAction {
 		context.getTimeGauge().stopTimeMeasurement("JMS createMessage", true);
 		message.clearHeaders();
 		message.reset(BodyType.INVALID, null);
-		final long timeToLive = message.getTimeleft(_timeToLive).longValue();
+		long timeToLive;
+		Number ttl = message.getTimeleft(_timeToLive);
+		if (ttl != null) {
+			timeToLive = ttl.longValue();
+		} else {
+			Long jmsExpiration = message.getVariable(ESBConstants.JMSExpiration);
+			if (jmsExpiration != null && jmsExpiration > 0) {
+				timeToLive = jmsExpiration - System.currentTimeMillis();
+			} else {
+				timeToLive = Message.DEFAULT_TIME_TO_LIVE;
+			}
+		}
 		if (_receiveFromTempQueue) {
 			jmsMessage.setJMSReplyTo(jmsSession.getTemporaryQueue());
 			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
@@ -146,13 +159,19 @@ public class JMSAction extends TerminalAction {
 			if (destination != null) {
 				MessageProducer producer = jmsSession.createProducer(destination);
 				if (_deliveryDelay != null) {
-					producer.setDeliveryDelay(_deliveryDelay);
+					if (timeToLive == 0 || timeToLive > _deliveryDelay) {
+						producer.setDeliveryDelay(_deliveryDelay);
+					} else if (_expiryQueue != null) {
+						producer = jmsSession.createProducer(jmsSession.createQueue(_expiryQueue));
+						timeToLive = Message.DEFAULT_TIME_TO_LIVE;
+					} else {
+						throw new ExecutionException(this, "Message is about to expire");
+					}
 				}
 				producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
 			} else {
-				MessageProducer producer = session.createProducer(message.<Destination> getVariable(ESBConstants.JMSReplyTo));
-				producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
-				producer.close();
+				MessageProducer producer = jmsSession.createProducer(null);
+				producer.send(message.<Destination> getVariable(ESBConstants.JMSReplyTo), jmsMessage, _deliveryMode, _priority, timeToLive);
 			}
 			context.getTimeGauge().stopTimeMeasurement("JMS send", false);
 			message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());

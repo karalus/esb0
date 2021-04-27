@@ -72,6 +72,8 @@ public interface ESBConstants {
 
 	String JMSType = "JMSType";
 
+	String JMSExpiration = "JMSExpiration";
+
 	String JMSOrigin = "JMSOrigin";
 
 	String QueueName = "QueueName";

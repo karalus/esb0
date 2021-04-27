@@ -205,7 +205,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			Jms jms = (Jms) actionElement.getValue();
 			JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
 			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms.isBytesMessage(),
-					jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.isReceiveFromTempQueue()), location);
+					jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.getExpiryQueue(), jms.isReceiveFromTempQueue()), location);
 			break;
 		}
 		case "produceKafka": {

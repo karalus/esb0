@@ -367,6 +367,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		}
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
 		esbMessage.putVariable(ESBConstants.JMSTimestamp, message.getJMSTimestamp());
+		esbMessage.putVariable(ESBConstants.JMSExpiration, message.getJMSExpiration());
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSType, message.getJMSType());
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
