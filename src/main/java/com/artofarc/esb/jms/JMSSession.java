@@ -19,8 +19,12 @@ package com.artofarc.esb.jms;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
 import javax.jms.*;
+
+import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.util.Collections;
 
 /**
  * Cache producers because it is expensive to create them.
@@ -30,7 +34,7 @@ public final class JMSSession implements AutoCloseable {
 	private final JMSConnectionProvider _jmsConnectionProvider;
 	private final JMSConnectionData _jmsConnectionData;
 	private final Session _session;
-	private final HashMap<Destination, MessageProducer> _producers = new HashMap<>();
+	private final Map<Destination, MessageProducer> _producers = new HashMap<>();
 	private TemporaryQueue _temporaryQueue;
 	private MessageConsumer _consumer;
 
@@ -96,9 +100,7 @@ public final class JMSSession implements AutoCloseable {
 			_temporaryQueue.delete();
 		}
 		for (Destination destination : _producers.keySet()) {
-			if (destination instanceof Queue) {
-				JMSConnectionProvider.logger.info("Closing producer for " + ((Queue) destination).getQueueName());
-			}
+			JMSConnectionProvider.logger.info("Closing producer for " + getDestinationName(destination));
 		}
 		_producers.clear();
 		_jmsConnectionProvider.closeSession(_jmsConnectionData, this);
@@ -107,15 +109,19 @@ public final class JMSSession implements AutoCloseable {
 	public Collection<String> getProducerDestinations() throws JMSException {
 		ArrayList<String> result = new ArrayList<>();
 		for (Destination destination : _producers.keySet()) {
-			if (destination instanceof Queue) {
-				Queue queue = (Queue) destination;
-				result.add(queue.getQueueName());
-			} else if (destination instanceof Topic) {
-				Topic topic = (Topic) destination;
-				result.add(topic.getTopicName());
-			}
+			result.add(String.valueOf(getDestinationName(destination)));
 		}
 		return result;
+	}
+
+	public static Map.Entry<String, String> getDestinationName(Destination destination) throws JMSException {
+		if (destination instanceof Queue) {
+			return Collections.createEntry(ESBConstants.QueueName, ((Queue) destination).getQueueName());
+		} 
+		if (destination instanceof Topic) {
+			return Collections.createEntry(ESBConstants.TopicName, ((Topic) destination).getTopicName());
+		}
+		return null;
 	}
 
 }

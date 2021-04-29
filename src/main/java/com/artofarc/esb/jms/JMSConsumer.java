@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -373,11 +374,9 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSType, message.getJMSType());
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
-		Destination jmsDestination = message.getJMSDestination();
-		if (jmsDestination instanceof Queue) {
-			esbMessage.putVariable(ESBConstants.QueueName, ((Queue) jmsDestination).getQueueName());
-		} else if (jmsDestination instanceof Topic) {
-			esbMessage.putVariable(ESBConstants.TopicName, ((Topic) jmsDestination).getTopicName());
+		Map.Entry<String, String> destinationName = JMSSession.getDestinationName(message.getJMSDestination());
+		if (destinationName != null) {
+			esbMessage.putVariable(destinationName.getKey(), destinationName.getValue());
 		}
 		for (@SuppressWarnings("unchecked")
 		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
