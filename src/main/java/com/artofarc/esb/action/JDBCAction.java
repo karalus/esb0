@@ -198,10 +198,14 @@ public abstract class JDBCAction extends Action {
 						}
 						ps.setClob(param.getPos(), clob);
 					} else {
-						if (param.getTruncate() == null) {
-							ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
+						if (message.getBodyType() == BodyType.INVALID) {
+							ps.setNull(param.getPos(), CLOB);
 						} else {
-							ps.setCharacterStream(param.getPos(), new StringReader(param.truncate(message.getBodyAsString(context))));
+							if (param.getTruncate() == null) {
+								ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
+							} else {
+								ps.setCharacterStream(param.getPos(), new StringReader(param.truncate(message.getBodyAsString(context))));
+							}
 						}
 					}
 					break;
@@ -213,10 +217,15 @@ public abstract class JDBCAction extends Action {
 						}
 						ps.setBlob(param.getPos(), blob);
 					} else {
-						if (param.getTruncate() == null) {
-							ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
+						if (message.getBodyType() == BodyType.INVALID) {
+							ps.setNull(param.getPos(), BLOB);
 						} else {
-							ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(param.truncate(message.getBodyAsByteArray(context))));
+							Long length = message.getByteLength();
+							if (param.getTruncate() == null || length != null && length <= param.getTruncate()) {
+								ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
+							} else {
+								ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(message.getBodyAsByteArray(context), 0, param.getTruncate()));
+							}
 						}
 					}
 					break;

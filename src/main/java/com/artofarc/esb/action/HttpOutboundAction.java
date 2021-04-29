@@ -87,7 +87,7 @@ public class HttpOutboundAction extends Action {
 			if (contentType != null) {
 				contentType += ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
 			}
-			Long contentLength = inPipeline ? null : message.getBodyLength();
+			Long contentLength = inPipeline ? null : message.getByteLength();
 			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentType, contentLength);
 			try {
 				if (inPipeline) {

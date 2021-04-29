@@ -565,7 +565,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public Long getBodyLength() {
+	public Long getByteLength() {
 		if (isSinkEncodingdifferent() || isOutputCompressed() || isFI()) {
 			return null;
 		} else {

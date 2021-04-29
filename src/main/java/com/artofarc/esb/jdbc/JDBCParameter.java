@@ -162,13 +162,4 @@ public final class JDBCParameter {
 		return s.length() > _truncate ? s.substring(0, _truncate) : s;
 	}
 
-	public byte[] truncate(byte[] ba) {
-		if (ba.length > _truncate) {
-			final byte[] b = new byte[_truncate];
-			System.arraycopy(ba, 0, b, 0, _truncate);
-			return b;
-		}
-		return ba;
-	}
-
 }
