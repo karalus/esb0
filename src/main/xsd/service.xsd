@@ -83,7 +83,7 @@
 					<attribute name="deliveryMode" type="int" default="2" />
 					<attribute name="priority" type="int" default="4" />
 					<attribute name="timeToLive" type="long" />
-					<attribute name="deliveryDelay" type="long" />
+					<attribute name="deliveryDelay" type="tns:string1" />
 					<attribute name="expiryQueue" type="tns:string1" />
 					<attribute name="receiveFromTempQueue" type="boolean" default="false" />
 				</extension>
@@ -187,7 +187,7 @@
 					</sequence>
 					<attribute name="generatedKeys">
 						<simpleType>
-						    <list itemType="NMTOKEN" />
+							<list itemType="NMTOKEN" />
 						</simpleType>
 					</attribute>
 				</extension>
@@ -339,8 +339,8 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:SOAPAction">
-                    <attribute name="header" type="boolean" default="false" />
-                </extension>
+					<attribute name="header" type="boolean" default="false" />
+				</extension>
 			</complexContent>
 		</complexType>
 	</element>
@@ -348,7 +348,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:SOAPAction">
-                    <attribute name="header" type="boolean" default="false" />
+					<attribute name="header" type="boolean" default="false" />
 					<attribute name="wsdlURI" type="anyURI" use="required" />
 					<attribute name="binding" type="tns:string1" />
 					<attribute name="transport" type="anyURI" />
@@ -414,7 +414,7 @@
 					<attribute name="key" type="tns:string1" use="required" />
 					<attribute name="value" use="required" >
 						<simpleType>
-						    <list itemType="tns:identifier" />
+							<list itemType="tns:identifier" />
 						</simpleType>
 					</attribute>
 					<attribute name="writeOnly" type="boolean" default="false" />
@@ -459,7 +459,7 @@
 								</sequence>
 								<attribute name="value">
 									<simpleType>
-									    <list itemType="string" />
+										<list itemType="string" />
 									</simpleType>
 								</attribute>
 								<attribute name="regEx" type="tns:string1" />

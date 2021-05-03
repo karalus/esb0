@@ -66,12 +66,12 @@ public class JMSAction extends TerminalAction {
 	private final boolean _isBytesMessage;
 	private final int _deliveryMode;
 	private final int _priority;
-	private final Long _timeToLive, _deliveryDelay;
-	private final String _expiryQueue;
+	private final Long _timeToLive;
+	private final String _deliveryDelay, _expiryQueue;
 	private final boolean _receiveFromTempQueue;
 
 	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
-			int deliveryMode, int priority, Long timeToLive, Long deliveryDelay, String expiryQueue, boolean receiveFromTempQueue) throws NamingException {
+			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue) throws NamingException {
 		_queueName = globalContext.bindProperties(queueName);
 		_topicName = globalContext.bindProperties(topicName);
 		if (jndiDestination != null) {
@@ -159,8 +159,14 @@ public class JMSAction extends TerminalAction {
 			if (destination != null) {
 				MessageProducer producer = jmsSession.createProducer(destination);
 				if (_deliveryDelay != null) {
-					if (timeToLive == 0 || timeToLive > _deliveryDelay) {
-						producer.setDeliveryDelay(_deliveryDelay);
+					long deliveryDelay;
+					if (Character.isDigit(_deliveryDelay.charAt(0))) {
+						deliveryDelay = Long.parseLong(_deliveryDelay);
+					} else {
+						deliveryDelay = message.<Number> getVariable(_deliveryDelay).longValue();
+					}
+					if (timeToLive == 0 || timeToLive > deliveryDelay) {
+						producer.setDeliveryDelay(deliveryDelay);
 					} else if (_expiryQueue != null) {
 						producer = jmsSession.createProducer(jmsSession.createQueue(_expiryQueue));
 						timeToLive = Message.DEFAULT_TIME_TO_LIVE;
