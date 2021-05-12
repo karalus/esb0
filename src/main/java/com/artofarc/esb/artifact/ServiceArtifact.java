@@ -518,7 +518,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "admin":
 			Admin admin = (Admin) actionElement.getValue();
-			addAction(list, new AdminAction(admin.getResourceExp()), location);
+			addAction(list, new AdminAction(admin.getVerb(), admin.getResourceExp()), location);
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown action " + actionElement.getName().getLocalPart());

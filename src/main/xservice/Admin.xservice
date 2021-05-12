@@ -1,5 +1,5 @@
 <service protocol="http" version="1" errorHandler="errorHandler" xmlns="http://www.artofarc.com/esb/service">
-	<httpBindURI maxPool="2">/admin/deploy/*</httpBindURI>
+	<httpBindURI maxPool="2">/admin/deploy*</httpBindURI>
 	<actionPipeline name="errorHandler">
 		<setMessage clearAll="true">
 			<header name="Content-Type">text/plain</header>
@@ -7,7 +7,7 @@
 		</setMessage>
 	</actionPipeline>
 	<actionPipeline name="createUpdateDelete">
-		<admin resourceExp="/${appendHttpUrlPath}" />
+		<admin resourceExp="${appendHttpUrlPath}" />
 		<branchOnVariable variable="QueryString">
 			<default>
 				<setMessage clearAll="true">
@@ -33,7 +33,7 @@
 			<branchOnVariable variable="HttpMethod">
 				<branch value="POST PUT">
 					<branchOnVariable variable="appendHttpUrlPath">
-						<branch value="">
+						<branch value="/">
 							<admin />
 							<setMessage clearAll="true">
 								<variable name="redirect">${ContextPath}/admin</variable>
@@ -45,9 +45,9 @@
 									<setMessage>
 										<body>${body#1}</body>
 									</setMessage>
-									<admin resourceExp="/${appendHttpUrlPath}" />
+									<admin resourceExp="${appendHttpUrlPath}" />
 									<setMessage clearAll="true">
-										<variable name="redirect">${ContextPath}/admin/${appendHttpUrlPath}</variable>
+										<variable name="redirect">${ContextPath}/admin${appendHttpUrlPath}</variable>
 									</setMessage>
 								</branch>
 								<default>
@@ -61,7 +61,7 @@
 					<actionPipelineRef ref="createUpdateDelete" />
 				</branch>
 				<default>
-					<admin resourceExp="/${appendHttpUrlPath}" />
+					<admin resourceExp="${appendHttpUrlPath}" />
 				</default>
 			</branchOnVariable>
 		</default>

@@ -28,25 +28,36 @@ import com.artofarc.esb.artifact.*;
 import com.artofarc.esb.context.*;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.*;
+import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.JsonFactoryHelper;
 
 public class AdminAction extends Action {
 
-	private final String _resourceExp;
+	private final String _verb, _resourceExp;
 
-	public AdminAction(String resourceExp) {
+	public AdminAction(String verb, String resourceExp) {
+		_verb = verb;
 		_resourceExp = resourceExp;
 		_pipelineStop = true;
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+		String verb =  (String) bindVariable(_verb, context, message);
 		String resource = (String) bindVariable(_resourceExp, context, message);
-		String verb = resolve(message, ESBConstants.HttpMethod, true);
 		switch (verb) {
 		case "GET":
-			readArtifact(context, message, resource);
+			if (resource.isEmpty()) {
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				context.getGlobalContext().getFileSystem().dump(bos);
+				message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
+				message.clearHeaders();
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, "application/zip");
+				message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"FileSystem-" + System.currentTimeMillis() + ".zip\"");
+			} else {
+				readArtifact(context, message, resource);
+			}
 			break;
 		case "PUT":
 		case "POST":
@@ -61,7 +72,7 @@ public class AdminAction extends Action {
 		}
 	}
 
-	private void readArtifact(Context context, ESBMessage message, String resource) throws IOException, ExecutionException {
+	private void readArtifact(Context context, ESBMessage message, String resource) throws Exception {
 		Artifact artifact = context.getGlobalContext().getFileSystem().getArtifact(resource);
 		if (artifact != null) {
 			if (artifact instanceof Directory) {
@@ -70,7 +81,8 @@ public class AdminAction extends Action {
 				JsonArrayBuilder builder = JsonFactoryHelper.JSON_BUILDER_FACTORY.createArrayBuilder();
 				for (Artifact a : directory.getArtifacts().values()) {
 					if (formatLong) {
-						builder.add(JsonFactoryHelper.JSON_BUILDER_FACTORY.createObjectBuilder().add("name", a.getName()).add("modificationTime", a.getModificationTime()).build());
+						builder.add(JsonFactoryHelper.JSON_BUILDER_FACTORY.createObjectBuilder().add("name", a.getName())
+								.add("dir", a instanceof Directory).add("modificationTime", a.getModificationTime()).build());
 					} else {
 						builder.add(a.getName());
 					}

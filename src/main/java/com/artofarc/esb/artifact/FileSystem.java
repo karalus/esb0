@@ -19,6 +19,7 @@ package com.artofarc.esb.artifact;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,6 +34,7 @@ import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -479,6 +481,30 @@ public abstract class FileSystem {
 			}
 		}
 		return tidyOut;
+	}
+
+	public void dump(OutputStream outputStream) throws Exception {
+		try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
+			dumpDirectory(zos, _root);
+		} finally {
+			dehydrateArtifacts(_root);
+		}
+	}
+
+	private static void dumpDirectory(ZipOutputStream zos, Directory directory) throws Exception {
+		for (Artifact artifact : directory.getArtifacts().values()) {
+			if (artifact instanceof Directory) {
+				dumpDirectory(zos, (Directory) artifact);
+			} else {
+				long modificationTime = artifact.getModificationTime();
+				if (modificationTime > 0L) {
+					ZipEntry zipEntry = new ZipEntry(artifact.getURI().substring(1));
+					zipEntry.setTime(modificationTime);
+					zos.putNextEntry(zipEntry);
+					zos.write(artifact.getContentAsBytes());
+				}
+			}
+		}
 	}
 
 }
