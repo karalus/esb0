@@ -17,6 +17,7 @@
 package com.artofarc.esb.action;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -49,12 +50,19 @@ public class AdminAction extends Action {
 		switch (verb) {
 		case "GET":
 			if (resource.isEmpty()) {
-				ByteArrayOutputStream bos = new ByteArrayOutputStream();
-				context.getGlobalContext().getFileSystem().dump(bos);
-				message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
-				message.clearHeaders();
-				message.putHeader(HTTP_HEADER_CONTENT_TYPE, "application/zip");
-				message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"FileSystem-" + System.currentTimeMillis() + ".zip\"");
+				String filename = message.getVariable(ESBConstants.filename);
+				if (filename != null) {
+					FileOutputStream fos = new FileOutputStream(filename);
+					context.getGlobalContext().getFileSystem().dump(fos);
+				} else {
+					filename = "FileSystem-" + System.currentTimeMillis() + ".zip";
+					ByteArrayOutputStream bos = new ByteArrayOutputStream();
+					context.getGlobalContext().getFileSystem().dump(bos);
+					message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
+					message.clearHeaders();
+					message.putHeader(HTTP_HEADER_CONTENT_TYPE, "application/zip");
+					message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + filename + '"');
+				}
 			} else {
 				readArtifact(context, message, resource);
 			}

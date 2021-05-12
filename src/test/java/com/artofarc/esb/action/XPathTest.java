@@ -194,4 +194,20 @@ public class XPathTest extends AbstractESBTest {
       consumerPort.process(context, message);
    }
    
+   @Test
+   public void testArray() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+      message.putVariable("RedeliveryCount", 5);
+      List<AssignAction.Assignment> assignments = createAssignments(false);
+      assignments.add(new AssignAction.Assignment("NewRedeliveryCount", true, "if ($RedeliveryCount) then $RedeliveryCount + 1 else 1", false, null));
+      assignments.add(new AssignAction.Assignment("deliveryDelay", false, "let $array := [10,20,40] return $array(if ($NewRedeliveryCount>array:size($array)) then array:size($array) else $NewRedeliveryCount)", false, null));
+      LinkedHashMap<String, String> ns = new LinkedHashMap<>();
+      ns.put("array", "http://www.w3.org/2005/xpath-functions/array");
+      Action action = createAssignAction(assignments, null, ns, "RedeliveryCount");
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
+   }
+   
 }

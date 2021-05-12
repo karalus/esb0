@@ -483,26 +483,21 @@ public abstract class FileSystem {
 		return tidyOut;
 	}
 
-	public void dump(OutputStream outputStream) throws Exception {
+	public void dump(OutputStream outputStream) throws IOException {
 		try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
 			dumpDirectory(zos, _root);
-		} finally {
-			dehydrateArtifacts(_root);
 		}
 	}
 
-	private static void dumpDirectory(ZipOutputStream zos, Directory directory) throws Exception {
+	private static void dumpDirectory(ZipOutputStream zos, Directory directory) throws IOException {
 		for (Artifact artifact : directory.getArtifacts().values()) {
 			if (artifact instanceof Directory) {
 				dumpDirectory(zos, (Directory) artifact);
-			} else {
-				long modificationTime = artifact.getModificationTime();
-				if (modificationTime > 0L) {
-					ZipEntry zipEntry = new ZipEntry(artifact.getURI().substring(1));
-					zipEntry.setTime(modificationTime);
-					zos.putNextEntry(zipEntry);
-					zos.write(artifact.getContentAsBytes());
-				}
+			} else if (artifact.getModificationTime() > 0L) {
+				ZipEntry zipEntry = new ZipEntry(artifact.getURI().substring(1));
+				zipEntry.setTime(artifact.getModificationTime());
+				zos.putNextEntry(zipEntry);
+				IOUtils.copy(artifact.getContentAsStream(), zos);
 			}
 		}
 	}
