@@ -77,7 +77,7 @@ public final class ESBMessage implements Cloneable {
 	private static String toLowerCase(String headerName) {
 		String result = HEADER_NAMES.get(headerName);
 		if (result == null) {
-			result = headerName.toLowerCase();
+			result = headerName.toLowerCase().replace('_', '-');
 			HEADER_NAMES.put(headerName, result);
 		}
 		return result;

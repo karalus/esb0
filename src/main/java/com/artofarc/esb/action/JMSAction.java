@@ -123,7 +123,7 @@ public class JMSAction extends TerminalAction {
 					jmsMessage.setJMSType((String) entry.getValue());
 					break;
 				default:
-					jmsMessage.setObjectProperty(entry.getKey(), entry.getValue());
+					jmsMessage.setObjectProperty(entry.getKey().replace('-', '_'), entry.getValue());
 					break;
 				}
 			} catch (JMSException e) {
