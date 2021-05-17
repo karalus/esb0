@@ -19,18 +19,23 @@ package com.artofarc.util;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 
+import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
+import javax.xml.xquery.XQItemType;
 import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQStaticContext;
 
 public final class XQuerySource {
 
-	private static final WeakHashMap<XQuerySource, XQuerySource> CACHE = new WeakHashMap<>(256);
+	private static final WeakHashMap<XQuerySource, XQuerySource> CACHE = new WeakHashMap<>(512);
 
 	private final String _xquery;
 	private final byte[] _data;
 	private final int _hashCode;
+
+	private volatile QName[] _externalVariables;
+	private volatile XQItemType[] _externalVariableTypes;
 
 	private XQuerySource(byte[] data) {
 		if (data == null) throw new NullPointerException();
@@ -87,7 +92,7 @@ public final class XQuerySource {
 		return _xquery != null ? _xquery : new String(_data);
 	}
 
-	public XQPreparedExpression prepareExpression(XQConnection conn, String baseURI) throws XQException {
+	private XQPreparedExpression _prepareExpression(XQConnection conn, String baseURI) throws XQException {
 		if (baseURI != null) {
 			XQStaticContext staticContext = conn.getStaticContext();
 			staticContext.setBaseURI(baseURI);
@@ -102,6 +107,33 @@ public final class XQuerySource {
 		} else {
 			return conn.prepareExpression(new ByteArrayInputStream(_data));
 		}
+	}
+
+	public XQPreparedExpression prepareExpression(XQConnection conn, String baseURI) throws XQException {
+		XQPreparedExpression preparedExpression = _prepareExpression(conn, baseURI);
+		if (_externalVariables == null) {
+			_externalVariables = preparedExpression.getAllExternalVariables();
+			_externalVariableTypes = new XQItemType[_externalVariables.length];
+			for (int i = 0; i < _externalVariables.length; ++i) {
+				XQItemType itemType = preparedExpression.getStaticVariableType(_externalVariables[i]).getItemType();
+				if (itemType.getItemKind() != XQItemType.XQITEMKIND_ITEM) {
+					_externalVariableTypes[i] = itemType;
+				}
+			}
+		}
+		return preparedExpression;
+	}
+
+	public QName[] getExternalVariables() {
+		return _externalVariables;
+	}
+
+	public XQItemType[] getExternalVariableTypes() {
+		return _externalVariableTypes;
+	}
+
+	public void setExternalVariableTypes(XQItemType[] externalVariableTypes) {
+		_externalVariableTypes = externalVariableTypes;
 	}
 
 }

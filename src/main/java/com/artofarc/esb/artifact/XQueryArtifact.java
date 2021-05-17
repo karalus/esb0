@@ -16,11 +16,8 @@
  */
 package com.artofarc.esb.artifact;
 
-import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
-import javax.xml.xquery.XQPreparedExpression;
-import javax.xml.xquery.XQSequenceType;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.resource.XQConnectionFactory;
@@ -43,14 +40,9 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		ValidationErrorListener errorListener = new ValidationErrorListener(owner.getURI());
 		factory.setErrorListener(errorListener);
 		XQConnection connection = factory.getConnection();
+		String baseURI = legacyXqmResolver ? owner.getParent().getURI() : owner.getURI();
 		try {
-			String baseURI = legacyXqmResolver ? owner.getParent().getURI() : owner.getURI();
-			XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(connection, baseURI);
-			for (QName qName : preparedExpression.getAllExternalVariables()) {
-				logger.debug("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
-			}
-			logger.debug("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
-			preparedExpression.close();
+			xQuerySource.prepareExpression(connection, baseURI).close();
 		} catch (XQException e) {
 			if (errorListener.exceptions.isEmpty()) {
 				throw e;

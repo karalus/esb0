@@ -36,9 +36,8 @@ public class AssignAction extends TransformAction {
 	}
 
 	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearAll) {
-		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), assignments, null, contextItem);
+		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), createCheckNotNull(bindNames), assignments, null, contextItem);
 		_clearAll = clearAll;
-		_bindNames = bindNames;
 	}
 
 	private static XQuerySource createXQuery(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
@@ -93,6 +92,16 @@ public class AssignAction extends TransformAction {
 	private static boolean createLet(Assignment assignment, HashSet<String> variables) {
 		return assignment.name != null && !variables.contains("$" + assignment.name)
 				&& !variables.contains(assignment.expr) && !assignment.expr.equals(".");
+	}
+
+	private static HashSet<String> createCheckNotNull(List<XQDecl> bindNames) {
+		HashSet<String> result = new HashSet<>();
+		for (XQDecl bindName : bindNames) {
+			if (!bindName.isNullable()) {
+				result.add(bindName.getValue());
+			}
+		}
+		return result;
 	}
 
 	@Override
