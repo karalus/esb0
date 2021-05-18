@@ -95,9 +95,12 @@ public class AssignAction extends TransformAction {
 	}
 
 	private static HashSet<String> createCheckNotNull(List<XQDecl> bindNames) {
-		HashSet<String> result = new HashSet<>();
+		HashSet<String> result = null;
 		for (XQDecl bindName : bindNames) {
 			if (!bindName.isNullable()) {
+				if (result == null) {
+					result = new HashSet<>();					
+				}
 				result.add(bindName.getValue());
 			}
 		}

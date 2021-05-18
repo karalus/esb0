@@ -117,8 +117,8 @@ public class XMLProcessingArtifact extends Artifact {
 
 	static final class ValidationErrorListener implements ErrorListener {
 
-		final String uri;
-		final ArrayList<TransformerException> exceptions = new ArrayList<>();
+		private final String uri;
+		private final ArrayList<TransformerException> exceptions = new ArrayList<>();
 
 		ValidationErrorListener(String uri) {
 			this.uri = uri;
@@ -139,6 +139,20 @@ public class XMLProcessingArtifact extends Artifact {
 		public void error(TransformerException exception) {
 			logger.error(uri, exception);
 			exceptions.add(exception);
+		}
+
+		public Exception build(Exception e) {
+			switch (exceptions.size()) {
+			case 0:
+				return e;
+			case 1:
+				return exceptions.get(0);
+			default:
+				for (TransformerException exception : exceptions) {
+					e.addSuppressed(exception);
+				}
+				return e;
+			}
 		}
 	}
 

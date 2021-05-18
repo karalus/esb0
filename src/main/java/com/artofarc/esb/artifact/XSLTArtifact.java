@@ -25,7 +25,6 @@ import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
 
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -59,7 +58,7 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 	}
 
 	@Override
-	public void validateInternal(GlobalContext globalContext) throws TransformerException, XPathExpressionException {
+	public void validateInternal(GlobalContext globalContext) throws Exception {
 		// Needs an individual SAXTransformerFactory to track the use of imports/includes
 		SAXTransformerFactory saxTransformerFactory = JAXPFactoryHelper.createSAXTransformerFactory();
 		ValidationErrorListener errorListener = new ValidationErrorListener(getURI());
@@ -68,11 +67,7 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 		try {
 			_templates = saxTransformerFactory.newTemplates(new StreamSource(getContentAsStream()));
 		} catch (TransformerException e) {
-			if (errorListener.exceptions.isEmpty()) {
-				throw e;
-			} else {
-				throw errorListener.exceptions.get(0);
-			}
+			throw errorListener.build(e);
 		}
 		saxTransformerFactory.setURIResolver(null);
 		// set imports/includes to validated 

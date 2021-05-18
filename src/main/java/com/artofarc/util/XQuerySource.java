@@ -20,11 +20,7 @@ import java.util.Arrays;
 import java.util.WeakHashMap;
 
 import javax.xml.namespace.QName;
-import javax.xml.xquery.XQConnection;
-import javax.xml.xquery.XQException;
-import javax.xml.xquery.XQItemType;
-import javax.xml.xquery.XQPreparedExpression;
-import javax.xml.xquery.XQStaticContext;
+import javax.xml.xquery.*;
 
 public final class XQuerySource {
 
@@ -113,13 +109,15 @@ public final class XQuerySource {
 		XQPreparedExpression preparedExpression = _prepareExpression(conn, baseURI);
 		if (_externalVariables == null) {
 			_externalVariables = preparedExpression.getAllExternalVariables();
-			_externalVariableTypes = new XQItemType[_externalVariables.length];
-			for (int i = 0; i < _externalVariables.length; ++i) {
+			XQItemType[] types = new XQItemType[_externalVariables.length];
+			for (int i = 0; i < types.length; ++i) {
 				XQItemType itemType = preparedExpression.getStaticVariableType(_externalVariables[i]).getItemType();
+				// Only store type when it is concrete enough
 				if (itemType.getItemKind() != XQItemType.XQITEMKIND_ITEM) {
-					_externalVariableTypes[i] = itemType;
+					types[i] = itemType;
 				}
 			}
+			_externalVariableTypes = types;
 		}
 		return preparedExpression;
 	}

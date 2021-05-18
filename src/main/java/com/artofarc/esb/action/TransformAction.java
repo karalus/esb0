@@ -23,13 +23,7 @@ import java.util.Set;
 
 import javax.xml.namespace.QName;
 import javax.xml.transform.Source;
-import javax.xml.xquery.XQConstants;
-import javax.xml.xquery.XQException;
-import javax.xml.xquery.XQItem;
-import javax.xml.xquery.XQItemType;
-import javax.xml.xquery.XQPreparedExpression;
-import javax.xml.xquery.XQResultSequence;
-import javax.xml.xquery.XQSequence;
+import javax.xml.xquery.*;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -225,7 +219,7 @@ public class TransformAction extends Action {
 		}
 	}
 
-	private Object next(XQResultSequence resultSequence) throws XQException {
+	private static Object next(XQResultSequence resultSequence) throws XQException {
 		if (resultSequence.getItemType().getItemKind() == XQItemType.XQITEMKIND_TEXT) {
 			return resultSequence.getItemAsString(null);
 		} else {
@@ -269,7 +263,7 @@ public class TransformAction extends Action {
 			XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
 			for (int i = 0; i < externalVariables.length; ++i) {
 				XQItemType externalVariableType = externalVariableTypes[i];
-				if (externalVariableType == null || externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
+				if (externalVariableType != null && externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
 					xqExpression.bindString(externalVariables[i], "", null);
 				}
 			}
