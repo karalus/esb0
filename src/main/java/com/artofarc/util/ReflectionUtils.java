@@ -44,7 +44,7 @@ public final class ReflectionUtils {
 	@SuppressWarnings("unchecked")
 	public static <T, E extends Exception> T eval(Object root, String path, ParamResolver<E> paramResolver) throws ReflectiveOperationException, E {
 		StringTokenizer tokenizerChain = new StringTokenizer(path, ".");
-		while (tokenizerChain.hasMoreTokens()) {
+		outer: while (tokenizerChain.hasMoreTokens()) {
 			String part = tokenizerChain.nextToken();
 			StringTokenizer tokenizerMethod = new StringTokenizer(part, "(,)");
 			String methodName = tokenizerMethod.nextToken();
@@ -53,15 +53,15 @@ public final class ReflectionUtils {
 				String argName = tokenizerMethod.nextToken();
 				args.add(paramResolver.resolve(argName));
 			}
-			Method method = findMethod(root.getClass().getDeclaredMethods(), methodName, args);
-			if (method == null) {
-				method = findMethod(root.getClass().getMethods(), methodName, args);
-				if (method == null) {
-					throw new NoSuchMethodException(methodName);
+			for (Class<?> cls = root.getClass(); cls != null; cls = cls.getSuperclass()) {
+				Method method = findMethod(cls.getDeclaredMethods(), methodName, args);
+				if (method != null) {
+					method.setAccessible(true);
+					root = method.invoke(root, args.toArray());
+					continue outer;
 				}
 			}
-			method.setAccessible(true);
-			root = method.invoke(root, args.toArray());
+			throw new NoSuchMethodException(methodName);
 		}
 		return (T) root;
 	}

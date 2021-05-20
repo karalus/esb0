@@ -9,6 +9,7 @@
 <%@page import="com.artofarc.esb.http.HttpUrlSelector"%>
 <%@page import="com.artofarc.esb.resource.LRUCacheWithExpirationFactory"%>
 <%@page import="com.artofarc.esb.artifact.*"%>
+<%@page import="com.artofarc.util.ReflectionUtils"%>
 <html>
 <head>
 <style>
@@ -196,6 +197,24 @@ textarea, pre {
 </table>
 			<%
 			break;
+		case "DataSources":
+			%>
+<br>DataSources:
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Type</b></td><td><b>Active Connections</b></td></tr> 
+<%
+		for (String propertyName : globalContext.getCachedProperties()) {
+			Object object = globalContext.getProperty(propertyName);
+			if (object instanceof javax.sql.DataSource) {
+				Object activeConnections = DataSourceArtifact.isDataSource(object) ? ReflectionUtils.eval(object, "hikariPoolMXBean.activeConnections") : "N/A";
+			   %>
+			   <tr><td><%=propertyName%></td><td><%=object.getClass().getName()%></td><td><%=activeConnections%></td></tr>
+			   <%
+			}
+		}
+%>
+</table>
+			<%
+			break;
 		case "WorkerPools":
 			%>
 <br>WorkerPools:
@@ -249,18 +268,24 @@ textarea, pre {
 		<td><a href="<%=request.getContextPath()%>/admin?HttpServices">HttpServices</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?MappedHttpServices">HttpServices with path mapping</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?JMSServices">JMSServices</a></td>
+		<td></td>
 	</tr>
 	<tr bgcolor="#EEEEEE">
 		<td><a href="<%=request.getContextPath()%>/admin?TimerServices">TimerServices</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?FileWatchEventConsumer">FileWatchEventConsumer</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?KafkaConsumerServices">KafkaConsumerServices</a></td>
+		<td></td>
 	</tr>
 	<tr bgcolor="#EEEEEE">
 		<td><a href="<%=request.getContextPath()%>/admin?InternalServices">InternalServices</a></td>
+		<td></td>
+		<td></td>
+		<td></td>
 	</tr>
 	<tr bgcolor="#EEEEEE">
 		<td><a href="<%=request.getContextPath()%>/admin?WorkerPools">WorkerPools</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?HttpEndpoints">HttpEndpoints</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?DataSources">DataSources</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?Caches">Caches</a></td>
 	</tr>
 </table>

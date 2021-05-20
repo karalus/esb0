@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
-import javax.naming.NamingException;
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
@@ -574,14 +573,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 		}
 		return params;
-	}
-
-	private static Properties createProperties(List<Property> propertyList, GlobalContext globalContext) throws NamingException {
-		Properties properties = new Properties();
-		for (Property property : propertyList) {
-			properties.put(property.getKey(), globalContext.bindProperties(property.getValue()));
-		}
-		return properties;
 	}
 
 }

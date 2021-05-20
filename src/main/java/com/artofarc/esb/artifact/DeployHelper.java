@@ -78,6 +78,12 @@ public final class DeployHelper {
 						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
 			}
 		}
+		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
+			Object oldDataSource = globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
+			if (DataSourceArtifact.isDataSource(oldDataSource)) {
+				closer.add((AutoCloseable) oldDataSource);
+			}
+		}
 		for (ServiceArtifact service : serviceArtifacts) {
 			ConsumerPort oldConsumerPort;
 			switch (service.getProtocol()) {

@@ -29,7 +29,7 @@ public abstract class ConcurrentResourcePool<R, D, P, E extends Exception> {
 
 	protected ConcurrentResourcePool() {
 		try {
-			reset();
+			reset(true);
 		} catch (Exception e) {
 			throw ReflectionUtils.convert(e, RuntimeException.class);
 		}
@@ -40,8 +40,8 @@ public abstract class ConcurrentResourcePool<R, D, P, E extends Exception> {
 	protected void init(Map<D, R> pool) throws Exception {
 	}
 
-	public final void reset() throws Exception {
-		Map<D, R> pool = new HashMap<>();
+	public final void reset(boolean clear) throws Exception {
+		Map<D, R> pool = clear ? new HashMap<>() : new HashMap<>(_pool);
 		init(pool);
 		_pool = pool;
 	}
@@ -68,6 +68,20 @@ public abstract class ConcurrentResourcePool<R, D, P, E extends Exception> {
 
 	public final R getResource(D descriptor) throws E {
 		return getResource(descriptor, null);
+	}
+
+	public final R putResource(D descriptor, R resource) {
+		_lock.lock();
+		try {
+			Map<D, R> pool = new HashMap<>(_pool);
+			R old = pool.put(descriptor, resource);
+			if (old != resource) {
+				_pool = pool;
+			}
+			return old;
+		} finally {
+			_lock.unlock();
+		}
 	}
 
 	public final R removeResource(D descriptor) {

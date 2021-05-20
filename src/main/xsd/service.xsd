@@ -771,6 +771,14 @@
 			<attribute name="allowCoreThreadTimeOut" type="boolean" default="false" />
 		</complexType>
 	</element>
+	<element name="dataSource">
+		<complexType>
+			<sequence>
+				<element ref="tns:property" maxOccurs="unbounded"/>
+			</sequence>
+			<attribute name="name" type="tns:string1" use="required" />
+		</complexType>
+	</element>
 	<element name="classLoader">
 		<complexType>
 			<sequence>

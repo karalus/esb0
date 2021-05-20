@@ -67,7 +67,6 @@ public class AdminAction extends Action {
 				readArtifact(context, message, resource);
 			}
 			break;
-		case "PUT":
 		case "POST":
 			changeConfiguration(context, message, resource);
 			break;
@@ -178,12 +177,19 @@ public class AdminAction extends Action {
 				if (consumerPort != null) {
 					// if header is missing just toggle state
 					consumerPort.enable(enable != null ? Boolean.parseBoolean(enable) : !consumerPort.isEnabled());
-					message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
-					message.reset(BodyType.INVALID, null);
 				} else {
-					message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NOT_FOUND);
-					throw new ExecutionException(this, resource);
+					Artifact artifact = globalContext.getFileSystem().getArtifact(resource);
+					if (artifact instanceof DataSourceArtifact) {
+						DataSourceArtifact dataSourceArtifact = (DataSourceArtifact) artifact;
+						Object dataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
+						DataSourceArtifact.softEvictConnections(dataSource);
+					} else {
+						message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NOT_FOUND);
+						throw new ExecutionException(this, resource);
+					}
 				}
+				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
+				message.reset(BodyType.INVALID, null);
 			} else {
 				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, content);
 				deployChangeset(globalContext, changeSet, message);

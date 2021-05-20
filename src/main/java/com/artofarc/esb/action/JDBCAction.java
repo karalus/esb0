@@ -49,9 +49,6 @@ public abstract class JDBCAction extends Action {
 	protected XSSchemaSet _schemaSet;
 
 	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) throws NamingException {
-		if (dsName != null && !dsName.contains("${")) {
-			globalContext.getProperty(dsName);
-		}
 		_pipelineStop = true;
 		_dsName = dsName != null ? dsName.intern() : null;
 		_sql = sql;

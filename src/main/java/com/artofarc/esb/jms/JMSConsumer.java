@@ -272,7 +272,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 	void resume() throws JMSException {
 		if (_retries != null) {
 			try {
-				_retries.reset();
+				_retries.reset(true);
 			} catch (Exception e) {
 				// ignore
 			}

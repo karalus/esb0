@@ -19,8 +19,11 @@ package com.artofarc.esb.artifact;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
 import java.util.zip.CRC32;
 
+import javax.naming.NamingException;
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -37,6 +40,7 @@ import javax.xml.validation.SchemaFactory;
 import org.xml.sax.SAXException;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.service.Property;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.JAXPFactoryHelper;
 
@@ -80,6 +84,14 @@ public abstract class AbstractServiceArtifact extends Artifact {
 		Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
 		unmarshaller.setSchema(schema);
 		return (S) unmarshaller.unmarshal(getContentAsStream());
+	}
+
+	protected static Properties createProperties(List<Property> propertyList, GlobalContext globalContext) throws NamingException {
+		Properties properties = new Properties();
+		for (Property property : propertyList) {
+			properties.put(property.getKey(), globalContext.bindProperties(property.getValue()));
+		}
+		return properties;
 	}
 
 	protected final void migrate(GlobalContext globalContext) throws TransformerException {
