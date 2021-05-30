@@ -39,6 +39,7 @@ public abstract class Action implements Cloneable {
 
 	protected final static Logger logger = LoggerFactory.getLogger(Action.class);
 
+	private final static Logger loggerTimeGauge = LoggerFactory.getLogger(Action.class.getName() + "TimeGauge");
 	private final static long timeGaugeThreshold = Long.parseLong(System.getProperty("esb0.timeGauge.threshold", "250"));
 
 	protected Action _nextAction;
@@ -89,7 +90,7 @@ public abstract class Action implements Cloneable {
 		List<ExecutionContext> resources = new ArrayList<>();
 		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
 		context.pushStackPos();
-		TimeGauge timeGauge = new TimeGauge(logger, timeGaugeThreshold, false);
+		TimeGauge timeGauge = new TimeGauge(loggerTimeGauge, timeGaugeThreshold, false);
 		timeGauge.startTimeMeasurement();
 		for (Action nextAction = this; nextAction != null;) {
 			boolean isPipeline = false;
