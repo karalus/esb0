@@ -20,19 +20,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -79,48 +69,40 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 			}
 			for (;;) {
 				WatchKey watchKey = watchService.take();
-				// File ready?
+				final Path parent = (Path) watchKey.watchable();
+				// File ready? Better move the file to the directory!
 				Thread.sleep(initialDelay);
 				for (WatchEvent<?> watchEvent : watchKey.pollEvents()) {
 					final WatchEvent.Kind<?> kind = watchEvent.kind();
 					if (kind == StandardWatchEventKinds.OVERFLOW) {
-						logger.debug("Overflow");
+						logger.error("Overflow for " + parent);
 						continue;
 					}
 					final Path path = (Path) watchEvent.context();
-					final Path parent = (Path) watchKey.watchable();
-					final Path absolutePath = parent.resolve(path);
-					try {
-						final FileChannel fileChannel = FileChannel.open(absolutePath, _options);
-						if (fileChannel.tryLock() != null) {
-							submit(new Callable<Void>() {
-
-								@Override
-								public Void call() throws Exception {
-									Context context = _workerPool.getContext();
-									ESBMessage msg = new ESBMessage(BodyType.INVALID, null);
-									msg.getVariables().put(ESBConstants.FileEventKind, kind.toString());
-									msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
-									try (InputStream inputStream = Channels.newInputStream(fileChannel)) {
-										fillESBMessage(msg, inputStream, path.toString());
-										processInternal(context, msg);
-										moveFile(context, msg, absolutePath, _move);
-									} catch (Exception e) {
-										logger.error("Exception processing file " + absolutePath, e);
-										moveFile(context, msg, absolutePath, _moveOnError);
-									} finally {
-										_workerPool.releaseContext(context);
-									}
-									return null;
+					submit(() -> {
+						Path absolutePath = parent.resolve(path);
+						try (FileChannel fileChannel = FileChannel.open(absolutePath, _options)) {
+							if (fileChannel.tryLock() != null) {
+								Context context = _workerPool.getContext();
+								ESBMessage msg = new ESBMessage(BodyType.INVALID, null);
+								msg.getVariables().put(ESBConstants.FileEventKind, kind.toString());
+								msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
+								try (InputStream inputStream = Channels.newInputStream(fileChannel)) {
+									fillESBMessage(msg, inputStream, path.toString());
+									processInternal(context, msg);
+									moveFile(context, msg, absolutePath, _move);
+								} catch (Exception e) {
+									logger.error("Exception processing file " + absolutePath, e);
+									moveFile(context, msg, absolutePath, _moveOnError);
+								} finally {
+									_workerPool.releaseContext(context);
 								}
-							});
-						} else {
-							logger.warn("File could not be locked " + absolutePath);
-							fileChannel.close();
+							} else {
+								logger.warn("File could not be locked " + absolutePath);
+							}
 						}
-					} catch (IOException e) {
-						logger.warn("File could not be opened " + absolutePath, e);
-					}
+						return absolutePath;
+					});
 				}
 				if (!watchKey.reset()) {
 					throw new IOException("Watchkey is no longer valid");
