@@ -59,7 +59,7 @@ public abstract class AbstractESBTest {
 	}
 
 	protected void createContext(File dir) throws ValidationException {
-		System.setProperty("esb0.httpconsumer.idletimeout", "0");
+		System.setProperty("esb0.consumer.idletimeout", "0");
 		GlobalContext globalContext = new GlobalContext(getClass().getClassLoader(), null, new Properties());
 		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem() {
 

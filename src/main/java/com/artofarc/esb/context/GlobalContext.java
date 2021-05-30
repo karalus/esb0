@@ -27,6 +27,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.management.MBeanServer;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.xml.transform.ErrorListener;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 
 import com.artofarc.esb.FileWatchEventConsumer;
@@ -100,12 +102,30 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			throw new RuntimeException(e);
 		}
 		_uriResolver = new XMLProcessingArtifact.AbstractURIResolver() {
+
 			@Override
 			protected Artifact getBaseArtifact() {
 				return getFileSystem().getRoot();
 			}
 		};
 		_xqConnectionFactory = XQConnectionFactory.newInstance(_uriResolver);
+		_xqConnectionFactory.setErrorListener(new ErrorListener() {
+
+			@Override
+			public void warning(TransformerException exception) throws TransformerException {
+				logger.debug("XQConnectionFactory", exception);
+			}
+
+			@Override
+			public void fatalError(TransformerException exception) throws TransformerException {
+				logger.debug("XQConnectionFactory", exception);
+			}
+
+			@Override
+			public void error(TransformerException exception) throws TransformerException {
+				logger.debug("XQConnectionFactory", exception);
+			}
+		});
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
 		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
