@@ -218,7 +218,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 	}
 
 	@Override
-	public void init(GlobalContext globalContext) throws JMSException {
+	public synchronized void init(GlobalContext globalContext) throws JMSException {
 		_workerPool = globalContext.getWorkerPool(_workerPoolName);
 		// distribute evenly over poll interval
 		long initialDelay = _pollInterval / _jmsWorker.length;
