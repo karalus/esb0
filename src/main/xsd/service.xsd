@@ -429,7 +429,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
-					<attribute name="key" type="tns:string1" use="required" />
+					<attribute name="key" type="tns:string1" />
 					<attribute name="name" type="Name" use="required" />
 				</extension>
 			</complexContent>

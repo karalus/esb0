@@ -117,6 +117,17 @@ public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCach
 			return _expirationKeys.values();
 		}
 
+		public void clear() {
+			for (Expiration<K> expiration : _expirationKeys.values()) {
+				if (expiration == _expirationKeys.remove(expiration._key)) {
+					_cache.remove(expiration._key);
+					synchronized (LRUCacheWithExpirationFactory.this) {
+						expiries.remove(expiration);
+					}
+				}
+			}
+		}
+
 		@Override
 		public void close() {
 		}
@@ -150,8 +161,6 @@ public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCach
 			}
 		} catch (InterruptedException e) {
 			// cancelled
-		} catch (Exception e) {
-			throw new RuntimeException(e);
 		}
 	}
 
