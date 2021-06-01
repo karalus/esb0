@@ -37,14 +37,16 @@ public class ValidateAction extends AssignAction {
 	}
 
 	@Override
-	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws Exception {
-		checkNext(resultSequence, "expression");
+	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws ExecutionException {
 		try {
+			checkNext(resultSequence, "expression");
 			resultSequence.writeItemToSAX(_schema.newValidatorHandler());
 		} catch (XQException e) {
 			throw new ExecutionException(this, "Validation failed", e.getCause());
 		}
-		message.setSchema(_schema);
+		if (_contextItem == null) {
+			message.setSchema(_schema);
+		}
 	}
 
 }

@@ -27,6 +27,10 @@ public interface HttpUrlSelectorMBean {
 
 	void setActive(int pos, boolean b);
 
+	int getActiveCount();
+
 	int getInUseTotal();
+
+	long getTotalConnectionsCount();
 
 }

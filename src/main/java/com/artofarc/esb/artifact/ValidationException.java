@@ -35,21 +35,27 @@ public class ValidationException extends Exception {
 		_lineNumber = null;
 	}
 
-	public ValidationException(Artifact artifact, Integer lineNumber, String message) {
+	public ValidationException(Artifact artifact, int lineNumber, String message) {
 		super(message);
 		_artifact = artifact;
 		_lineNumber = lineNumber;
 	}
 
-	public ValidationException(Artifact artifact, Integer lineNumber, Throwable cause) {
+	public ValidationException(Artifact artifact, int lineNumber, Throwable cause) {
 		super(cause);
 		_artifact = artifact;
 		_lineNumber = lineNumber;
 	}
 
-	public final String getArtifactLocation() {
+	private String getArtifactLocation() {
 		String s = _artifact.getURI();
 		return _lineNumber != null ? s + '@' + _lineNumber : s;
+	}
+
+	@Override
+	public String toString() {
+		return getCause() != null ? "Could not validate artifact " + getArtifactLocation()
+				: "Could not validate artifact " + getArtifactLocation() + ": " + getMessage();
 	}
 
 }

@@ -16,15 +16,17 @@
  */
 package com.artofarc.esb.artifact;
 
-import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.util.ReflectionUtils;
-import com.artofarc.util.StreamUtils;
-
-import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -32,11 +34,17 @@ import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileSystem {
+import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.ByteArrayInputStream;
+import com.artofarc.util.IOUtils;
+import com.artofarc.util.ReflectionUtils;
+
+public abstract class FileSystem {
 
 	protected final static Logger logger = LoggerFactory.getLogger(FileSystem.class);
 
@@ -53,26 +61,24 @@ public class FileSystem {
 		_root = fileSystem._root.clone(this, null);
 	}
 
-	public FileSystem copy() {
-		return new FileSystem(this);
-	}
+	public abstract FileSystem copy();
 
-	public final Directory getRoot() {
-		return _root;
-	}
+	public abstract void load() throws Exception;
 
-	protected InputStream createInputStream(String uri) {
-		try {
-			return new ByteArrayInputStream(reloadContent(uri));
-		} catch (Exception e) {
-			throw ReflectionUtils.convert(e, RuntimeException.class);
-		}
+	public abstract void writeBackChanges() throws Exception;
+
+	protected InputStream createInputStream(String uri) throws Exception {
+		return new ByteArrayInputStream(reloadContent(uri));
 	}
 
 	protected byte[] reloadContent(String uri) throws Exception {
 		try (InputStream contentAsStream = createInputStream(uri)) {
-			return StreamUtils.copy(contentAsStream);
+			return IOUtils.copy(contentAsStream);
 		}
+	}
+
+	public final Directory getRoot() {
+		return _root;
 	}
 
 	public final <A extends Artifact> A getArtifact(String uri) {
@@ -120,14 +126,10 @@ public class FileSystem {
 	}
 
 	public final ChangeSet init(GlobalContext globalContext) throws Exception {
-		parse();
-		_changes.clear();
+		load();
 		ChangeSet changeSet = new ChangeSet();
 		validateServices(globalContext, _root, changeSet);
 		return changeSet;
-	}
-
-	public void parse() throws Exception {
 	}
 
 	public final void dehydrateArtifacts(Directory base) {
@@ -147,7 +149,13 @@ public class FileSystem {
 			for (Artifact child : ((Directory) artifact).getArtifacts().values()) {
 				validateServices(globalContext, child, changeSet);
 			}
-		} else if (artifact instanceof ServiceArtifact) {
+		} else {
+			validateService(globalContext, artifact, changeSet);
+		}
+	}
+
+	private static void validateService(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
+		if (artifact instanceof ServiceArtifact) {
 			final ServiceArtifact serviceArtifact = (ServiceArtifact) artifact;
 			Callable<ServiceArtifact> task = new Callable<ServiceArtifact>() {
 
@@ -156,24 +164,33 @@ public class FileSystem {
 					serviceArtifact.validate(globalContext);
 					return serviceArtifact;
 				}
-				
+
 			};
 			Future<ServiceArtifact> future = globalContext.getDefaultWorkerPool().getExecutorService().submit(task);
 			changeSet.futures.add(future);
 		} else if (artifact instanceof WorkerPoolArtifact) {
 			artifact.validate(globalContext);
 			changeSet.getWorkerPoolArtifacts().add((WorkerPoolArtifact) artifact);
+		} else if (artifact instanceof DataSourceArtifact) {
+			artifact.validate(globalContext);
+			changeSet.getDataSourceArtifacts().add((DataSourceArtifact) artifact);
+		}
+	}
+
+	protected final Artifact createArtifact(String uri) {
+		int i = uri.lastIndexOf('/');
+		if (i < 0) {
+			return createArtifact(_root, uri);
+		} else {
+			return createArtifact(makeDirectory(uri.substring(0, i)), uri.substring(i + 1));
 		}
 	}
 
 	protected final Artifact createArtifact(Directory parent, String name) {
-		// Mac OSX
-		if (name.startsWith("._"))
-			return null;
-		switch (Artifact.getExt(name)) {
+		switch (IOUtils.getExt(name)) {
 		case ServiceArtifact.FILE_EXTENSION:
 			return new ServiceArtifact(this, parent, name);
-		case XMLProcessingArtifact.FILE_EXTENSION_XML_DOC:
+		case "xml":
 			return new XMLProcessingArtifact(this, parent, name);
 		case "xsd":
 			return new XSDArtifact(this, parent, name);
@@ -188,10 +205,14 @@ public class FileSystem {
 			return new XSLTArtifact(this, parent, name);
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(this, parent, name);
+		case DataSourceArtifact.FILE_EXTENSION:
+			return new DataSourceArtifact(this, parent, name);
 		case ClassLoaderArtifact.FILE_EXTENSION:
 			return new ClassLoaderArtifact(this, parent, name);
 		case "jar":
 			return new JarArtifact(this, parent, name);
+		case "json":
+			return new JSONArtifact(this, parent, name);
 		default:
 			logger.debug("Cannot be imported: " + name);
 			return null;
@@ -205,7 +226,7 @@ public class FileSystem {
 			Artifact artifact = result.getArtifacts().get(name);
 			if (artifact == null) {
 				result = new Directory(this, result, name);
-				_changes.put(result.getURI(), ChangeType.CREATE);
+				noteChange(result.getURI(), ChangeType.CREATE);
 			} else if (artifact instanceof Directory) {
 				result = (Directory) artifact;
 			} else {
@@ -252,12 +273,12 @@ public class FileSystem {
 				if (!XMLCatalog.isXMLCatalog(child) && deleteOrphans(child, visited)) {
 					logger.info("Remove: " + artifact.getURI());
 					iterator.remove();
-					_changes.put(artifact.getURI(), ChangeType.DELETE);
+					noteChange(artifact.getURI(), ChangeType.DELETE);
 				}
 			} else if (!visited.contains(artifact.getURI())) {
 				logger.info("Remove: " + artifact);
 				iterator.remove();
-				_changes.put(artifact.getURI(), ChangeType.DELETE);
+				noteChange(artifact.getURI(), ChangeType.DELETE);
 			}
 		}
 		return directory.getArtifacts().isEmpty();
@@ -297,6 +318,7 @@ public class FileSystem {
 		private final List<Future<ServiceArtifact>> futures = new ArrayList<>();
 		private final List<ServiceArtifact> deletedServiceArtifacts = new ArrayList<>();
 		private final List<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
+		private final List<DataSourceArtifact> dataSourceArtifacts = new ArrayList<>();
 
 		public FileSystem getFileSystem() {
 			return FileSystem.this;
@@ -304,7 +326,7 @@ public class FileSystem {
 
 		public List<ServiceArtifact> getServiceArtifacts() throws ValidationException {
 			List<ServiceArtifact> serviceArtifacts = new ArrayList<>();
-			List<ValidationException> exceptions = new ArrayList<>();
+			ValidationException exception = null;
 			for (Future<ServiceArtifact> future : futures) {
 				try {
 					serviceArtifacts.add(future.get());
@@ -312,17 +334,18 @@ public class FileSystem {
 					throw new RuntimeException(e);
 				} catch (ExecutionException e) {
 					if (e.getCause() instanceof ValidationException) {
-						exceptions.add((ValidationException) e.getCause());
+						if (exception == null) {
+							exception = (ValidationException) e.getCause();
+						} else {
+							exception.addSuppressed(e.getCause());
+						}
 					} else {
 						throw ReflectionUtils.convert(e.getCause(), RuntimeException.class);
 					}
 				} 
 			}
-			if (exceptions.size() > 0) {
-				for (ValidationException exception : exceptions) {
-					logger.error(exception.getArtifactLocation(), exception);
-				}
-				throw exceptions.get(0);
+			if (exception != null) {
+				throw exception;
 			}
 			dehydrateArtifacts(_root);
 			return serviceArtifacts;
@@ -335,6 +358,14 @@ public class FileSystem {
 		public List<WorkerPoolArtifact> getWorkerPoolArtifacts() {
 			return workerPoolArtifacts;
 		}
+
+		public List<DataSourceArtifact> getDataSourceArtifacts() {
+			return dataSourceArtifacts;
+		}
+	}
+
+	final void noteChange(String uri, ChangeType type) {
+		_changes.putIfAbsent(uri, type);
 	}
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {
@@ -347,14 +378,22 @@ public class FileSystem {
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, String uri, byte[] content) throws Exception {
 		FileSystem copy = copy();
-		Artifact artifact = copy.loadArtifact(copy.getRoot(), uri);
 		CRC32 crc = new CRC32();
 		crc.update(content);
-		if (artifact._length != content.length || artifact._crc != crc.getValue()) {
+		Artifact artifact = copy.getArtifact(copy.getRoot(), uri);
+		if (artifact != null) {
+			if (artifact.isDifferent(content, crc.getValue())) {
+				artifact.setContent(content);
+				artifact.setModificationTime(System.currentTimeMillis());
+				artifact.setCrc(crc.getValue());
+				copy.noteChange(uri, ChangeType.UPDATE);
+			}
+		} else {
+			artifact = copy.createArtifact(uri.substring(1));
 			artifact.setContent(content);
 			artifact.setModificationTime(System.currentTimeMillis());
 			artifact.setCrc(crc.getValue());
-			copy._changes.put(uri, ChangeType.UPDATE);
+			copy.noteChange(uri, ChangeType.CREATE);
 		}
 		return validateChanges(globalContext, copy);
 	}
@@ -365,7 +404,7 @@ public class FileSystem {
 		if (!deleteArtifact(artifact)) {
 			throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
 		}
-		copy._changes.put(uriToDelete, ChangeType.DELETE);
+		copy.noteChange(uriToDelete, ChangeType.DELETE);
 		ChangeSet changeSet = copy.new ChangeSet();
 		if (artifact instanceof ServiceArtifact) {
 			changeSet.deletedServiceArtifacts.add((ServiceArtifact) artifact);
@@ -391,12 +430,12 @@ public class FileSystem {
 		// validate
 		for (String original : visited) {
 			Artifact artifact = changedFileSystem.getArtifact(original);
-			validateServices(globalContext, artifact, changeSet);
+			validateService(globalContext, artifact, changeSet);
 		}
 		for (Map.Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
 			Artifact artifact = changedFileSystem.getArtifact(entry.getKey());
 			if (entry.getValue() == ChangeType.CREATE) {
-				validateServices(globalContext, artifact, changeSet);
+				validateService(globalContext, artifact, changeSet);
 			} else if (entry.getValue() == ChangeType.DELETE) {
 				if (!deleteArtifact(artifact)) {
 					throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
@@ -408,7 +447,7 @@ public class FileSystem {
 		}
 		return changeSet;
 	}
-	
+
 	private boolean mergeZIP(InputStream inputStream) throws IOException {
 		boolean tidyOut = false;
 		try (JarInputStream zis = new JarInputStream(inputStream)) {
@@ -420,35 +459,32 @@ public class FileSystem {
 					StringTokenizer tokenizer = new StringTokenizer(delete, ", ");
 					while (tokenizer.hasMoreTokens()) {
 						String uri = tokenizer.nextToken();
-						_changes.put(loadArtifact(_root, uri).getURI(), ChangeType.DELETE);
+						noteChange(loadArtifact(_root, uri).getURI(), ChangeType.DELETE);
 					}
 				}
 			}
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				if (!entry.isDirectory()) {
-					int i = entry.getName().lastIndexOf('/');
-					Directory dir = i < 0 ? _root : makeDirectory(entry.getName().substring(0, i));
-					String name = i < 0 ? entry.getName() : entry.getName().substring(i + 1);
-					Artifact old = getArtifact(entry.getName());
-					Artifact artifact = createArtifact(dir, name);
+					Artifact artifact = getArtifact(entry.getName());
 					if (artifact != null) {
-						artifact.setContent(StreamUtils.copy(zis));
-						artifact.setModificationTime(entry.getTime());
-						artifact.setCrc(entry.getCrc());
-						if (old != null) {
-							if (old.isEqual(artifact)) {
-								// Undo
-								dir.getArtifacts().put(name, old);
-								if (old.getContent() == null) {
-									// Keep content (until dehydrateArtifacts happens), it might be needed by Resolvers during validation
-									old.setContent(artifact.getContent());
-								}
-							} else {
-								_changes.put(artifact.getURI(), ChangeType.UPDATE);
-							}
-						} else {
-							_changes.put(artifact.getURI(), ChangeType.CREATE);
+						byte[] content = IOUtils.copy(zis);
+						if (artifact.isDifferent(content, entry.getCrc())) {
+							artifact.setContent(content);
+							artifact.setModificationTime(entry.getTime());
+							artifact.setCrc(entry.getCrc());
+							noteChange(artifact.getURI(), ChangeType.UPDATE);
+						} else if (artifact.getContent() == null) {
+							// Keep content (until dehydrateArtifacts happens), it might be needed by Resolvers during validation
+							artifact.setContent(content);
+						}
+					} else {
+						artifact = createArtifact(entry.getName());
+						if (artifact != null) {
+							artifact.setContent(IOUtils.copy(zis));
+							artifact.setModificationTime(entry.getTime());
+							artifact.setCrc(entry.getCrc());
+							noteChange(artifact.getURI(), ChangeType.CREATE);
 						}
 					}
 				}
@@ -457,7 +493,23 @@ public class FileSystem {
 		return tidyOut;
 	}
 
-	public void writeBackChanges() throws IOException {
+	public void dump(OutputStream outputStream) throws IOException {
+		try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
+			dumpDirectory(zos, _root);
+		}
+	}
+
+	private static void dumpDirectory(ZipOutputStream zos, Directory directory) throws IOException {
+		for (Artifact artifact : directory.getArtifacts().values()) {
+			if (artifact instanceof Directory) {
+				dumpDirectory(zos, (Directory) artifact);
+			} else if (artifact.getModificationTime() > 0L) {
+				ZipEntry zipEntry = new ZipEntry(artifact.getURI().substring(1));
+				zipEntry.setTime(artifact.getModificationTime());
+				zos.putNextEntry(zipEntry);
+				IOUtils.copy(artifact.getContentAsStream(), zos);
+			}
+		}
 	}
 
 }

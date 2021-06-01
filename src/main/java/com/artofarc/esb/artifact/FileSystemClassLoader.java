@@ -19,8 +19,11 @@ package com.artofarc.esb.artifact;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.security.SecureClassLoader;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Vector;
 
 public class FileSystemClassLoader extends SecureClassLoader {
 
@@ -103,9 +106,34 @@ public class FileSystemClassLoader extends SecureClassLoader {
 				return new ByteArrayInputStream(data);
 			}
 		} catch (IOException e) {
-			return null;
+			throw new RuntimeException(e);
 		}
 		return super.getResourceAsStream(name);
+	}
+
+	@Override
+	public URL getResource(String name) {
+		for (JarArtifact.Jar jar : _jars) {
+			if (jar.contains(name)) {
+				return jar.createUrlForEntry(name);
+			}
+		}
+		return super.getResource(name);
+	}
+
+	@Override
+	public Enumeration<URL> getResources(String name) throws IOException {
+		Vector<URL> urls = new Vector<>();
+		for (JarArtifact.Jar jar : _jars) {
+			if (jar.contains(name)) {
+				urls.add(jar.createUrlForEntry(name));
+			}
+		}
+		Enumeration<URL> resources = super.getResources(name);
+		while (resources.hasMoreElements()) {
+			urls.add(resources.nextElement());
+		}
+		return urls.elements();
 	}
 
 }

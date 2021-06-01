@@ -16,19 +16,25 @@
  */
 package com.artofarc.esb.mbean;
 
-import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 public interface GlobalContextMXBean {
 
+	String getVersion() throws Exception;
+
 	Set<String> getHttpServicePaths();
+
+	List<String> getMappedHttpServicePaths();
 
 	boolean lockFileSystem();
 
 	void unlockFileSystem();
 
-	void invalidatePropertyCache() throws IOException;
+	void invalidatePropertyCache() throws Exception;
 
 	Set<String> getCachedProperties();
+
+	Set<String> getCaches();
 
 }

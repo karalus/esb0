@@ -22,85 +22,100 @@ import java.sql.*;
 import static java.sql.Types.*;
 import java.util.List;
 
+import javax.json.stream.JsonGenerator;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.sax.SAXResult;
-import javax.xml.transform.sax.TransformerHandler;
-
-import org.eclipse.persistence.dynamic.DynamicEntity;
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
+import javax.xml.transform.dom.DOMResult;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.jdbc.JDBCConnection;
-import com.artofarc.esb.jdbc.JDBCParameter;
-import com.artofarc.esb.jdbc.JDBCResult;
-import com.artofarc.esb.jdbc.JDBCResult2JsonMapper;
-import com.artofarc.esb.jdbc.JDBCXMLMapper;
+import com.artofarc.esb.http.HttpConstants;
+import com.artofarc.esb.jdbc.*;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.JsonValueGenerator;
+import com.sun.xml.xsom.XSSchemaSet;
 
 public abstract class JDBCAction extends Action {
 
 	private final String _dsName;
-	protected final String _sql;
+	private final String _sql;
 	private final List<JDBCParameter> _params;
 	private final int _maxRows;
 	private final Integer _timeout;
-	protected final JDBCXMLMapper _mapper;
+	private final String _keepConnection;
+	protected XSSchemaSet _schemaSet;
 
-	public JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, DynamicJAXBContext jaxbContext) throws NamingException {
-		if (dsName.indexOf("${") < 0) {
-			globalContext.getProperty(dsName);
-		}
-		_pipelineStop = false;
-		for (JDBCParameter param : params) {
-			_pipelineStop |= param.isBody();
-		}
-		_dsName = dsName;
+	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) throws NamingException {
+		_pipelineStop = true;
+		_dsName = dsName != null ? dsName.intern() : null;
 		_sql = sql;
 		_params = params;
 		_maxRows = maxRows;
 		_timeout = timeout;
-		_mapper = jaxbContext != null ? new JDBCXMLMapper(jaxbContext) : null;
+		_keepConnection = keepConnection.intern();
+		_schemaSet = schemaSet;
 		checkParameters(params);
 	}
 
 	protected final void checkParameters(List<JDBCParameter> params) {
-		if (_mapper == null) {
-			for (JDBCParameter jdbcParameter : params) {
-				if (jdbcParameter.getType() == STRUCT) {
-					throw new IllegalArgumentException("When using parameter type STRUCT, a schema is mandatory");
+		boolean body = false, attachments = false;
+		for (JDBCParameter jdbcParameter : params) {
+			if (jdbcParameter.isBody()) {
+				if (body) {
+					throw new IllegalArgumentException("Cannot have more than one parameter of type body");
 				}
+				body = true;
+			} else if (jdbcParameter.isAttachments()) {
+				if (attachments) {
+					throw new IllegalArgumentException("Cannot have more than one parameter of type attachments");
+				}
+				attachments = true;
+			} else if (jdbcParameter.getBindName() == null) {
+				throw new IllegalArgumentException("Parameter must bind to variable, body or attachment");
+			}
+			if (_schemaSet == null && jdbcParameter.getType() == STRUCT) {
+				throw new IllegalArgumentException("When using parameter type STRUCT, a schema is mandatory");
 			}
 		}
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String dsName = (String) bindVariable(_dsName, context, message);
-		DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
-		JDBCConnection connection = new JDBCConnection(dataSource.getConnection());
+		boolean keepConnection = Boolean.parseBoolean(bindVariable(_keepConnection, context, message).toString());
+		JDBCConnection connection = message.getVariable(ESBConstants.JDBCConnection);
+		if (connection == null) {
+			if (_dsName == null) {
+				throw new ExecutionException(this, "No DataSource configured and no Connection kept");
+			}
+			String dsName = (String) bindVariable(_dsName, context, message);
+			DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
+			connection = new JDBCConnection(dataSource.getConnection(), keepConnection);
+			if (keepConnection) {
+				message.putVariable(ESBConstants.JDBCConnection, connection);
+			}
+		} else if (!keepConnection) {
+			message.getVariables().remove(ESBConstants.JDBCConnection);
+		}
 		ExecutionContext execContext = new ExecutionContext(connection);
 		if (inPipeline) {
 			for (JDBCParameter param : _params) {
 				if (param.isBody()) {
 					switch (param.getType()) {
 					case SQLXML:
-						SQLXML xmlObject = connection.getConnection().createSQLXML();
-						message.reset(BodyType.RESULT, connection.createSAXResult(xmlObject));
+						SQLXML xmlObject = connection.createSQLXML();
+						message.reset(BodyType.RESULT, xmlObject.setResult(DOMResult.class));
 						execContext.setResource2(xmlObject);
 						break;
 					case CLOB:
-						Clob clob = connection.getConnection().createClob();
+						Clob clob = connection.createClob();
 						message.reset(BodyType.WRITER, clob.setCharacterStream(1L));
 						execContext.setResource2(clob);
 						break;
 					case BLOB:
-						Blob blob = connection.getConnection().createBlob();
+						Blob blob = connection.createBlob();
 						message.reset(BodyType.OUTPUT_STREAM, blob.setBinaryStream(1L));
 						message.setCharset(message.getSinkEncoding());						
 						execContext.setResource2(blob);
@@ -110,30 +125,53 @@ public abstract class JDBCAction extends Action {
 					default:
 						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 					}
+					break;
 				}
-			}
-		}
-		if (!_pipelineStop) {
-			JDBCResult result = executeStatement(context, execContext, message);
-			if (result.hasComplexContent()) {
-				message.getHeaders().clear();
 			}
 		}
 		return execContext;
 	}
 
-	abstract protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message) throws Exception;
+	abstract protected JDBCResult executeStatement(Context context, ExecutionContext execContext, ESBMessage message, String sql) throws Exception;
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (_pipelineStop) {
-			JDBCResult result = executeStatement(context, execContext, message);
-			if (result.hasComplexContent()) {
-				message.getHeaders().clear();
+		String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
+		logger.debug("JDBCAction sql=" + sql);
+		if (sql.length() > 0) {
+			try (JDBCResult result = executeStatement(context, execContext, message, sql)) {
+				if (result.hasComplexContent()) {
+					message.clearHeaders();
+					if (message.isSink()) {
+						try (JsonGenerator jsonGenerator = message.getBodyAsJsonGenerator()) {
+							result.writeJson(jsonGenerator);
+						}
+					} else {
+						JsonValueGenerator jsonValueGenerator = new JsonValueGenerator();
+						result.writeJson(jsonValueGenerator);
+						message.reset(BodyType.JSON_VALUE, jsonValueGenerator.getJsonValue());
+					}
+					message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+				} else if (result.getCurrentUpdateCount() >= 0) {
+					message.getVariables().put(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
+				}
 			}
 		}
-		try (JDBCConnection connection = execContext.getResource(); JDBCResult result = execContext.getResource3()) {
-			JDBCResult2JsonMapper.writeResult(result, message);
+	}
+
+	@Override
+	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception  {
+		boolean keepConnection = message.getVariables().containsKey(ESBConstants.JDBCConnection);
+		if (exception || !keepConnection) {
+			JDBCConnection connection = execContext.getResource();
+			connection.close(!exception);
+		}
+	}
+
+	public static void closeKeptConnection(ESBMessage message, boolean commit) throws SQLException {
+		JDBCConnection connection = (JDBCConnection) message.getVariables().remove(ESBConstants.JDBCConnection);
+		if (connection != null) {
+			connection.close(commit);
 		}
 	}
 
@@ -144,14 +182,8 @@ public abstract class JDBCAction extends Action {
 				case SQLXML:
 					SQLXML xmlObject = execContext.getResource2();
 					if (xmlObject == null) {
-						xmlObject = conn.getConnection().createSQLXML();
-						SAXResult result = xmlObject.setResult(SAXResult.class);
-						TransformerHandler transformerHandler = conn.getTransformerHandler();
-						if (transformerHandler != null) {
-							transformerHandler.getTransformer().transform(message.getBodyAsSource(context), result);
-						} else {
-							message.writeTo(result, context);
-						}
+						xmlObject = conn.createSQLXML();
+						message.writeTo(xmlObject.setResult(DOMResult.class), context);
 					}
 					ps.setSQLXML(param.getPos(), xmlObject);
 					break;
@@ -163,10 +195,14 @@ public abstract class JDBCAction extends Action {
 						}
 						ps.setClob(param.getPos(), clob);
 					} else {
-						if (param.getTruncate() == null) {
-							ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
+						if (message.getBodyType() == BodyType.INVALID) {
+							ps.setNull(param.getPos(), CLOB);
 						} else {
-							ps.setCharacterStream(param.getPos(), new StringReader((String) param.alignValue(message.getBodyAsString(context))));
+							if (param.getTruncate() == null) {
+								ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
+							} else {
+								ps.setCharacterStream(param.getPos(), new StringReader(param.truncate(message.getBodyAsString(context))));
+							}
 						}
 					}
 					break;
@@ -178,42 +214,42 @@ public abstract class JDBCAction extends Action {
 						}
 						ps.setBlob(param.getPos(), blob);
 					} else {
-						if (param.getTruncate() == null) {
-							ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
+						if (message.getBodyType() == BodyType.INVALID) {
+							ps.setNull(param.getPos(), BLOB);
 						} else {
-							ps.setBinaryStream(param.getPos(), new ByteArrayInputStream((byte[]) param.alignValue(message.getBodyAsByteArray(context))));
+							Long length = message.getByteLength();
+							if (param.getTruncate() == null || length != null && length <= param.getTruncate()) {
+								ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
+							} else {
+								ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(message.getBodyAsByteArray(context), 0, param.getTruncate()));
+							}
 						}
 					}
 					break;
 				case STRUCT:
-					Unmarshaller unmarshaller = _mapper.getJAXBContext().createUnmarshaller();
-					Object root = message.unmarshal(context, unmarshaller);
-					if (root instanceof DynamicEntity) {
-						DynamicEntity entity = (DynamicEntity) root;
-						ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(entity, true, conn));
-					} else {
-						JAXBElement<?> jaxbElement = (JAXBElement<?>) root;
-						ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(jaxbElement, false, conn));
-					}
+					XML2JDBCMapper mapper = new XML2JDBCMapper(_schemaSet, conn);
+					message.writeToSAX(mapper, context);
+					ps.setObject(param.getPos(), mapper.getObject());
 					break;
 				default:
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
 				}
 			} else if (param.isAttachments()) {
 				if (message.getAttachments().size() > 0) {
-					JAXBElement<?> attachments = _mapper.createAttachments(message, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-					ps.setObject(param.getPos(), JDBCXMLMapper.toJDBC(attachments, false, conn));
+					JDBCAttachments jdbcAttachments = new JDBCAttachments(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
+					ps.setObject(param.getPos(), jdbcAttachments.createAttachments(message, conn));
 				}
 			} else {
 				Object value = resolve(message, param.getBindName(), false);
 				if (value != null) {
-					ps.setObject(param.getPos(), param.alignValue(value), param.getType());
+					ps.setObject(param.getPos(), param.alignValue(value, conn), param.getType());
 				} else {
 					ps.setNull(param.getPos(), param.getType());
 				}
 			}
 		}
-		ps.setQueryTimeout(message.getTimeleft(_timeout).intValue() / 1000);
+		int ceil = (message.getTimeleft(_timeout).intValue() + 999) / 1000;
+		ps.setQueryTimeout(ceil);
 		ps.setMaxRows(_maxRows);
 	}
 

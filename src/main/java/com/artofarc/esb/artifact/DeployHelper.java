@@ -19,12 +19,14 @@ package com.artofarc.esb.artifact;
 import java.util.List;
 
 import com.artofarc.esb.ConsumerPort;
+import com.artofarc.esb.FileWatchEventConsumer;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
+import com.artofarc.util.IOUtils;
 
 public final class DeployHelper {
 
@@ -47,6 +49,11 @@ public final class DeployHelper {
 					// ignore
 				}
 				break;
+			case FILE:
+				FileWatchEventConsumer fileWatchEventConsumer = service.getConsumerPort();
+				globalContext.unbindFileWatchEventService(fileWatchEventConsumer);
+				fileWatchEventConsumer.close();
+				break;
 			case TIMER:
 				TimerService timerService = service.getConsumerPort();
 				globalContext.unbindTimerService(timerService);
@@ -58,7 +65,7 @@ public final class DeployHelper {
 			}
 		}
 		for (WorkerPoolArtifact workerPoolArtifact : changeSet.getWorkerPoolArtifacts()) {
-			String name = Artifact.stripExt(workerPoolArtifact.getURI());
+			String name = IOUtils.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
 			WorkerPool oldWorkerPool = globalContext.getWorkerPool(name);
 			if (oldWorkerPool != null) {
@@ -69,6 +76,12 @@ public final class DeployHelper {
 			} else {
 				globalContext.putWorkerPool(name, new WorkerPool(globalContext, name, wpDef.getMinThreads(), wpDef.getMaxThreads(),
 						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
+			}
+		}
+		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
+			Object oldDataSource = globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
+			if (DataSourceArtifact.isDataSource(oldDataSource)) {
+				closer.add((AutoCloseable) oldDataSource);
 			}
 		}
 		for (ServiceArtifact service : serviceArtifacts) {
@@ -99,6 +112,14 @@ public final class DeployHelper {
 					// ignore, if JMS is down we reconnect later
 				}
 				break;
+			case FILE:
+				FileWatchEventConsumer fileWatchEventConsumer = service.getConsumerPort();
+				oldConsumerPort = globalContext.bindFileWatchEventService(fileWatchEventConsumer);
+				if (oldConsumerPort != null) {
+					closer.closeAsync(oldConsumerPort);
+				}
+				fileWatchEventConsumer.init(globalContext);
+				break;
 			case TIMER:
 				TimerService timerService = service.getConsumerPort();
 				oldConsumerPort = globalContext.bindTimerService(timerService);
@@ -121,12 +142,12 @@ public final class DeployHelper {
 		return serviceArtifacts.size();
 	}
 
-	public static void createAdminService(GlobalContext globalContext, String path) throws ValidationException {
+	public static void createAdminService(GlobalContext globalContext, String path) throws Exception {
 		HttpConsumer adminService = globalContext.getHttpService(path);
 		if (adminService == null) {
 			Directory parent = globalContext.getFileSystem().makeDirectory("admin");
 			ServiceArtifact serviceArtifact = new ServiceArtifact(globalContext.getFileSystem(), parent, "Admin.xservice");
-			serviceArtifact.setContent("<service protocol=\"http\" version=\"1\" xmlns=\"http://www.artofarc.com/esb/service\">\n\t<httpBindURI maxPool=\"2\">/admin/deploy*</httpBindURI>\n\t<admin/>\n</service>".getBytes());
+			serviceArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("Admin.xservice")));
 			serviceArtifact.validate(globalContext);
 			adminService = serviceArtifact.getConsumerPort();
 			adminService.init(globalContext);

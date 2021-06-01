@@ -37,7 +37,7 @@ public class ResumeAction extends Action {
 		if (correlationID == null) {
 			throw new ExecutionException(this, "name could not be resolved: " + _correlationID);
 		}
-		AsyncProcessingPool asyncProcessingPool = context.getPoolContext().getGlobalContext().getWorkerPool(_workerPool).getAsyncProcessingPool();
+		AsyncProcessingPool asyncProcessingPool = context.getGlobalContext().getWorkerPool(_workerPool).getAsyncProcessingPool();
 		if (asyncProcessingPool == null) {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + _workerPool);
 		}

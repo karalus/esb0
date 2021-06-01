@@ -18,16 +18,17 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.IOUtils;
 
 public class XMLProcessingArtifact extends Artifact {
-
-	final static String FILE_EXTENSION_XML_DOC = "xml";
 
 	public XMLProcessingArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -52,12 +53,14 @@ public class XMLProcessingArtifact extends Artifact {
 			}
 		}
 		// keep XML docs in cache
-		if (!getExt(getName()).equals(FILE_EXTENSION_XML_DOC)) {
+		if (!IOUtils.getExt(getName()).equals("xml")) {
 			super.clearContent();
 		}
 	}
 
 	abstract public static class AbstractURIResolver implements URIResolver {
+
+		private static final String PROTOCOL_FILE = "file:";
 
 		protected abstract Artifact getBaseArtifact();
 
@@ -69,6 +72,9 @@ public class XMLProcessingArtifact extends Artifact {
 					return getBaseArtifact().loadArtifact(base).loadArtifact(href);
 				}
 			} else {
+				if (href.startsWith(PROTOCOL_FILE)) {
+					href = href.substring(PROTOCOL_FILE.length());
+				}
 				return getBaseArtifact().loadArtifact(href);
 			}
 		}
@@ -77,9 +83,7 @@ public class XMLProcessingArtifact extends Artifact {
 		public StreamSource resolve(String href, String base) throws TransformerException {
 			try {
 				Artifact artifact = resolveArtifact(href, base);
-				StreamSource source = new StreamSource(artifact.getContentAsStream());
-				source.setSystemId(artifact.getURI());
-				return source;
+				return new StreamSource(artifact.getContentAsStream(), artifact.getURI());
 			} catch (FileNotFoundException e) {
 				throw new TransformerException(e);
 			}
@@ -108,6 +112,47 @@ public class XMLProcessingArtifact extends Artifact {
 			Artifact artifact = super.resolveArtifact(href, base);
 			_artifact.get().addReference(artifact);
 			return artifact;
+		}
+	}
+
+	static final class ValidationErrorListener implements ErrorListener {
+
+		private final String uri;
+		private final ArrayList<TransformerException> exceptions = new ArrayList<>();
+
+		ValidationErrorListener(String uri) {
+			this.uri = uri;
+		}
+
+		@Override
+		public void warning(TransformerException exception) {
+			logger.warn(uri, exception);
+		}
+
+		@Override
+		public void fatalError(TransformerException exception) {
+			logger.error(uri, exception);
+			exceptions.add(exception);
+		}
+
+		@Override
+		public void error(TransformerException exception) {
+			logger.error(uri, exception);
+			exceptions.add(exception);
+		}
+
+		public Exception build(Exception e) {
+			switch (exceptions.size()) {
+			case 0:
+				return e;
+			case 1:
+				return exceptions.get(0);
+			default:
+				for (TransformerException exception : exceptions) {
+					e.addSuppressed(exception);
+				}
+				return e;
+			}
 		}
 	}
 

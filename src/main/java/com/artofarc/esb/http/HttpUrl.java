@@ -59,7 +59,7 @@ public final class HttpUrl {
 
 	@Override
 	public int hashCode() {
-		return _host.hashCode() + _port ^ _path.hashCode();
+		return _host.hashCode() + _port ^ _path.hashCode() + _weight;
 	}
 
 	@Override
@@ -69,7 +69,7 @@ public final class HttpUrl {
 		if (!(obj instanceof HttpUrl))
 			return false;
 		HttpUrl other = (HttpUrl) obj;
-		return _port == other._port && _host.equals(other._host) && _path.equals(other._path);
+		return _port == other._port && _host.equals(other._host) && _path.equals(other._path) && _weight == other._weight;
 	}
 
 	@Override

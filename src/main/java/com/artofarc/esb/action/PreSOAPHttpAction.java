@@ -47,13 +47,13 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 		String soapAction = _mapOperation2SoapActionURI.get(message.<String> getVariable(ESBConstants.SOAP_OPERATION));
 		if (_soap12) {
 			if (soapAction != null && soapAction.length() > 0) {
-				Map.Entry<String, String> contentType = message.getHeaderEntry(HTTP_HEADER_CONTENT_TYPE);
-				contentType.setValue(contentType.getValue() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + soapAction);
+				String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + '"' + soapAction + '"');
 			}
-			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAP_1_2_CONTENT_TYPE);
+			message.putHeader(HTTP_HEADER_ACCEPT, SOAP_1_2_CONTENT_TYPE);
 		} else {
-			message.getHeaders().put(HTTP_HEADER_SOAP_ACTION, soapAction != null ? '"' + soapAction + '"' : "\"\"");
-			message.getHeaders().put(HTTP_HEADER_ACCEPT, SOAP_1_1_CONTENT_TYPE);
+			message.putHeader(HTTP_HEADER_SOAP_ACTION, soapAction != null ? '"' + soapAction + '"' : "\"\"");
+			message.putHeader(HTTP_HEADER_ACCEPT, SOAP_1_1_CONTENT_TYPE);
 		}
 		message.getVariables().put(ESBConstants.HttpMethod, "POST");
 		message.setSchema(_schema);

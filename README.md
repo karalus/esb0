@@ -8,14 +8,15 @@ Features:
 - Service flows can make use of XPath 2.0, XQuery 3.1 and XSLT 3.0 interchangeably within one streaming pipeline
 - For accessing data inside of JSON we use [JSON Pointer](https://tools.ietf.org/html/rfc6901) (Message transformation with JSON data can be done with XSLT or XQuery)
 - Java code can be invoked dynamically if necessary e.g. for special transformations
-- Supports HTTP, JMS, JDBC, Files and [Kafka](https://kafka.apache.org/)
+- Supports HTTP(S), JMS, JDBC, SMTP, Files and [Kafka](https://kafka.apache.org/)
 - Can map between synchronous and asynchronous messages exchange patterns
 - Supports GZIP and [Fast Infoset](https://en.wikipedia.org/wiki/Fast_Infoset) encoding/decoding and MTOM/XOP
-- Uses resource- and threadpools for effective resource utilization, thus supporting QoS per service.
-- Includes a HTTP loadbalancer component with health check for outbound HTTP traffic
-- New service flows and threadpools can be configured at runtime without service outage
+- Uses resource- and thread pools for effective resource utilization, thus supporting QoS per service.
+- Includes a HTTP load balancer component with health check for outbound HTTP traffic
+- New service flows and thread pools can be configured at runtime without service outage
 - Is performant like a network component. Can act at the speed of a reverse proxy (only few millis penalty) even when processing XML.
 - Outperforms most other Service Gateways when XML processing is needed.
+- Small memory requirements. Even with 32MB heap you can run service flows. 
 - Simple REST admin services to deploy and control service flows
 - JMX support, i.e. MBeans for remote monitoring & management
 
@@ -23,13 +24,13 @@ Features:
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.5.2.
+Current stable version is 1.8.2.
 
 ### Design goals ###
 
 Most ESB products are very heavy suites which is counterproductive for their main purpose - to act as a fast and simple service gateway to control and monitor service usage within your enterprise.
 
-ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently below 100k of size!
+ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently about 100k of size!
 
 The minimal set of features is supported based on the VETRO pattern. All basic EAI components that are needed are built-in with the exemption of stateful components (e.g. [resquencer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Resequencer.html)). As the ESB Zero does not maintain state on its own, it can be easily scaled up and runs very stable.
 
@@ -72,7 +73,7 @@ Even in a Kubernetes environment where endpoint virtualization and load balancin
 
 You need to have [Maven](http://maven.apache.org/) and [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html) installed.
 
-ESB Zero build has been tested with Maven 3.5.2 and JDK8.
+ESB Zero build is using Maven 3.6.x and has been tested with Oracle JDK8 and OpenJDK 11.
 
 From version 1.4 on Java 8 is required at runtime.
 
@@ -80,25 +81,32 @@ From version 1.4 on Java 8 is required at runtime.
 
 ### How to deploy ###
 
-ESB Zero requires a Java Servlet Container conforming to the servlet 3.0 API. 
-It has been tested with Tomcat 8 and 8.5, Wildfly, Jetty 9.0.0. and JBoss EAP 7.1.
+ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API. 
+It has been tested with Tomcat 8 and 8.5, Wildfly, Jetty 9 and JBoss EAP 7.x.
+
+JBoss EAP 7.2 has been tested with Oracle JDK8 and OpenJDK 11.
 
 ESB Zero needs one directory to retrieve service flows and other artifacts from and persist to.
 Per default it is expected to have a folder named "esb_root" in the user home folder (of the user running the servlet container).
 Either create an empty directory with name "esb_root" there or set environment variable ESB_ROOT_DIR to an existing folder of your choice.
 In a cluster setup it is also possible to use a DB(via JNDI DataSource) for storing/retrieving service artifacts if you cannot go for a cluster file system.
 
-Note: This folder can be empty but it must exist!
+__Note__: This folder can be empty but it must exist!
 
-If you are using JMS or JDBC actions within your flows you'll need to configure JMS-Providers and/or Datasources in your Servlet Container. These resources will be used by JNDI lookup.
+If you are using JMS or JDBC actions within your flows you'll need to configure JMS-Providers and/or Datasources in your Servlet Container. These resources will be acquired by JNDI lookup.
+For JDBC there is special support for Oracle DB built in (e.g. handling java.sql.Array), but any other DB works as well.
+JMS-Providers being successfully used in productive environments are ActiveMQ, Oracle AQ, TIBCO EMS, IBM MQ.
+
+Note: Some JMS Providers do not offer ootb JNDI Integration (e.g. Oracle AQ) or deliver a RAR which only enables heavy weight EJB MDBs.
+To get them available via JNDI in your servlet container of choice you can use a simple ObjectFactoryAdapter provided here [aq-jndi](https://github.com/karalus/aq-jndi).
 
 Deploy it in your servlet container of choice.
 
-Test if the admin UI is accessible: http://localhost:8080/esb0/admin
+Test if the admin UI is accessible (For access use a user which has the role "esb0admin" assigned): http://localhost:8080/esb0/admin
 
 ### Working with the sources ###
 
-The GIT repository contains old Eclipse project files for working with Eclipse 3.7.2.
+The GIT repository contains Eclipse project files for working with Eclipse from version 3.7.2 till recent.
 
 Any other IDE will also do since there is nothing special about it:
 1) Either you use a maven project import wizard
@@ -107,12 +115,12 @@ Any other IDE will also do since there is nothing special about it:
 ### On which projects/technology does ESB Zero depend on? ###
 There are only very few dependencies:
 
-It is written in Java 7 and implements a servlet based on 3.0.1 API.
+It is written in Java 8 and implements a servlet based on 3.1 API.
 
 - For WSDL parsing [WSDL4J](https://sourceforge.net/projects/wsdl4j/) is used.
-- For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/9.8/)
-- For conversion between XML and JSON [MOXy](http://www.eclipse.org/eclipselink/documentation/2.7/moxy/json002.htm) is used.
-- FastInfoset support is implemented using "com.sun.xml.fastinfoset".
+- For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/)
+- The XML-Artifacts for service flows are instantiated via [JAXB](https://javaee.github.io/jaxb-v2/)
+- FastInfoset support is implemented using [metro-fi](https://github.com/javaee/metro-fi).
 - Logging is done with [SLF4J](https://www.slf4j.org/). Optionally combined with [Logback](https://logback.qos.ch/) it gives the best performance.
 
 Optional

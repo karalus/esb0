@@ -90,16 +90,18 @@ public final class SchemaHelper implements InvocationHandler {
 			return method.invoke(_grammarPool, args);
 		case "retrieveGrammar":
 			Object xmlGrammarDescription = args[0];
-			String systemId = XMLCatalog.alignSystemId(ReflectionUtils.<String> eval(xmlGrammarDescription, "literalSystemId"));
+			String systemId = ReflectionUtils.eval(xmlGrammarDescription, "literalSystemId");
 			if (systemId != null) {
 				String baseSystemId = ReflectionUtils.eval(xmlGrammarDescription, "baseSystemId");
 				String namespace = ReflectionUtils.eval(xmlGrammarDescription, "namespace");
 				try {
-					SchemaArtifact artifact;
-					if (baseSystemId != null) {
-						artifact = _schemaArtifact.resolveArtifact(systemId, baseSystemId);
-					} else {
-						artifact = _schemaArtifact.loadArtifact(systemId);
+					SchemaArtifact artifact = XMLCatalog.get(_schemaArtifact, namespace);
+					if (artifact == null) {
+						if (baseSystemId != null) {
+							artifact = _schemaArtifact.resolveArtifact(namespace, systemId, baseSystemId);
+						} else {
+							artifact = _schemaArtifact.loadArtifact(systemId);
+						}
 					}
 					if (artifact != _schemaArtifact) {
 						// don't recurse when it is already started. Will result in stack overflow caused by circular dependencies. 

@@ -16,10 +16,8 @@
  */
 package com.artofarc.esb.context;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -29,38 +27,81 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.management.MBeanServer;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.xml.transform.ErrorListener;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 
+import com.artofarc.esb.FileWatchEventConsumer;
+import com.artofarc.esb.KafkaConsumerPort;
 import com.artofarc.esb.Registry;
+import com.artofarc.esb.TimerService;
 import com.artofarc.esb.artifact.Artifact;
+import com.artofarc.esb.artifact.DataSourceArtifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
-import com.artofarc.esb.http.HttpEndpointRegistry;
+import com.artofarc.esb.jms.JMSConsumer;
+import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.resource.XQConnectionFactory;
-import com.artofarc.util.ReflectionUtils;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.esb.servlet.HttpConsumer;
+import com.artofarc.util.Closer;
+import com.artofarc.util.ConcurrentResourcePool;
 
-public final class GlobalContext extends Registry implements com.artofarc.esb.mbean.GlobalContextMXBean {
+public final class GlobalContext extends Registry implements Runnable, com.artofarc.esb.mbean.GlobalContextMXBean {
 
-	private static final long DEPLOY_TIMEOUT = Long.parseLong(System.getProperty("esb0.deploy.timeout", "60"));
+	public static final String VERSION = "esb0.version";
+	public static final String BUILD_TIME = "esb0.build.time";
+
+	private static final int DEPLOY_TIMEOUT = Integer.parseInt(System.getProperty("esb0.deploy.timeout", "60"));
+	private static final int CONSUMER_IDLETIMEOUT = Integer.parseInt(System.getProperty("esb0.consumer.idletimeout", "300"));
 	private static final String GLOBALPROPERTIES = System.getProperty("esb0.globalproperties");
 
+	private final ClassLoader _classLoader;
+	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache;
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
 	private final XQConnectionFactory _xqConnectionFactory;
-	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
-	private final Map<String, WorkerPool> _workerPoolMap = Collections.synchronizedMap(new HashMap<String, WorkerPool>());
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
-	private final Map<String, Object> _propertyCache = new HashMap<>();
-
 	private volatile FileSystem _fileSystem;
 
-	public GlobalContext(MBeanServer mbs) {
+	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, final Properties properties) {
 		super(mbs);
+		_classLoader = classLoader;
+		if (properties.getProperty(VERSION) != null) {
+			logger.info("ESB0 version " + properties.getProperty(VERSION) + " build time " + properties.getProperty(BUILD_TIME));
+			logVersion("SLF4J", "org.slf4j", "com.artofarc.esb.context.AbstractContext", "logger");
+			logVersion("JAXB", "javax.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
+			logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.JAXPFactoryHelper", "SAX_PARSER_FACTORY");
+			logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.JAXPFactoryHelper", "SAX_TRANSFORMER_FACTORY");
+			logVersion("XQJ", "javax.xml.xquery", "com.saxonica.xqj.SaxonXQDataSource", null);
+			logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
+			logVersion("JSONParser", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
+			logVersion("JavaMail", "javax.mail.internet", "javax.mail.internet.MimeMultipart", null);
+			logVersion("metro-fi", "com.sun.xml.fastinfoset", "com.sun.xml.fastinfoset.Encoder", null);
+			logVersion("XSOM", "com.sun.xml.xsom", "com.artofarc.util.XSOMHelper", "anySchema");
+		}
+		_propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
+
+			@Override
+			protected void init(Map<String, Object> pool) throws Exception {
+				if (GLOBALPROPERTIES != null) {
+					properties.load(getResourceAsStream(GLOBALPROPERTIES));
+				}
+				for (String key : properties.stringPropertyNames()) {
+					pool.put(key, properties.getProperty(key));
+				}
+			}
+
+			@Override
+			protected Object createResource(String key, Void param) throws NamingException {
+				Object property = key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
+				DataSourceArtifact.setMetricRegistry(property, getMetricRegistry());
+				return property;
+			}
+
+		};
 		try {
-			invalidatePropertyCache();
 			_initialContext = new InitialContext();
-		} catch (IOException | NamingException e) {
+		} catch (NamingException e) {
 			throw new RuntimeException(e);
 		}
 		_uriResolver = new XMLProcessingArtifact.AbstractURIResolver() {
@@ -70,9 +111,67 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 			}
 		};
 		_xqConnectionFactory = XQConnectionFactory.newInstance(_uriResolver);
+		_xqConnectionFactory.setErrorListener(new ErrorListener() {
+
+			@Override
+			public void warning(TransformerException exception) throws TransformerException {
+				logger.debug("XQConnectionFactory", exception);
+			}
+
+			@Override
+			public void fatalError(TransformerException exception) throws TransformerException {
+				logger.debug("XQConnectionFactory", exception);
+			}
+
+			@Override
+			public void error(TransformerException exception) throws TransformerException {
+				logger.debug("XQConnectionFactory", exception);
+			}
+		});
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
-		putWorkerPool(null, new WorkerPool(this, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
+		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
+		if (CONSUMER_IDLETIMEOUT > 0) {
+			getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, CONSUMER_IDLETIMEOUT, CONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
+		}
+	}
+
+	private void logVersion(String capability, String ifcPkg, String factoryClass, String factoryField) {
+		try {
+			Class<?> cls = Class.forName(factoryClass, true, _classLoader);
+			Package factoryPackage;
+			if (factoryField != null) {
+				java.lang.reflect.Field field = cls.getDeclaredField(factoryField);
+				field.setAccessible(true);
+				Object factory = field.get(null);
+				factoryPackage = factory.getClass().getPackage();
+			} else {
+				factoryPackage = cls.getPackage();
+			}
+			logger.info(capability + ", interface: " + Package.getPackage(ifcPkg));
+			String impl = "package " + factoryPackage.getName();
+			if (factoryPackage.getImplementationTitle() != null) {
+				impl += ", " + factoryPackage.getImplementationTitle();
+			}
+			if (factoryPackage.getImplementationVersion() != null) {
+				impl += ", version " + factoryPackage.getImplementationVersion();
+			}
+			logger.info(capability + ", implementation: " + impl);
+		} catch (ReflectiveOperationException e) {
+			logger.error("Could not get factory", e);
+		}
+	}
+
+	public ClassLoader getClassLoader() {
+		return _classLoader;
+	}
+
+	public InputStream getResourceAsStream(String name) throws FileNotFoundException {
+		InputStream stream = _classLoader.getResourceAsStream(name);
+		if (stream == null) {
+			throw new FileNotFoundException(name + " must be in classpath");
+		}
+		return stream;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -87,10 +186,6 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 
 	public XQConnectionFactory getXQConnectionFactory() {
 		return _xqConnectionFactory;
-	}
-
-	public HttpEndpointRegistry getHttpEndpointRegistry() {
-		return httpEndpointRegistry;
 	}
 
 	public boolean lockFileSystem() {
@@ -113,37 +208,44 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		_fileSystem = fileSystem;
 	}
 
-	public Collection<WorkerPool> getWorkerPools() {
-		return _workerPoolMap.values();
-	}
-
-	public WorkerPool getWorkerPool(String name) {
-		return _workerPoolMap.get(name);
-	}
-
-	public WorkerPool getDefaultWorkerPool() {
-		return _workerPoolMap.get(null);
-	}
-
-	public void putWorkerPool(String name, WorkerPool workerPool) {
-		WorkerPool old = _workerPoolMap.put(name, workerPool);
-		if (old != null) {
-			unregisterMBean(",group=WorkerPool,name=" + name);
+	@Override
+	public void run() {
+		for (HttpConsumer httpConsumer : getHttpConsumers()) {
+			httpConsumer.getContextPool().shrinkPool();
 		}
-		registerMBean(workerPool, ",group=WorkerPool,name=" + name);
+		long now = System.currentTimeMillis();
+		for (JMSConsumer jmsConsumer : getJMSConsumers()) {
+			jmsConsumer.controlJMSWorkerPool(0, now);
+		}
 	}
 
 	@Override
 	public void close() {
-		// Phase 1
-		stopIngress();
+		// Phase 1: Stop ingress
+		for (TimerService timerService : getTimerServices()) {
+			timerService.close();
+		}
+		for (HttpConsumer httpConsumer : getHttpConsumers()) {
+			try {
+				httpConsumer.enable(false);
+			} catch (Exception e1) {
+				// ignore
+			}
+	}
+		for (JMSConsumer jmsConsumer : getJMSConsumers()) {
+			Closer.closeQuietly(jmsConsumer);
+	}
+		for (FileWatchEventConsumer fileWatchEventConsumer : getFileWatchEventConsumers()) {
+			fileWatchEventConsumer.close();			
+		}
+		for (KafkaConsumerPort kafkaConsumer : getKafkaConsumers()) {
+			kafkaConsumer.close();
+	}
 		// Phase 2
-		httpEndpointRegistry.close();
-		for (Map.Entry<String, WorkerPool> entry : _workerPoolMap.entrySet()) {
-			WorkerPool workerPool = entry.getValue();
+		getHttpEndpointRegistry().close();
+		for (WorkerPool workerPool : getWorkerPools()) {
 			workerPool.close();
 			workerPool.getPoolContext().close();
-			unregisterMBean(",group=WorkerPool,name=" + entry.getKey());
 		}
 		try {
 			_initialContext.close();
@@ -153,37 +255,31 @@ public final class GlobalContext extends Registry implements com.artofarc.esb.mb
 		super.close();
 	}
 
-	public synchronized Object getProperty(String key) throws NamingException {
-		if (_propertyCache.containsKey(key)) {
-			return _propertyCache.get(key);
-		} else {
-			Object property = key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
-			if (property instanceof javax.sql.DataSource) {
-				// HikariCP?
-				try {
-					ReflectionUtils.eval(property, "setMetricRegistry($1)", getMetricRegistry());
-				} catch (ReflectiveOperationException e) {
-					logger.info("No HikariCP", e);
-				}
-			}
-			_propertyCache.put(key, property);
-			return property; 
-		}
+	public Object getProperty(String key) throws NamingException {
+		return _propertyCache.getResource(key);
 	}
 
-	public synchronized void invalidatePropertyCache() throws IOException {
-		_propertyCache.clear();
-		if (GLOBALPROPERTIES != null) {
-			Properties properties = new Properties();
-			properties.load(StreamUtils.getResourceAsStream(GLOBALPROPERTIES));
-			for (String key : properties.stringPropertyNames()) {
-				_propertyCache.put(key, properties.getProperty(key));
-			}
-		}
+	public Object putProperty(String key, Object object) {
+		DataSourceArtifact.setMetricRegistry(object, getMetricRegistry());
+		return _propertyCache.putResource(key, object);
+	}
+
+	public void invalidatePropertyCache() throws Exception {
+		_propertyCache.reset(false);
 	}
 
 	public Set<String> getCachedProperties() {
-		return _propertyCache.keySet();
+		return _propertyCache.getResourceDescriptors();
+	}
+
+	public String getVersion() throws NamingException {
+		return (String) getProperty(VERSION);
+	}
+
+	public Set<String> getCaches() {
+		@SuppressWarnings("unchecked")
+		LRUCacheWithExpirationFactory<Object, Object[]> factory = getResourceFactory(LRUCacheWithExpirationFactory.class);
+		return factory.getResourceDescriptors();
 	}
 
 	public String bindProperties(String exp) throws NamingException {

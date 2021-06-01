@@ -16,39 +16,53 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.PrintWriter;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StreamUtils;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.ByteArrayInputStream;
+import com.artofarc.util.IOUtils;
+import com.artofarc.util.StringBuilderWriter;
 
 public class DumpAction extends TerminalAction {
 
 	private final boolean _binary;
+	private final File _dumpDir;
 
-	public DumpAction(boolean binary) {
+	public DumpAction(boolean binary, String dumpDir) {
 		_binary = binary;
+		if (dumpDir != null) {
+			_dumpDir = new File(dumpDir);
+			if (!_dumpDir.exists() || !_dumpDir.isDirectory()) {
+				throw new IllegalStateException("Is not a directory " + dumpDir);
+			}
+		} else {
+			_dumpDir = null;
+		}
 	}
 
 	public DumpAction() {
-		this(false);
+		this(false, null);
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext resource, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, resource, message, nextActionIsPipelineStop);
-		StringWriter writer = new StringWriter();
+	protected void execute(Context context, ESBMessage message) throws Exception {
+		StringBuilderWriter writer = new StringBuilderWriter();
 		writer.write("Headers: ");
-		ESBMessage.dumpMap(context, message.getHeaders(), writer);
+		ESBMessage.dumpKeyValues(context, message.getHeaders(), writer);
 		logger.info(writer.toString());
 		writer.reset();
 		writer.write("Variables: ");
-		ESBMessage.dumpMap(context, message.getVariables(), writer);
+		ESBMessage.dumpKeyValues(context, message.getVariables().entrySet(), writer);
 		logger.info(writer.toString());
 		writer.reset();
+		if (message.getAttachments().size() > 0) {
+			logger.info("Attachments: " + message.getAttachments().keySet());
+		}
 		if (message.getBodyType() != BodyType.INVALID) {
 			if (message.getBodyType() == BodyType.EXCEPTION) {
 				writer.write("Body(Exception): ");
@@ -63,8 +77,15 @@ public class DumpAction extends TerminalAction {
 						message.getBodyAsString(context);
 					}
 				}
-				if (_binary) {
-					logger.info("Body(" + message.getCharset() + "):\n" + StreamUtils.convertToHexDump(message.getBodyAsInputStream(context)));
+				if (_dumpDir != null) {
+					File dumpFile = new File(_dumpDir, message.getVariable(ESBConstants.initialTimestamp) + ".bin");
+					try (FileOutputStream fileOutputStream = new FileOutputStream(dumpFile)) {
+						fileOutputStream.write(message.getBodyAsByteArray(context));
+					}
+					logger.info("Body dumped into " + dumpFile);
+				} else if (_binary || message.isFI()) {
+					ByteArrayInputStream bis = new ByteArrayInputStream(message.getBodyAsByteArray(context));
+					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(bis));
 				} else {
 					logger.info("Body:\n" + message.getBodyAsString(context));
 				}

@@ -16,16 +16,16 @@
  */
 package com.artofarc.util;
 
-import java.util.Stack;
+import java.util.ArrayDeque;
 
 import org.slf4j.Logger;
 
-public final class TimeGauge implements AutoCloseable {
+public final class TimeGauge {
 
 	private final Logger _logger; 
 	private final boolean _debug;
 	private final long _threshold;
-	private final Stack<Long> _measuredPoints = new Stack<>();
+	private final ArrayDeque<Long> _measuredPoints = new ArrayDeque<>();
 
 	public TimeGauge(Logger logger, long threshold, boolean debug) {
 		_logger = logger;
@@ -49,37 +49,26 @@ public final class TimeGauge implements AutoCloseable {
 		_measuredPoints.push(System.nanoTime());
 	}
 
-	public void stopTimeMeasurement() {
-		_measuredPoints.pop();
+	public long stopTimeMeasurement() {
+		return (System.nanoTime() - _measuredPoints.pop()) / 1000000L;
 	}
 
-	public void stopTimeMeasurement(String text, boolean restart, Object... args) {
+	public long stopTimeMeasurement(String text, boolean restart, Object... args) {
 		final long endTS = System.nanoTime();
 		final long startTS = _measuredPoints.pop();
 		final long diff = (endTS - startTS) / 1000000L;
 		if (diff >= _threshold && isLogEnabled()) {
 			if (args.length > 0) text = String.format(text, args);
-			log(String.format(text, args) + " took " + diff / 1000. + "s");
+			log(text + " took " + diff / 1000. + "s");
 		}
 		if (restart) {
 			_measuredPoints.push(endTS);
 		}
+		return diff;
 	}
 
-	@Override
-	public void close() {
+	public void clear() {
 		_measuredPoints.clear();
-	}
-
-	public AutoCloseable createTimer(final String message) {
-		startTimeMeasurement();
-		return new AutoCloseable() {
-
-			@Override
-			public void close() {
-				stopTimeMeasurement(message, false);
-			}
-		};
 	}
 
 }

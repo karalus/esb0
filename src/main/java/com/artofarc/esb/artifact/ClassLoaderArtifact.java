@@ -31,6 +31,10 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 		super(fileSystem, parent, name);
 	}
 
+	public final FileSystemClassLoader getFileSystemClassLoader() {
+		return _fileSystemClassLoader;
+	}
+
 	@Override
 	protected ClassLoaderArtifact clone(FileSystem fileSystem, Directory parent) {
 		ClassLoaderArtifact clone = initClone(new ClassLoaderArtifact(fileSystem, parent, getName()));
@@ -42,8 +46,8 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		ClassLoader classLoader = unmarshal();
 		ArrayList<JarArtifact.Jar> jars = new ArrayList<>();
-		for (String jar : classLoader.getJar()) {
-			JarArtifact jarArtifact = loadArtifact(jar);
+		for (String jarFileName : classLoader.getJar()) {
+			JarArtifact jarArtifact = loadArtifact(globalContext.bindProperties(jarFileName));
 			jarArtifact.validate(globalContext);
 			addReference(jarArtifact);
 			jars.add(jarArtifact.getJar());
@@ -55,12 +59,14 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 			classLoaderArtifact.validate(globalContext);
 			_fileSystemClassLoader = new FileSystemClassLoader(jars, classLoaderArtifact.getFileSystemClassLoader());
 		} else {
-			_fileSystemClassLoader = new FileSystemClassLoader(jars, getClass().getClassLoader());
+			_fileSystemClassLoader = new FileSystemClassLoader(jars, globalContext.getClassLoader());
 		}
 	}
 
-	public final FileSystemClassLoader getFileSystemClassLoader() {
-		return _fileSystemClassLoader;
+	@Override
+	protected void invalidate() {
+		_fileSystemClassLoader = null;
+		super.invalidate();
 	}
 
 }

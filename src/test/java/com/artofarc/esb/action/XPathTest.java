@@ -49,11 +49,11 @@ public class XPathTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
       LinkedHashMap<String, String> ns = new LinkedHashMap<>();
       ns.put("v1", "http://com.artofarc/v1");
-      Action action = createAssignAction(createAssignments(false, "result", "<v1:result>{test/text()}</v1:result>", "request", "."), ns);
+      Action action = createAssignAction(createAssignments(false, "result", "<v1:result>{test/text()}</v1:result>", "request", "."), ".", ns);
       action.setNextAction(new DumpAction());
       action.process(context, message);
       Node node = message.getVariable("result");
-      context.getIdenticalTransformer().transform(new DOMSource(node), new StreamResult(System.out));
+      context.transform(new DOMSource(node), new StreamResult(System.out));
       Node request = message.getVariable("request");
       assertTrue(request.getNodeType() == Node.DOCUMENT_NODE);
    }
@@ -77,7 +77,7 @@ public class XPathTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
       LinkedHashMap<String, String> ns = new LinkedHashMap<>();
       ns.put("fn-bea", "http://artofarc.com/xpath-extension");
-      Action action = createAssignAction(createAssignments(false, "result", "<result>{fn-bea:uuid(), fn-artofarc:uuid()}</result>", "result2", "data(<url>http://localhost/nix/ep</url>)"), ns);
+      Action action = createAssignAction(createAssignments(false, "result", "<result>{fn-bea:uuid(), fn-artofarc:uuid()}</result>", "result2", "data(<url>http://localhost/nix/ep</url>)"), ".", ns);
       action.setNextAction(new DumpAction());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action, new DumpAction());
@@ -87,14 +87,14 @@ public class XPathTest extends AbstractESBTest {
          String result = node.getTextContent();
          assertEquals("Hello", result);
       } else {
-         context.getIdenticalTransformer().transform(new DOMSource(node), new StreamResult(System.out));
+         context.transform(new DOMSource(node), new StreamResult(System.out));
       }
    }
    
    @Test
    public void testCurrentUTC() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-      Action action = createAssignAction(createAssignments(false, "result", "format-dateTime(adjust-dateTime-to-timezone(current-dateTime(),xs:dayTimeDuration('PT0H')),'[Y,4]-[M,2]-[D,2]T[H01]:[m01]:[s01].[f,3]Z')"), null);
+      Action action = createAssignAction(createAssignments(false, "result", "format-dateTime(adjust-dateTime-to-timezone(current-dateTime(),xs:dayTimeDuration('PT0H')),'[Y,4]-[M,2]-[D,2]T[H01]:[m01]:[s01].[f001]Z')"), ".", null);
       action.setNextAction(new DumpAction());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -106,18 +106,60 @@ public class XPathTest extends AbstractESBTest {
    }
    
    @Test
+   public void testNullableNumber() throws Exception {
+//      ESBMessage message = new ESBMessage(BodyType.STRING, "<test><number>?</number></test>");
+      ESBMessage message = new ESBMessage(BodyType.STRING, "<test></test>");
+      List<AssignAction.Assignment> assignments = createAssignments(false);
+      assignments.add(new AssignAction.Assignment("result1", false, "if (number(*/number)) then number(*/number) else ()", true, "xs:int"));
+      assignments.add(new AssignAction.Assignment("result2", false, "*/number", true, "xs:int"));
+	  Action action = createAssignAction(assignments, ".", null);
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
+      assertNull(message.getVariable("result1"));
+      assertNull(message.getVariable("result2"));
+   }
+   
+   @Test
+   public void testIllegalNumber() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.STRING, "<test><number>?</number></test>");
+      List<AssignAction.Assignment> assignments = createAssignments(false);
+      assignments.add(new AssignAction.Assignment("result1", false, "if (number(*/number)) then number(*/number) else ()", true, "xs:int"));
+ 	  Action action = createAssignAction(assignments, ".", null);
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
+      assertNull(message.getVariable("result"));
+   }
+   
+ @Test
    public void testJavaExtensionEvaluate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
       List<AssignAction.Assignment> assignments = createAssignments(false);
       assignments.add(new AssignAction.Assignment("result", false, "fn-artofarc:evaluate('test')", false, "xs:string"));
       assignments.add(new AssignAction.Assignment("result2", false, "*[2]", true, "xs:string"));
-      Action action = createAssignAction(assignments, null);
+      Action action = createAssignAction(assignments, ".", null);
       action.setNextAction(new DumpAction());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       consumerPort.process(context, message);
       assertEquals("Hello World!", message.getVariable("result"));
       assertNull(message.getVariable("result2"));
+   }
+   
+   @Test
+   public void testEmbed() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+      List<AssignAction.Assignment> assignments = createAssignments(false);
+      assignments.add(new AssignAction.Assignment("result1", false, "<test1/>", false, null));
+      assignments.add(new AssignAction.Assignment("result2", false, "<test2/>", true, null));
+      Action action = createAssignAction(assignments, "<outer>{$result1}{$result2}</outer>", null);
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
    }
    
    @Test
@@ -149,6 +191,22 @@ public class XPathTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+   }
+   
+   @Test
+   public void testArray() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+      message.putVariable("RedeliveryCount", 5);
+      List<AssignAction.Assignment> assignments = createAssignments(false);
+      assignments.add(new AssignAction.Assignment("NewRedeliveryCount", true, "if ($RedeliveryCount) then $RedeliveryCount + 1 else 1", false, null));
+      assignments.add(new AssignAction.Assignment("deliveryDelay", false, "let $array := [10,20,40] return $array(if ($NewRedeliveryCount>array:size($array)) then array:size($array) else $NewRedeliveryCount)", false, null));
+      LinkedHashMap<String, String> ns = new LinkedHashMap<>();
+      ns.put("array", "http://www.w3.org/2005/xpath-functions/array");
+      Action action = createAssignAction(assignments, null, ns, "RedeliveryCount");
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
       consumerPort.process(context, message);
    }
    

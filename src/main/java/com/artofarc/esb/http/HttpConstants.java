@@ -16,7 +16,28 @@
  */
 package com.artofarc.esb.http;
 
-public class HttpConstants implements javax.xml.soap.SOAPConstants {
+public class HttpConstants {
+
+	/**
+	 * The namespace identifier for the SOAP 1.1 envelope.
+	 */
+	public static final String URI_NS_SOAP_1_1_ENVELOPE = "http://schemas.xmlsoap.org/soap/envelope/";
+
+	/**
+	 * The namespace identifier for the SOAP 1.2 envelope.
+	 */
+	public static final String URI_NS_SOAP_1_2_ENVELOPE = "http://www.w3.org/2003/05/soap-envelope";
+
+	/**
+	 * The media type of the <code>Content-Type</code> MIME header in SOAP 1.1.
+	 */
+	public static final String SOAP_1_1_CONTENT_TYPE = "text/xml";
+
+	/**
+	 * The media type of the <code>Content-Type</code> MIME header in SOAP 1.2.
+	 */
+	public static final String SOAP_1_2_CONTENT_TYPE = "application/soap+xml";
+
 
 	public static final String HTTP_HEADER_ACCEPT_CHARSET = "Accept-Charset";
 
@@ -29,6 +50,8 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 	public static final String HTTP_HEADER_CONTENT_ENCODING = "Content-Encoding";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
+
+	public static final String HTTP_HEADER_CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
 
 	public static final String HTTP_HEADER_CONTENT_DISPOSITION = "Content-Disposition";
 
@@ -50,34 +73,74 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE = "type=";
 
+	public static final String HTTP_HEADER_CONTENT_PARAMETER_NAME = "name=";
+
 	public static final String HTTP_HEADER_ACCEPT = "Accept";
 
 	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
 
+	public static final String HTTP_HEADER_RETRY_AFTER = "Retry-After";
+
 	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
 
-	public static String getValueFromHttpHeader(String httpHeader, String key) {
-		int i = httpHeader.indexOf(key);
-		if (i >= 0) {
-			i += key.length();
-			int j = httpHeader.indexOf(';', i);
-			return j < 0 ? httpHeader.substring(i) : httpHeader.substring(i, j);
+	public static final String HTTP_HEADER_X_METHOD_OVERRIDE = "X-HTTP-Method-Override";
+
+	private static int findNextDelim(String s, int i) {
+		for (; i < s.length(); ++i) {
+			final char c = s.charAt(i);
+			if (c == ';' || c == ',' || c == '=') {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	private static String parseValueFromHttpHeader(String s, String key, int len) {
+		int i = findNextDelim(s, 0) + 1;
+		if (i == 0) return null;
+		StringBuilder value = new StringBuilder();
+		while (i < s.length()) {
+			while (Character.isWhitespace(s.charAt(i))) ++i;
+			final int j = findNextDelim(s, i);
+			int k = j + 1;
+			boolean quoted = false, escaped = false;
+			while (k < s.length()) {
+				final char c = s.charAt(k++);
+				if (c == '"' && !escaped) {
+					quoted = !quoted;
+					continue;
+				}
+				if (!quoted && !escaped && (c == ';' || c == ',')) {
+					break;
+				}
+				if (!(escaped = quoted && !escaped && c == '\\')) {
+					value.append(c);
+				}
+			}
+			if (j - i == len && s.regionMatches(true, i, key, 0, len)) {
+				return value.length() > 0 ? value.toString() : "";
+			}
+			i = k;
+			value.setLength(0);
 		}
 		return null;
 	}
 
-	public static String removeQuotes(String s) {
-		return s != null && s.charAt(0) == '"' ? s.substring(1, s.length() - 1) : s;
+	public static String getValueFromHttpHeader(String httpHeader) {
+		final int i = findNextDelim(httpHeader, 0);
+		return i < 0 ? httpHeader : httpHeader.substring(0, i);
+	}
+
+	public static String getValueFromHttpHeader(String httpHeader, String key) {
+		return httpHeader != null ? parseValueFromHttpHeader(httpHeader, key, key.length() - 1) : null;
 	}
 
 	public static String parseContentType(String contentType) {
 		if (contentType != null) {
-			String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
-			if (type != null) {
-				contentType = removeQuotes(type);
-			}
+			final String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
+			return (type != null ? type : getValueFromHttpHeader(contentType)).toLowerCase();
 		}
-		return contentType;
+		return null;
 	}
 
 	public static boolean isFastInfoset(String contentType) {
@@ -90,6 +153,10 @@ public class HttpConstants implements javax.xml.soap.SOAPConstants {
 
 	public static boolean isSOAP12(String contentType) {
 		return contentType != null && (contentType.startsWith(SOAP_1_2_CONTENT_TYPE) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
+	}
+
+	public static boolean isNotSOAP(String contentType) {
+		return contentType != null && !(isSOAP11(contentType) || isSOAP12(contentType));
 	}
 
 }

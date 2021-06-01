@@ -25,7 +25,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.KafkaProducerFactory;
@@ -37,7 +36,7 @@ public class KafkaProduceAction extends TerminalAction {
 	private final boolean _binary;
 	private final Producer<?, ?> _producer;
 
-	public KafkaProduceAction(GlobalContext globalContext, Properties properties, String topic, Integer partition, boolean binary) throws Exception {
+	public KafkaProduceAction(GlobalContext globalContext, Properties properties, String topic, Integer partition, boolean binary) {
 		_topic = topic;
 		_partition = partition;
 		_binary = binary;
@@ -46,11 +45,10 @@ public class KafkaProduceAction extends TerminalAction {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		super.execute(context, execContext, message, nextActionIsPipelineStop);
+	protected void execute(Context context, ESBMessage message) throws Exception {
 		@SuppressWarnings("rawtypes")
 		ProducerRecord record = new ProducerRecord<>(_topic, _partition, message.getVariable("record.key"), _binary ? message.getBodyAsByteArray(context) : message.getBodyAsString(context));
-		for (Entry<String, Object> entry : message.getHeaders().entrySet()) {
+		for (Entry<String, Object> entry : message.getHeaders()) {
 			String value = entry.getValue().toString();
 			record.headers().add(entry.getKey(), value.getBytes(ESBMessage.CHARSET_DEFAULT));
 		}

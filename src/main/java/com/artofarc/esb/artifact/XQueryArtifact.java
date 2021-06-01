@@ -16,17 +16,16 @@
  */
 package com.artofarc.esb.artifact;
 
-import javax.xml.namespace.QName;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
-import javax.xml.xquery.XQPreparedExpression;
-import javax.xml.xquery.XQSequenceType;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.resource.XQConnectionFactory;
+import com.artofarc.util.XQuerySource;
 
 public class XQueryArtifact extends XMLProcessingArtifact {
+
+	static final boolean legacyXqmResolver = Boolean.parseBoolean(System.getProperty("esb0.legacyXqmResolver"));
 
 	public XQueryArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -37,13 +36,21 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		return initClone(new XQueryArtifact(fileSystem, parent, getName()));
 	}
 
-	static void validateXQuerySource(Artifact owner, XQConnection connection, XQuerySource xQuerySource) throws XQException {
-		XQPreparedExpression preparedExpression = xQuerySource.prepareExpression(connection, owner.getParent().getURI());
-		for (QName qName : preparedExpression.getAllExternalVariables()) {
-			logger.debug("External variable: " + qName + ", Type: " + preparedExpression.getStaticVariableType(qName));
+	static void validateXQuerySource(Artifact owner, XQConnectionFactory factory, XQuerySource xQuerySource) throws Exception {
+		ValidationErrorListener errorListener = new ValidationErrorListener(owner.getURI());
+		factory.setErrorListener(errorListener);
+		XQConnection connection = factory.getConnection();
+		String baseURI = legacyXqmResolver ? owner.getParent().getURI() : owner.getURI();
+		try {
+			xQuerySource.prepareExpression(connection, baseURI).close();
+		} catch (XQException e) {
+			throw errorListener.build(e);
+		} catch (StackOverflowError e) {
+			// StackOverflowError can happen when a XQuery is deeply nested
+			throw new ValidationException(owner, e);
+		} finally {
+			connection.close();
 		}
-		logger.debug("is result occurrence exactly one: " + (preparedExpression.getStaticResultType().getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE));
-		preparedExpression.close();
 		// set modules to validated 
 		for (String referenced : owner.getReferenced()) {
 			Artifact referencedArtifact = owner.getArtifact(referenced);
@@ -57,13 +64,8 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 	public void validateInternal(GlobalContext globalContext) throws Exception {
 		// Needs an individual XQConnectionFactory to track the use of modules
 		XQConnectionFactory factory = XQConnectionFactory.newInstance(new ArtifactURIResolver(this));
-		XQConnection connection = factory.getConnection();
-		try {
-			logger.info("Parsing XQuery in: " + getURI());
-			validateXQuerySource(this, connection, XQuerySource.create(getContentAsBytes()));
-		} finally {
-			connection.close();
-		}
+		logger.info("Parsing XQuery in: " + getURI());
+		validateXQuerySource(this, factory, XQuerySource.create(getContentAsBytes()));
 	}
 
 }

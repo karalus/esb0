@@ -46,18 +46,18 @@ public class UnwrapSOAPAction extends TransformAction {
 	private final boolean _getWsdl;
 	private final Schema _schema;
 
+	private static final List<Assignment> ARG2 = Arrays.asList(new Assignment(SOAP_HEADER, true), new Assignment(SOAP_ELEMENT_NAME, false));
+	private static final List<Assignment> ARG1 = java.util.Collections.singletonList(new Assignment(SOAP_HEADER, true));
+
 	/**
-	 * @param singlePart whether body can contain more than one element.
+	 * @param singlePart whether body cannot contain more than one element.
 	 *
 	 * @see <a href="https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/">WSDL styles/</a>
 	 */
 	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl, Schema schema) {
 		super("declare namespace soapenv=\"" + (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
-				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return ("
-				+ (singlePart && bindingOperations != null ? "local-name($b), " : "") + "if ($h) then (true(), $h) else false(), $b)",
-				singlePart && bindingOperations != null ?
-						Arrays.asList(new Assignment(SOAP_OPERATION, false, null, false, null), new Assignment(SOAP_HEADER, false, null, true, null)) :
-						java.util.Collections.singletonList(new Assignment(SOAP_HEADER, false, null, true, null)));
+				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return (count($h), $h, "
+				+ (singlePart && bindingOperations != null ? "node-name($b), " : "") + "$b)", singlePart && bindingOperations != null ? ARG2 : ARG1);
 		
 		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;
@@ -87,7 +87,7 @@ public class UnwrapSOAPAction extends TransformAction {
 		if ("GET".equals(message.getVariable(HttpMethod))) {
 			String queryString = message.getVariable(QueryString);
 			if (_getWsdl && ("wsdl".equals(queryString) || "WSDL".equals(queryString))) {
-				message.getVariables().put(redirect, message.getVariable(ContextPath) + ESBServletContextListener.ADMIN_SERVLET_PATH + _wsdlUrl);
+				message.getVariables().put(redirect, message.getVariable(ContextPath) + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + _wsdlUrl);
 				return null;
 			} else if (!_soap12) {
 				throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));
@@ -102,7 +102,7 @@ public class UnwrapSOAPAction extends TransformAction {
 			throw new ExecutionException(this, error);
 		}
 		ExecutionContext execContext = super.prepare(context, message, inPipeline);
-		message.putVariable(SOAP_OPERATION, determineOperation(message));
+		message.putVariableIfNotNull(SOAP_OPERATION, determineOperation(message));
 		if (_schema != null) {
 			message.setSchema(_schema);
 		}
@@ -111,27 +111,28 @@ public class UnwrapSOAPAction extends TransformAction {
 
 	protected String determineOperation(ESBMessage message) throws ExecutionException {
 		String soapAction = message.getHeader(HTTP_HEADER_SOAP_ACTION);
-		if (soapAction == null && _soap12) {
+		if (soapAction != null) {
+			soapAction = soapAction.isEmpty() ? null : soapAction.substring(1, soapAction.length() - 1);
+		} else if (_soap12) {
 			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 			soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
 		}
 		if (soapAction != null) {
-			// soapAction is always embedded in quotes
-			String operation = _mapAction2Operation.get(removeQuotes(soapAction));
+			String operation = _mapAction2Operation.get(soapAction);
 			if (operation != null) {
 				return operation;
 			}
 		}
 		if (_operations != null) {
-			String inputElementName = message.getVariable(SOAP_OPERATION);
-			if (_operations.containsKey(inputElementName)) {
-				return inputElementName;
+			QName inputElementName = message.getVariable(SOAP_ELEMENT_NAME);
+			if (_operations.containsKey(inputElementName.getLocalPart())) {
+				return inputElementName.getLocalPart();
 			} else {
 				if (_operations.size() == 1) {
 					return _operations.keySet().iterator().next();
 				} else {
 					for (Map.Entry<String, QName> entry : _operations.entrySet()) {
-						if (entry.getValue() != null && inputElementName.equals(entry.getValue().getLocalPart())) {
+						if (inputElementName.equals(entry.getValue())) {
 							return entry.getKey();
 						}
 					}

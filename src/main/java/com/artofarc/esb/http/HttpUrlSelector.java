@@ -21,11 +21,12 @@ import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.AttributeChangeNotification;
 import javax.management.MBeanNotificationInfo;
@@ -63,22 +64,19 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		public void close() {
 			inUse.decrementAndGet(_pos);
 		}
-
 	}
 
 	private HttpEndpoint _httpEndpoint;
-
 	private final WorkerPool _workerPool;
 	private final int size;
 	private final int[] weight;
 	private final boolean[] active;
 	private final AtomicIntegerArray inUse;
-
 	private int pos;
-	private volatile int activeCount;
-	private long sequenceNumber;
-
+	private int activeCount;
+	private long _sequenceNumber;
 	private ScheduledFuture<?> _future;
+	private final AtomicLong _totalConnectionsCount = new AtomicLong();
 
 	public HttpUrlSelector(HttpEndpoint httpEndpoint, WorkerPool workerPool) {
 		super(workerPool.getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
@@ -125,7 +123,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 					_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _httpEndpoint.getCheckAliveInterval(), _httpEndpoint.getCheckAliveInterval(), TimeUnit.SECONDS);
 				}
 			}
-			sendNotification(new AttributeChangeNotification(this, ++sequenceNumber, System.currentTimeMillis(), "Endpoint state changed", "active[" + pos + "]", "boolean", old, b));
+			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Endpoint state changed", "active[" + pos + "]", "boolean", old, b));
 		}
 	}
 
@@ -153,24 +151,24 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
-		return connectTo(httpEndpoint, timeout, method, appendUrl, headers, chunkLength, httpEndpoint.getRetries());
+	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, Long contentLength) throws IOException {
+		return connectTo(httpEndpoint, timeout, method, appendUrl, headers, chunkLength, contentLength, httpEndpoint.getRetries());
 	}
 
-	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Set<Entry<String, Object>> headers, Integer chunkLength, int retryCount) throws IOException {
-		if (activeCount == 0) {
+	private HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, Long contentLength, int retryCount) throws IOException {
+		int pos = computeNextPos();
+		if (pos < 0) {
 			throw new ConnectException("No active url");
 		}
-		int pos = computeNextPos();
 		try {
 			HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(pos);
-			return new HttpUrlConnectionWrapper(httpUrl, pos, connectTo(httpUrl, timeout, method, appendUrl, headers, chunkLength));
+			return new HttpUrlConnectionWrapper(httpUrl, pos, connectTo(httpUrl, timeout, method, appendUrl, headers, chunkLength, contentLength));
 		} catch (ConnectException | NoRouteToHostException e) {
 			if (_httpEndpoint.getCheckAliveInterval() != null) {
 				setActive(pos, false);
 			}
 			if (retryCount > 0) {
-				return connectTo(httpEndpoint, timeout, method, appendUrl, headers, chunkLength, --retryCount);
+				return connectTo(httpEndpoint, timeout, method, appendUrl, headers, chunkLength, contentLength, --retryCount);
 			}
 			throw e;
 		}
@@ -181,31 +179,49 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			if (pos == size) {
 				pos = 0;
 			}
-			if (active[pos]) {
-				if (--weight[pos] == 0) {
-					weight[pos] = _httpEndpoint.getHttpUrls().get(pos).getWeight();
-					return pos++;
+			switch (activeCount) {
+			case 0:
+				return -1;
+			case 1:
+				return pos;
+			default:
+				if (active[pos]) {
+					if (--weight[pos] == 0) {
+						weight[pos] = _httpEndpoint.getHttpUrls().get(pos).getWeight();
+						return pos++;
+					}
 				}
+				break;
 			}
 		}
 	}
 
-	private HttpURLConnection connectTo(HttpUrl httpUrl, int timeout, String method, String appendUrl, Set<Entry<String, Object>> headers, Integer chunkLength) throws IOException {
+	private HttpURLConnection connectTo(HttpUrl httpUrl, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, Long contentLength) throws IOException {
 		URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setConnectTimeout(_httpEndpoint.getConnectionTimeout());
 		conn.setReadTimeout(timeout);
 		// For "PATCH" refer to https://stackoverflow.com/questions/25163131/httpurlconnection-invalid-http-method-patch
-		conn.setRequestMethod(method);
+		if (method.equals("PATCH")) {
+			conn.setRequestProperty(HttpConstants.HTTP_HEADER_X_METHOD_OVERRIDE, "PATCH");
+			conn.setRequestMethod("POST");		
+		} else {
+			conn.setRequestMethod(method);
+		}
 		conn.setDoOutput(true);
 		conn.setInstanceFollowRedirects(false);
 		if (chunkLength != null) {
 			conn.setChunkedStreamingMode(chunkLength);
+		} else if (contentLength != null) {
+			conn.setFixedLengthStreamingMode(contentLength);
 		}
 		for (Entry<String, Object> entry : headers) {
-			conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
+			if (entry.getValue() != null) {
+				conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
+			}
 		}
 		conn.connect();
+		_totalConnectionsCount.incrementAndGet();
 		return conn;
 	}
 
@@ -234,6 +250,14 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			total += inUse.get(i);
 		}
 		return total; 
+	}
+
+	public long getTotalConnectionsCount() {
+		return _totalConnectionsCount.get();
+	}
+
+	public int getActiveCount() {
+		return activeCount;
 	}
 
 }

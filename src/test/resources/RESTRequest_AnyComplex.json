@@ -1,0 +1,19 @@
+{
+   "demoElementRequest" : {
+      "ei1.messageHeader" : {
+         "@att1" : "Hallo",
+         "ei1.senderFQN" : "usingPort1",
+         "ei1.messageId" : "M-b6ce48e2-e85e-42f6-800f-52668405aafa",
+         "expectedResponseTimeInMillis" : 30000,
+         "ei1.processInstanceId" : "P-0cdbb3bf-44b8-4c35-9ccb-48d1fed38417"
+      },
+      "payload" : {
+         "para1" : "Param1",
+         "para2" : [ "Test", "Test", "Test", "Test" ],
+         "para3" : {
+         	"str" : "Param3",
+         	"nr"  : null
+         }
+      }
+   }
+}

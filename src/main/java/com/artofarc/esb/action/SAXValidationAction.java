@@ -16,12 +16,17 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.IOException;
+
+import javax.xml.parsers.SAXParser;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.ValidatorHandler;
 import javax.xml.xquery.XQItem;
 
 import org.xml.sax.ContentHandler;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
@@ -50,6 +55,24 @@ public class SAXValidationAction extends SAXAction {
 		}
 	}
 
+	class ReuseParserXMLFilter extends XMLFilterBase {
+		private final SAXParser _saxParser;
+
+		public ReuseParserXMLFilter(SAXParser saxParser) throws SAXException {
+			super(saxParser.getXMLReader());
+			_saxParser = saxParser;
+		}
+
+		@Override
+		public void parse(InputSource input) throws SAXException, IOException {
+			try {
+				super.parse(input);
+			} finally {
+				_saxParser.reset();
+			}
+		}
+	}
+
 	@Override
 	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) {
 		message.setSchema(_schema);
@@ -59,7 +82,7 @@ public class SAXValidationAction extends SAXAction {
 	@Override
 	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception {
 		message.setSchema(_schema);
-		XMLFilterBase xmlFilter = new XMLFilterBase(parent != null ? parent : context.getSAXParser().getXMLReader());
+		XMLFilterBase xmlFilter = parent != null ? new XMLFilterBase(parent) : new ReuseParserXMLFilter(context.getSAXParser());
 		xmlFilter.setContentHandler(_schema.newValidatorHandler());
 		return xmlFilter;
 	}

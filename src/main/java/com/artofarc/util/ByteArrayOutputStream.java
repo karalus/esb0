@@ -16,12 +16,20 @@
  */
 package com.artofarc.util;
 
-import java.io.ByteArrayInputStream;
-
 public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 
 	public ByteArrayOutputStream() {
-		super(StreamUtils.MTU);
+		super(IOUtils.MTU);
+	}
+
+	@Override
+	public void write(byte[] b, int off, int len) {
+		if (count + len > buf.length) {
+			super.write(b, off, len);
+		} else {
+			System.arraycopy(b, off, buf, count, len);
+			count += len;
+		}
 	}
 
 	public ByteArrayInputStream getByteArrayInputStream() {

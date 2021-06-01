@@ -44,7 +44,7 @@ public class PostSOAPHttpAction extends UnwrapSOAPAction {
 
 	@Override
 	protected String determineOperation(ESBMessage message) {
-		return message.getVariable(ESBConstants.SOAP_OPERATION);
+		return null;
 	}
 
 }

@@ -1,14 +1,10 @@
 package com.artofarc.esb.action;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.File;
 import java.io.IOException;
+import java.util.Properties;
 
-import javax.xml.soap.SOAPConstants;
-
+import static org.junit.Assert.*;
 import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
@@ -40,7 +36,7 @@ public class FileSystemTest extends AbstractESBTest {
    
   @Test
    public void testStartup() {
-		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources")) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createContext(getClass().getClassLoader(), "src/test/resources", new Properties())) {
          ConsumerPort service = globalContext.getInternalService("/HttpService4.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/demo1");
@@ -50,7 +46,7 @@ public class FileSystemTest extends AbstractESBTest {
    
    @Test
    public void testRealService() throws Exception {
-		try (GlobalContext globalContext = new ESBServletContextListener().createContext("src/test/resources")) {
+		try (GlobalContext globalContext = new ESBServletContextListener().createContext(getClass().getClassLoader(), "src/test/resources", new Properties())) {
          ConsumerPort service = globalContext.getInternalService("/example/ExampleService.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/exampleUsingport");
@@ -58,8 +54,8 @@ public class FileSystemTest extends AbstractESBTest {
          // Call
          ESBMessage message = new ESBMessage(BodyType.BYTES, ConfigServiceTest.readFile("src/test/resources/SOAPRequest.xml"));
          message.getVariables().put(ESBConstants.HttpMethod, "POST");
-         message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
-         message.getHeaders().put(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
+         message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.SOAP_1_1_CONTENT_TYPE);
+         message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
          message.getVariables().put("hasFault", false);
          try {
             PoolContext poolContext = globalContext.getDefaultWorkerPool().getPoolContext();
@@ -67,7 +63,17 @@ public class FileSystemTest extends AbstractESBTest {
          } catch (IOException e) {
 		      // ignore
          }
+         Boolean dynamic = message.getVariable("dynamic");
+         assertEquals(Boolean.TRUE, dynamic);
       }
    }
+   
+	public static class DynamicAction extends TerminalAction {
+
+		@Override
+		protected void execute(Context context, ESBMessage message) throws Exception {
+			message.putVariable("dynamic", true);
+		}
+	}
    
 }

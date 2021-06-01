@@ -32,11 +32,6 @@ public class ExecutionException extends Exception {
 		_action = action;
 	}
 
-	public ExecutionException(Action action, Throwable cause) {
-		super(cause);
-		_action = action;
-	}
-
 	@Override
 	public String getMessage() {
 		String message = super.getMessage();

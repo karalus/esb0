@@ -18,6 +18,7 @@ package com.artofarc.esb.resource;
 
 import java.util.HashMap;
 
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
@@ -39,7 +40,6 @@ import net.sf.saxon.sxpath.XPathExpression;
 import net.sf.saxon.trans.XPathException;
 import net.sf.saxon.type.BuiltInAtomicType;
 import net.sf.saxon.value.Int64Value;
-import net.sf.saxon.value.SequenceExtent;
 import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
@@ -62,6 +62,11 @@ final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURI
 		configuration.registerExtensionFunction(functionEvaluate);
 		configuration.setModuleURIResolver(this);
 		configuration.setURIResolver(uriResolver);
+	}
+
+	@Override
+	public void setErrorListener(ErrorListener listener) {
+		_dataSource.getConfiguration().setErrorListener(listener);
 	}
 
 	@Override
@@ -110,7 +115,7 @@ final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURI
 			return new ExtensionFunctionCall() {
 
 				@Override
-				public Sequence call(XPathContext context, Sequence[] arguments) {
+				public Sequence<?> call(XPathContext context, Sequence[] arguments) {
 					return StringValue.makeStringValue(java.util.UUID.randomUUID().toString());
 				}
 
@@ -140,7 +145,7 @@ final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURI
 			return new ExtensionFunctionCall() {
 
 				@Override
-				public Sequence call(XPathContext context, Sequence[] arguments) {
+				public Sequence<?> call(XPathContext context, Sequence[] arguments) {
 					return Int64Value.makeDerived(System.currentTimeMillis(), BuiltInAtomicType.LONG);
 				}
 
@@ -185,11 +190,11 @@ final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURI
 			return new ExtensionFunctionCall() {
 
 				@Override
-				public Sequence call(XPathContext context, Sequence[] arguments) throws XPathException {
-					StringValue xpath = (StringValue) arguments[0];
+				public Sequence<?> call(XPathContext context, Sequence[] arguments) throws XPathException {
+					StringValue xpath = (StringValue) arguments[0].head();
 					XPathExpression xPathExpression = getXPathExpression(context, xpath.getStringValue());
 					XPathDynamicContext dynamicContext = xPathExpression.createDynamicContext(context.getController(), context.getContextItem());
-					return SequenceExtent.makeSequenceExtent(xPathExpression.iterate(dynamicContext));
+					return xPathExpression.iterate(dynamicContext).materialize();
 				}
 
 			};

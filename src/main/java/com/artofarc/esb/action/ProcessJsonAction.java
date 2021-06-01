@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +28,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.JsonFactoryHelper;
 
 /**
  * Extract data from message using JSON Pointer.
@@ -61,10 +61,12 @@ public class ProcessJsonAction extends Action {
 		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		// Materialize message in case it is a stream thus it will not be consumed
-		String content = message.getBodyAsString(context);
-		JsonStructure json = Json.createReader(new StringReader(content)).read();
-
+		if (message.getBodyType() != BodyType.JSON_VALUE) {
+			try (JsonReader jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(message.getBodyAsReader(context))) {
+				message.reset(BodyType.JSON_VALUE, jsonReader.readValue());
+			}
+		}
+		JsonStructure json = message.getBody();
 		for (Assignment variable : _variables) {
 			Object value = variable.getValueAsObject(json);
 			if (value != null) {
@@ -78,7 +80,7 @@ public class ProcessJsonAction extends Action {
 			}
 		}
 		if (_bodyExpr != null) {
-			message.reset(BodyType.STRING, bindVariable(_bodyExpr, context, message));
+			message.reset(BodyType.STRING, bindVariable(_bodyExpr, context, message).toString());
 			message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 		}
 	}
@@ -98,7 +100,7 @@ public class ProcessJsonAction extends Action {
 					//
 				}
 			}
-			// needs javax.json v1.1 and Java 8
+			// needs javax.json v1.1 (JSR 374)
 			//_jsonPointer = Json.createPointer(jsonPointer);
 		}
 
@@ -151,7 +153,7 @@ public class ProcessJsonAction extends Action {
 					JsonNumber jsonNumber = (JsonNumber) value;
 					return jsonNumber.isIntegral() ? jsonNumber.longValueExact() : jsonNumber.bigDecimalValue();
 				default:
-					return value.toString();
+					return value;
 				}
 			} catch (JsonException e) {
 				return null;

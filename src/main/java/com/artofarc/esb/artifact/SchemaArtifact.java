@@ -16,9 +16,7 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.ref.WeakReference;
@@ -28,55 +26,29 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.xml.bind.JAXBException;
 import javax.xml.transform.Source;
-import javax.xml.transform.Templates;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
 import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.SAXTransformerFactoryHelper;
-import com.artofarc.util.StreamUtils;
+import com.sun.xml.xsom.XSSchemaSet;
 
 public abstract class SchemaArtifact extends Artifact {
 
-	public static final String FILE_SCHEMA = "file://";
+	private static final String FILE_SCHEMA = "file://";
 
-	protected static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars"));
-	private static final String JAXB_BINDINGS = System.getProperty("esb0.moxy.jaxb.bindings");
-	private static final Templates _templates;
+	protected static final boolean cacheXSGrammars = Boolean.parseBoolean(System.getProperty("esb0.cacheXSGrammars", "true"));
 
-	static {
-		try {
-			_templates = SAXTransformerFactoryHelper.createSAXTransformerFactory().newTemplates(new StreamSource(StreamUtils.getResourceAsStream("prepareMOXy.xslt")));
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected static Map<String, Object> getDynamicJAXBContextProperties() throws IOException {
-		if (JAXB_BINDINGS != null) {
-			Map<String, Object> properties = new HashMap<>();
-			properties.put(DynamicJAXBContextFactory.EXTERNAL_BINDINGS_KEY, new StreamSource(new FileInputStream(JAXB_BINDINGS), JAXB_BINDINGS));
-			return properties;
-		}
-		return null;
-	}
-
-	protected Map<String, Object> _grammars = cacheXSGrammars ? new HashMap<String, Object>() : null;
+	protected Map<String, Object> _grammars = cacheXSGrammars ? new HashMap<>() : null;
 	protected final AtomicReference<String> _namespace = new AtomicReference<>();
 	protected volatile Schema _schema;
-	protected DynamicJAXBContext _jaxbContext;
+	protected XSSchemaSet _schemaSet;
 
 	protected SchemaArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -96,7 +68,7 @@ public abstract class SchemaArtifact extends Artifact {
 			_grammars.clear();
 			_namespace.set(null);
 		}
-		_jaxbContext = null;
+		_schemaSet = null;
 		super.invalidate();
 	}
 
@@ -130,10 +102,7 @@ public abstract class SchemaArtifact extends Artifact {
 		}
 	}
 
-	/**
-	 * We assume that always the same {@link ClassLoader} is used.
-	 */
-	public abstract DynamicJAXBContext getJAXBContext(ClassLoader classLoader) throws JAXBException, IOException;
+	public abstract XSSchemaSet getXSSchemaSet() throws SAXException;
 
 	@Override
 	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {
@@ -145,7 +114,18 @@ public abstract class SchemaArtifact extends Artifact {
 		}
 	}
 
-	protected abstract XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException;
+	protected static String getPathFromFileURI(String uriString) {
+		if (uriString.indexOf(':') >= 0) {
+			URI uri = URI.create(uriString);
+			if (!FILE_SCHEMA.startsWith(uri.getScheme())) {
+				throw new IllegalArgumentException("uri must have file scheme " + uriString);
+			}
+			return uri.getPath();
+		}
+		return uriString;
+	}
+
+	protected abstract XSDArtifact resolveArtifact(String namespaceURI, String systemId, String baseURI) throws FileNotFoundException;
 
 	protected SchemaArtifactResolver getResolver() {
 		return new SchemaArtifactResolver(this);
@@ -162,7 +142,7 @@ public abstract class SchemaArtifact extends Artifact {
 		}
 
 		/**
-		 * Used from MOXy.
+		 * Used from {@link #getXSSchemaSet}
 		 */
 		@Override
 		public InputSource resolveEntity(String publicId, String systemId) {
@@ -171,20 +151,17 @@ public abstract class SchemaArtifact extends Artifact {
 				throw new IllegalStateException("Reference has already been cleared");
 			}
 			try {
-				URI uri = new URI(systemId);
+				URI uri = URI.create(systemId);
 				XSDArtifact artifact = schemaArtifact.getArtifact(uri.getPath());
 				if (artifact == null) {
-					uri = lastUri.resolve(systemId);
+					uri = lastUri.resolve(uri);
 					artifact = schemaArtifact.loadArtifact(uri.getPath());
 				}
 				lastUri = uri;
-				// Strip xs:enumeration because of MOXy bug 552902
-				ByteArrayOutputStream bos = new ByteArrayOutputStream();
-				_templates.newTransformer().transform(new StreamSource(artifact.getContentAsStream(), artifact.getURI()), new StreamResult(bos));
-				InputSource is = new InputSource(bos.getByteArrayInputStream());
+				InputSource is = new InputSource(artifact.getContentAsStream());
 				is.setSystemId(systemId);
 				return is;
-			} catch (Exception e) {
+			} catch (FileNotFoundException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -198,9 +175,8 @@ public abstract class SchemaArtifact extends Artifact {
 			if (schemaArtifact == null) {
 				throw new IllegalStateException("Reference has already been cleared");
 			}
-			systemId = XMLCatalog.alignSystemId(systemId);
 			try {
-				XSDArtifact artifact = schemaArtifact.resolveArtifact(systemId, baseURI);
+				XSDArtifact artifact = schemaArtifact.resolveArtifact(namespaceURI, systemId, baseURI);
 				if (!cacheXSGrammars) {
 					artifact._namespace.set(namespaceURI);
 				}

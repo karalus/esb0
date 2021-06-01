@@ -30,6 +30,18 @@ public final class Collections {
 		return new AbstractMap.SimpleImmutableEntry<>(key, value);
 	}
 
+	@SuppressWarnings("unchecked")
+	public static <K, V> Map<V, K> createMap(Object... keyValues) {
+		Map<Object, Object> result = new HashMap<>();
+		for (int i = 0; i < keyValues.length; i += 2) {
+			result.put(keyValues[i], keyValues[i + 1]);
+		}
+		return (Map<V, K>) result;
+	}
+
+	/**
+	 * @param unique If true throw an Exception in case of a collision else return empty map.
+	 */
 	public static <K, V> Map<V, K> inverseMap(Collection<Map.Entry<K, V>> entrySet, boolean unique) {
 		Map<V, K> result = new HashMap<>();
 		for (Map.Entry<K, V> entry : entrySet) {
@@ -43,13 +55,13 @@ public final class Collections {
 		return result;
 	}
 
-	public static <T> List<T> newList(Collection<T> coll, boolean move) {
-		if (move) {
-			ArrayList<T> list = new ArrayList<>(coll);
-			coll.clear();
-			return list;
+	public static <T> List<T> moveToNewList(Collection<T> coll, boolean noop) {
+		if (noop) {
+			return java.util.Collections.emptyList();
 		}
-		return java.util.Collections.emptyList();
+		ArrayList<T> list = new ArrayList<>(coll);
+		coll.clear();
+		return list;
 	}
 
 	public static <T> T[] toArray(Collection<T> list) {

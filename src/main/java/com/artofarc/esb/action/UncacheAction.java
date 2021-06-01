@@ -25,9 +25,10 @@ import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 public class UncacheAction extends Action {
 
 	private final String _keyExp, _cacheName;
-	private final LRUCacheWithExpirationFactory _factory;
+	private final LRUCacheWithExpirationFactory<Object, Object[]> _factory;
 
-	public UncacheAction(GlobalContext globalContext, String keyExp, String cacheName) throws Exception {
+	@SuppressWarnings("unchecked")
+	public UncacheAction(GlobalContext globalContext, String keyExp, String cacheName) {
 		_keyExp = keyExp;
 		_cacheName = cacheName;
 		_factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);
@@ -35,15 +36,19 @@ public class UncacheAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		final Object key = bindVariable(_keyExp, context, message);
-		if (key != null) {
-			checkAtomic(key, _keyExp);
-			LRUCacheWithExpirationFactory.Cache cache = _factory.getResource(_cacheName);
-			cache.remove(key);
-			return null;
+		LRUCacheWithExpirationFactory<Object, Object[]>.Cache cache = _factory.getResource(_cacheName);
+		if (_keyExp != null) {
+			final Object key = bindVariable(_keyExp, context, message);
+			if (key != null) {
+				checkAtomic(key, _keyExp);
+				cache.remove(key);
+			} else {
+				throw new ExecutionException(this, _keyExp + " is not set");
+			}
 		} else {
-			throw new ExecutionException(this, _keyExp + " is not set");
+			cache.clear();
 		}
+		return null;
 	}
 
 }

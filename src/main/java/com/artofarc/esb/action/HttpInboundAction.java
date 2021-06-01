@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.List;
@@ -26,36 +25,37 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
-import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBConstants;
-import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.*;
+import com.artofarc.util.ByteArrayOutputStream;
 
 public class HttpInboundAction extends Action {
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws IOException {
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		HttpUrlConnectionWrapper wrapper = message.removeVariable(ESBConstants.HttpURLConnection);
 		HttpURLConnection conn = wrapper.getHttpURLConnection();
 		message.getVariables().put(ESBConstants.HttpResponseCode, conn.getResponseCode());
-		message.getHeaders().clear();
+		message.clearHeaders();
 		for (Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
 			if (entry.getKey() != null) {
 				Object value = entry.getValue();
 				if (entry.getValue().size() == 1) {
 					value = entry.getValue().get(0);
 				}
-				message.getHeaders().put(entry.getKey(), value);
+				message.putHeader(entry.getKey(), value);
 			}
 		}
 		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null) {
-			message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
-		}
+		message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 		InputStream inputStream = conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST ? conn.getInputStream() : conn.getErrorStream();
 		if (inputStream == null) {
 			inputStream = new java.io.ByteArrayInputStream(new byte[0]);
-		}
+		} 
 		message.reset(BodyType.INPUT_STREAM, inputStream);
+		if (MimeHelper.parseMultipart(message, contentType)) {
+			inputStream.close();
+			inputStream = message.getBody();
+		}
 		return new ExecutionContext(inputStream, wrapper);
 	}
 
@@ -66,14 +66,16 @@ public class HttpInboundAction extends Action {
 			if (message.isSink()) {
 				message.copyFrom(inputStream);
 			} else {
-				message.reset(BodyType.INPUT_STREAM, inputStream);
-				message.getBodyAsByteArray(context);
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				message.reset(BodyType.OUTPUT_STREAM, bos);
+				message.copyFrom(inputStream);
+				message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 			}
 		}
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext) throws Exception {
+	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 		try {
 			execContext.<InputStream> getResource().close();
 		} finally {

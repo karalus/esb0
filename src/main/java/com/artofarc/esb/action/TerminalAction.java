@@ -16,12 +16,11 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.ByteArrayOutputStream;
-
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ByteArrayOutputStream;
 
 public abstract class TerminalAction extends Action {
 
@@ -30,9 +29,9 @@ public abstract class TerminalAction extends Action {
 	}
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+	protected final ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
 		if (inPipeline) {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream(ESBMessage.MTU);
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			message.reset(BodyType.OUTPUT_STREAM, bos);
 			return new ExecutionContext(bos);
 		} else {
@@ -41,12 +40,16 @@ public abstract class TerminalAction extends Action {
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, final ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (execContext != null && execContext.getResource() instanceof ByteArrayOutputStream) {
 			ByteArrayOutputStream bos = execContext.getResource();
-			message.reset(BodyType.BYTES, bos.toByteArray());
+			message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 			message.setCharset(message.getSinkEncoding());
 		}
+		execute(context, message);
+	}
+
+	protected void execute(Context context, ESBMessage message) throws Exception {
 	}
 
 }

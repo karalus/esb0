@@ -14,24 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.resource;
+package com.artofarc.esb.artifact;
 
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchService;
-import java.util.List;
+import javax.json.stream.JsonParser;
 
-public class DirWatchServiceFactory extends ResourceFactory<WatchService, List<String>, Void, IOException> {
+import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.JsonFactoryHelper;
+
+public class JSONArtifact extends Artifact {
+
+	public JSONArtifact(FileSystem fileSystem, Directory parent, String name) {
+		super(fileSystem, parent, name);
+	}
 
 	@Override
-	protected WatchService createResource(List<String> dirs, Void param) throws IOException {
-		WatchService watchService = FileSystems.getDefault().newWatchService();
-		for (String dir : dirs) {
-			Paths.get(dir).register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+	protected void validateInternal(GlobalContext globalContext) {
+		// check if the content is valid JSON
+		try (JsonParser jsonParser = JsonFactoryHelper.JSON_PARSER_FACTORY.createParser(getContentAsStream())) {
+			while (jsonParser.hasNext()) {
+				jsonParser.next();
+			}
 		}
-		return watchService;
+	}
+
+	@Override
+	protected JSONArtifact clone(FileSystem fileSystem, Directory parent) {
+		return initClone(new JSONArtifact(fileSystem, parent, getName()));
 	}
 
 }

@@ -17,14 +17,15 @@
 package com.artofarc.esb.action;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.context.XQuerySource;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
+import com.artofarc.util.XQuerySource;
 
 public class AssignAction extends TransformAction {
 
@@ -35,9 +36,8 @@ public class AssignAction extends TransformAction {
 	}
 
 	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearAll) {
-		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), assignments, null, contextItem);
+		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), createCheckNotNull(bindNames), assignments, null, contextItem);
 		_clearAll = clearAll;
-		_bindNames = bindNames;
 	}
 
 	private static XQuerySource createXQuery(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
@@ -47,39 +47,70 @@ public class AssignAction extends TransformAction {
 				builder.append("declare namespace ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\";\n");
 			}
 		}
+		HashSet<String> variables = new HashSet<>();
 		for (XQDecl bindName : bindNames) {
 			builder.append("declare variable $").append(bindName.getValue());
 			if (bindName.getType() != null) {
 				builder.append(" as ").append(bindName.getType());
 			}
 			builder.append(" external;\n");
+			variables.add("$" + bindName.getValue());
 		}
-		builder.append("(");
+		boolean flwor = false;
+		for (Assignment assignment : assignments) {
+			if (createLet(assignment, variables)) {
+				builder.append("let $").append(assignment.name).append(" := ").append(assignment.expr).append('\n');
+				flwor = true;
+			}
+		}
+		if (flwor) builder.append("return ");
+		builder.append('(');
 		for (Assignment assignment : assignments) {
 			boolean hasAtomicType = assignment.type != null && assignment.type.startsWith("xs:");
-			if (assignment.nullable) {
-				builder.append("let $").append(assignment.name).append(" := ").append(assignment.expr).append(" return if ($").append(assignment.name).append(") then (true(), ");
+			if (assignment.nullable || assignment.list) {
+				builder.append("count($").append(assignment.name).append("), ");
 				if (hasAtomicType) builder.append(assignment.type).append('(');
-				builder.append("$").append(assignment.name);
+				builder.append('$').append(assignment.name);
 				if (hasAtomicType) builder.append(')');
-				builder.append(") else false()");
 			} else {
 				if (hasAtomicType) builder.append(assignment.type).append('(');
-				builder.append(assignment.expr);
+				if (createLet(assignment, variables)) {
+					builder.append('$').append(assignment.name);
+				} else {
+					builder.append(assignment.expr);
+				}
 				if (hasAtomicType) builder.append(')');
 			}
 			builder.append(", ");
+			// save some bytes memory
 			assignment.expr = null;
-			assignment.type = null;
 		}
 		builder.append(bodyExpr).append(')');
 		return XQuerySource.create(builder.toString());
 	}
 
+	private static boolean createLet(Assignment assignment, HashSet<String> variables) {
+		return assignment.name != null && !variables.contains("$" + assignment.name)
+				&& !variables.contains(assignment.expr) && !assignment.expr.equals(".");
+	}
+
+	private static HashSet<String> createCheckNotNull(List<XQDecl> bindNames) {
+		HashSet<String> result = null;
+		for (XQDecl bindName : bindNames) {
+			if (!bindName.isNullable()) {
+				if (result == null) {
+					result = new HashSet<>();					
+				}
+				result.add(bindName.getValue());
+			}
+		}
+		return result;
+	}
+
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if (_clearAll) {
-			message.getHeaders().clear();
+			message.clearHeaders();
 		}
 		return super.prepare(context, message, inPipeline);
 	}

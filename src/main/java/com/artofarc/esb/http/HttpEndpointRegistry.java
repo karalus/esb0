@@ -17,31 +17,31 @@
 package com.artofarc.esb.http;
 
 import java.util.HashMap;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.Registry;
 
 public final class HttpEndpointRegistry {
 
 	protected final static Logger logger = LoggerFactory.getLogger(HttpEndpointRegistry.class);
 
-	private final HashMap<HttpEndpoint, HttpUrlSelector> _map = new HashMap<>();
-	private final GlobalContext _globalContext;
+	private final Map<HttpEndpoint, HttpUrlSelector> _map = new HashMap<>(128);
+	private final Registry _registry;
 
-	public HttpEndpointRegistry(GlobalContext globalContext) {
-		_globalContext = globalContext;
+	public HttpEndpointRegistry(Registry registry) {
+		_registry = registry;
 	}
 
-	public Set<Entry<HttpEndpoint, HttpUrlSelector>> getHttpEndpoints() {
+	public Set<Map.Entry<HttpEndpoint, HttpUrlSelector>> getHttpEndpoints() {
 		return _map.entrySet();
 	}
 
 	public synchronized HttpEndpoint validate(HttpEndpoint httpEndpoint) {
-		for (Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
+		for (Map.Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
 			if (entry.getKey().equals(httpEndpoint)) {
 				if (httpEndpoint.isCompatible(entry.getKey())) {
 					if (httpEndpoint.hasSameConfig(entry.getKey())) {
@@ -66,8 +66,8 @@ public final class HttpEndpointRegistry {
 			state = null;
 		}
 		if (state == null) {
-			state = new HttpUrlSelector(httpEndpoint, _globalContext.getDefaultWorkerPool());
-			_globalContext.registerMBean(state, ",group=HttpEndpointState,name=" + httpEndpoint.getName());
+			state = new HttpUrlSelector(httpEndpoint, _registry.getDefaultWorkerPool());
+			_registry.registerMBean(state, ",group=HttpEndpointState,name=" + httpEndpoint.getName());
 		} else {
 			// take non diversifying parameters from most recent version
 			if (state.getHttpEndpoint().getModificationTime() < httpEndpoint.getModificationTime()) {
@@ -80,11 +80,11 @@ public final class HttpEndpointRegistry {
 
 	private void removeHttpUrlSelector(HttpEndpoint httpEndpoint, HttpUrlSelector state) {
 		state.stop();
-		_globalContext.unregisterMBean(",group=HttpEndpointState,name=" + httpEndpoint.getName());
+		_registry.unregisterMBean(",group=HttpEndpointState,name=" + httpEndpoint.getName());
 	}
 
 	public synchronized void close() {
-		for (Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
+		for (Map.Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
 			if (entry.getValue() != null) {
 				removeHttpUrlSelector(entry.getKey(), entry.getValue());
 			}

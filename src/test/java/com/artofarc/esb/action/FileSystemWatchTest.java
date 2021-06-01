@@ -11,7 +11,9 @@ import java.util.Arrays;
 import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
+import com.artofarc.esb.FileWatchEventConsumer;
 import com.artofarc.esb.TimerService;
+import com.artofarc.util.StringWrapper;
 
 public class FileSystemWatchTest extends AbstractESBTest {
 
@@ -38,11 +40,20 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		File outDir = new File(dir, "out");
 		outDir.mkdir();
 		outDir.deleteOnExit();
-		TimerService timerService = new TimerService(null, null, null, "seconds", 1, 0, false);
-		FileSystemWatchAction action = new FileSystemWatchAction(Arrays.asList(new String[] { inDir.getPath() }), 90l, null, new FileAction(outDir.getPath()));
-		timerService.setStartAction(action);
-		timerService.init(context.getPoolContext().getGlobalContext());
-		Thread.sleep(200);
+		File moveDir = new File(dir, "move");
+		moveDir.mkdir();
+		moveDir.deleteOnExit();
+		SetMessageAction setMessageAction = new SetMessageAction(false, getClass().getClassLoader(), new StringWrapper("${filenameOrigin}: ${tstmp}\n"), null, null);
+		setMessageAction.addAssignment("filenameOrigin", false, "${filename}", null, null, null);
+		setMessageAction.addAssignment("filename", false, "log.txt", null, null, null);
+		setMessageAction.addAssignment("tstmp", false, "${initialTimestamp}", "java.sql.Date", null, null);
+		Action actionOnFile = Action.linkList(Arrays.asList(new FileAction(outDir.getPath(), "ENTRY_MODIFY", "${filename}", false, "true", "false", null, null), setMessageAction, new FileAction(dir.getPath(), "ENTRY_MODIFY", "${filename}", false, "true", "false", null, null)));
+		actionOnFile.setErrorHandler(new DumpAction());
+		String move = null; //moveDir.getPath() + "/${filenameOrigin}";
+		FileWatchEventConsumer fileWatchEventConsumer = new FileWatchEventConsumer(getGlobalContext(), "/MyFileWatchEventConsumer", null, Arrays.asList(new String[] { inDir.getPath() }), move, null);
+		fileWatchEventConsumer.setStartAction(actionOnFile);
+		fileWatchEventConsumer.init(getGlobalContext());
+		Thread.sleep(50);
 		File outFile1 = new File(outDir, "test1");
 		File outFile2 = new File(outDir, "test2");
 		assertFalse(outFile1.exists());
@@ -58,7 +69,12 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		assertTrue(outFile2.exists());
 		assertFalse(inFile2.exists());
 		outFile2.deleteOnExit();
-		timerService.enable(false);
+		File logFile = new File(dir, "log.txt");
+		assertTrue(logFile.exists());
+		logFile.deleteOnExit();
+		fileWatchEventConsumer.close();
+		Thread.sleep(50);
+		assertFalse(fileWatchEventConsumer.isEnabled());
 	}
 
 }

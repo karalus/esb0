@@ -16,38 +16,52 @@
  */
 package com.artofarc.util;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 public final class ReflectionUtils {
 
-	@SuppressWarnings("unchecked")
-	public static <T> T eval(Object root, String path, Object... params) throws ReflectiveOperationException {
-		StringTokenizer tokenizer1 = new StringTokenizer(path, ".");
-		while (tokenizer1.hasMoreTokens()) {
-			String part = tokenizer1.nextToken();
-			StringTokenizer tokenizer2 = new StringTokenizer(part, "(,)");
-			String methodName = tokenizer2.nextToken();
-			List<Object> args = new ArrayList<>();
-			while (tokenizer2.hasMoreTokens()) {
-				String argName = tokenizer2.nextToken();
+	public interface ParamResolver<E extends Exception> {
+		Object resolve(String param) throws E;
+	}
+
+	public static <T> T eval(Object root, String path, final Object... params) throws ReflectiveOperationException {
+		ParamResolver<RuntimeException> paramResolver = params.length == 0 ? null : new ParamResolver<RuntimeException>() {
+
+			@Override
+			public Object resolve(String argName) {
 				int argPos = Integer.parseInt(argName.substring(1)) - 1;
-				args.add(params[argPos]);
+				return params[argPos];
 			}
-			Method method = findMethod(root.getClass().getDeclaredMethods(), methodName, args);
-			if (method == null) {
-				method = findMethod(root.getClass().getMethods(), methodName, args);
-				if (method == null) {
-					throw new NoSuchMethodException(methodName);
+		};
+		return eval(root, path, paramResolver);
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T, E extends Exception> T eval(Object root, String path, ParamResolver<E> paramResolver) throws ReflectiveOperationException, E {
+		StringTokenizer tokenizerChain = new StringTokenizer(path, ".");
+		outer: while (tokenizerChain.hasMoreTokens()) {
+			String part = tokenizerChain.nextToken();
+			StringTokenizer tokenizerMethod = new StringTokenizer(part, "(,)");
+			String methodName = tokenizerMethod.nextToken();
+			List<Object> args = new ArrayList<>();
+			while (tokenizerMethod.hasMoreTokens()) {
+				String argName = tokenizerMethod.nextToken();
+				args.add(paramResolver.resolve(argName));
+			}
+			for (Class<?> cls = root.getClass(); cls != null; cls = cls.getSuperclass()) {
+				Method method = findMethod(cls.getDeclaredMethods(), methodName, args);
+				if (method != null) {
+					method.setAccessible(true);
+					root = method.invoke(root, args.toArray());
+					continue outer;
 				}
 			}
-			method.setAccessible(true);
-			root = method.invoke(root, args.toArray());
+			throw new NoSuchMethodException(methodName);
 		}
 		return (T) root;
 	}
@@ -55,16 +69,60 @@ public final class ReflectionUtils {
 	private static Method findMethod(Method[] methods, String methodName, List<Object> args) {
 		outer: for (Method method : methods) {
 			Class<?>[] parameterTypes = method.getParameterTypes();
-			if (parameterTypes.length == args.size() && isMatch(method.getName(), methodName, args.size())) {
+			if (parameterTypes.length <= args.size() && isMatch(method.getName(), methodName, args.size())) {
 				for (int i = 0; i < parameterTypes.length; ++i) {
-					if (args.get(i) != null && !parameterTypes[i].isInstance(args.get(i))) {
+					Class<?> parameterType = parameterTypes[i];
+					boolean last = i == parameterTypes.length - 1;
+					if (last && method.isVarArgs()) {
+						parameterType = parameterType.getComponentType();
+						int varArgsLength = args.size() - i;
+						Object[] varArgs = (Object[]) Array.newInstance(parameterType, varArgsLength);
+						for (int j = 0; j < varArgsLength; ++j) {
+							Object arg = args.get(i + j);
+							if (isNotAssignable(parameterType, arg)) {
+								continue outer;
+							}
+							varArgs[j] = arg;
+						}
+						args.set(i++, varArgs);
+						for (; i < args.size(); ++i) {
+							args.remove(i);
+						}
+					} else if (isNotAssignable(parameterType, args.get(i))) {
 						continue outer;
 					}
 				}
-				return method;
+				if (args.size() == parameterTypes.length) {
+					return method;
+				}
 			}
 		}
 		return null;
+	}
+
+	private final static Map<Class<?>, Class<?>[]> primitiveMapper = Collections.createMap(
+			double.class, new Class[] { Double.class, Float.class, Long.class, Integer.class, Short.class, Byte.class },
+			float.class, new Class[] { Float.class, Long.class, Integer.class, Short.class, Byte.class },
+			long.class, new Class[] { Long.class, Integer.class, Short.class, Byte.class },
+			int.class, new Class[] { Integer.class, Short.class, Byte.class },
+			short.class, new Class[] { Short.class, Byte.class },
+			byte.class, new Class[] { Byte.class },
+			boolean.class, new Class[] { Boolean.class },
+			char.class, new Class[] { Character.class });
+
+	private static boolean isNotAssignable(Class<?> parameterType, Object arg) {
+		if (parameterType.isPrimitive()) {
+			if (arg == null) {
+				return true;
+			}
+			for (Class<?> cls : primitiveMapper.get(parameterType)) {
+				if (cls.isInstance(arg)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return arg != null && !parameterType.isInstance(arg);
 	}
 
 	private static boolean isMatch(String name, String methodName, int argssize) {
@@ -84,7 +142,7 @@ public final class ReflectionUtils {
 	}
 
 	private static boolean isMatch(String prefix, String name, String methodName) {
-		return name.startsWith(prefix) && name.charAt(prefix.length()) == Character.toUpperCase(methodName.charAt(0))
+		return prefix.length() + methodName.length() == name.length() && name.startsWith(prefix) && name.charAt(prefix.length()) == Character.toUpperCase(methodName.charAt(0))
 				&& name.substring(prefix.length() + 1).equals(methodName.substring(1));
 	}
 
@@ -109,7 +167,7 @@ public final class ReflectionUtils {
 			Class<?>[] parameterTypes = con.getParameterTypes();
 			if (parameterTypes.length == params.size()) {
 				for (int i = 0; i < parameterTypes.length; ++i) {
-					if (!parameterTypes[i].isInstance(params.get(i))) {
+					if (isNotAssignable(parameterTypes[i], params.get(i))) {
 						continue outer;
 					}
 				}
@@ -126,6 +184,33 @@ public final class ReflectionUtils {
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public static Constructor<?> findAnyConstructor(Class<?> cls, Class<?>... anyOfType) throws NoSuchMethodException {
+		for (Class<?> parameterType : anyOfType) {
+			try {
+				return cls.getConstructor(parameterType);
+			} catch (NoSuchMethodException e) {
+				// continue
+			}
+		}
+		throw new NoSuchMethodException(cls + " has no ctor for any of " + Arrays.asList(anyOfType));
+	}
+
+	public static Method findAnyMethod(Class<?> cls, String name, Class<?>... anyOfType) throws NoSuchMethodException {
+		for (Class<?> parameterType : anyOfType) {
+			try {
+				return cls.getMethod(name, parameterType);
+			} catch (NoSuchMethodException e) {
+				// continue
+			}
+		}
+		for (Method method : cls.getMethods()) {
+			if (method.getParameterCount() == 1 && method.getName().equals(name)) {
+				return method;
+			}
+		}
+		throw new NoSuchMethodException(cls + " has no method " + name + " with any parameter type of " + Arrays.asList(anyOfType));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -150,8 +235,17 @@ public final class ReflectionUtils {
 		}
 	}
 
-	public static <T extends Throwable> T convert(Throwable t, Class<T> cls, Object... params) {
-		T result;
+	public static void checkStatic(Member member) {
+		if ((member.getModifiers() & Modifier.STATIC) == 0) {
+			throw new IllegalArgumentException("Member must be static: " + member);
+		}
+	}
+
+	public static <E extends Exception> E convert(Throwable t, Class<E> cls, Object... params) {
+		if (t instanceof Error) {
+			throw (Error) t;
+		}
+		E result;
 		if (cls.isInstance(t)) {
 			result = cls.cast(t);
 		} else {
@@ -162,7 +256,7 @@ public final class ReflectionUtils {
 				try {
 					List<Object> list = new ArrayList<>(Arrays.asList(params));
 					list.add(t);
-					Constructor<T> con = findConstructor(cls, list);
+					Constructor<E> con = findConstructor(cls, list);
 					result = con.newInstance(list.toArray());
 				} catch (ReflectiveOperationException e) {
 					throw convert(t, RuntimeException.class);
@@ -170,6 +264,17 @@ public final class ReflectionUtils {
 			}
 		}
 		return result;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T, E extends Exception> T invoke(Method method, Class<E> cls, Object obj, Object... params) throws E {
+		try {
+			return (T) method.invoke(obj, params);
+		} catch (InvocationTargetException e) {
+			throw ReflectionUtils.convert(e.getCause(), cls);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 }

@@ -24,10 +24,7 @@ import java.util.Enumeration;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import javax.mail.Header;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
+import javax.servlet.AsyncContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -41,12 +38,14 @@ import static com.artofarc.esb.http.HttpConstants.*;
 
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.MimeHelper;
+
 import static com.artofarc.esb.message.ESBConstants.*;
 
 /**
  * This servlet is the one and only HTTP endpoint for all services.
  */
-@WebServlet(asyncSupported = true, urlPatterns = { "/*", "/admin/ext/*", "/admin/deploy/*" })
+@WebServlet(asyncSupported = true, urlPatterns = { "/*", "/admin/ext/*", "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + "/*" })
 @MultipartConfig
 public class GenericHttpListener extends HttpServlet {
 
@@ -58,7 +57,9 @@ public class GenericHttpListener extends HttpServlet {
 		final String pathInfo = request.getRequestURI().substring(request.getContextPath().length());
 		Registry registry = (Registry) getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
 		HttpConsumer consumerPort = registry.getHttpService(pathInfo);
-		if (consumerPort != null) {
+		if (consumerPort == null) {
+			sendError(response, HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
+		} else {
 			boolean secure = true;
 			if (consumerPort.getRequiredRole() != null) {
 				secure = request.authenticate(response);
@@ -70,45 +71,55 @@ public class GenericHttpListener extends HttpServlet {
 			if (secure) {
 				if (consumerPort.isEnabled()) {
 					try {
-						Context context = consumerPort.getContextPool().getContext();
-						if (context != null) {
-							try {
-								consumerPort.process(context, createESBMessage(request, pathInfo, consumerPort));
-							} finally {
-								consumerPort.getContextPool().releaseContext(context);
+						ESBMessage message = createESBMessage(request, pathInfo, consumerPort);
+						AsyncContext asyncContext = request.startAsync();
+						message.getVariables().put(AsyncContext, asyncContext);
+						try {
+							Context context = consumerPort.getContextPool().getContext();
+							if (context != null) {
+								try {
+									consumerPort.process(context, message);
+								} finally {
+									consumerPort.getContextPool().releaseContext(context);
+								}
+							} else {
+								sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
 							}
-						} else {
-							sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
+						} catch (Exception e) {
+							if (!response.isCommitted()) {
+								sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
+							}
+							asyncContext.complete();
 						}
 					} catch (Exception e) {
-						sendError(response, e);
+						sendError(response, HttpServletResponse.SC_BAD_REQUEST, e);
 					}
 				} else {
 					sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
 				}
 			}
-		} else {
-			sendError(response, HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
 		}
 	}
 
-	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer consumerPort) throws Exception {
+	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer httpConsumer) throws Exception {
 		// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
 		final boolean bodyPresent = request.getHeader(HTTP_HEADER_CONTENT_LENGTH) != null || request.getHeader(HTTP_HEADER_TRANSFER_ENCODING) != null;
-		ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
-		message.getVariables().put(HttpMethod, request.getMethod());
+		final ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
+		message.getVariables().put(RemoteAddr, request.getRemoteAddr());
+		final String methodOverride = request.getHeader(HTTP_HEADER_X_METHOD_OVERRIDE);
+		message.getVariables().put(HttpMethod, methodOverride != null ? methodOverride : request.getMethod());
 		message.getVariables().put(ContextPath, request.getContextPath());
 		message.getVariables().put(PathInfo, pathInfo);
-		if (consumerPort.getBindPath().endsWith("*")) {
-			message.getVariables().put(appendHttpUrlPath, URLDecoder.decode(pathInfo.substring(consumerPort.getBindPath().length() - 1), "UTF-8"));
+		if (httpConsumer.isPathMapping()) {
+			message.getVariables().put(appendHttpUrlPath, URLDecoder.decode(pathInfo.substring(httpConsumer.getBindPath().length()), "UTF-8"));
 		}
-		message.putVariable(QueryString, request.getQueryString());
+		message.putVariableIfNotNull(QueryString, request.getQueryString());
 		message.setCharset(request.getCharacterEncoding());
 		for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 			String headerName = headerNames.nextElement();
-			message.getHeaders().put(headerName, request.getHeader(headerName));
+			message.putHeader(headerName, request.getHeader(headerName));
 		}
-		message.putVariable(RemoteUser, request.getRemoteUser());
+		message.putVariableIfNotNull(RemoteUser, request.getRemoteUser());
 		final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
 		if (certs != null) {
 			// Only for SSL mutual authentication
@@ -116,50 +127,22 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(ClientCertificate, certs[0]);
 		}
 		if (bodyPresent) {
-			parseAttachments(request.getContentType(), message);
+			MimeHelper.parseMultipart(message, request.getContentType());
 		}
 		// copy into variable for HttpServletResponseAction
-		message.putVariable(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));
-		message.putVariable(HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HTTP_HEADER_ACCEPT_ENCODING));
-		message.putVariable(HTTP_HEADER_ACCEPT, message.removeHeader(HTTP_HEADER_ACCEPT));
-		message.getVariables().put(AsyncContext, request.startAsync());
+		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));
+		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HTTP_HEADER_ACCEPT_ENCODING));
+		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT, message.removeHeader(HTTP_HEADER_ACCEPT));
 		return message;
 	}
 
-	private static void parseAttachments(String contentType, ESBMessage message) throws Exception {
-		if (contentType != null && contentType.startsWith("multipart/")) {
-			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getBodyAsInputStream(null), contentType));
-			String start = removeQuotes(getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START));
-			message.putHeader(HTTP_HEADER_SOAP_ACTION, getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION));
-			for (int i = 0; i < mmp.getCount(); i++) {
-				MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
-				String cid = bodyPart.getContentID();
-				if (start == null && i == 0 || start != null && start.equals(cid)) {
-					for (@SuppressWarnings("unchecked")
-					Enumeration<Header> allHeaders = bodyPart.getAllHeaders(); allHeaders.hasMoreElements();) {
-						Header header = allHeaders.nextElement();
-						message.putHeader(header.getName(), header.getValue());
-					}
-					message.setCharset(getValueFromHttpHeader(bodyPart.getContentType(), HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
-					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream());
-				} else if (cid != null) {
-					message.addAttachment(cid, bodyPart);
-				} else {
-					String name = removeQuotes(getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), "name="));
-					message.putVariable(name, bodyPart.getContent());
-				}
-			}
-		}
-	}
-
-	public static void sendError(HttpServletResponse response, Exception e) throws IOException {
-		int httpRetCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+	public static void sendError(HttpServletResponse response, int sc, Exception e) throws IOException {
 		if (e instanceof TimeoutException || e instanceof SocketTimeoutException) {
-			httpRetCode = HttpServletResponse.SC_GATEWAY_TIMEOUT;
+			sc = HttpServletResponse.SC_GATEWAY_TIMEOUT;
 		} else if (e instanceof RejectedExecutionException) {
-			httpRetCode = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+			sc = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 		}
-		response.setStatus(httpRetCode);
+		response.setStatus(sc);
 		response.setContentType(SOAP_1_1_CONTENT_TYPE);
 		response.getWriter().print(ESBMessage.asXMLString(e));
 	}

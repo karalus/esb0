@@ -16,32 +16,34 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.HttpQueryHelper;
 import com.artofarc.esb.message.ESBConstants;
 
 public class BranchOnPathAction extends Action {
 
 	private final String _basePath;
-	private final Map<PathTemplate, Action> _branchMap = new TreeMap<>();
+	private final boolean _genericQuery;
 	private final Action _defaultAction;
+	private final Map<PathTemplate, Action> _branchMap = new TreeMap<>();
 
-	public BranchOnPathAction(String basePath, Action defaultAction) {
+	public BranchOnPathAction(String basePath, Action defaultAction, boolean genericQuery) {
 		_basePath = basePath;
 		_defaultAction = defaultAction;
+		_genericQuery = genericQuery;
 	}
 
 	public final void addBranch(String pathTemplate, Action action) {
-		_branchMap.put(new PathTemplate(pathTemplate), action);
+		if (_branchMap.put(new PathTemplate(pathTemplate), action) != null) {
+			throw new IllegalArgumentException("Duplicate branch pathTemplate " + pathTemplate);
+		}
 	}	
 
 	@Override
@@ -76,27 +78,11 @@ public class BranchOnPathAction extends Action {
 				}
 			}
 		}
-		parseQueryString(message);
+		HttpQueryHelper.parseQueryString(message, _genericQuery);
 		if (_nextAction != null) {
 			context.getExecutionStack().push(_nextAction);
 		}
 		return new ExecutionContext(action);
-	}
-
-	public static void parseQueryString(ESBMessage message) throws UnsupportedEncodingException {
-		String queryString = message.getVariable(ESBConstants.QueryString);
-		if (queryString != null) {
-			StringTokenizer st = new StringTokenizer(URLDecoder.decode(queryString, "UTF-8"), "&");
-			while (st.hasMoreTokens()) {
-				String pair = st.nextToken();
-				final int i = pair.indexOf("=");
-				if (i > 0) {
-					message.getVariables().put(pair.substring(0, i), pair.substring(i + 1));
-				} else {
-					message.getVariables().put(pair, null);
-				}
-			}
-		}
 	}
 
 	@Override
@@ -173,6 +159,18 @@ public class BranchOnPathAction extends Action {
 				builder.append(_list.get(i));
 			}
 			return builder.toString();
+		}
+
+		@Override
+		public int hashCode() {
+			return _list.hashCode();
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (obj == null || getClass() != obj.getClass())
+				return false;
+			return _list.equals(((PathTemplate) obj)._list);
 		}
 
 		@Override

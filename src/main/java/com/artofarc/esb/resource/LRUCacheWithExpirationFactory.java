@@ -16,6 +16,7 @@
  */
 package com.artofarc.esb.resource;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -27,15 +28,15 @@ import java.util.concurrent.TimeUnit;
 
 import com.artofarc.esb.context.GlobalContext;
 
-public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithExpirationFactory.Cache, String, Integer, RuntimeException> implements Runnable {
+public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCacheWithExpirationFactory<K, V>.Cache, String, Integer, RuntimeException> implements Runnable {
 
-	static final class Expiration implements Delayed {
+	static final class Expiration<K> implements Delayed {
 
 		private final long _expiration;
-		private final Object _key;
+		private final K _key;
 		private final String _cacheName;
 
-		Expiration(long expiration, Object key, String cacheName) {
+		Expiration(long expiration, K key, String cacheName) {
 			_expiration = expiration;
 			_key = key;
 			_cacheName = cacheName;
@@ -48,7 +49,12 @@ public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithE
 
 		@Override
 		public int compareTo(Delayed other) {
-			return Long.compare(_expiration, ((Expiration) other)._expiration);
+			return Long.compare(_expiration, ((Expiration<?>) other)._expiration);
+		}
+
+		@Override
+		public String toString() {
+			return "{key=" + _key + ", delay=" + getDelay(TimeUnit.SECONDS) + "}";
 		}
 	}
 
@@ -56,15 +62,15 @@ public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithE
 
 		private final String _name;
 		private final int _maxSize;
-		private final Map<Object, Expiration> _expirationKeys = new ConcurrentHashMap<>();
-		private final Map<Object, Object> _cache = Collections.synchronizedMap(new LinkedHashMap<Object, Object>() {
+		private final Map<K, Expiration<K>> _expirationKeys = new ConcurrentHashMap<>();
+		private final Map<K, V> _cache = Collections.synchronizedMap(new LinkedHashMap<K, V>() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
-			protected boolean removeEldestEntry(Map.Entry<Object, Object> eldest) {
+			protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
 				boolean remove = size() > _maxSize;
 				if (remove) {
-					Expiration expiration = _expirationKeys.remove(eldest.getKey());
+					Expiration<K> expiration = _expirationKeys.remove(eldest.getKey());
 					expiries.remove(expiration);
 				}
 				return remove;
@@ -76,10 +82,10 @@ public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithE
 			_maxSize = maxSize;
 		}
 
-		public Object put(Object key, Object value, long ttl) {
-			long ttlNanos = TimeUnit.NANOSECONDS.convert(ttl, TimeUnit.MILLISECONDS);
-			Expiration expiration = new Expiration(System.nanoTime() + ttlNanos, key, _name);
-			Expiration expirationOld = _expirationKeys.put(key, expiration);
+		public Object put(K key, V value, long ttl) {
+			long ttlNanos = TimeUnit.NANOSECONDS.convert(ttl, TimeUnit.SECONDS);
+			Expiration<K> expiration = new Expiration<>(System.nanoTime() + ttlNanos, key, _name);
+			Expiration<K> expirationOld = _expirationKeys.put(key, expiration);
 			synchronized (LRUCacheWithExpirationFactory.this) {
 				if (expirationOld != null) {
 					expiries.remove(expirationOld);
@@ -89,16 +95,16 @@ public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithE
 			}
 		}
 
-		public boolean containsKey(Object key) {
+		public boolean containsKey(K key) {
 			return _cache.containsKey(key);
 		}
 
-		public Object get(Object key) {
+		public V get(K key) {
 			return _cache.get(key);
 		}
 
-		public Object remove(Object key) {
-			Expiration expiration = _expirationKeys.remove(key);
+		public V remove(K key) {
+			Expiration<K> expiration = _expirationKeys.remove(key);
 			if (expiration != null) {
 				synchronized (LRUCacheWithExpirationFactory.this) {
 					expiries.remove(expiration);
@@ -107,12 +113,27 @@ public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithE
 			return _cache.remove(key);
 		}
 
+		public Collection<Expiration<K>> getExpirations() {
+			return _expirationKeys.values();
+		}
+
+		public void clear() {
+			for (Expiration<K> expiration : _expirationKeys.values()) {
+				if (expiration == _expirationKeys.remove(expiration._key)) {
+					_cache.remove(expiration._key);
+					synchronized (LRUCacheWithExpirationFactory.this) {
+						expiries.remove(expiration);
+					}
+				}
+			}
+		}
+
 		@Override
 		public void close() {
 		}
 	}
 
-	private final DelayQueue<Expiration> expiries = new DelayQueue<Expiration>();
+	private final DelayQueue<Expiration<K>> expiries = new DelayQueue<>();
 	private final Future<?> cleaner;
 
 	public LRUCacheWithExpirationFactory(GlobalContext globalContext) {
@@ -128,11 +149,11 @@ public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithE
 	public void run() {
 		try {
 			for (;;) {
-				Expiration expiration = expiries.take();
+				Expiration<K> expiration = expiries.take();
 				synchronized (this) {
 					Cache lruCache = getResource(expiration._cacheName);
 					lruCache._cache.remove(expiration._key);
-					Expiration expirationOld = lruCache._expirationKeys.remove(expiration._key);
+					Expiration<K> expirationOld = lruCache._expirationKeys.remove(expiration._key);
 					if (expirationOld != null && expirationOld != expiration) {
 						expiries.remove(expirationOld);
 					}
@@ -140,8 +161,6 @@ public class LRUCacheWithExpirationFactory extends ResourceFactory<LRUCacheWithE
 			}
 		} catch (InterruptedException e) {
 			// cancelled
-		} catch (Exception e) {
-			throw new RuntimeException(e);
 		}
 	}
 

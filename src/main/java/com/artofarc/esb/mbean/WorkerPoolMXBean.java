@@ -21,8 +21,6 @@ import java.util.Set;
 
 public interface WorkerPoolMXBean {
 
-	String getName();
-
 	List<String> getActiveThreads();
 
 	int getRunningThreadsCount();

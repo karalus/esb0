@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb;
+package com.artofarc.esb.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -34,7 +34,7 @@ import javax.mail.internet.MimeMultipart;
 import javax.xml.bind.DatatypeConverter;
 
 import com.artofarc.esb.http.HttpConstants;
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public class DeployTool {
 
@@ -70,7 +70,7 @@ public class DeployTool {
 			boolean successful = conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST;
 			if (!successful) {
 				System.err.println("HTTP response code: " + conn.getResponseCode());
-				StreamUtils.copy(conn.getErrorStream(), System.err);
+				IOUtils.copy(conn.getErrorStream(), System.err);
 				System.err.println();
 			}
 			return successful;
@@ -81,14 +81,14 @@ public class DeployTool {
 
 	public Boolean deployServer(String server, InputStream inputStream) throws IOException, MessagingException {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		StreamUtils.copy(inputStream, bos);
+		IOUtils.copy(inputStream, bos);
 		MimeMultipart mimeMultipart = createMimeMultipart(bos.toByteArray());
 		System.out.println("Provisioning server: " + server);
-		return deploy(new URL(server + "/deploy"), mimeMultipart);
+		return deploy(new URL(server), mimeMultipart);
 	}
 
 	public List<String> listFiles(String server, String path) throws IOException {
-		URL url = new URL(server + "/deploy" + path);
+		URL url = new URL(server + path);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setRequestMethod("GET");
 		//conn.setRequestProperty("Authorization", "Basic " + DatatypeConverter.printBase64Binary((username + ":" + password).getBytes()));
@@ -104,7 +104,7 @@ public class DeployTool {
 					}
 					return result;
 				} else {
-					StreamUtils.copy(inputStream, System.err);
+					IOUtils.copy(inputStream, System.err);
 					throw new IOException("No JSON received: " + contentType);
 				}
 			}
@@ -115,8 +115,8 @@ public class DeployTool {
 
 	public static void main(String... args) throws Exception {
 		DeployTool deployTool = new DeployTool(args[1], args[2]);
-		String serverUrl = args[0] + "/admin";
-		System.out.println(deployTool.listFiles(serverUrl, "/consumer"));
+		String serverUrl = args[0] + "/admin/deploy/";
+		System.out.println(deployTool.listFiles(serverUrl, "consumer"));
 		Boolean status;
 		try (FileInputStream inputStream = new FileInputStream(args[3])) {
 			status = deployTool.deployServer(serverUrl, inputStream);

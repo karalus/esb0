@@ -13,6 +13,7 @@
   <actionPipeline name="validate" errorHandler="soapErrorhandler">
 	<validate schemaURI="example.wsdl" expression="*[1]"/>
   </actionPipeline>
+  <executeJava javaType="com.artofarc.esb.action.FileSystemTest$DynamicAction" />
   <unwrapSOAP wsdlURI="example.wsdl"/>
   <assign>
 	<assignment variable="messageHeader">*[1]/*[1]</assignment>

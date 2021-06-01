@@ -16,17 +16,23 @@
  */
 package com.artofarc.esb.jms;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map.Entry;
-import java.util.TimerTask;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.management.AttributeChangeNotification;
+import javax.management.MBeanNotificationInfo;
+import javax.management.NotificationBroadcasterSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,88 +86,102 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		getResource(jmsConnectionData).removeJMSConsumer(jmsConsumer);
 	}
 
-	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws Exception {
+	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws JMSException {
 		if (closeWithTimeout > 0) {
-			Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
 			// Oracle AQ sometimes waits forever in close()
-			closer.closeWithTimeout(jmsSession.getSession(), closeWithTimeout, jmsConnectionData.toString());
+			Closer.closeWithTimeout(jmsSession.getSession(), _poolContext.getWorkerPool().getExecutorService(), closeWithTimeout, jmsConnectionData.toString(), JMSException.class);
 		} else {
 			jmsSession.getSession().close();
 		}
 	}
 
-	final class JMSConnectionGuard extends TimerTask implements AutoCloseable, ExceptionListener, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
+	final class JMSConnectionGuard extends NotificationBroadcasterSupport implements AutoCloseable, ExceptionListener, Runnable, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
 
-		private final HashMap<JMSConsumer, Boolean> _jmsConsumers = new HashMap<>();
-		private final HashSet<JMSSessionFactory> _jmsSessionFactories = new HashSet<>();
+		private final ReentrantLock _lock = new ReentrantLock();
+		private final Map<JMSConsumer, Boolean> _jmsConsumers = new ConcurrentHashMap<>();
+		private final Set<JMSSessionFactory> _jmsSessionFactories = ConcurrentHashMap.newKeySet();
 		private final JMSConnectionData _jmsConnectionData;
 		private final String _clientID; 
 		private volatile Connection _connection;
-		private ScheduledFuture<?> _future;
+		private volatile Future<?> _future;
+		private volatile long _sequenceNumber;
 
 		private JMSConnectionGuard(JMSConnectionData jmsConnectionData) {
+			super(_poolContext.getWorkerPool().getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
+					AttributeChangeNotification.class.getName(), "A JMS Connection of " + jmsConnectionData + " changes its state"));
 			_jmsConnectionData = jmsConnectionData;
 			_clientID = instanceId != null ? instanceId + "-" + jmsConnectionData + "-" + _poolContext.getWorkerPool().getName() : null;
 		}
 
-		synchronized void addJMSConsumer(JMSConsumer jmsConsumer, boolean enabled) {
+		void addJMSConsumer(JMSConsumer jmsConsumer, boolean enabled) {
 			_jmsConsumers.put(jmsConsumer, enabled);
 		}
 
-		synchronized void removeJMSConsumer(JMSConsumer jmsConsumer) {
+		void removeJMSConsumer(JMSConsumer jmsConsumer) {
 			_jmsConsumers.remove(jmsConsumer);
 		}
 
-		private void createConnection() throws JMSException {
-			_connection = _jmsConnectionData.createConnection();
+		private Connection createConnection() throws JMSException {
+			Connection connection = _jmsConnectionData.createConnection();
+			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Connection state changed", "connected", "boolean", false, true));
 			try {
 				if (_clientID != null) {
-					_connection.setClientID(_clientID);
+					connection.setClientID(_clientID);
 				}
-				_connection.start();
+				connection.start();
 			} catch (JMSException e) {
-				closeConnection();
+				closeConnection(connection);
 				throw e;
 			}
+			return connection;
 		}
 
-		synchronized Connection getConnection(JMSSessionFactory jmsSessionFactory) throws JMSException {
-			if (_connection == null) {
-				if (_future == null) {
-					try {
-						createConnection();
-					} catch (JMSException e) {
-						logger.error("Currently cannot connect using " + _jmsConnectionData, e);
-						startReconnectThread();
-						throw e;
+		private Connection getConnection() throws JMSException {
+			if (_connection == null && _future == null) {
+				_lock.lock();
+				try {
+					if (_connection == null && _future == null) {
+						Connection connection = createConnection();
+						connection.setExceptionListener(this);
+						_connection = connection;
 					}
-					_connection.setExceptionListener(this);
-				} else {
-					throw new JMSException("Currently cannot connect using " + _jmsConnectionData);
+				} catch (JMSException e) {
+					logger.error("Currently cannot connect using " + _jmsConnectionData, e);
+					startReconnectThread();
+					throw e;
+				} finally {
+					_lock.unlock();
 				}
 			}
-			_jmsSessionFactories.add(jmsSessionFactory);
 			return _connection;
 		}
 
-		synchronized void removeJMSSessionFactory(JMSSessionFactory jmsSessionFactory) {
+		Connection getConnection(JMSSessionFactory jmsSessionFactory) throws JMSException {
+			Connection connection = getConnection();
+			if (connection == null) {
+				throw new JMSException("Currently reconnecting " + _jmsConnectionData);
+			}
+			_jmsSessionFactories.add(jmsSessionFactory);
+			return connection;
+		}
+
+		void removeJMSSessionFactory(JMSSessionFactory jmsSessionFactory) {
 			_jmsSessionFactories.remove(jmsSessionFactory);
 		}
 
-		private void closeConnection() {
+		private void closeConnection(Connection connection) {
 			logger.info("Closing Connection for " + _jmsConnectionData);
 			try {
 				if (closeWithTimeout > 0) {
-					Closer closer = new Closer(_poolContext.getWorkerPool().getExecutorService());
 					// Oracle AQ sometimes waits forever in close()
-					closer.closeWithTimeout(_connection, closeWithTimeout, _jmsConnectionData.toString());
+					Closer.closeWithTimeout(connection, _poolContext.getWorkerPool().getExecutorService(), closeWithTimeout, _jmsConnectionData.toString(), JMSException.class);
 				} else {
-					_connection.close();
+					connection.close();
 				}
-			} catch (Exception e) {
+			} catch (JMSException e) {
 				// ignore
 			}
-			_connection = null;
+			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Connection state changed", "connected", "boolean", true, false));
 		}
 
 		private void startReconnectThread() {
@@ -179,61 +199,74 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			reconnect();
 		}
 
-		public synchronized void reconnect() {
+		public void reconnect() {
 			if (_connection != null) {
-				logger.info("Connection will be closed for " + _jmsConnectionData);
+				_lock.lock();
 				try {
-					_connection.setExceptionListener(null);
-					_connection.stop();
-				} catch (JMSException e) {
-					// ignore
-				}
-				for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
-					JMSConsumer jmsConsumer = entry.getKey();
-					// save current state
-					entry.setValue(jmsConsumer.isEnabled());
-					try {
-						logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey());
-						jmsConsumer.suspend();
-					} catch (Exception e) {
-						// ignore
+					Connection connection = _connection;
+					if (connection != null) {
+						_connection = null;
+						_future = _poolContext.getWorkerPool().getExecutorService().submit(() -> {
+							shutdown(connection);
+							startReconnectThread();
+						});
 					}
+				} finally {
+					_lock.unlock();
 				}
-				for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
-					try {
-						logger.info("Closing JMSSessionFactory");
-						jmsSessionFactory.close(_jmsConnectionData);
-					} catch (Exception e) {
-						// ignore
-					}
-				}
-				closeConnection();
-				startReconnectThread();
 			}
 		}
 
-		@Override
-		public synchronized void run() {
+		private void shutdown(Connection connection) {
+			logger.info("Connection will be closed for " + _jmsConnectionData);
 			try {
-				logger.info("Trying to reconnect " + _jmsConnectionData);
-				createConnection();
-				for (Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
+				connection.setExceptionListener(null);
+				connection.stop();
+			} catch (JMSException e) {
+				// ignore
+			}
+			for (Map.Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
+				JMSConsumer jmsConsumer = entry.getKey();
+				// save current state
+				entry.setValue(jmsConsumer.isToBeEnabled());
+				try {
+					logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey() + " in state " + entry.getValue());
+					jmsConsumer.suspend();
+				} catch (Exception e) {
+					// ignore
+				}
+			}
+			for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
+				try {
+					logger.info("Closing JMSSessionFactory");
+					jmsSessionFactory.close(_jmsConnectionData);
+				} catch (Exception e) {
+					// ignore
+				}
+			}
+			closeConnection(connection);
+		}
+
+		@Override
+		public void run() {
+			logger.info("Trying to reconnect " + _jmsConnectionData);
+			try {
+				_connection = createConnection();
+				for (Map.Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
 					JMSConsumer jmsConsumer = entry.getKey();
-					try {
-						jmsConsumer.resume();
-						// restore last state
-						jmsConsumer.enable(entry.getValue());
-					} catch (Exception e) {
-						logger.error("Failed to resume " + jmsConsumer.getKey(), e);
-					}
+					jmsConsumer.resume();
+					// restore last state
+					jmsConsumer.enable(entry.getValue());
+					logger.info("Resumed " + jmsConsumer.getKey() + " to state " + entry.getValue());
 				}
 				_connection.setExceptionListener(this);
 				logger.info("Reconnected " + _jmsConnectionData);
 				_future.cancel(false);
 				_future = null;
-			} catch (Exception e) {
+			} catch (JMSException e) {
 				if (_connection != null) {
-					closeConnection();
+					shutdown(_connection);
+					_connection = null;
 				}
 				logger.error("Reconnect failed for " + _jmsConnectionData, e);
 			}
@@ -246,9 +279,34 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		@Override
 		public void close() throws JMSException {
 			_poolContext.getGlobalContext().unregisterMBean(getObjectName(_jmsConnectionData));
+			if (_future != null) {
+				_future.cancel(false);
+			}
 			if (_connection != null) {
 				_connection.close();
 			}
+		}
+		
+		public List<String> getProducerDestinationCount() throws JMSException {
+			Map<String, Integer> map = new HashMap<>();
+			for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
+				for (JMSConnectionData jmsConnectionData : jmsSessionFactory.getResourceDescriptors()) {
+					JMSSession jmsSession = jmsSessionFactory.getResource(jmsConnectionData);
+					for (String destination : jmsSession.getProducerDestinations()) {
+						Integer count = map.get(destination);
+						if (count == null) {
+							map.put(destination, 1);
+						} else {
+							map.put(destination, count + 1);
+						}
+					}
+				}
+			}
+			List<String> result = new ArrayList<>();
+			for (Map.Entry<String, Integer> entry : map.entrySet()) {
+				result.add(entry.getKey() + "=" + entry.getValue());
+			}
+			return result;
 		}
 	}
 

@@ -16,7 +16,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -28,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.ReflectionUtils;
 
 public abstract class Artifact {
@@ -42,7 +42,7 @@ public abstract class Artifact {
 
 	protected byte[] _content;
 	protected int _length;
-	protected long _crc;
+	private long _crc;
 	private long _modificationTime;
 	private boolean _validated;
 
@@ -55,12 +55,18 @@ public abstract class Artifact {
 		}
 	}
 
-	public final boolean isEqual(Artifact other) {
+	protected final void noteChange() {
+		synchronized (_fileSystem) {
+			_fileSystem.noteChange(getURI(), FileSystem.ChangeType.UPDATE);
+		}
+	}
+
+	public final boolean isDifferent(byte[] content, long crc) {
 		if (_content != null) {
-			return Arrays.equals(_content, other._content);
+			return !Arrays.equals(_content, content);
 		}
 		// not 100% certain, but very likely
-		return _length == other._length && _crc == other._crc;
+		return _length != content.length || _crc != crc;
 	}
 
 	public final Directory getParent() {
@@ -79,16 +85,6 @@ public abstract class Artifact {
 		}
 	}
 
-	public static String stripExt(String name) {
-		int i = name.lastIndexOf('.');
-		return i > 0 ? name.substring(0, i) : name;
-	}
-
-	public static String getExt(String name) {
-		int i = name.lastIndexOf('.');
-		return i < 0 ? "" : name.substring(i + 1);
-	}
-
 	public final Collection<String> getReferenced() {
 		return _referenced;
 	}
@@ -101,7 +97,7 @@ public abstract class Artifact {
 		return _validated;
 	}
 
-	final void setValidated() {
+	protected final void setValidated() {
 		_validated = true;
 	}
 
@@ -132,12 +128,20 @@ public abstract class Artifact {
 		_modificationTime = modificationTime;
 	}
 
-	public final void setCrc(long crc) {
+	protected final void setCrc(long crc) {
 		_crc = crc;
 	}
 
 	public final InputStream getContentAsStream() {
-		return _content != null ? new ByteArrayInputStream(_content) : _fileSystem.createInputStream(getURI());
+		if (_content != null) {
+			return new ByteArrayInputStream(_content);
+		} else {
+			try {
+				return _fileSystem.createInputStream(getURI());
+			} catch (Exception e) {
+				throw ReflectionUtils.convert(e, RuntimeException.class);
+			}
+		}
 	}
 
 	protected final byte[] getContentAsBytes() throws Exception {
@@ -162,7 +166,9 @@ public abstract class Artifact {
 	protected final void addReference(Artifact artifact) {
 		if (artifact != this) {
 			getReferenced().add(artifact.getURI());
-			artifact.getReferencedBy().add(getURI());
+			synchronized (artifact) {
+				artifact.getReferencedBy().add(getURI());
+			}
 			logger.debug(getURI() + "->" + artifact);
 		}
 	}
@@ -185,7 +191,11 @@ public abstract class Artifact {
 		_validated = false;
 		for (Iterator<String> iterator = _referenced.iterator(); iterator.hasNext();) {
 			Artifact artifact = getArtifact(iterator.next());
-			artifact.getReferencedBy().remove(getURI());
+			Collection<String> referencedBy = artifact.getReferencedBy();
+			referencedBy.remove(getURI());
+			if (referencedBy.isEmpty()) {
+				artifact.invalidate();
+			}
 			iterator.remove();
 		}
 	}
@@ -219,7 +229,7 @@ public abstract class Artifact {
 			clone.getReferencedBy().addAll(getReferencedBy());
 		}
 		clone.setModificationTime(getModificationTime());
-		clone._crc = _crc;
+		clone.setCrc(_crc);
 		clone._content = _content;
 		clone._length = _length;
 		return clone;

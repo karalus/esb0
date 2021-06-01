@@ -26,19 +26,23 @@ public interface ESBConstants {
 
 	String QueryString = "QueryString";
 
+	String HttpQueryParameter = "HttpQueryParameter";
+
+	String RemoteAddr = "RemoteAddr";
+
 	String RemoteUser = "RemoteUser";
 
 	String ClientCertificate = "ClientCertificate";
 
 	String HttpResponseCode = "HttpResponseCode";
 
-	String HttpURLConnection = "HttpURLConnection";
+	String HttpURLConnection = "_HttpURLConnection";
 
 	String HttpURLOutbound = "HttpURLOutbound";
 
 	String appendHttpUrlPath = "appendHttpUrlPath";
 
-	String AsyncContext = "AsyncContext";
+	String AsyncContext = "_AsyncContext";
 
 	String WorkerPool = "WorkerPool";
 
@@ -49,6 +53,8 @@ public interface ESBConstants {
 	String timeleft = "timeleft";
 
 	String timeleftOrigin = "timeleftOrigin";
+
+	String SOAP_ELEMENT_NAME = "soapElementName";
 
 	String SOAP_OPERATION = "operation";
 
@@ -64,8 +70,22 @@ public interface ESBConstants {
 
 	String JMSTimestamp = "JMSTimestamp";
 
+	String JMSType = "JMSType";
+
+	String JMSExpiration = "JMSExpiration";
+
 	String JMSOrigin = "JMSOrigin";
 
+	String QueueName = "QueueName";
+
+	String TopicName = "TopicName";
+
 	String Charset = "Charset";
+
+	String FileEventKind = "FileEventKind";
+
+	String filename = "filename";
+
+	String JDBCConnection = "_JDBCConnection";
 
 }

@@ -25,7 +25,7 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.zip.CRC32;
 
-import com.artofarc.util.StreamUtils;
+import com.artofarc.util.IOUtils;
 
 public class FileSystemDir extends FileSystem {
 
@@ -46,28 +46,26 @@ public class FileSystemDir extends FileSystem {
 	}
 
 	@Override
-	protected InputStream createInputStream(String uri) {
-		try {
-			return new FileInputStream(new File(_anchorDir, uri));
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException("FileSystem corrupted", e);
-		}
+	protected InputStream createInputStream(String uri) throws FileNotFoundException {
+		return new FileInputStream(new File(_anchorDir, uri));
 	}
 
 	@Override
-	public void parse() throws IOException {
+	public void load() throws IOException {
 		readDir(_root, _anchorDir, new CRC32());
 	}
 
 	private void readDir(Directory base, File dir, CRC32 crc) throws IOException {
 		for (File file : dir.listFiles()) {
 			String name = file.getName();
+			// Ignore files starting with dot (important for Mac OSX)
+			if (name.startsWith(".")) continue;
 			if (file.isDirectory()) {
 				readDir(new Directory(this, base, name), file, crc);
 			} else {
 				Artifact artifact = createArtifact(base, name);
 				if (artifact != null) {
-					artifact.setContent(StreamUtils.readFile(file));
+					artifact.setContent(IOUtils.readFile(file));
 					artifact.setModificationTime(file.lastModified());
 					crc.update(artifact.getContent());
 					artifact.setCrc(crc.getValue());
@@ -82,7 +80,9 @@ public class FileSystemDir extends FileSystem {
 		for (Map.Entry<String, ChangeType> entry : _changes.entrySet()) {
 			File file = new File(_anchorDir, entry.getKey());
 			if (entry.getValue() == ChangeType.DELETE) {
-				file.delete();
+				if (!file.delete() && file.exists()) {
+					logger.error("Could not delete " + file);
+				}
 			} else {
 				Artifact artifact = getArtifact(entry.getKey());
 				if (artifact instanceof Directory) {

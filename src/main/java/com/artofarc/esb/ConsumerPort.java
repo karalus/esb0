@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.action.Action;
+import com.artofarc.esb.action.JDBCAction;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.ESBMessage;
@@ -35,7 +36,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 
 	private final String _uri;
 	private List<Action> _serviceFlow;
-	private Action _startAction;
+	protected Action _startAction;
 	private volatile boolean _enabled = true;
 	protected final AtomicLong _completedTaskCount = new AtomicLong();
 
@@ -84,7 +85,18 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	}
 
 	public final long processInternal(Context context, ESBMessage message) throws Exception {
-		_startAction.process(context, message);
+		try {
+			if (_startAction.getLocation() != null) {
+				message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
+			}
+			_startAction.process(context, message);
+		} catch (Exception e) {
+			JDBCAction.closeKeptConnection(message, false);
+			throw e;
+		} finally {
+			JDBCAction.closeKeptConnection(message, true);
+			context.getTimeGauge().clear();
+		}
 		if (context.getExecutionStack().size() > 0) {
 			context.getExecutionStack().clear();
 			throw new IllegalStateException("ExecutionStack not empty");

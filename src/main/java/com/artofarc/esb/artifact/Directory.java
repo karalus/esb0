@@ -18,7 +18,6 @@ package com.artofarc.esb.artifact;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import com.artofarc.esb.context.GlobalContext;
 
@@ -41,7 +40,7 @@ public class Directory extends Artifact {
 	@Override
 	protected Directory clone(FileSystem fileSystem, Directory parent) {
 		Directory clone = initClone(new Directory(fileSystem, parent, getName()));
-		for (Entry<String, Artifact> entry : getArtifacts().entrySet()) {
+		for (Map.Entry<String, Artifact> entry : getArtifacts().entrySet()) {
 			clone.getArtifacts().put(entry.getKey(), entry.getValue().clone(fileSystem, clone));
 		}
 		return clone;

@@ -17,13 +17,15 @@
 package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 
-import javax.xml.bind.JAXBException;
 import javax.xml.transform.stream.StreamSource;
 
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContextFactory;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import com.artofarc.util.JAXPFactoryHelper;
+import com.sun.xml.xsom.XSSchemaSet;
+import com.sun.xml.xsom.parser.XSOMParser;
 
 public class XSDArtifact extends SchemaArtifact {
 
@@ -34,7 +36,7 @@ public class XSDArtifact extends SchemaArtifact {
 	@Override
 	protected XSDArtifact clone(FileSystem fileSystem, Directory parent) {
 		XSDArtifact clone = initClone(new XSDArtifact(fileSystem, parent, getName()));
-		clone._jaxbContext = _jaxbContext;
+		clone._schemaSet = _schemaSet;
 		clone._schema = _schema;
 		clone._grammars = _grammars;
 		clone._namespace.set(getNamespace());
@@ -46,24 +48,29 @@ public class XSDArtifact extends SchemaArtifact {
 	}
 
 	@Override
-	public DynamicJAXBContext getJAXBContext(ClassLoader classLoader) throws JAXBException, IOException {
-		if (_jaxbContext == null) {
-			_jaxbContext = DynamicJAXBContextFactory.createContextFromXSD(getStreamSource(), getResolver(), classLoader, getDynamicJAXBContextProperties());
+	public XSSchemaSet getXSSchemaSet() throws SAXException {
+		if (_schemaSet == null) {
+			XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
+			xsomParser.setEntityResolver(getResolver());
+			InputSource is = new InputSource(getContentAsStream());
+			is.setSystemId(getURI());
+			xsomParser.parse(is);
+			_schemaSet = xsomParser.getResult();
 		}
-		return _jaxbContext;
+		return _schemaSet;
 	}
 
 	@Override
-	protected XSDArtifact resolveArtifact(String systemId, String baseURI) throws FileNotFoundException {
+	protected XSDArtifact resolveArtifact(String namespaceURI, String systemId, String baseURI) throws FileNotFoundException {
 		SchemaArtifact base = this;
 		if (baseURI != null) {
-			if (!baseURI.startsWith(FILE_SCHEMA)) {
-				throw new IllegalArgumentException("baseURI must start with " + FILE_SCHEMA);
-			}
-			base = loadArtifact(baseURI.substring(FILE_SCHEMA.length()));
+			base = loadArtifact(getPathFromFileURI(baseURI));
 		}
-		String resourceURI = base.getParent().getURI() + '/' + systemId;
-		XSDArtifact artifact = loadArtifact(resourceURI);
+		XSDArtifact artifact = XMLCatalog.get(base, namespaceURI);
+		if (artifact == null) {
+			String resourceURI = base.getParent().getURI() + '/' + systemId;
+			artifact = loadArtifact(resourceURI);
+		}
 		base.addReference(artifact);
 		return artifact;
 	}

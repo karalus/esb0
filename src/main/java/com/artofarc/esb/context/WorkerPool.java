@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConnectionProvider;
+import com.artofarc.util.XQuerySource;
 
 public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
@@ -52,7 +53,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 			_threadFactory = null;
 		}
 		if (maxThreads > 0) {
-			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<Runnable>(queueDepth) : new LinkedBlockingQueue<Runnable>(), _threadFactory);
+			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<>(queueDepth) : new LinkedBlockingQueue<>(), _threadFactory);
 			_executorService.allowCoreThreadTimeOut(allowCoreThreadTimeOut);
 		} else {
 			_executorService = null;
@@ -71,8 +72,8 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		this(new PoolContext(globalContext, name), name, minThreads, maxThreads, priority, queueDepth, scheduledThreads, allowCoreThreadTimeOut);
 	}
 
-	WorkerPool(GlobalContext globalContext, int nThreads) {
-		this(new PoolContext(globalContext, null), "default", nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
+	WorkerPool(GlobalContext globalContext, String name, int nThreads) {
+		this(new PoolContext(globalContext, name), name, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
 	}
 
 	public PoolContext getPoolContext() {
@@ -91,7 +92,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		return _asyncProcessingPool;
 	}
 
-	public Context getContext() throws Exception {
+	public Context getContext() throws InterruptedException {
 		return _contextPool.getContext();
 	}
 

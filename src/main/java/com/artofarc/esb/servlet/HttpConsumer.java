@@ -33,6 +33,7 @@ import com.artofarc.esb.message.ESBMessage;
 
 public final class HttpConsumer extends ConsumerPort implements Runnable, com.artofarc.esb.mbean.HttpConsumerMXBean {
 
+	private final boolean _pathMapping;
 	private final String _bindPath;
 	private final String _requiredRole;
 	private final int _minPool, _maxPool;
@@ -44,13 +45,18 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 
 	public HttpConsumer(String uri, int resourceLimit, String bindPath, String requiredRole, int minPool, int maxPool, long keepAlive, boolean supportCompression, String multipartResponse, Integer bufferSize) {
 		super(uri);
-		_bindPath = bindPath;
+		_pathMapping = bindPath.charAt(bindPath.length() - 1) == '*';
+		_bindPath = _pathMapping ? bindPath.substring(0, bindPath.length() - 1) : bindPath;
 		_requiredRole = requiredRole;
 		_minPool = minPool;
 		_maxPool = maxPool;
 		_keepAlive = keepAlive;
 		_resourceLimit = resourceLimit;
 		_terminalAction = new HttpServletResponseAction(supportCompression, multipartResponse, bufferSize);
+	}
+
+	public boolean isPathMapping() {
+		return _pathMapping;
 	}
 
 	public String getBindPath() {
@@ -76,11 +82,11 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 		if (_resourceLimit > 0 && getCompletedTaskCount() >= _resourceLimit) {
 			message.reset(BodyType.STRING, "Resource limit exhausted");
 			message.getVariables().put(ESBConstants.HttpResponseCode, javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-			message.getHeaders().clear();
-			message.getHeaders().put(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT);
+			message.clearHeaders();
+			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT);
 			ScheduledFuture<?> scheduledFuture = _scheduledFuture;
 			if (scheduledFuture != null) {
-				message.getHeaders().put("Retry-After", (int) scheduledFuture.getDelay(TimeUnit.SECONDS));
+				message.putHeader(HttpConstants.HTTP_HEADER_RETRY_AFTER, (int) scheduledFuture.getDelay(TimeUnit.SECONDS));
 			}
 			_terminalAction.process(context, message);
 		} else {

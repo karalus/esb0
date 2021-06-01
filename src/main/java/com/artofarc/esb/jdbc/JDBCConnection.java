@@ -16,15 +16,10 @@
  */
 package com.artofarc.esb.jdbc;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.sql.Array;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.SQLXML;
-
-import javax.xml.transform.sax.SAXResult;
-import javax.xml.transform.sax.TransformerHandler;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.sql.*;
+import java.util.ArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,45 +29,70 @@ import com.artofarc.util.ReflectionUtils;
 /**
  * Encapsulate the oddities of OJDBC.
  */
-public final class JDBCConnection implements AutoCloseable {
+public final class JDBCConnection {
 
 	protected final static Logger logger = LoggerFactory.getLogger(JDBCConnection.class);
 
 	private static Class<?> ifcOracleConnection;
-	private static Method createARRAY;
-	private static Method getSQLTypeName;
-	private static Class<?> jxTransformerHandler;
+	private static MethodHandle createARRAY;
+	private static MethodHandle getSQLTypeName;
 
 	static {
 		try {
 			ifcOracleConnection = Class.forName("oracle.jdbc.OracleConnection");
-			createARRAY = ifcOracleConnection.getMethod("createARRAY", String.class, Object.class);
-			getSQLTypeName = Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName");
+			MethodHandles.Lookup lookup = MethodHandles.publicLookup();
+			createARRAY = lookup.unreflect(ifcOracleConnection.getMethod("createARRAY", String.class, Object.class));
+			getSQLTypeName = lookup.unreflect(Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName"));
 		} catch (ReflectiveOperationException e) {
 			logger.warn("Oracle JDBC driver not in classpath. Mapping of Arrays will not work");
-		}
-		try {
-			jxTransformerHandler = Class.forName("oracle.xml.jaxp.JXTransformerHandler");
-		} catch (ReflectiveOperationException e) {
-			logger.warn("Oracle XML parser not in classpath. Binding of SQLXML will not work when using namespaces");
 		}
 	}
 
 	private final Connection _connection;
 	private final boolean _isOracleConnection;
+	private final ArrayList<Object> _resources = new ArrayList<>();
 
-	public JDBCConnection(Connection connection) throws SQLException {
+	public JDBCConnection(Connection connection, boolean manualCommit) throws SQLException {
 		_connection = connection;
 		_isOracleConnection = ifcOracleConnection != null && connection.isWrapperFor(ifcOracleConnection);
+		if (manualCommit) {
+			connection.setAutoCommit(false);
+		}
 	}
 
 	public Connection getConnection() {
 		return _connection;
 	}
 
-	@Override
-	public void close() throws SQLException {
+	public void close(boolean commit) throws SQLException {
+		for (Object resource : _resources) {
+			try {
+				ReflectionUtils.invoke(resource.getClass().getMethod("free"), SQLException.class, resource);
+			} catch (NoSuchMethodException | SQLException e) {
+				logger.warn("Could not free resource", e);
+			}
+		}
+		if (commit && !_connection.getAutoCommit()) {
+			_connection.commit();
+		}
 		_connection.close();
+	}
+
+	private <T> T logResource(T resource) {
+		_resources.add(resource);
+		return resource;
+	}
+
+	public Blob createBlob() throws SQLException {
+		return logResource(_connection.createBlob());
+	}
+
+	public Clob createClob() throws SQLException {
+		return logResource(_connection.createClob());
+	}
+
+	public SQLXML createSQLXML() throws SQLException {
+		return logResource(_connection.createSQLXML());
 	}
 
 	public Array createArray(String typeName, Object[] elements) throws SQLException {
@@ -81,39 +101,21 @@ public final class JDBCConnection implements AutoCloseable {
 		}
 		// https://docs.oracle.com/cd/B28359_01/java.111/b31224/oraarr.htm#i1059642
 		try {
-			return (Array) createARRAY.invoke(_connection.unwrap(ifcOracleConnection), typeName, elements);
-		} catch (InvocationTargetException | IllegalAccessException e) {
-			throw ReflectionUtils.convert(e.getCause(), SQLException.class);
+			return logResource((Array) createARRAY.invoke(_connection.unwrap(ifcOracleConnection), typeName, (Object) elements));
+		} catch (Throwable e) {
+			throw ReflectionUtils.convert(e, SQLException.class);
 		}
 	}
 
-	public static String getSQLTypeName(Array array) throws SQLException {
+	public String getSQLTypeName(Array array) throws SQLException {
+		if (!_isOracleConnection) {
+			throw new SQLException("Only works with OJDBC");
+		}
 		try {
 			return (String) getSQLTypeName.invoke(array);
-		} catch (InvocationTargetException | IllegalAccessException e) {
-			throw ReflectionUtils.convert(e.getCause(), SQLException.class);
+		} catch (Throwable e) {
+			throw ReflectionUtils.convert(e, SQLException.class);
 		}
-	}
-
-	public TransformerHandler getTransformerHandler() {
-		if (_isOracleConnection && jxTransformerHandler != null) {
-			try {
-				return (TransformerHandler) jxTransformerHandler.newInstance();
-			} catch (InstantiationException | IllegalAccessException e) {
-				throw new RuntimeException(e);
-			}
-		}
-		return null;
-	}
-
-	public SAXResult createSAXResult(SQLXML xmlObject) throws SQLException {
-		SAXResult result = xmlObject.setResult(SAXResult.class);
-		TransformerHandler transformerHandler = getTransformerHandler();
-		if (transformerHandler != null) {
-			transformerHandler.setResult(result);
-			result = new SAXResult(transformerHandler);
-		}
-		return result;
 	}
 
 }

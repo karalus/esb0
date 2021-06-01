@@ -16,8 +16,8 @@
  */
 package com.artofarc.esb.action;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -31,13 +31,17 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StringWriter;
+import com.artofarc.util.ReflectionUtils;
+import com.artofarc.util.StringBuilderWriter;
 import com.artofarc.util.TimeGauge;
 import com.codahale.metrics.Timer;
 
 public abstract class Action implements Cloneable {
 
 	protected final static Logger logger = LoggerFactory.getLogger(Action.class);
+
+	private final static Logger loggerTimeGauge = LoggerFactory.getLogger(Action.class.getName() + "TimeGauge");
+	private final static long timeGaugeThreshold = Long.parseLong(System.getProperty("esb0.timeGauge.threshold", "250"));
 
 	protected Action _nextAction;
 	protected Action _errorHandler;
@@ -72,11 +76,11 @@ public abstract class Action implements Cloneable {
 		return s;
 	}
 
-	static void logMap(Context context, Map<String, Object> map, String prolog) throws Exception {
-		StringWriter stringWriter = new StringWriter();
-		stringWriter.write(prolog);
-		ESBMessage.dumpMap(context, map, stringWriter);
-		logger.info(stringWriter.toString());
+	private static void logKeyValues(Context context, Collection<Map.Entry<String, Object>> keyValues, String prolog) throws Exception {
+		StringBuilderWriter sw = new StringBuilderWriter();
+		sw.write(prolog);
+		ESBMessage.dumpKeyValues(context, keyValues, sw);
+		logger.info(sw.toString());
 	}
 
 	/**
@@ -87,7 +91,7 @@ public abstract class Action implements Cloneable {
 		List<ExecutionContext> resources = new ArrayList<>();
 		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
 		context.pushStackPos();
-		TimeGauge timeGauge = new TimeGauge(logger, 250L, false);
+		TimeGauge timeGauge = new TimeGauge(loggerTimeGauge, timeGaugeThreshold, false);
 		final Timer timer = context.getGlobalContext().getMetricRegistry().timer(_location != null ? _location.getServiceArtifactURI() : getClass().getSimpleName());
 		final Timer.Context contextm = timer.time();
 
@@ -126,8 +130,8 @@ public abstract class Action implements Cloneable {
 				}
 			} catch (Exception e) {
 				logger.info("Exception while processing " + action, e);
-				logMap(context, message.getHeaders(), "Headers: ");
-				logMap(context, message.getVariables(), "Variables: ");
+				logKeyValues(context, message.getHeaders(), "Headers: ");
+				logKeyValues(context, message.getVariables().entrySet(), "Variables: ");
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
 				context.unwindStack();
@@ -154,7 +158,7 @@ public abstract class Action implements Cloneable {
 					action = pipeline.get(--i);
 					ExecutionContext exContext = resources.get(i);
 					try {
-						action.close(exContext);
+						action.close(exContext, message, closeSilently);
 						if (action.getErrorHandler() != null) {
 							context.getStackPos().pop();
 							stackErrorHandler.pop();
@@ -211,9 +215,9 @@ public abstract class Action implements Cloneable {
 	}
 
 	/**
-	 * Cleanup ExecutionContext.
+	 * Cleanup resources.
 	 */
-	protected void close(ExecutionContext execContext) throws Exception {
+	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 	}
 
 	@Override
@@ -246,7 +250,7 @@ public abstract class Action implements Cloneable {
 		return startAction;
 	}
 
-	protected final Object bindVariable(String exp, Context context, ESBMessage message) throws Exception {
+	public final Object bindVariable(String exp, Context context, final ESBMessage message) throws Exception {
 		StringBuilder builder = new StringBuilder();
 		for (int pos = 0;;) {
 			int i = exp.indexOf("${", pos);
@@ -255,13 +259,14 @@ public abstract class Action implements Cloneable {
 				builder.append(exp.substring(pos));
 				break;
 			}
-			builder.append(exp.substring(pos, i));
+			if (i > pos) builder.append(exp.substring(pos, i));
 			int j = exp.indexOf('}', i);
 			if (j < 0) throw new IllegalArgumentException("Matching } is missing");
 			String path = exp.substring(i + 2, j);
 			int k = path.indexOf('.');
 			String name = k < 0 ? path : path.substring(0, k);
-			Object value = "body".equals(name) ? message.getBodyAsString(context) : resolve(message, name, true);
+			Object value = "body".equals(name) ? message.getBodyAsString(context)
+					: "attachments".equals(name) ? message.getAttachments() : resolve(message, name, true);
 			if (value == null) {
 				value = context.getGlobalContext().getProperty(name);
 			}
@@ -274,17 +279,27 @@ public abstract class Action implements Cloneable {
 			if (value == null && !standalone) {
 				throw new ExecutionException(this, "name could not be resolved: " + name);
 			}
-			while (k >= 0) {
-				int l = path.indexOf('.', ++k);
-				String fragment = l < 0 ? path.substring(k) : path.substring(k, l);
-				Method method = value.getClass().getMethod(fragment);
-				value = method.invoke(value);
-				k = l;
+			if (k >= 0) {
+				ReflectionUtils.ParamResolver<ExecutionException> paramResolver = path.indexOf('(', k) < 0 ? null
+						: new ReflectionUtils.ParamResolver<ExecutionException>() {
+
+					@Override
+					public Object resolve(String param) throws ExecutionException {
+						char firstChar = param.charAt(0);
+						if (firstChar == '\'') {
+							return param.substring(1, param.length() - 1);
+						} else if (Character.isDigit(firstChar) || firstChar == '-') {
+							return Integer.valueOf(param);
+						}
+						return Action.this.resolve(message, param, true);
+					}
+				};
+				value = ReflectionUtils.eval(value, path.substring(k), paramResolver);
 			}
 			if (standalone) {
 				return value;						
 			}
-			builder.append(value);
+			builder.append(value.toString());
 			pos = j;
 		}
 		return builder.toString();

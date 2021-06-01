@@ -5,34 +5,29 @@ import static org.junit.Assert.*;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Properties;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWrapper;
 import com.artofarc.esb.message.ESBConstants;
 
 
-public class ActionTest {
-   
-   private Context context;
+public class ActionTest extends AbstractESBTest {
    
    @Before
    public void createContext() throws Exception {
-      context = new Context(new GlobalContext(null).getDefaultWorkerPool().getPoolContext());
-   }
-
-   @After
-   public void closeContext() throws Exception {
-      if (context != null) {
-         context.close();
-      }
+      context = new Context(new GlobalContext(getClass().getClassLoader(), null, new Properties()).getDefaultWorkerPool().getPoolContext());
    }
 
    @Test
@@ -65,7 +60,7 @@ public class ActionTest {
    public void testResolveTemplate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
       message.getVariables().put(ESBConstants.appendHttpUrlPath, "partner/4711/order/0815");
-      BranchOnPathAction action = new BranchOnPathAction("", null);
+      BranchOnPathAction action = new BranchOnPathAction("", null, false);
       MarkAction markAction = new MarkAction();
 		action.addBranch("partner/{partnerId}/order/{orderId}", markAction);
       ConsumerPort consumerPort = new ConsumerPort(null);
@@ -80,7 +75,7 @@ public class ActionTest {
    public void testResolveQuery() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
       message.getVariables().put(ESBConstants.QueryString, "wsdl&version=1%2E0");
-      BranchOnPathAction action = new BranchOnPathAction("", null);
+      BranchOnPathAction action = new BranchOnPathAction("", null, false);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       consumerPort.process(context, message);
@@ -89,13 +84,25 @@ public class ActionTest {
    }
 
    @Test
+   public void testResolveQueryGeneric() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+      message.getVariables().put(ESBConstants.QueryString, "wsdl&version=1%2E0");
+      BranchOnPathAction action = new BranchOnPathAction("", null, true);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
+      assertEquals(Integer.valueOf(4), message.getVariable(ESBConstants.QueryString + "#"));
+      assertEquals("1.0", message.getVariable(ESBConstants.QueryString + "#4"));
+   }
+
+   @Test
    public void testBranch() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
       MarkAction action1 = new MarkAction();
       MarkAction action2 = new MarkAction();
       MarkAction action3 = new MarkAction();
-      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("var", false, action2, null);
-      branchOnVariableAction.addBranch("ok", action1);
+      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("var", action2, null);
+      branchOnVariableAction.addBranch(getGlobalContext(), Arrays.asList("ok"), action1);
       branchOnVariableAction.setNextAction(action3);
       branchOnVariableAction.process(context, message);
       assertFalse(action1.isExecuted());
@@ -115,31 +122,81 @@ public class ActionTest {
       assertFalse(action2.isExecuted());
       assertTrue(action3.isExecuted());
    }
-   
-   @Test
-   public void testSetMessage() throws Exception {
-      ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), "${body}", "java.lang.String", null);
-		action.addAssignment("int", true, "42", "java.lang.Integer", null);
-		action.addAssignment("bool", true, "true", "java.lang.Boolean", "parseBoolean");
-		action.addAssignment("now", true, "", "java.lang.System", "currentTimeMillis");
-		action.addAssignment("_id", false, "", "java.util.UUID", "randomUUID");
-		action.addAssignment("id", true, "${_id.toString}", null, null);
-		action.addAssignment("calendar", false, "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime");
-		action.addAssignment("timeInMillis", false, "${calendar.getTimeInMillis}", null, null);
-		action.addAssignment("_addr", false, "", "java.net.InetAddress", "getLocalHost");
-		action.addAssignment("hostname", false, "${_addr.getHostName}", null, null);
-   	action.setNextAction(new DumpAction());
-   	action.process(context, message);
-   	assertEquals(42, message.getHeader("int"));
-   	assertEquals(true, message.getHeader("bool"));
-   	assertTrue(message.getHeader("now") instanceof Long);
-   	assertTrue(message.getHeader("id") instanceof String);
-   	Object calendar = message.getVariable("calendar");
+
+	@Test
+	public void testSetMessage() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), new StringWrapper("${body}"), "java.lang.String", null);
+		action.addAssignment("int", true, "42", "java.lang.Integer", null, null);
+		action.addAssignment("bool", true, "true", "java.lang.Boolean", "parseBoolean", null);
+		action.addAssignment("now", true, "", "java.lang.System", "currentTimeMillis", null);
+		action.addAssignment("_id", false, "", "java.util.UUID", "randomUUID", null);
+		action.addAssignment("id", true, "${_id.toString}", null, null, null);
+		action.addAssignment("id2", true, "${id.substring(2)}", null, null, null);
+		action.addAssignment("_calendar", false, "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime", null);
+		action.addAssignment("timeInMillis", false, "${_calendar.getTimeInMillis}", null, null, null);
+		action.addAssignment("_addr", false, "", "java.net.InetAddress", "getLocalHost", null);
+		action.addAssignment("hostname", false, "${_addr.getHostName}", null, null, null);
+		action.addAssignment("date", false, "", "java.util.Date", null, null);
+		action.addAssignment("_dateVoid", false, "${date.setTime(timeInMillis)}", null, null, null);
+		action.addAssignment("_formatter", false, "", "java.util.Formatter", null, null);
+		action.addAssignment("formattedInt", false, "${_formatter.format('%04d',int).toString}", null, null, null);
+		action.addAssignment("_formatter", false, "${formatter.close}", null, null, null);
+		action.setNextAction(action);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+		assertEquals("0042", message.getVariable("formattedInt"));
+		assertEquals(null, Integer.valueOf(42), message.getHeader("int"));
+		assertEquals(true, message.getHeader("bool"));
+		assertTrue(message.getHeader("now") instanceof Long);
+		assertTrue(message.getHeader("id") instanceof String);
+		Object calendar = message.getVariable("_calendar");
 		assertTrue("Type is: " + calendar.getClass(), calendar instanceof Calendar);
-   	Object timeInMillis = message.getVariable("timeInMillis");
+		Object timeInMillis = message.getVariable("timeInMillis");
 		assertTrue("Type is: " + timeInMillis.getClass(), timeInMillis instanceof Long);
-   }
+	}
+
+	@Test
+	public void testSetMessageJodaTime() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("Content-Type", true, "", "com.artofarc.esb.http.HttpConstants", null, "HTTP_HEADER_CONTENT_TYPE_JSON");
+		action.addAssignment("now", false, "", "java.time.LocalDateTime", "now", null);
+		action.addAssignment("midnight", false, "${now.withHour(0).withMinute(0).withSecond(0).withNano(0).plusDays(1)}", null, null, null);
+		action.addAssignment("chronoUnit", false, "", "java.time.temporal.ChronoUnit", null, "SECONDS");
+		action.addAssignment("ttl", false, "${chronoUnit.between(now,midnight)}", null, null, null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+	}
+
+	@Test
+	public void testCompareTo() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("LogTimeStamp1", true, "1598427971440", "java.lang.Long", null, null);
+		action.addAssignment("LogTimeStamp2", true, "1607954675000", "java.lang.Long", null, null);
+		action.addAssignment("_LogTimeStamp", false, "${LogTimeStamp1}", "java.math.BigInteger", "valueOf", null);
+		action.addAssignment("_LogTimeStamp14d", false, "${_LogTimeStamp.add(1209600000)}", null, null, null);
+		action.addAssignment("_initialTimestamp", false, "${initialTimestamp}", "java.math.BigInteger", "valueOf", null);
+		action.addAssignment("compareTo", false, "${_LogTimeStamp14d.longValue.compareTo(initialTimestamp)}", null, null, null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+	}
+	
+	@Test
+	public void testSetMessageOptional() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("optional", false, "${messageType}", "java.util.Optional", "ofNullable", null);
+		action.addAssignment("keepConnection", false, "${optional.present}", null, null, null);
+		action.addAssignment("messageType", true, "request", null, null, null);
+		action.addAssignment("optional2", false, "${messageType}", "java.util.Optional", "ofNullable", null);
+		action.addAssignment("keepConnection2", false, "${optional2.present}", null, null, null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+		assertFalse(message.getVariable("keepConnection"));
+		assertTrue(message.getVariable("keepConnection2"));
+	}
 
    @Test
    public void testJsonPointer() throws Exception {
@@ -163,12 +220,43 @@ public class ActionTest {
    	action.process(context, message);
    	assertEquals("esb0", message.getVariable("result"));
    	assertEquals(true, message.getVariable("boolresult"));
-   	assertEquals(1L, message.getVariable("numresult"));
+   	assertEquals(null, Long.valueOf(1), message.getVariable("numresult"));
    	assertTrue(message.getVariable("decresult") instanceof BigDecimal);
    	assertEquals("baz", message.getHeader("h1"));
-   	assertEquals(msgStr, message.getVariable("whole"));
+   	assertEquals(msgStr, message.getVariable("whole").toString());
    	assertFalse(message.getVariables().containsKey("noresult"));
    	assertEquals("{\"productName\":\"esb0\"}", message.getBodyAsString(context));
    }
 
+	@Test
+	public void testJsonArray() throws Exception {
+		String msgStr = "{\"name\":\"esb0\",\"alive\":true,\"surname\":null,\"no\":1,\"amount\":5.0,\"foo\":[\"bar\",\"baz\"]}";
+		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
+		ProcessJsonAction processJsonAction = new ProcessJsonAction(null);
+		processJsonAction.addVariable("foes", "/foo");
+		processJsonAction.addVariable("all", "");
+		Action action = processJsonAction;
+		action = action.setNextAction(new IterateAction("${all.entrySet}", "_iterator", false, "_entry", new DumpAction()));
+		action = action.setNextAction(new IterateAction("${foes}", "_iterator", false, "foo", new DumpAction()));
+		action = action.setNextAction(new DumpAction());
+		processJsonAction.process(context, message);
+	}
+   
+	@Test
+	public void testNodeList() throws Exception {
+		String msgStr = "<root>\r\n" + 
+				"	<node1>Text1</node1>\r\n" + 
+				"	<node2>Text2</node2>\r\n" + 
+				"</root>";
+		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
+	      List<AssignAction.Assignment> assignments = createAssignments(false);
+	      assignments.add(new AssignAction.Assignment("nodes", false, "*/*", true, "element()"));
+		AssignAction assignAction = createAssignAction(assignments, ".", null);
+		Action action = assignAction;
+		//action = action.setNextAction(new IterateAction("${nodes}", "_iterator", false, "node", new DumpAction()));
+		action = action.setNextAction(new DumpAction());
+		assignAction.process(context, message);
+		//assertTrue(message.getVariable("nodes") instanceof Iterable);
+	}
+   
 }

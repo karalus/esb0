@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -30,23 +29,19 @@ import com.artofarc.esb.artifact.DeployHelper;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.FileSystemDB;
 import com.artofarc.esb.artifact.FileSystemDir;
-import com.artofarc.esb.artifact.ValidationException;
 import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.GlobalContext;
 
-public final class ESBServletContextListener implements ServletContextListener, Runnable {
+public final class ESBServletContextListener implements ServletContextListener {
 
-	public static final String ADMIN_SERVLET_PATH = "/admin/deploy";
-
-	public static final String VERSION = "esb0.version";
-	public static final String BUILD_TIME = "esb0.build.time";
+	public static final String ADMIN_SERVLET_PATH = "admin/deploy";
 	public static final String CONTEXT = "esb0.context";
-	public static final String ROOT = "esb0.root";
 
-	private GlobalContext globalContext;
-
-	public GlobalContext createContext(String root) {
-		globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer());
+	public GlobalContext createContext(ClassLoader classLoader, String root, Properties manifest) {
+		Properties properties = new Properties();
+		properties.setProperty(GlobalContext.VERSION, manifest.getProperty("Implementation-Version", "0.0"));
+		properties.setProperty(GlobalContext.BUILD_TIME, manifest.getProperty("Build-Time", ""));
+		GlobalContext globalContext = new GlobalContext(classLoader, java.lang.management.ManagementFactory.getPlatformMBeanServer(), properties);
 		try {
 			FileSystem fileSystem;
 			if (root != null && root.contains("jdbc")) {
@@ -59,58 +54,46 @@ public final class ESBServletContextListener implements ServletContextListener, 
 				fileSystem = new FileSystemDir(rootDir);
 			}
 			globalContext.setFileSystem(fileSystem);
-			XMLCatalog.attachToFileSystem(fileSystem);
+			XMLCatalog.attachToFileSystem(globalContext);
 			FileSystem.ChangeSet changeSet = fileSystem.init(globalContext);
 			DeployHelper.deployChangeSet(globalContext, changeSet);
-			DeployHelper.createAdminService(globalContext, ADMIN_SERVLET_PATH + '*');
-		} catch (ValidationException e) {
-			globalContext.close();
-			throw new RuntimeException("Could not validate artifact " + e.getArtifactLocation(), e.getCause());
+			fileSystem.writeBackChanges();
+			DeployHelper.createAdminService(globalContext, '/' + ADMIN_SERVLET_PATH + "/*");
 		} catch (Exception e) {
 			globalContext.close();
 			throw new RuntimeException("Could not initialize services", e);
 		}
-		globalContext.getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
 		return globalContext;
 	}
 
 	@Override
 	public void contextInitialized(ServletContextEvent contextEvent) {
 		ServletContext servletContext = contextEvent.getServletContext();
-		Properties properties = new Properties();
+		Properties manifest = new Properties();
 		InputStream inputStream = servletContext.getResourceAsStream("/META-INF/MANIFEST.MF");
 		if (inputStream != null) {
 			try {
-				properties.load(inputStream);
+				manifest.load(inputStream);
 				inputStream.close();
 			} catch (IOException e) {
 				// ignore
 			}
 		}
-		servletContext.setAttribute(VERSION, properties.getProperty("Implementation-Version", "0.0"));
-		servletContext.setAttribute(BUILD_TIME, properties.getProperty("Build-Time", ""));
-		servletContext.setAttribute(CONTEXT, createContext(System.getProperty(ROOT, System.getenv("ESB_ROOT_DIR"))));
+		GlobalContext globalContext = createContext(servletContext.getClassLoader(), System.getProperty("esb0.root", System.getenv("ESB_ROOT_DIR")), manifest);
+		servletContext.setAttribute(CONTEXT, globalContext);
 		servletContext.setAttribute(com.codahale.metrics.servlets.MetricsServlet.METRICS_REGISTRY, globalContext.getMetricRegistry());		
 	}
 
 	@Override
 	public void contextDestroyed(ServletContextEvent contextEvent) {
+		GlobalContext globalContext = (GlobalContext) contextEvent.getServletContext().getAttribute(ESBServletContextListener.CONTEXT);
+		if (globalContext != null) {
 		globalContext.close();
 	}
-
-	@Override
-	public void run() {
-		for (String path : globalContext.getHttpServicePaths()) {
-			HttpConsumer consumerPort = globalContext.getHttpService(path);
-			// check because it could be undeployed meanwhile
-			if (consumerPort != null) {
-				consumerPort.getContextPool().shrinkPool();
-			}
-		}
 	}
 
 	public static void main(String[] args) {
-		new ESBServletContextListener().createContext(args[0]);
+		new ESBServletContextListener().createContext(ESBServletContextListener.class.getClassLoader(), args[0], new Properties());
 	}
 
 }

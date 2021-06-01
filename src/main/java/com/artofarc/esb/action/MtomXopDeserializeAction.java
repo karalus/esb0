@@ -16,21 +16,15 @@
  */
 package com.artofarc.esb.action;
 
-import java.util.Iterator;
-
-import javax.xml.bind.DatatypeConverter;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
+import javax.xml.transform.sax.SAXSource;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StreamUtils;
 
 /**
- * Deserialize XOP package. This implementation is memory exhaustive and should be optimized by using stream decoder.
+ * Deserialize XOP package.
  *   
  * @see <a href="https://www.w3.org/TR/xop10/">XOP</a>
  */
@@ -48,23 +42,13 @@ public class MtomXopDeserializeAction extends TransformAction {
 								"else $child\n" +
 						"}\n" +
 				"};\n" +
-				"declare variable $attachments as element() external;" +
-				"local:copy-xop(., $attachments)"); 
+				"declare variable $attachments as document-node() external;" +
+				"local:copy-xop(., $attachments/*)");
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Document document = context.getDocumentBuilder().newDocument();
-		Node rootNode = document.appendChild(document.createElement("attachments"));
-		for (Iterator<String> iter = message.getAttachments().keySet().iterator(); iter.hasNext();) {
-			String cid = iter.next();
-			Element attachment = (Element) rootNode.appendChild(document.createElement("attachment"));
-			attachment.setAttribute("cid", "cid:" + cid);
-			byte[] ba = StreamUtils.copy(message.getAttachments().get(cid).getInputStream());
-			iter.remove();
-			attachment.setTextContent(DatatypeConverter.printBase64Binary(ba));
-		}
-		message.putVariable("attachments", rootNode);
+		message.putVariable("attachments", new SAXSource(new Attachments2SAX(message, true), null));
 		return super.prepare(context, message, inPipeline);
 	}
 

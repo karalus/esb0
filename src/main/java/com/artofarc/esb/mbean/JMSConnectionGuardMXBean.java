@@ -16,10 +16,14 @@
  */
 package com.artofarc.esb.mbean;
 
+import java.util.List;
+
 public interface JMSConnectionGuardMXBean {
 
 	boolean isConnected();
 
 	void reconnect();
+
+	List<String> getProducerDestinationCount() throws Exception;
 
 }

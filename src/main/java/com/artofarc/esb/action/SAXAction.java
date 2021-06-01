@@ -22,7 +22,6 @@ import java.io.UnsupportedEncodingException;
 import javax.xml.transform.Source;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
@@ -37,7 +36,6 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.XMLFilterBase;
-import com.artofarc.util.StringWriter;
 
 public abstract class SAXAction extends Action {
 
@@ -83,12 +81,8 @@ public abstract class SAXAction extends Action {
 			SAXSource saxSource = (SAXSource) source;
 			parent = saxSource.getXMLReader();
 		}
-		XMLFilterBase xmlFilter = createXMLFilter(context, message, parent);
 		InputSource inputSource = SAXSource.sourceToInputSource(source);
-		if (inputSource == null) {
-			throw new IllegalStateException("Message is invalid");			
-		}
-		return new SAXSource(xmlFilter, inputSource);
+		return new SAXSource(createXMLFilter(context, message, parent), inputSource);
 	}
 
 	@Override
@@ -117,11 +111,9 @@ public abstract class SAXAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
 			if (message.isSink()) {
-				context.getIdenticalTransformer().transform(execContext.<SAXSource> getResource(), message.getBodyAsSinkResult(context));
+				context.transform(execContext.<Source> getResource(), message.getBodyAsSinkResult(context));
 			} else {
-				StringWriter sw = new StringWriter();
-				context.getIdenticalTransformer().transform(execContext.<SAXSource> getResource(), new StreamResult(sw));
-				message.reset(BodyType.STRING, sw.toString());
+				message.reset(BodyType.SOURCE, execContext.getResource());
 			}
 		}
 	}

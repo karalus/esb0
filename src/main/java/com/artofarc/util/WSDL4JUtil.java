@@ -170,9 +170,15 @@ public final class WSDL4JUtil {
 		List<String> parts;
 		if (soap12) {
 			SOAP12Body body = getExtensibilityElement(bindingInput, SOAP12Body.class);
+			if (body == null) {
+				throw new IllegalArgumentException("BindingOperation has no SOAP 1.2 Body: " + bindingOperation.getName());
+			}
 			parts = body.getParts();
 		} else {
 			SOAPBody body = getExtensibilityElement(bindingInput, SOAPBody.class);
+			if (body == null) {
+				throw new IllegalArgumentException("BindingOperation has no SOAP 1.1 Body: " + bindingOperation.getName());
+			}
 			parts = body.getParts();
 		}
 		Message message = bindingOperation.getOperation().getInput().getMessage();

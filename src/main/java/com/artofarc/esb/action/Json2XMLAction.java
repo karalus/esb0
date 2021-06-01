@@ -18,53 +18,31 @@ package com.artofarc.esb.action;
 
 import java.util.Map;
 
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.namespace.QName;
-import javax.xml.validation.Schema;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.xquery.XQItem;
 
-import org.eclipse.persistence.dynamic.DynamicEntity;
-import org.eclipse.persistence.jaxb.UnmarshallerProperties;
-import org.eclipse.persistence.jaxb.dynamic.DynamicJAXBContext;
-import org.eclipse.persistence.oxm.MediaType;
+import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
+import com.artofarc.esb.json.Json2XmlTransformer;
+import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.XMLFilterBase;
+import com.sun.xml.xsom.XSSchemaSet;
 
-public class Json2XMLAction extends Action {
+public class Json2XMLAction extends SAXAction {
 
-	private final DynamicJAXBContext _jaxbContext;
-	private final Class<DynamicEntity> _type;
-	private final Boolean _jsonIncludeRoot, _caseInsensitive;
-	private final Map<String, String> _urisToPrefixes;
-	private final Schema _schema;
-	private final Boolean _formattedOutput;
-	private final QName _xmlElement;
+	private static final boolean useStreaming = Boolean.parseBoolean(System.getProperty("esb0.json2xml.streaming", "true"));
 
-	@SuppressWarnings("unchecked")
-	public Json2XMLAction(DynamicJAXBContext jaxbContext, String type, boolean jsonIncludeRoot, boolean caseInsensitive, String xmlElement, Map<String, String> urisToPrefixes, Schema schema, boolean formattedOutput) {
-		_pipelineStop = true;
-		_jaxbContext = jaxbContext;
-		if (type != null) {
-			QName qName = QName.valueOf(type);
-			Object object = _jaxbContext.createByQualifiedName(qName.getNamespaceURI(), qName.getLocalPart(), true);
-			if (object == null) {
-				throw new IllegalArgumentException("Type not found: " + type);
-			}
-			_type = (Class<DynamicEntity>) object.getClass();
-		} else {
-			_type = null;
-		}
-		_xmlElement = xmlElement != null ? QName.valueOf(xmlElement) : null;
-		_jsonIncludeRoot = jsonIncludeRoot;
-		_caseInsensitive = caseInsensitive;
-		_urisToPrefixes = urisToPrefixes;
-		_schema = schema;
-		_formattedOutput = formattedOutput;
+	private final Json2XmlTransformer _json2xml; 
+	private final boolean _streaming;
+
+	public Json2XMLAction(XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, String xmlElement, Map<String, String> prefixMap, Boolean streaming) {
+		_pipelineStop = false;
+		_streaming = streaming != null ? streaming : useStreaming;
+		_json2xml = new Json2XmlTransformer(schemaSet, true, xmlElement, type, jsonIncludeRoot, prefixMap);
 	}
 
 	@Override
@@ -73,50 +51,27 @@ public class Json2XMLAction extends Action {
 		if (contentType != null && !contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_JSON)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		message.getHeaders().put(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
-		return null;
+		message.putHeader(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
+		if (message.getBodyType() == BodyType.JSON_VALUE) {
+			SAXSource source = new SAXSource(_json2xml.createParser(message.getBody()), null);
+			message.reset(BodyType.SOURCE, source);
+			return new ExecutionContext(source);
+		} else {
+			return super.prepare(context, message, inPipeline);
+		}
 	}
 
 	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		context.getTimeGauge().startTimeMeasurement();
-		Unmarshaller jsonUnmarshaller = _jaxbContext.createUnmarshaller();
-		jsonUnmarshaller.setProperty(UnmarshallerProperties.MEDIA_TYPE, MediaType.APPLICATION_JSON);
-		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_INCLUDE_ROOT, _jsonIncludeRoot);
-		jsonUnmarshaller.setProperty(UnmarshallerProperties.UNMARSHALLING_CASE_INSENSITIVE, _caseInsensitive);
-		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_NAMESPACE_PREFIX_MAPPER, _urisToPrefixes);
-		jsonUnmarshaller.setProperty(UnmarshallerProperties.JSON_ATTRIBUTE_PREFIX, "@");
-		Object root;
-		try {
-			if (_type != null) {
-				JAXBElement<DynamicEntity> jaxbElement = jsonUnmarshaller.unmarshal(message.getBodyAsSource(context), _type);
-				if (_xmlElement != null) {
-					root = new JAXBElement<>(_xmlElement, _type, jaxbElement.getValue());
-				} else {
-					root = jaxbElement;
-				}
-			} else {
-				root = jsonUnmarshaller.unmarshal(message.getBodyAsSource(context));
-			}
-		} finally {
-			context.getTimeGauge().stopTimeMeasurement("Unmarshal JSON --> Java", true);
+	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) {
+		throw new IllegalArgumentException("JSON expected, got XQItem");
+	}
+
+	@Override
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
+		if (parent != null) {
+			throw new IllegalArgumentException("JSON expected: parent must be null");
 		}
-		Marshaller marshaller = _jaxbContext.createMarshaller();
-		if (_type == null) {
-			marshaller.setSchema(_schema);
-		}
-		try {
-			if (nextActionIsPipelineStop) {
-				marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, _formattedOutput);
-				marshaller.marshal(root, message.getBodyAsSinkResult(context));
-			} else {
-				message.marshal(context, marshaller, root);
-			}
-		} catch (JAXBException e) {
-			throw new ExecutionException(this, "Validation failed", e.getLinkedException());
-		} finally {
-			context.getTimeGauge().stopTimeMeasurement("Marshal Java --> XML", false);
-		}
+		return _streaming ? _json2xml.createStreamingParser() : _json2xml.createParser();
 	}
 
 }

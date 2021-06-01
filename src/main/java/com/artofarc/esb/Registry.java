@@ -16,7 +16,12 @@
  */
 package com.artofarc.esb;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,25 +31,31 @@ import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 
 import com.artofarc.esb.context.AbstractContext;
+import com.artofarc.esb.context.WorkerPool;
+import com.artofarc.esb.http.HttpEndpointRegistry;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
-import com.artofarc.util.Closer;
+import com.artofarc.util.PrefixBTree;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 
 public class Registry extends AbstractContext {
 
-	private static final int DEFAULT_NO_SERVICES = 256;
-	private static final int CONCURRENT_UPDATES = 4;
+	private static final int DEFAULT_NO_SERVICES = 512;
+	protected static final String DEFAULT_WORKER_POOL = "default";
 
-	private final ConcurrentHashMap<String, ConsumerPort> _services = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1, 0.75f, CONCURRENT_UPDATES);
-	private final ConcurrentHashMap<String, TimerService> _timerServices = new ConcurrentHashMap<>(16, 0.75f, CONCURRENT_UPDATES);
-
+	private final Map<String, ConsumerPort> _services = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES);
+	private final Map<String, HttpConsumer> _httpServices = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
+	private final PrefixBTree<HttpConsumer> _mappedHttpServices = new PrefixBTree<>();
+	private final Map<String, JMSConsumer> _jmsConsumer = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES >> 1);
+	private final Map<String, TimerService> _timerServices = new ConcurrentHashMap<>();
+	private final Map<Path, FileWatchEventConsumer> _fileWatchEventServices = new ConcurrentHashMap<>();
+	private final Map<String, KafkaConsumerPort> _kafkaConsumer = new ConcurrentHashMap<>();
+	private final Map<String, WorkerPool> _workerPoolMap = new ConcurrentHashMap<>();
+	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
 	private final MBeanServer _mbs;
 	private final String OBJECT_NAME = "com.artofarc.esb:type=" + getClass().getSimpleName();
-	private final ConcurrentHashMap<String, ObjectName> _registered = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES, 0.75f, CONCURRENT_UPDATES);
+	private final Map<String, ObjectName> _registered = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES);
 
 	private final MetricRegistry metricRegistry = new MetricRegistry();
 	private JmxReporter builder;
@@ -60,6 +71,10 @@ public class Registry extends AbstractContext {
 
 	public final MetricRegistry getMetricRegistry() {
 		return metricRegistry;
+	}
+
+	public final HttpEndpointRegistry getHttpEndpointRegistry() {
+		return httpEndpointRegistry;
 	}
 
 	public final void registerMBean(Object object, String postfix) {
@@ -88,8 +103,35 @@ public class Registry extends AbstractContext {
 		return _services.get(uri);
 	}
 
+	public final List<ConsumerPort> getInternalServices() {
+		List<ConsumerPort> result = new ArrayList<>();
+		for (ConsumerPort consumerPort : _services.values()) {
+			if (consumerPort.getClass() == ConsumerPort.class) {
+				result.add(consumerPort);
+			}
+		}
+		result.sort(new Comparator<ConsumerPort>() {
+
+			@Override
+			public int compare(ConsumerPort o1, ConsumerPort o2) {
+				return o1.getUri().compareTo(o2.getUri());
+			}
+		});
+		return result;
+	}
+
 	public final Set<String> getHttpServicePaths() {
 		return _httpServices.keySet();
+	}
+
+	public final List<String> getMappedHttpServicePaths() {
+		return _mappedHttpServices.getKeys();
+	}
+
+	public final List<HttpConsumer> getHttpConsumers() {
+		List<HttpConsumer> result = _mappedHttpServices.getValues();
+		result.addAll(_httpServices.values());
+		return result;
 	}
 
 	public final Collection<JMSConsumer> getJMSConsumers() {
@@ -100,17 +142,18 @@ public class Registry extends AbstractContext {
 		return _timerServices.values();
 	}
 
+	public final Collection<FileWatchEventConsumer> getFileWatchEventConsumers() {
+		return _fileWatchEventServices.values();
+	}
+
+	public final Collection<KafkaConsumerPort> getKafkaConsumers() {
+		return _kafkaConsumer.values();
+	}
+
 	public final HttpConsumer getHttpService(String path) {
 		HttpConsumer httpService = _httpServices.get(path);
 		if (httpService == null) {
-			// TOREVIEW: Find service for a shorter path
-			for (String url : _httpServices.keySet()) {
-				if (url.endsWith("*")) {
-					if (path.startsWith(url.substring(0, url.length() - 1))) {
-						return _httpServices.get(url);
-					}
-				}
-			}
+			return _mappedHttpServices.search(path);
 		}
 		return httpService;
 	}
@@ -123,11 +166,10 @@ public class Registry extends AbstractContext {
 
 	private ConsumerPort bindService(ConsumerPort consumerPort) {
 		ConsumerPort oldConsumerPort = _services.put(consumerPort.getUri(), consumerPort);
-		String postfix = consumerPort.getMBeanPostfix();
 		if (oldConsumerPort != null) {
-			unregisterMBean(postfix);
+			unregisterMBean(oldConsumerPort.getMBeanPostfix());
 		}
-		registerMBean(consumerPort, postfix);
+		registerMBean(consumerPort, consumerPort.getMBeanPostfix());
 		return oldConsumerPort;
 	}
 
@@ -138,42 +180,66 @@ public class Registry extends AbstractContext {
 	private void unbindService(ConsumerPort consumerPort) {
 		if (consumerPort instanceof HttpConsumer) {
 			HttpConsumer httpService = (HttpConsumer) consumerPort;
+			if (httpService.isPathMapping()) {
+				_mappedHttpServices.remove(httpService.getBindPath());
+			} else {
 			_httpServices.remove(httpService.getBindPath());
+			}
 		} else if (consumerPort instanceof JMSConsumer) {
 			JMSConsumer jmsConsumer = (JMSConsumer) consumerPort;
 			_jmsConsumer.remove(jmsConsumer.getKey());
 		} else if (consumerPort instanceof TimerService) {
 			TimerService timerService = (TimerService) consumerPort;
 			_timerServices.remove(timerService.getUri());
+		} else if (consumerPort instanceof FileWatchEventConsumer) {
+			FileWatchEventConsumer fileWatchEventConsumer = (FileWatchEventConsumer) consumerPort;
+			for (Path dir : fileWatchEventConsumer.getDirs()) {
+				_fileWatchEventServices.remove(dir);
+			}
+		} else if (consumerPort instanceof KafkaConsumerPort) {
+			KafkaConsumerPort kafkaConsumer = (KafkaConsumerPort) consumerPort;
+			_kafkaConsumer.remove(kafkaConsumer.getKey());
 		}
 	}
 
-	public final ConsumerPort bindHttpService(HttpConsumer httpConsumer) {
-		ConsumerPort oldConsumerPort = _httpServices.get(httpConsumer.getBindPath());
-		if (oldConsumerPort != null) {
-			if (!oldConsumerPort.getUri().equals(httpConsumer.getUri())) {
+	public final ConsumerPort checkBindHttpService(HttpConsumer httpConsumer) {
+		ConsumerPort oldConsumerPort = httpConsumer.isPathMapping() ? _mappedHttpServices.get(httpConsumer.getBindPath()) : _httpServices.get(httpConsumer.getBindPath());
+		if (oldConsumerPort != null && !oldConsumerPort.getUri().equals(httpConsumer.getUri())) {
 				throw new IllegalArgumentException("A different service is already bound to this path: " + oldConsumerPort.getUri());
 			}
-		} else {
+		return oldConsumerPort;
+	}
+
+	public final ConsumerPort bindHttpService(HttpConsumer httpConsumer) {
+		ConsumerPort oldConsumerPort = checkBindHttpService(httpConsumer);
+		if (oldConsumerPort == null) {
 			oldConsumerPort = getInternalService(httpConsumer.getUri());
 			unbindService(oldConsumerPort);
 		}
 		bindService(httpConsumer);
+		if (httpConsumer.isPathMapping()) {
+			_mappedHttpServices.upsert(httpConsumer.getBindPath(), httpConsumer);
+		} else {
 		_httpServices.put(httpConsumer.getBindPath(), httpConsumer);
+		}
 		return oldConsumerPort;
 	}
 
 	public final void unbindHttpService(HttpConsumer httpConsumer) {
-		unbindInternalService(_httpServices.remove(httpConsumer.getBindPath()));
+		unbindInternalService(httpConsumer.isPathMapping() ? _mappedHttpServices.remove(httpConsumer.getBindPath()) : _httpServices.remove(httpConsumer.getBindPath()));
+	}
+
+	public final ConsumerPort checkBindJmsConsumer(JMSConsumer jmsConsumer) {
+		ConsumerPort oldConsumerPort = _jmsConsumer.get(jmsConsumer.getKey());
+		if (oldConsumerPort != null && !oldConsumerPort.getUri().equals(jmsConsumer.getUri())) {
+				throw new IllegalArgumentException("A different service is already bound: " + oldConsumerPort.getUri());
+			}
+		return oldConsumerPort;
 	}
 
 	public final ConsumerPort bindJmsConsumer(JMSConsumer jmsConsumer) {
-		ConsumerPort oldConsumerPort = _jmsConsumer.get(jmsConsumer.getKey());
-		if (oldConsumerPort != null) {
-			if (!oldConsumerPort.getUri().equals(jmsConsumer.getUri())) {
-				throw new IllegalArgumentException("A different service is already bound: " + oldConsumerPort.getUri());
-			}
-		} else {
+		ConsumerPort oldConsumerPort = checkBindJmsConsumer(jmsConsumer);
+		if (oldConsumerPort == null) {
 			oldConsumerPort = getInternalService(jmsConsumer.getUri());
 			unbindService(oldConsumerPort);
 		}
@@ -201,24 +267,85 @@ public class Registry extends AbstractContext {
 		unbindInternalService(_timerServices.remove(timerService.getUri()));
 	}
 
-	public final void stopIngress() {
-		for (TimerService timerService : _timerServices.values()) {
-			timerService.close();
-		}
-		for (HttpConsumer httpConsumer : _httpServices.values()) {
-			try {
-				httpConsumer.enable(false);
-			} catch (Exception e) {
-				// ignore
+	public final ConsumerPort checkBindFileWatchEventService(FileWatchEventConsumer fileWatchEventConsumer) {
+		ConsumerPort oldConsumerPort = null;
+		for (Path dir : fileWatchEventConsumer.getDirs()) {
+			if (_fileWatchEventServices.containsKey(dir)) {
+				oldConsumerPort = _fileWatchEventServices.get(dir);
+				if (!oldConsumerPort.getUri().equals(fileWatchEventConsumer.getUri())) {
+					throw new IllegalArgumentException("A different service is already bound: " + oldConsumerPort.getUri());
+				}
 			}
 		}
-		for (JMSConsumer jmsConsumer : _jmsConsumer.values()) {
-			Closer.closeQuietly(jmsConsumer);
+		return oldConsumerPort;
+	}
+
+	public final ConsumerPort bindFileWatchEventService(FileWatchEventConsumer fileWatchEventConsumer) {
+		ConsumerPort oldConsumerPort = checkBindFileWatchEventService(fileWatchEventConsumer);
+		if (oldConsumerPort == null) {
+			oldConsumerPort = getInternalService(fileWatchEventConsumer.getUri());
+			unbindService(oldConsumerPort);
 		}
+		bindService(fileWatchEventConsumer);
+		for (Path dir : fileWatchEventConsumer.getDirs()) {
+			_fileWatchEventServices.put(dir, fileWatchEventConsumer);
+		}
+		return oldConsumerPort;
+	}
+
+	public final void unbindFileWatchEventService(FileWatchEventConsumer fileWatchEventConsumer) {
+		ConsumerPort oldConsumerPort = null;
+		for (Path dir : fileWatchEventConsumer.getDirs()) {
+			oldConsumerPort = _fileWatchEventServices.remove(dir);
+		}
+		unbindInternalService(oldConsumerPort);
+	}
+
+	public final ConsumerPort checkBindKafkaConsumer(KafkaConsumerPort kafkaConsumer) {
+		ConsumerPort oldConsumerPort = _kafkaConsumer.get(kafkaConsumer.getKey());
+		if (oldConsumerPort != null && !oldConsumerPort.getUri().equals(kafkaConsumer.getUri())) {
+			throw new IllegalArgumentException("A different service is already bound: " + oldConsumerPort.getUri());
+		}
+		return oldConsumerPort;
+	}
+
+	public final ConsumerPort bindKafkaConsumer(KafkaConsumerPort kafkaConsumer) {
+		ConsumerPort oldConsumerPort = checkBindKafkaConsumer(kafkaConsumer);
+		if (oldConsumerPort == null) {
+			oldConsumerPort = getInternalService(kafkaConsumer.getUri());
+			unbindService(oldConsumerPort);
+		}
+		bindService(kafkaConsumer);
+		_kafkaConsumer.put(kafkaConsumer.getKey(), kafkaConsumer);
+		return oldConsumerPort;
+	}
+
+	public final void unbindKafkaConsumer(KafkaConsumerPort kafkaConsumer) {
+		unbindInternalService(_kafkaConsumer.remove(kafkaConsumer.getKey()));
+	}
+
+	public final Collection<WorkerPool> getWorkerPools() {
+		return _workerPoolMap.values();
+		}
+
+	public final WorkerPool getWorkerPool(String name) {
+		return _workerPoolMap.get(name != null ? name : DEFAULT_WORKER_POOL);
+			}
+
+	public final WorkerPool getDefaultWorkerPool() {
+		return _workerPoolMap.get(DEFAULT_WORKER_POOL);
+		}
+
+	public final void putWorkerPool(String name, WorkerPool workerPool) {
+		WorkerPool old = _workerPoolMap.put(name, workerPool);
+		if (old != null) {
+			unregisterMBean(",group=WorkerPool,name=" + name);
+		}
+		registerMBean(workerPool, ",group=WorkerPool,name=" + name);
 	}
 
 	@Override
-	public synchronized void close() {
+	public void close() {
 		super.close();
 		if (builder != null) {
 			builder.stop();
