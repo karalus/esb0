@@ -34,6 +34,7 @@ import com.artofarc.util.IOUtils;
 public final class FileWatchEventConsumer extends PollingConsumerPort {
 
 	private final static long initialDelay = Long.parseLong(System.getProperty("esb0.fileWatch.initialDelay", "50"));
+	private final static boolean dontLockFiles = !Boolean.parseBoolean(System.getProperty("esb0.fileWatch.lockFiles"));
 
 	private final List<Path> _dirs = new ArrayList<>();
 	private final String _move, _moveOnError;
@@ -82,7 +83,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 					submit(() -> {
 						Path absolutePath = parent.resolve(path);
 						try (FileChannel fileChannel = FileChannel.open(absolutePath, _options)) {
-							if (fileChannel.tryLock() != null) {
+							if (dontLockFiles || fileChannel.tryLock() != null) {
 								Context context = _workerPool.getContext();
 								ESBMessage msg = new ESBMessage(BodyType.INVALID, null);
 								msg.getVariables().put(ESBConstants.FileEventKind, kind.toString());
