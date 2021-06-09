@@ -128,12 +128,12 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			case FILE:
 				Service.FileWatchBinding fileWatchBinding = checkBindingPresent(service.getFileWatchBinding());
-				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), fileWatchBinding.getWorkerPool(), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
+				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), resolveWorkerPool(fileWatchBinding.getWorkerPool()), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
 				globalContext.checkBindFileWatchEventService((FileWatchEventConsumer) _consumerPort);
 				break;
 			case KAFKA:
 				Service.KafkaBinding kafkaBinding = checkBindingPresent(service.getKafkaBinding());
-				_consumerPort = new KafkaConsumerPort(getURI(), kafkaBinding.getWorkerPool(), kafkaBinding.getPollInterval(), createProperties(kafkaBinding.getProperty(), globalContext), kafkaBinding.getTopic(), kafkaBinding.getTimeout());
+				_consumerPort = new KafkaConsumerPort(getURI(), resolveWorkerPool(kafkaBinding.getWorkerPool()), kafkaBinding.getPollInterval(), createProperties(kafkaBinding.getProperty(), globalContext), kafkaBinding.getTopic(), kafkaBinding.getTimeout());
 				globalContext.checkBindKafkaConsumer((KafkaConsumerPort) _consumerPort);
 				break;
 			default:
