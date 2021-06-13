@@ -653,7 +653,7 @@ public final class ESBMessage implements Cloneable {
 					break;
 				}
 			}
-			context.transform(source, new SAXResult(contentHandler));
+			context.transformRaw(source, new SAXResult(contentHandler));
 			break;
 		}
 	}
@@ -663,7 +663,7 @@ public final class ESBMessage implements Cloneable {
 			XQItem xqItem = (XQItem) _body;
 			result.setNode(xqItem.getNode());
 		} else {
-			context.transform(getBodyAsSource(context), result);
+			context.transformRaw(getBodyAsSource(context), result);
 		}
 	}
 

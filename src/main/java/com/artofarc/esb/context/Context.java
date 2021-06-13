@@ -122,11 +122,15 @@ public final class Context extends AbstractContext {
 		return _fastInfosetDeserializer;
 	}
 
-	public void transform(Source xmlSource, Result outputTarget) throws TransformerException {
+	public void transform(Source source, Result result) throws TransformerException {
 		_transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 		_transformer.setOutputProperty(OutputKeys.INDENT, XML_OUTPUT_INDENT);
+		transformRaw(source, result);
+	}
+
+	public void transformRaw(Source source, Result result) throws TransformerException {
 		try {
-			_transformer.transform(xmlSource, outputTarget);
+			_transformer.transform(source, result);
 		} finally {
 			_transformer.reset();
 		}
