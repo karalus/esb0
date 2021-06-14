@@ -226,7 +226,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			Class<? extends Action> cls = (Class<? extends Action>) Class.forName(executeJava.getJavaType(), true, classLoader);
 			Action action; 
 			try {
-				action = cls.getConstructor(Properties.class).newInstance(createProperties(executeJava.getProperty(), globalContext));
+				action = cls.getConstructor(java.lang.ClassLoader.class, Properties.class).newInstance(classLoader, createProperties(executeJava.getProperty(), globalContext));
 			} catch (NoSuchMethodException e) {
 				action = cls.newInstance();
 			}
