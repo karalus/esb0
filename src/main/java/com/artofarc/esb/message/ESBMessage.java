@@ -465,6 +465,9 @@ public final class ESBMessage implements Cloneable {
 		switch (_bodyType) {
 		case SOURCE:
 			return (Source) _body;
+		case XQ_SEQUENCE:
+			extractItemFromSequence();
+			// nobreak
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
 			return new DOMSource(xqItem.getNode());
@@ -490,6 +493,15 @@ public final class ESBMessage implements Cloneable {
 			return new StreamSource((Reader) _body);
 		default:
 			throw new IllegalStateException("Message is invalid");
+		}
+	}
+
+	private void extractItemFromSequence() throws XQException {
+		XQSequence xqSequence = (XQSequence) _body;
+		if (xqSequence.next()) {
+			init(BodyType.XQ_ITEM, xqSequence.getItem(), null);
+		} else {
+			throw new IllegalStateException("Message already consumed");
 		}
 	}
 
@@ -631,12 +643,7 @@ public final class ESBMessage implements Cloneable {
 	public void writeToSAX(ContentHandler contentHandler, Context context) throws XQException, TransformerException, IOException, SAXException {
 		switch (_bodyType) {
 		case XQ_SEQUENCE:
-			XQSequence xqSequence = (XQSequence) _body;
-			if (xqSequence.next()) {
-				init(BodyType.XQ_ITEM, xqSequence.getItem(), null);
-			} else {
-				throw new IllegalStateException("Message already consumed");
-			}
+			extractItemFromSequence();
 			// nobreak
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
@@ -718,12 +725,7 @@ public final class ESBMessage implements Cloneable {
 			IOUtils.copy((Reader) _body, init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null));
 			break;
 		case XQ_SEQUENCE:
-			XQSequence xqSequence = (XQSequence) _body;
-			if (xqSequence.next()) {
-				init(BodyType.XQ_ITEM, xqSequence.getItem(), null);
-			} else {
-				throw new IllegalStateException("Message already consumed");
-			}
+			extractItemFromSequence();
 			// nobreak
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
