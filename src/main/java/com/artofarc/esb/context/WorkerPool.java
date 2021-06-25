@@ -29,6 +29,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConnectionProvider;
@@ -134,8 +135,28 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		return _executorService != null ? _executorService.getMaximumPoolSize() : -1;
 	}
 
+	public void setMaximumPoolSize(int maximumPoolSize) {
+		if (_executorService != null) {
+			_executorService.setMaximumPoolSize(maximumPoolSize);
+		}
+	}
+
 	public int getCorePoolSize() {
 		return _executorService != null ? _executorService.getCorePoolSize() : -1;
+	}
+
+	public void setCorePoolSize(int corePoolSize) {
+		if (_executorService != null) {
+			_executorService.setCorePoolSize(corePoolSize);
+		}
+	}
+
+	public int getPoolSize() {
+		return _executorService != null ? _executorService.getPoolSize() : -1;
+	}
+
+	public int getActiveCount() {
+		return _executorService != null ? _executorService.getActiveCount() + _threads.size() : _threads.size();
 	}
 
 	public int getLargestPoolSize() {
@@ -214,25 +235,6 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 			}
 		}
 		return result;
-	}
-
-	public int getRunningThreadsCount() {
-		int sum = 0;
-		if (_threadFactory != null) {
-			Thread[] list = new Thread[_threadFactory.activeCount()];
-			int c = _threadFactory.enumerate(list);
-			for (int i = 0; i < c; ++i) {
-				if (list[i].getState() == Thread.State.RUNNABLE) {
-					++sum;
-				}
-			}
-		}
-		for (Thread thread : _threads.keySet()) {
-			if (thread.getState() == Thread.State.RUNNABLE) {
-				++sum;
-			}
-		}
-		return sum;
 	}
 
 	@Override

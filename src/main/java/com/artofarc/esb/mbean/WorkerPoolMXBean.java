@@ -23,11 +23,17 @@ public interface WorkerPoolMXBean {
 
 	List<String> getActiveThreads();
 
-	int getRunningThreadsCount();
-
 	int getMaximumPoolSize();
 
+	void setMaximumPoolSize(int maximumPoolSize);
+
 	int getCorePoolSize();
+
+	void setCorePoolSize(int corePoolSize);
+
+	int getPoolSize();
+
+	int getActiveCount();
 
 	int getLargestPoolSize();
 
