@@ -51,20 +51,13 @@ public class DumpAction extends TerminalAction {
 
 	@Override
 	protected void execute(Context context, ESBMessage message) throws Exception {
-		StringBuilderWriter writer = new StringBuilderWriter();
-		writer.write("Headers: ");
-		ESBMessage.dumpKeyValues(context, message.getHeaders(), writer);
-		logger.info(writer.toString());
-		writer.reset();
-		writer.write("Variables: ");
-		ESBMessage.dumpKeyValues(context, message.getVariables().entrySet(), writer);
-		logger.info(writer.toString());
-		writer.reset();
+		logESBMessage(context, message);
 		if (message.getAttachments().size() > 0) {
 			logger.info("Attachments: " + message.getAttachments().keySet());
 		}
 		if (message.getBodyType() != BodyType.INVALID) {
 			if (message.getBodyType() == BodyType.EXCEPTION) {
+				StringBuilderWriter writer = new StringBuilderWriter();
 				writer.write("Body(Exception): ");
 				message.<Exception> getBody().printStackTrace(new PrintWriter(writer));
 				logger.info(writer.toString());

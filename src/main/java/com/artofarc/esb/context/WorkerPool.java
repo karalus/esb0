@@ -19,17 +19,9 @@ package com.artofarc.esb.context;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.*;
 
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConnectionProvider;
@@ -239,7 +231,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 
 	@Override
 	public void run() {
-		for (Entry<Thread, String> entry : _threads.entrySet()) {
+		for (Map.Entry<Thread, String> entry : _threads.entrySet()) {
 			Thread thread = entry.getKey();
 			if (!thread.isAlive()) {
 				_threads.remove(thread);

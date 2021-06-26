@@ -39,6 +39,7 @@ import org.xml.sax.SAXException;
 import com.artofarc.esb.action.Action;
 import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.NamespaceBeautifier;
 import com.artofarc.util.TimeGauge;
 import com.artofarc.util.XQuerySource;
 
@@ -134,6 +135,11 @@ public final class Context extends AbstractContext {
 		} finally {
 			_transformer.reset();
 		}
+	}
+
+	public Source createNamespaceBeautifier(Source source) throws TransformerException {
+		// If performance need to be improved, we could cache the transformer
+		return NamespaceBeautifier.create(source, JAXPFactoryHelper.newTransformer());
 	}
 
 	public XQDataFactory getXQDataFactory() {

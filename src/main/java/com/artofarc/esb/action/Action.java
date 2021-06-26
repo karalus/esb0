@@ -17,11 +17,9 @@
 package com.artofarc.esb.action;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,11 +73,15 @@ public abstract class Action implements Cloneable {
 		return s;
 	}
 
-	private static void logKeyValues(Context context, Collection<Map.Entry<String, Object>> keyValues, String prolog) throws Exception {
-		StringBuilderWriter sw = new StringBuilderWriter();
-		sw.write(prolog);
-		ESBMessage.dumpKeyValues(context, keyValues, sw);
-		logger.info(sw.toString());
+	protected static void logESBMessage(Context context, ESBMessage message) throws Exception {
+		StringBuilderWriter writer = new StringBuilderWriter();
+		writer.write("Headers: ");
+		ESBMessage.dumpKeyValues(context, message.getHeaders(), writer);
+		logger.info(writer.toString());
+		writer.reset();
+		writer.write("Variables: ");
+		ESBMessage.dumpKeyValues(context, message.getVariables().entrySet(), writer);
+		logger.info(writer.toString());
 	}
 
 	/**
@@ -126,8 +128,7 @@ public abstract class Action implements Cloneable {
 				}
 			} catch (Exception e) {
 				logger.info("Exception while processing " + action, e);
-				logKeyValues(context, message.getHeaders(), "Headers: ");
-				logKeyValues(context, message.getVariables().entrySet(), "Variables: ");
+				logESBMessage(context, message);
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
 				context.unwindStack();

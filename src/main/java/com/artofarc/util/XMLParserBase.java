@@ -55,6 +55,11 @@ public abstract class XMLParserBase extends XMLFilterBase {
 		return localName;
 	}
 
+	public static String getPrefixFromQName(String qName) {
+		int i = qName.indexOf(':');
+		return i > 0 ? qName.substring(0, i) : XMLConstants.DEFAULT_NS_PREFIX;
+	}
+
 	@Override
 	public void startDocument() throws SAXException {
 		if (_createDocumentEvents) {
@@ -62,7 +67,7 @@ public abstract class XMLParserBase extends XMLFilterBase {
 		}
 		if (_namespaceMap != null) {
 			for (Map.Entry<String, String> entry : _namespaceMap.getPrefixes()) {
-				startPrefixMapping(entry.getKey(), entry.getValue());
+				super.startPrefixMapping(entry.getKey(), entry.getValue());
 			}
 		}
 	}
@@ -71,7 +76,7 @@ public abstract class XMLParserBase extends XMLFilterBase {
 	public void endDocument() throws SAXException {
 		if (_namespaceMap != null) {
 			for (Map.Entry<String, String> entry : _namespaceMap.getPrefixes()) {
-				endPrefixMapping(entry.getKey());
+				super.endPrefixMapping(entry.getKey());
 			}
 		}
 		if (_createDocumentEvents) {
@@ -82,8 +87,8 @@ public abstract class XMLParserBase extends XMLFilterBase {
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
 		String defaultNsUri = _stack.peek();
-		if (localName == qName && !uri.equals(defaultNsUri)) {
-			startPrefixMapping(XMLConstants.DEFAULT_NS_PREFIX, defaultNsUri = uri);
+		if (localName.equals(qName) && !uri.equals(defaultNsUri)) {
+			super.startPrefixMapping(XMLConstants.DEFAULT_NS_PREFIX, defaultNsUri = uri);
 		}
 		super.startElement(uri, localName, qName, atts);
 		_stack.push(defaultNsUri);
@@ -93,7 +98,7 @@ public abstract class XMLParserBase extends XMLFilterBase {
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		super.endElement(uri, localName, qName);
 		if (!_stack.pop().equals(_stack.peek())) {
-			endPrefixMapping(XMLConstants.DEFAULT_NS_PREFIX);
+			super.endPrefixMapping(XMLConstants.DEFAULT_NS_PREFIX);
 		}
 	}
 

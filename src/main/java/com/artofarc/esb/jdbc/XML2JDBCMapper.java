@@ -37,6 +37,7 @@ import org.xml.sax.SAXException;
 import com.artofarc.util.Collections;
 import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.PrefixHandler;
+import com.artofarc.util.XMLParserBase;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
@@ -102,8 +103,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
 		_builder.setLength(0);
 		if (delegate != null) {
-			int i = qName.indexOf(':');
-			String prefix = i > 0 ? qName.substring(0, i) : XMLConstants.DEFAULT_NS_PREFIX;
+			String prefix = XMLParserBase.getPrefixFromQName(qName);
 			if (delegatePrefixHandler.getNamespace(prefix) == null) {
 				startPrefixMapping(prefix, getNamespace(prefix));
 				_prefixPos.push(Collections.createEntry(anyLevel, prefix));
