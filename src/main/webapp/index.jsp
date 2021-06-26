@@ -218,11 +218,11 @@ textarea, pre {
 		case "WorkerPools":
 			%>
 <br>WorkerPools:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Active Threads</b></td><td><b>Size of work queue</b></td><td><b>Running Threads</b></td><td><b>Completed tasks</b></td></tr> 
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Poolsize</b></td><td><b>Size of work queue</b></td><td><b>Active Threads</b></td><td><b>Completed tasks</b></td></tr> 
 <%
 		for (WorkerPool workerPool : globalContext.getWorkerPools()) {
 		   %>
-		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=workerPool.getName()%></a></td><td><%=workerPool.getActiveThreads().size()%></td><td><%=workerPool.getQueueSize()%></td><td><%=workerPool.getRunningThreadsCount()%></td><td><%=workerPool.getCompletedTaskCount()%></td></tr>
+		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=workerPool.getName()%></a></td><td><%=workerPool.getPoolSize()%></td><td><%=workerPool.getQueueSize()%></td><td><%=workerPool.getActiveCount()%></td><td><%=workerPool.getCompletedTaskCount()%></td></tr>
 		   <%
 		}
 %>
