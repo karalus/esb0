@@ -225,7 +225,7 @@
 		<simpleContent>
 			<extension base="tns:string1">
 				<attribute name="nullable" type="boolean" default="false" />
-				<attribute name="type" type="NMTOKEN" />
+				<attribute name="type" type="tns:string1" />
 			</extension>
 		</simpleContent>
 	</complexType>

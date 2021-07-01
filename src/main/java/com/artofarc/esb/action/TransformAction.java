@@ -99,7 +99,7 @@ public class TransformAction extends Action {
 		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery, _baseURI);
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
 		if (_contextItem != null) {
-			bind(xqExpression, XQConstants.CONTEXT_ITEM, null, resolve(message, _contextItem, true));
+			bind(context, xqExpression, XQConstants.CONTEXT_ITEM, null, resolve(message, _contextItem, true));
 		} else {
 			if (message.isEmpty()) {
 				// Nothing to bind, but we need a context item
@@ -138,7 +138,7 @@ public class TransformAction extends Action {
 			if (value == null && _checkNotNull.contains(name.getLocalPart())) {
 				throw new ExecutionException(this, "Must not be null: " + name);
 			}
-			bind(xqExpression, name, externalVariableTypes[i], value);
+			bind(context, xqExpression, name, externalVariableTypes[i], value);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
 		XQResultSequence resultSequence = xqExpression.executeQuery();
@@ -159,11 +159,14 @@ public class TransformAction extends Action {
 		return new ExecutionContext(resultSequence, xqExpression);
 	}
 
-	private void bind(XQPreparedExpression xqExpression, QName qName, XQItemType type, Object value) throws ExecutionException {
+	private void bind(Context context, XQPreparedExpression xqExpression, QName qName, XQItemType type, Object value) throws ExecutionException {
 		try {
 			if (value != null) {
 				if (type != null && type.getItemKind() == XQItemType.XQITEMKIND_DOCUMENT) {
 					xqExpression.bindDocument(qName, (Source) value, type);
+				} else if (value instanceof Iterable) {
+					XQSequence xqSequence = context.getXQDataFactory().createSequence(((Iterable<?>) value).iterator());
+					xqExpression.bindSequence(qName, xqSequence);
 				} else {
 					xqExpression.bindObject(qName, value, type);
 				}
