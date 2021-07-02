@@ -241,7 +241,22 @@ public class ActionTest extends AbstractESBTest {
 		action = action.setNextAction(new DumpAction());
 		processJsonAction.process(context, message);
 	}
-   
+
+	@Test
+	public void testXMLArray() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test></test>");
+		message.putVariable("count", 42);
+		List<AssignAction.Assignment> assignments = createAssignments(false);
+		assignments.add(new AssignAction.Assignment("array1", false, "for $index in (1 to $count) return $index", false, "xs:integer+"));
+		Action action = createAssignAction(assignments, ".", null, "count");
+		action.setNextAction(new DumpAction());
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(action);
+		consumerPort.process(context, message);
+		List<Number> array1 = message.getVariable("array1");
+		assertEquals(42, array1.size());
+	}
+
 	@Test
 	public void testNodeList() throws Exception {
 		String msgStr = "<root>\r\n" + 

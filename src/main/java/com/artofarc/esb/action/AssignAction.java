@@ -66,7 +66,7 @@ public class AssignAction extends TransformAction {
 		if (flwor) builder.append("return ");
 		builder.append('(');
 		for (Assignment assignment : assignments) {
-			boolean hasAtomicType = assignment.type != null && assignment.type.startsWith("xs:");
+			boolean hasAtomicType = assignment.type != null && !assignment.list && assignment.type.startsWith("xs:");
 			if (assignment.nullable || assignment.list) {
 				builder.append("count($").append(assignment.name).append("), ");
 				if (hasAtomicType) builder.append(assignment.type).append('(');
