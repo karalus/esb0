@@ -20,8 +20,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
 
-import javax.naming.NamingException;
-
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
@@ -34,7 +32,7 @@ public class JDBCSQLAction extends JDBCAction {
 
 	private final String[] _generatedKeys;
 
-	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, List<String> generatedKeys, int maxRows, int timeout, String keepConnection) throws NamingException {
+	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, List<String> generatedKeys, int maxRows, int timeout, String keepConnection) {
 		super(globalContext, dsName, sql, params, maxRows, timeout, keepConnection, null);
 		_generatedKeys = generatedKeys.isEmpty() ? null : generatedKeys.toArray(new String[generatedKeys.size()]);
 		if (sql != null) {

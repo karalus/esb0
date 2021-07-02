@@ -27,7 +27,6 @@ import java.sql.SQLXML;
 import java.sql.Struct;
 import java.util.List;
 
-import javax.naming.NamingException;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.xquery.XQItem;
 
@@ -47,7 +46,7 @@ public class JDBCProcedureAction extends JDBCAction {
 
 	private final List<JDBCParameter> _outParams;
 
-	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) throws NamingException {
+	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) {
 		super(globalContext, dsName, sql, inParams, maxRows, timeout, keepConnection, schemaSet);
 		checkParameters(outParams);
 		_outParams = outParams;

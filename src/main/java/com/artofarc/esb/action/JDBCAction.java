@@ -23,7 +23,6 @@ import static java.sql.Types.*;
 import java.util.List;
 
 import javax.json.stream.JsonGenerator;
-import javax.naming.NamingException;
 import javax.sql.DataSource;
 import javax.xml.transform.dom.DOMResult;
 
@@ -48,7 +47,7 @@ public abstract class JDBCAction extends Action {
 	private final String _keepConnection;
 	protected XSSchemaSet _schemaSet;
 
-	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) throws NamingException {
+	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) {
 		_pipelineStop = true;
 		_dsName = dsName != null ? dsName.intern() : null;
 		_sql = sql;
@@ -92,6 +91,9 @@ public abstract class JDBCAction extends Action {
 			}
 			String dsName = (String) bindVariable(_dsName, context, message);
 			DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
+			if (dataSource == null) {
+				throw new ExecutionException(this, "DataSource not found: " + dsName);
+			}
 			connection = new JDBCConnection(dataSource.getConnection(), keepConnection);
 			if (keepConnection) {
 				message.putVariable(ESBConstants.JDBCConnection, connection);
