@@ -141,7 +141,10 @@ public final class PrefixBTree<T> {
 				if (startsWith(path, entry.getKey(), offset, keyLen)) {
 					if (entry.getValue() instanceof Node) {
 						Node<T> inner = (Node<T>) entry.getValue();
-						return inner.search(path, keyLen, minKeyLen);
+						T result = inner.search(path, keyLen, minKeyLen);
+						if (result != null) {
+							return result;
+						}
 					} else if (keyLen >= minKeyLen) {
 						return (T) entry.getValue();
 					}
