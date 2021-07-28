@@ -60,8 +60,19 @@ public class GenericHttpListener extends HttpServlet {
 		if (consumerPort == null) {
 			sendError(response, HttpServletResponse.SC_NOT_FOUND, "No ConsumerPort registered");
 		} else {
+			String origin = request.getHeader("Origin");
+			boolean preflight = origin != null && "OPTIONS".equals(request.getMethod());
+			if (origin != null) {
+				response.setHeader("Access-Control-Allow-Origin", origin);
+				if (consumerPort.getRequiredRole() != null) {
+					if (preflight) {
+						response.setHeader("Access-Control-Allow-Headers", HTTP_HEADER_AUTHORIZATION);
+					}
+					response.setHeader("Access-Control-Allow-Credentials", "true");
+				}
+			}
 			boolean secure = true;
-			if (consumerPort.getRequiredRole() != null) {
+			if (consumerPort.getRequiredRole() != null && !preflight) {
 				secure = request.authenticate(response);
 				if (secure && !request.isUserInRole(consumerPort.getRequiredRole())) {
 					secure = false;

@@ -81,6 +81,8 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_RETRY_AFTER = "Retry-After";
 
+	public static final String HTTP_HEADER_AUTHORIZATION = "Authorization";
+
 	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
 
 	public static final String HTTP_HEADER_X_METHOD_OVERRIDE = "X-HTTP-Method-Override";
