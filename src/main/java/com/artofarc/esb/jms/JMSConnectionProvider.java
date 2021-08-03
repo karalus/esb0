@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
+import javax.jms.Session;
 import javax.management.AttributeChangeNotification;
 import javax.management.MBeanNotificationInfo;
 import javax.management.NotificationBroadcasterSupport;
@@ -70,10 +71,6 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		return getResource(jmsConnectionData);
 	}
 
-	public Connection getConnection(JMSConnectionData jmsConnectionData, JMSSessionFactory jmsSessionFactory) throws JMSException {
-		return getResource(jmsConnectionData).getConnection(jmsSessionFactory);
-	}
-
 	public void unregisterJMSSessionFactory(JMSConnectionData jmsConnectionData, JMSSessionFactory jmsSessionFactory) {
 		getResource(jmsConnectionData).removeJMSSessionFactory(jmsSessionFactory);
 	}
@@ -84,6 +81,11 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 	public void unregisterJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer) {
 		getResource(jmsConnectionData).removeJMSConsumer(jmsConsumer);
+	}
+
+	public JMSSession createSession(JMSConnectionData jmsConnectionData, JMSSessionFactory jmsSessionFactory, boolean transacted) throws JMSException {
+		Connection connection = getResource(jmsConnectionData).getConnection(jmsSessionFactory);
+		return new JMSSession(this, jmsConnectionData, connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE));
 	}
 
 	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws JMSException {
