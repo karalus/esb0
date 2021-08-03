@@ -8,6 +8,7 @@ public class MarkAction extends DumpAction {
    
    @Override
    protected synchronized void execute(Context context, ESBMessage message) throws Exception {
+	   super.execute(context, message);
       setExecuted(true);
       notify();
    }

@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.xml.transform.Result;
+import javax.xml.transform.Source;
+import javax.xml.transform.TransformerException;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -92,6 +96,10 @@ public abstract class AbstractESBTest {
 
 	protected GlobalContext getGlobalContext() {
 		return context.getPoolContext().getGlobalContext();
+	}
+
+	public void transform(Source source, Result result) throws TransformerException {
+		context.transform(source, result, null);
 	}
 
 	protected static byte[] readFile(String fileName) throws IOException {

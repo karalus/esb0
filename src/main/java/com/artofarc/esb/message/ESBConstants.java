@@ -88,4 +88,6 @@ public interface ESBConstants {
 
 	String JDBCConnection = "_JDBCConnection";
 
+	String serializationParameters = "serializationParameters";
+
 }

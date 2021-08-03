@@ -74,7 +74,6 @@ public class XSLTAction extends SAXAction {
 				}
 				transformer.setParameter(param, value);
 			}
-			transformer.setOutputProperties(message.getSinkProperties());
 		}
 
 		@Override

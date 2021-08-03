@@ -34,6 +34,7 @@ import org.xml.sax.XMLReader;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.XMLFilterBase;
 
@@ -111,7 +112,7 @@ public abstract class SAXAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
 			if (message.isSink()) {
-				context.transform(execContext.<Source> getResource(), message.getBodyAsSinkResult(context));
+				context.transform(execContext.<Source> getResource(), message.getBodyAsSinkResult(context), message.getVariable(ESBConstants.serializationParameters));
 			} else {
 				message.reset(BodyType.SOURCE, execContext.getResource());
 			}

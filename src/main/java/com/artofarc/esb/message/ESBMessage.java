@@ -241,7 +241,10 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Properties getSinkProperties() {
-		Properties props = new Properties();
+		Properties props = getVariable(ESBConstants.serializationParameters);
+		if (props == null) {
+			props = new Properties();
+		}
 		props.setProperty(OutputKeys.ENCODING, getSinkEncoding());
 		props.setProperty(OutputKeys.INDENT, Context.XML_OUTPUT_INDENT);
 		return props;
@@ -364,7 +367,7 @@ public final class ESBMessage implements Cloneable {
 		case DOM:
 			_body = new DOMSource((Node) _body);
 		case SOURCE:
-			context.transform((Source) _body, new StreamResult(sw = new StringBuilderWriter()));
+			context.transform((Source) _body, new StreamResult(sw = new StringBuilderWriter()), getVariable(ESBConstants.serializationParameters));
 			str = sw.toString();
 			break;
 		case STRING:
@@ -599,17 +602,21 @@ public final class ESBMessage implements Cloneable {
 		return isFastInfoset(this.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
 	}
 
-	public Result getBodyAsSinkResult(Context context) throws Exception {
+	private void prepareFI(Context context) throws IOException {
 		if (isFI()) {
 			if (_bodyType == BodyType.OUTPUT_STREAM) {
 				SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 				serializer.getFastInfosetSerializer().setOutputStream(getCompressedOutputStream((OutputStream) _body));
 				serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
-				return new SAXResult(serializer.getContentHandler());
+				init(BodyType.RESULT, new SAXResult(serializer.getContentHandler()), null);
 			} else {
 				throw new IllegalStateException("Message cannot be converted to FastInfoset: " + _bodyType);
 			}
 		}
+	}
+
+	public Result getBodyAsSinkResult(Context context) throws Exception {
+		prepareFI(context);
 		switch (_bodyType) {
 		case RESULT:
 			return (Result) _body;
@@ -694,7 +701,7 @@ public final class ESBMessage implements Cloneable {
 		case DOM:
 			_body = new DOMSource((Node) _body);
 		case SOURCE:
-			context.transform((Source) _body, new StreamResult(init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null)));
+			context.transform((Source) _body, new StreamResult(init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null)), getVariable(ESBConstants.serializationParameters));
 			break;
 		case STRING:
 			String s = (String) _body;
@@ -743,6 +750,24 @@ public final class ESBMessage implements Cloneable {
 		}
 		if (_bodyType == BodyType.WRITER) {
 			((Writer) _body).flush();
+		}
+	}
+
+	public void writeItemToSink(XQSequence xqSequence, Context context) throws Exception {
+		prepareFI(context);
+		switch (_bodyType) {
+		case RESULT:
+			xqSequence.writeItemToResult((Result) _body);
+			break;
+		case OUTPUT_STREAM:
+			_body = getCompressedOutputStream((OutputStream) _body);
+			xqSequence.writeItem((OutputStream) _body, getSinkProperties());
+			break;
+		case WRITER:
+			xqSequence.writeItem((Writer) _body, getSinkProperties());
+			break;
+		default:
+			throw new IllegalStateException("Message cannot be converted to Result: " + _bodyType);
 		}
 	}
 
@@ -830,7 +855,7 @@ public final class ESBMessage implements Cloneable {
 			if (entry.getKey().startsWith("_")) continue;
 			logWriter.write(entry.getKey() + "=");
 			if (entry.getValue() instanceof Node) {
-				context.transform(context.createNamespaceBeautifier(new DOMSource((Node) entry.getValue())), new StreamResult(logWriter));
+				context.transform(context.createNamespaceBeautifier(new DOMSource((Node) entry.getValue())), new StreamResult(logWriter), null);
 			} else {
 				logWriter.write(String.valueOf(entry.getValue()));
 			}

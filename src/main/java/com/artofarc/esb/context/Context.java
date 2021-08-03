@@ -20,6 +20,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -123,9 +124,12 @@ public final class Context extends AbstractContext {
 		return _fastInfosetDeserializer;
 	}
 
-	public void transform(Source source, Result result) throws TransformerException {
+	public void transform(Source source, Result result, Properties serializationParameters) throws TransformerException {
 		_transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 		_transformer.setOutputProperty(OutputKeys.INDENT, XML_OUTPUT_INDENT);
+		if (serializationParameters != null) {
+			_transformer.setOutputProperties(serializationParameters);
+		}
 		transformRaw(source, result);
 	}
 

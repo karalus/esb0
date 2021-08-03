@@ -127,13 +127,13 @@ public class XSOMTest extends AbstractESBTest {
 		StringBuilderWriter writer1 = new StringBuilderWriter();
 		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, true, map);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest.json"));
-		context.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), new StreamResult(writer1));
+		transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), new StreamResult(writer1));
 		System.out.println(writer1);
 	
 		StringBuilderWriter writer = new StringBuilderWriter();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, true, null);
 		ContentHandler th = xml2JsonTransformer.createTransformerHandler(writer);
-		context.transform(new StreamSource(writer1.getReader()), new SAXResult(th));
+		transform(new StreamSource(writer1.getReader()), new SAXResult(th));
 		System.out.println(writer);
 		
 		byteStream.reset();
@@ -141,7 +141,7 @@ public class XSOMTest extends AbstractESBTest {
 		th = xml2JsonTransformer.createTransformerHandler(writer);
 		parser.setContentHandler(th);
 		parser.parse(new InputSource(byteStream));
-//		context.transform(new SAXSource(parser, new InputSource(byteStream)), new SAXResult(th));
+//		transform(new SAXSource(parser, new InputSource(byteStream)), new SAXResult(th));
 		System.out.println(writer);
 		
 		// Performance
@@ -156,7 +156,7 @@ public class XSOMTest extends AbstractESBTest {
 			th = xml2JsonTransformer.createTransformerHandler(writer);
 //			parser.setContentHandler(th);
 //			parser.parse(new InputSource(byteStream));
-			context.transform(new SAXSource(parser, new InputSource(byteStream)), new SAXResult(th));
+			transform(new SAXSource(parser, new InputSource(byteStream)), new SAXResult(th));
 		}
 		long measurement = timeGauge.stopTimeMeasurement("Performance", false);
 		System.out.println("Average in µs: " + measurement * 1000 / count);
@@ -171,13 +171,13 @@ public class XSOMTest extends AbstractESBTest {
 		
 		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, true, map);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest_AnyComplex.json"));
-		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
+		transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		StringBuilderWriter writer = new StringBuilderWriter();
 		byteStream.reset();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, true, true, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
+		transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
 		
 		// Performance
@@ -188,7 +188,7 @@ public class XSOMTest extends AbstractESBTest {
 //			byteStream.reset();
 //			writer.reset();
 //			//SAXResult saxResult = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-//			context.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), streamResult);
+//			transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), streamResult);
 //		}
 //		timeGauge.stopTimeMeasurement("Performance", false);
 	}
@@ -203,13 +203,13 @@ public class XSOMTest extends AbstractESBTest {
 		
 		Json2XmlTransformer json2xml = new Json2XmlTransformer(schemaSet, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, false, map);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest_woRoot.json"));
-		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
+		transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		byteStream.reset();
 		StringBuilderWriter writer = new StringBuilderWriter();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, null, false, true, map);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
+		transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
 		
 		// Performance
@@ -220,7 +220,7 @@ public class XSOMTest extends AbstractESBTest {
 //			byteStream.reset();
 //			writer.reset();
 //			//SAXResult saxResult = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-//			context.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), streamResult);
+//			transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), streamResult);
 //		}
 //		timeGauge.stopTimeMeasurement("Performance", false);
 	}
@@ -229,13 +229,13 @@ public class XSOMTest extends AbstractESBTest {
 	public void testJSON2XMLwoSchema() throws Exception {
 		Json2XmlTransformer json2xml = new Json2XmlTransformer(null, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, false, null);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest.json"));
-		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
+		transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		StringBuilderWriter writer = new StringBuilderWriter();
 		byteStream.reset();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, true, null);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
+		transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
 		
 		// Performance
@@ -246,7 +246,7 @@ public class XSOMTest extends AbstractESBTest {
 //			byteStream.reset();
 //			writer.reset();
 //			//SAXResult saxResult = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-//			context.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), streamResult);
+//			transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), streamResult);
 //		}
 //		timeGauge.stopTimeMeasurement("Performance", false);
 	}
@@ -255,13 +255,13 @@ public class XSOMTest extends AbstractESBTest {
 	public void testJSON2XMLwoSchemaAnyComplex() throws Exception {
 		Json2XmlTransformer json2xml = new Json2XmlTransformer(null, true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null, false, null);
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(readFile("src/test/resources/RESTRequest_AnyComplex.json"));
-		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
+		transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), new StreamResult(System.out));
 
 		StringBuilderWriter writer = new StringBuilderWriter();
 		byteStream.reset();
 		Xml2JsonTransformer xml2JsonTransformer = new Xml2JsonTransformer(null, null, false, true, null);
 		SAXResult result = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-		context.transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
+		transform(new SAXSource(json2xml.createStreamingParser(), new InputSource(byteStream)), result);
 		System.out.println(writer);
 		
 		// Performance
@@ -272,7 +272,7 @@ public class XSOMTest extends AbstractESBTest {
 //			byteStream.reset();
 //			writer.reset();
 //			//SAXResult saxResult = new SAXResult(xml2JsonTransformer.createTransformerHandler(writer));
-//			context.transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), streamResult);
+//			transform(new SAXSource(json2xml.createParser(), new InputSource(byteStream)), streamResult);
 //		}
 //		timeGauge.stopTimeMeasurement("Performance", false);
 	}
@@ -281,7 +281,7 @@ public class XSOMTest extends AbstractESBTest {
 	public void testXMLSample() throws Exception {
 		XSSchemaSet schemaSet = createXSSchemaSet();
 		XmlSampleGenerator generator = new XmlSampleGenerator(schemaSet, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", null);
-		context.transform(new SAXSource(generator, null),  new StreamResult(System.out));
+		transform(new SAXSource(generator, null),  new StreamResult(System.out));
 	}
 
 	@Test

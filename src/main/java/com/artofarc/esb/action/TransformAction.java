@@ -238,8 +238,8 @@ public class TransformAction extends Action {
 			if (_contextItem == null) {
 				context.getTimeGauge().startTimeMeasurement();
 				if (message.isSink()) {
-					resultSequence.writeItemToResult(message.getBodyAsSinkResult(context));
-					context.getTimeGauge().stopTimeMeasurement("resultSequence.writeItemToResult", false);
+					message.writeItemToSink(resultSequence, context);
+					context.getTimeGauge().stopTimeMeasurement("resultSequence.writeItem", false);
 				} else {
 					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
 					context.getTimeGauge().stopTimeMeasurement("getXQDataFactory().createItem", false);
