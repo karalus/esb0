@@ -99,6 +99,7 @@ public class HttpOutboundAction extends Action {
 				}
 			} catch (Exception e) {
 				wrapper.close();
+				message.removeVariable(HttpURLConnection);
 				throw e;
 			}
 			return new ExecutionContext(wrapper); 
