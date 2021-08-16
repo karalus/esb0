@@ -110,7 +110,7 @@ public class HttpOutboundAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		message.closeBody();
 		if (_multipartRequest != null) {
-			ByteArrayOutputStream bos = execContext.getResource();
+			ByteArrayOutputStream bos = execContext != null ? execContext.getResource() : null;
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartRequest, bos);
 			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, mmp.getContentType(), null);
 			mmp.writeTo(wrapper.getHttpURLConnection().getOutputStream());

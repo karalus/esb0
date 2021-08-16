@@ -54,18 +54,25 @@ public final class MimeHelper {
 	}
 
 	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
-		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
-		MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START + '"' + ROOTPART
-				+ "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
 		if (bos == null) {
 			bos = new ByteArrayOutputStream();
 			message.writeTo(bos, context);
 			message.closeBody();
 		}
+		return createMimeMultipart(context, message, multipartContentType, bos.toByteArray());
+	}
+
+	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartContentType, byte[] body) throws Exception {
+		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType == null) {
+			throw new NullPointerException("Content-Type is null");
+		}
+		MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START + '"' + ROOTPART
+				+ "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
 		if (!multipartContentType.equals(contentType)) {
 			contentType = multipartContentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
 		}
-		MimeBodyPart part = createMimeBodyPart(ROOTPART, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding(), bos.toByteArray(), null);
+		MimeBodyPart part = createMimeBodyPart(ROOTPART, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding(), body, null);
 		for (Entry<String, Object> entry : message.getHeaders()) {
 			part.setHeader(entry.getKey(), entry.getValue().toString());
 		}

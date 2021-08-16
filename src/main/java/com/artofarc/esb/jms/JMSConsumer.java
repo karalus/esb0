@@ -33,9 +33,11 @@ import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
 import com.artofarc.util.ConcurrentResourcePool;
@@ -360,7 +362,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		jmsConnectionProvider.unregisterJMSConsumer(_jmsConnectionData, this);
 	}
 
-	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws JMSException {
+	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws Exception {
 		if (message instanceof BytesMessage) {
 			esbMessage.reset(BodyType.INPUT_STREAM, new BytesMessageInputStream((BytesMessage) message), message.getStringProperty(ESBConstants.Charset));
 		} else if (message instanceof TextMessage) {
@@ -383,6 +385,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 			String propertyName = propertyNames.nextElement();
 			esbMessage.putHeader(propertyName, message.getObjectProperty(propertyName));
 		}
+		MimeHelper.parseMultipart(esbMessage, esbMessage.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
 	}
 
 	class JMSWorker implements MessageListener {
@@ -462,8 +465,8 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		final boolean processMessage(Message message) throws JMSException, InterruptedException {
 			ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
 			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
-			fillESBMessage(esbMessage, message);
 			try {
+				fillESBMessage(esbMessage, message);
 				processInternal(_context, esbMessage);
 				_session.commit();
 				if (message.getJMSRedelivered() ) {

@@ -21,10 +21,12 @@ import java.io.OutputStream;
 import java.util.Map;
 
 import javax.jms.*;
+import javax.mail.internet.MimeMultipart;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSSession;
@@ -69,9 +71,10 @@ public class JMSAction extends TerminalAction {
 	private final Long _timeToLive;
 	private final String _deliveryDelay, _expiryQueue;
 	private final boolean _receiveFromTempQueue;
+	private final String _multipart;
 
 	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
-			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue) throws NamingException {
+			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String multipart) throws NamingException {
 		_queueName = globalContext.bindProperties(queueName);
 		_topicName = globalContext.bindProperties(topicName);
 		if (jndiDestination != null) {
@@ -85,6 +88,7 @@ public class JMSAction extends TerminalAction {
 		_deliveryDelay = deliveryDelay;
 		_expiryQueue = expiryQueue;
 		_receiveFromTempQueue = receiveFromTempQueue;
+		_multipart = multipart;
 	}
 
 	@Override
@@ -106,10 +110,16 @@ public class JMSAction extends TerminalAction {
 			jmsMessage = session.createMessage();
 		} else if (_isBytesMessage) {
 			BytesMessage bytesMessage = session.createBytesMessage();
-			message.writeTo(new BytesMessageOutputStream(bytesMessage), context);
-			message.closeBody();
+			if (_multipart != null) {
+				MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipart, message.getBodyAsByteArray(context));
+				mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
+				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
+			} else {
+				message.writeTo(new BytesMessageOutputStream(bytesMessage), context);
+				message.closeBody();
+				bytesMessage.setStringProperty(ESBConstants.Charset, message.getCharset().name());
+			}
 			jmsMessage = bytesMessage;
-			jmsMessage.setStringProperty(ESBConstants.Charset, message.getCharset().name());
 		} else {
 			jmsMessage = session.createTextMessage(message.getBodyAsString(context));
 		}

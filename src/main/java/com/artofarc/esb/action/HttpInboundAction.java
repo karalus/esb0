@@ -31,7 +31,7 @@ import com.artofarc.util.ByteArrayOutputStream;
 
 public class HttpInboundAction extends Action {
 
-	private static final ByteArrayInputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
+	private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
