@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +17,7 @@ package com.artofarc.esb.context;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.net.Authenticator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -38,6 +38,7 @@ import com.artofarc.esb.TimerService;
 import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
+import com.artofarc.esb.http.ProxyAuthenticator;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.resource.XQConnectionFactory;
@@ -61,6 +62,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private final XQConnectionFactory _xqConnectionFactory;
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
 	private volatile FileSystem _fileSystem;
+	private final ProxyAuthenticator proxyAuthenticator;
 
 	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, final Properties properties) {
 		super(mbs);
@@ -132,6 +134,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		if (CONSUMER_IDLETIMEOUT > 0) {
 			getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, CONSUMER_IDLETIMEOUT, CONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
 		}
+		Authenticator.setDefault(proxyAuthenticator = new ProxyAuthenticator());
 	}
 
 	private void logVersion(String capability, String ifcPkg, String factoryClass, String factoryField) {
@@ -277,6 +280,10 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		@SuppressWarnings("unchecked")
 		LRUCacheWithExpirationFactory<Object, Object[]> factory = getResourceFactory(LRUCacheWithExpirationFactory.class);
 		return factory.getResourceDescriptors();
+	}
+
+	public ProxyAuthenticator getProxyAuthenticator() {
+		return proxyAuthenticator;
 	}
 
 	public String bindProperties(String exp) throws NamingException {

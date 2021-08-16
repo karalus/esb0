@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +16,7 @@
 package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
+import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -190,8 +190,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			for (Http.Url url : http.getUrl()) {
 				endpoints.add(new HttpUrl(globalContext.bindProperties(url.getValue()), url.getWeight(), url.isActive()));
 			}
+			Proxy proxy = globalContext.getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl()));
 			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(),
-					http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime());
+					http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime(), proxy);
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 			addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), http.getMultipartRequest()), location);
 			if (http.getWorkerPool() != null) {
@@ -204,7 +205,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			Jms jms = (Jms) actionElement.getValue();
 			JMSConnectionData jmsConnectionData = new JMSConnectionData(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
 			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms.isBytesMessage(),
-					jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.getExpiryQueue(), jms.isReceiveFromTempQueue(), null), location);
+					jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.getExpiryQueue(), jms.isReceiveFromTempQueue(), jms.getMultipart()), location);
 			break;
 		}
 		case "produceKafka": {

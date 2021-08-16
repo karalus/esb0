@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +15,7 @@
  */
 package com.artofarc.esb.http;
 
+import java.net.Proxy;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -29,8 +29,9 @@ public final class HttpEndpoint {
 	private final Integer _checkAliveInterval;
 	private final Integer _keepAliveInterval;
 	private final long _modificationTime;
+	private final Proxy _proxy;
 
-	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectionTimeout, int retries, Integer checkAliveInterval, Integer keepAliveInterval, long modificationTime) {
+	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectionTimeout, int retries, Integer checkAliveInterval, Integer keepAliveInterval, long modificationTime, Proxy proxy) {
 		if (name != null) {
 			_name = name;
 		} else {
@@ -48,6 +49,7 @@ public final class HttpEndpoint {
 		_checkAliveInterval = checkAliveInterval;
 		_keepAliveInterval = keepAliveInterval;
 		_modificationTime = modificationTime;
+		_proxy = proxy;
 	}
 
 	public String getName() {
@@ -82,6 +84,10 @@ public final class HttpEndpoint {
 		return _modificationTime;
 	}
 
+	public Proxy getProxy() {
+		return _proxy;
+	}
+
 	@Override
 	public int hashCode() {
 		return _name.hashCode();
@@ -107,7 +113,7 @@ public final class HttpEndpoint {
 
 	public boolean hasSameConfig(HttpEndpoint other) {
 		return _endpoints.equals(other._endpoints) && _connectionTimeout == other._connectionTimeout && _retries == other._retries && isEqual(_checkAliveInterval, other._checkAliveInterval)
-				&& isEqual(_keepAliveInterval, other._keepAliveInterval) && isEqual(_basicAuthCredential, other._basicAuthCredential);
+				&& isEqual(_keepAliveInterval, other._keepAliveInterval) && isEqual(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy);
 	}
 
 	private static boolean isEqual(Object i, Object j) {
