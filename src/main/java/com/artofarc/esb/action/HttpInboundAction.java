@@ -26,9 +26,12 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
 import com.artofarc.esb.message.*;
+import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.ByteArrayOutputStream;
 
 public class HttpInboundAction extends Action {
+
+	private static final ByteArrayInputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
@@ -45,7 +48,10 @@ public class HttpInboundAction extends Action {
 			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 			message.setCharset(HttpConstants.getValueFromHttpHeader(contentType, HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 			InputStream inputStream = conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST ? conn.getInputStream() : conn.getErrorStream();
-			message.reset(BodyType.INPUT_STREAM, inputStream != null ? inputStream : new java.io.ByteArrayInputStream(new byte[0]));
+			if (inputStream == null) {
+				inputStream = EMPTY_INPUT_STREAM;
+			} 
+			message.reset(BodyType.INPUT_STREAM, inputStream);
 			if (MimeHelper.parseMultipart(message, contentType)) {
 				inputStream.close();
 				inputStream = message.getBody();
