@@ -394,7 +394,7 @@ public final class ESBMessage implements Cloneable {
 		case EXCEPTION:
 			Exception e = (Exception) _body;
 			String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-			if (contentType == null || isNotSOAP(contentType)) {
+			if (contentType == null || isNotXML(contentType)) {
 				str = asString(e);
 			} else {
 				str = asXMLString(e);

@@ -106,7 +106,7 @@ public class TransformAction extends Action {
 				xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 			} else {
 				String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-				if (HttpConstants.isNotSOAP(contentType)) {
+				if (HttpConstants.isNotXML(contentType)) {
 					xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
 				} else {
 					switch (message.getBodyType()) {

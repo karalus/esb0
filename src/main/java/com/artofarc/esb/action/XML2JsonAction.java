@@ -43,7 +43,7 @@ public class XML2JsonAction extends Action {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 		String type = parseContentType(contentType);
-		if (isNotSOAP(type)) {
+		if (isNotXML(type)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		message.removeHeader(HTTP_HEADER_CONTENT_LENGTH);

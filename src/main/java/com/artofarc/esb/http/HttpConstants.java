@@ -150,15 +150,27 @@ public class HttpConstants {
 	}
 
 	public static boolean isSOAP11(String contentType) {
-		return contentType != null && (contentType.startsWith(SOAP_1_1_CONTENT_TYPE) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11));
+		if (contentType != null) {
+			final String type = getValueFromHttpHeader(contentType);
+			return type.equals(SOAP_1_1_CONTENT_TYPE) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11);
+		}
+		return false;
 	}
 
 	public static boolean isSOAP12(String contentType) {
-		return contentType != null && (contentType.startsWith(SOAP_1_2_CONTENT_TYPE) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
+		if (contentType != null) {
+			final String type = getValueFromHttpHeader(contentType);
+			return type.equals(SOAP_1_2_CONTENT_TYPE) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12);
+		}
+		return false;
 	}
 
-	public static boolean isNotSOAP(String contentType) {
-		return contentType != null && !(isSOAP11(contentType) || isSOAP12(contentType));
+	public static boolean isNotXML(String contentType) {
+		if (contentType != null) {
+			final String type = getValueFromHttpHeader(contentType);
+			return !(isSOAP11(type) || isSOAP12(type) || type.equals("application/xml") || type.equals("application/xop+xml"));
+		}
+		return false;
 	}
 
 }
