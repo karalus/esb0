@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -55,6 +54,7 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
+import javax.xml.xquery.XQItemAccessor;
 import javax.xml.xquery.XQSequence;
 
 import org.w3c.dom.Node;
@@ -753,18 +753,18 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public void writeItemToSink(XQSequence xqSequence, Context context) throws Exception {
+	public void writeItemToSink(XQItemAccessor xqItem, Context context) throws Exception {
 		prepareFI(context);
 		switch (_bodyType) {
 		case RESULT:
-			xqSequence.writeItemToResult((Result) _body);
+			xqItem.writeItemToResult((Result) _body);
 			break;
 		case OUTPUT_STREAM:
 			_body = getCompressedOutputStream((OutputStream) _body);
-			xqSequence.writeItem((OutputStream) _body, getSinkProperties());
+			xqItem.writeItem((OutputStream) _body, getSinkProperties());
 			break;
 		case WRITER:
-			xqSequence.writeItem((Writer) _body, getSinkProperties());
+			xqItem.writeItem((Writer) _body, getSinkProperties());
 			break;
 		default:
 			throw new IllegalStateException("Message cannot be converted to Result: " + _bodyType);
