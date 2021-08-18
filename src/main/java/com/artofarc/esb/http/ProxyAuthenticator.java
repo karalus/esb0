@@ -29,20 +29,15 @@ public class ProxyAuthenticator extends Authenticator {
 	private final ConcurrentHashMap<Proxy, PasswordAuthentication> _map = new ConcurrentHashMap<>();
 
 	public final Proxy registerProxy(String proxyUrl) throws IOException {
-		if (proxyUrl != null) {
-			URL url = new URL(proxyUrl);
-			Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(url.getHost(), url.getPort()));
-			PasswordAuthentication passwordAuthentication = null;
-			if (url.getUserInfo() != null) {
-				int i = url.getUserInfo().indexOf(':');
-				String user = URLDecoder.decode(url.getUserInfo().substring(0, i), "UTF-8");
-				String password = URLDecoder.decode(url.getUserInfo().substring(i + 1), "UTF-8");
-				passwordAuthentication = new PasswordAuthentication(user, password.toCharArray());
-			}
-			_map.putIfAbsent(proxy, passwordAuthentication);
-			return proxy;
+		URL url = new URL(proxyUrl);
+		Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(url.getHost(), url.getPort()));
+		if (url.getUserInfo() != null) {
+			int i = url.getUserInfo().indexOf(':');
+			String user = URLDecoder.decode(url.getUserInfo().substring(0, i), "UTF-8");
+			String password = URLDecoder.decode(url.getUserInfo().substring(i + 1), "UTF-8");
+			_map.putIfAbsent(proxy, new PasswordAuthentication(user, password.toCharArray()));
 		}
-		return Proxy.NO_PROXY;
+		return proxy;
 	}
 
 	@Override
@@ -50,7 +45,7 @@ public class ProxyAuthenticator extends Authenticator {
 		if (getRequestorType() == RequestorType.PROXY) {
 			Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(getRequestingHost(), getRequestingPort()));
 			PasswordAuthentication passwordAuthentication = _map.get(proxy);
-			return new PasswordAuthentication(passwordAuthentication.getUserName(), passwordAuthentication.getPassword());
+			return passwordAuthentication != null ? new PasswordAuthentication(passwordAuthentication.getUserName(), passwordAuthentication.getPassword()) : null;
 		}
 		return null;
 	}
