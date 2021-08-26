@@ -262,7 +262,7 @@ public abstract class Action implements Cloneable {
 			String name = k < 0 ? path : path.substring(0, k);
 			Object value = "body".equals(name) ? message.getBodyAsString(context)
 					: "attachments".equals(name) ? message.getAttachments() : resolve(message, name, true);
-			if (value == null && k >= 0) {
+			if (value == null && (k >= 0 || name.startsWith("java:"))) {
 				// interpret dots as separators
 				value = context.getGlobalContext().getProperty(path);
 				k = -1;
