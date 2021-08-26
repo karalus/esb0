@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,6 +24,7 @@ import javax.mail.internet.MimeMultipart;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConnectionData;
@@ -32,8 +32,9 @@ import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSSession;
 import com.artofarc.esb.message.*;
 import com.artofarc.esb.resource.JMSSessionFactory;
+import com.artofarc.util.ByteArrayOutputStream;
 
-public class JMSAction extends TerminalAction {
+public class JMSAction extends Action {
 
 	static class BytesMessageOutputStream extends OutputStream {
 		final BytesMessage _bytesMessage;
@@ -75,6 +76,7 @@ public class JMSAction extends TerminalAction {
 
 	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
 			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String multipart) throws NamingException {
+		_pipelineStop = true;
 		_queueName = globalContext.bindProperties(queueName);
 		_topicName = globalContext.bindProperties(topicName);
 		if (jndiDestination != null) {
@@ -92,7 +94,25 @@ public class JMSAction extends TerminalAction {
 	}
 
 	@Override
-	protected void execute(Context context, ESBMessage message) throws Exception {
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		if (inPipeline) {
+			if (_isBytesMessage && _multipart == null) {
+				JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
+				JMSSession jmsSession = jmsSessionFactory.getResource(_jmsConnectionData, false);
+				BytesMessage bytesMessage = jmsSession.getSession().createBytesMessage();
+				message.reset(BodyType.OUTPUT_STREAM, new BytesMessageOutputStream(bytesMessage));
+				return new ExecutionContext(bytesMessage);
+			} else {
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				message.reset(BodyType.OUTPUT_STREAM, bos);
+				return new ExecutionContext(bos);
+			}
+		}
+		return null;
+	}
+
+	@Override
+	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
 		JMSSession jmsSession = jmsSessionFactory.getResource(_jmsConnectionData, false);
 		final Session session = jmsSession.getSession();
@@ -106,22 +126,32 @@ public class JMSAction extends TerminalAction {
 		final Destination destination = _destination != null ? _destination : getDestination(message, jmsSession);
 		context.getTimeGauge().startTimeMeasurement();
 		Message jmsMessage;
-		if (message.getBodyType() == BodyType.INVALID) {
-			jmsMessage = session.createMessage();
-		} else if (_isBytesMessage) {
-			BytesMessage bytesMessage = session.createBytesMessage();
-			if (_multipart != null) {
-				MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipart, message.getBodyAsByteArray(context));
-				mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
-				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
-			} else {
-				message.writeTo(new BytesMessageOutputStream(bytesMessage), context);
-				message.closeBody();
-				bytesMessage.setStringProperty(ESBConstants.Charset, message.getCharset().name());
-			}
-			jmsMessage = bytesMessage;
+		if (execContext != null && execContext.getResource() instanceof Message) {
+			jmsMessage = execContext.getResource();
+			jmsMessage.setStringProperty(ESBConstants.Charset, message.getSinkEncoding());
 		} else {
-			jmsMessage = session.createTextMessage(message.getBodyAsString(context));
+			if (execContext != null) {
+				ByteArrayOutputStream bos = execContext.getResource();
+				message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
+			}
+			if (message.getBodyType() == BodyType.INVALID) {
+				jmsMessage = session.createMessage();
+			} else if (_isBytesMessage) {
+				BytesMessage bytesMessage = session.createBytesMessage();
+				if (_multipart != null) {
+					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipart, message.getBodyAsByteArray(context));
+					mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
+					message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
+				} else {
+					// raw or not?
+					message.writeTo(new BytesMessageOutputStream(bytesMessage), context);
+					message.closeBody();
+					bytesMessage.setStringProperty(ESBConstants.Charset, message.getSinkEncoding());
+				}
+				jmsMessage = bytesMessage;
+			} else {
+				jmsMessage = session.createTextMessage(message.getBodyAsString(context));
+			}
 		}
 		for (Map.Entry<String, Object> entry : message.getHeaders()) {
 			try {
