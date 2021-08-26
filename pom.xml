@@ -19,7 +19,7 @@
 	<groupId>com.artofarc.eai</groupId>
 	<artifactId>esb0</artifactId>
 	<packaging>war</packaging>
-	<version>1.8.3-SNAPSHOT</version>
+	<version>1.9.0-SNAPSHOT</version>
 	<name>ESB Zero Maven Webapp</name>
 	<url>http://maven.apache.org</url>
 	<properties>
@@ -30,8 +30,8 @@
 		<url>scm:git:git@github.com:karalus/esb0.git</url>
 		<connection>scm:git:git@github.com:karalus/esb0.git</connection>
 		<developerConnection>scm:git:git@github.com:karalus/esb0.git</developerConnection>
-      <tag>HEAD</tag>
-  </scm>	
+		<tag>HEAD</tag>
+	</scm>	
 	<distributionManagement>
 		<repository>
 			<id>localDeploy</id>
@@ -78,9 +78,9 @@
 			<version>1.7.30</version>
 		</dependency>
 		<dependency>
-		    <groupId>com.sun.mail</groupId>
-		    <artifactId>jakarta.mail</artifactId>
-		    <version>1.6.5</version>
+			<groupId>com.sun.mail</groupId>
+			<artifactId>jakarta.mail</artifactId>
+			<version>1.6.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish</groupId>
@@ -93,9 +93,9 @@
 			<version>2.3.3</version>
 		</dependency>
 		<dependency>
-		    <groupId>com.sun.xml.fastinfoset</groupId>
-		    <artifactId>FastInfoset</artifactId>
-		    <version>1.2.18</version>
+			<groupId>com.sun.xml.fastinfoset</groupId>
+			<artifactId>FastInfoset</artifactId>
+			<version>1.2.18</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.jms</groupId>
@@ -111,16 +111,16 @@
 		</dependency>
 		<!--
 		<dependency>
-		    <groupId>org.apache.activemq</groupId>
-		    <artifactId>artemis-server</artifactId>
-		    <version>2.17.0</version>
-		    <scope>test</scope>
+			<groupId>org.apache.activemq</groupId>
+			<artifactId>artemis-server</artifactId>
+			<version>2.17.0</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
-		    <groupId>org.apache.activemq</groupId>
-		    <artifactId>artemis-jms-client</artifactId>
-		    <version>2.17.0</version>
-		    <scope>test</scope>
+			<groupId>org.apache.activemq</groupId>
+			<artifactId>artemis-jms-client</artifactId>
+			<version>2.17.0</version>
+			<scope>test</scope>
 		</dependency>
 		-->
 		<dependency>
@@ -130,11 +130,11 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-		    <groupId>com.sun.xml.ws</groupId>
-		    <artifactId>jaxws-ri</artifactId>
-		    <version>2.3.3</version>
-		    <type>pom</type>
-		    <scope>test</scope>
+			<groupId>com.sun.xml.ws</groupId>
+			<artifactId>jaxws-ri</artifactId>
+			<version>2.3.3</version>
+			<type>pom</type>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.activemq</groupId>
@@ -146,7 +146,7 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 			<version>2.12.3</version>
-		    <scope>test</scope>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<build>
@@ -164,7 +164,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-release-plugin</artifactId>
-					<version>2.5.3</version>                
+					<version>2.5.3</version>				
 				</plugin>
 			</plugins>
 		</pluginManagement>
@@ -184,26 +184,26 @@
 				<configuration>
 					<locale>en</locale>
 					<sources>
-                    	<source>src/main/xsd/service.xsd</source>
-                	</sources>
+						<source>src/main/xsd/service.xsd</source>
+					</sources>
 					<arguments>
 						<argument>-Xlocator</argument>
 					</arguments>
 				</configuration>
 			</plugin>
 			<plugin>
-			    <artifactId>maven-war-plugin</artifactId>
+				<artifactId>maven-war-plugin</artifactId>
 				<version>3.2.3</version>
-			    <configuration>
-			        <archive>
-			            <manifest>
-			                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-			            </manifest>			        
-			            <manifestEntries>
-			                <Build-Time>${maven.build.timestamp}</Build-Time>
-			            </manifestEntries>
-			        </archive>
-			    </configuration>
+				<configuration>
+					<archive>
+						<manifest>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+						</manifest>					
+						<manifestEntries>
+							<Build-Time>${maven.build.timestamp}</Build-Time>
+						</manifestEntries>
+					</archive>
+				</configuration>
 			</plugin>			
 		</plugins>
 		<resources>
