@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -56,11 +55,13 @@ public class SAXValidationAction extends SAXAction {
 	}
 
 	class ReuseParserXMLFilter extends XMLFilterBase {
+		private final ValidatorHandler _validatorHandler = _schema.newValidatorHandler();
 		private final SAXParser _saxParser;
 
 		public ReuseParserXMLFilter(SAXParser saxParser) throws SAXException {
 			super(saxParser.getXMLReader());
 			_saxParser = saxParser;
+			super.setContentHandler(_validatorHandler);
 		}
 
 		@Override
@@ -70,6 +71,11 @@ public class SAXValidationAction extends SAXAction {
 			} finally {
 				_saxParser.reset();
 			}
+		}
+
+		@Override
+		public void setContentHandler(ContentHandler handler) {
+			_validatorHandler.setContentHandler(handler);
 		}
 	}
 
@@ -82,9 +88,12 @@ public class SAXValidationAction extends SAXAction {
 	@Override
 	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception {
 		message.setSchema(_schema);
-		XMLFilterBase xmlFilter = parent != null ? new XMLFilterBase(parent) : new ReuseParserXMLFilter(context.getSAXParser());
-		xmlFilter.setContentHandler(_schema.newValidatorHandler());
-		return xmlFilter;
+		if (parent != null) {
+			XMLFilterBase xmlFilter = new XMLFilterBase(parent);
+			xmlFilter.setContentHandler(_schema.newValidatorHandler());
+			return xmlFilter;
+		}
+		return new ReuseParserXMLFilter(context.getSAXParser());
 	}
 
 }
