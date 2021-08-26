@@ -35,7 +35,10 @@ public class ProxyAuthenticator extends Authenticator {
 			int i = url.getUserInfo().indexOf(':');
 			String user = URLDecoder.decode(url.getUserInfo().substring(0, i), "UTF-8");
 			String password = URLDecoder.decode(url.getUserInfo().substring(i + 1), "UTF-8");
-			_map.putIfAbsent(proxy, new PasswordAuthentication(user, password.toCharArray()));
+			PasswordAuthentication old = _map.put(proxy, new PasswordAuthentication(user, password.toCharArray()));
+			if (old != null && !old.getUserName().equals(user)) {
+				HttpEndpointRegistry.logger.warn("Proxy user has changed for " + proxy);
+			}
 		}
 		return proxy;
 	}
