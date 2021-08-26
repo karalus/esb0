@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,7 +31,6 @@ import javax.wsdl.xml.WSDLLocator;
 import javax.xml.namespace.QName;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 
 import org.w3c.dom.Element;
@@ -86,6 +84,12 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		latestImportURI = null;
 		Transformer transformer = JAXPFactoryHelper.newTransformer();
 		List<Source> sources = new ArrayList<>();
+		for (String referenced : getReferenced()) {
+			Artifact xsd = loadArtifact(referenced);
+			if (xsd instanceof XSDArtifact) {
+				sources.add(((XSDArtifact) xsd).getStreamSource());
+			}
+		}
 		if (WSDL4JUtil.hasSOAP11Binding(_allBindings)) {
 			XSDArtifact soap11 = loadArtifact(XMLCatalog.PATH + "/soap11.xsd");
 			sources.add(soap11.getStreamSource());
@@ -96,25 +100,24 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 			sources.add(soap12.getStreamSource());
 			addReference(soap12);
 		}
-		processSchemas(definition, sources, transformer);
+		processSchemas(definition.getTypes(), sources, transformer);
 		Map<String, List<Import>> importMap = definition.getImports();
 		for (List<Import> imports : importMap.values()) {
 			for (Import import1 : imports) {
-				processSchemas(import1.getDefinition(), sources, transformer);
+				processSchemas(import1.getDefinition().getTypes(), sources, transformer);
 			}
 		}
 		return sources.toArray(new Source[sources.size()]);
 	}
 
-	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws TransformerException {
-		Types types = definition.getTypes();
+	private void processSchemas(Types types, List<Source> sources, Transformer transformer) throws Exception {
 		if (types != null) {
 			for (Schema schema : WSDL4JUtil.getExtensibilityElements(types, Schema.class)) {
 				Element element = schema.getElement();
 				String targetNamespace = element.getAttribute("targetNamespace");
 				DOMSource schemaElement = new DOMSource(element, getURI());
-				sources.add(schemaElement);
 				_schemas.put(targetNamespace, XMLCatalog.toByteArray(schemaElement, transformer));
+				sources.add(schemaElement);
 			}
 		}
 	}
