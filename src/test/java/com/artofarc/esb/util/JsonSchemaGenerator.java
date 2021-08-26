@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -62,7 +61,7 @@ public final class JsonSchemaGenerator {
 			generate(new XSOMHelper((XSElementDecl) component), jsonGenerator);
 		} else if (component instanceof XSSimpleType) {
 			jsonGenerator.writeStartObject();
-			generateType((XSSimpleType) component, null, jsonGenerator);
+			generateType((XSSimpleType) component, null, false, jsonGenerator);
 			jsonGenerator.writeEnd();
 		} else {
 			throw new IllegalArgumentException(scd + " does not resolve to complex type or element, but " + component);
@@ -96,7 +95,7 @@ public final class JsonSchemaGenerator {
 			XSAttributeDecl decl = attributeUse.getDecl();
 			String attr = attributePrefix + decl.getName();
 			jsonGenerator.writeStartObject(attr);
-			generateType(decl.getType(), decl.getDefaultValue(), jsonGenerator);
+			generateType(decl.getType(), decl.getDefaultValue(), false, jsonGenerator);
 			jsonGenerator.writeEnd();
 			if (attributeUse.isRequired()) {
 				required.add(attr);
@@ -132,7 +131,7 @@ public final class JsonSchemaGenerator {
 					if (xsomHelper.isLastElementRequired()) {
 						required.add(name);
 					}
-					generateType(xsomHelper, term.asElementDecl().getDefaultValue(), jsonGenerator);
+					generateType(xsomHelper, term.asElementDecl().getDefaultValue(), term.asElementDecl().isNillable(), jsonGenerator);
 					jsonGenerator.writeEnd(); // name
 				}
 			}
@@ -156,7 +155,7 @@ public final class JsonSchemaGenerator {
 		jsonGenerator.write("additionalProperties", any);
 	}
 
-	private void generateType(XSOMHelper xsomHelper, XmlString defaultValue, JsonGenerator jsonGenerator) throws SAXException {
+	private void generateType(XSOMHelper xsomHelper, XmlString defaultValue, boolean nillable, JsonGenerator jsonGenerator) throws SAXException {
 		// decide object, array or primitive
 		if (xsomHelper.isLastElementRepeated()) {
 			jsonGenerator.write("type", "array");
@@ -167,7 +166,7 @@ public final class JsonSchemaGenerator {
 			if (xsomHelper.getComplexType() != null) {
 				generateObject(xsomHelper, jsonGenerator);
 			} else {
-				generateType(xsomHelper.getSimpleType(), null, jsonGenerator);
+				generateType(xsomHelper.getSimpleType(), null, nillable, jsonGenerator);
 			}
 			jsonGenerator.writeEnd(); // items
 		} else {
@@ -176,25 +175,25 @@ public final class JsonSchemaGenerator {
 			} else {
 				XSSimpleType simpleType = xsomHelper.getSimpleType();
 				if (simpleType != null) {
-					generateType(simpleType, defaultValue, jsonGenerator);
+					generateType(simpleType, defaultValue, nillable, jsonGenerator);
 				}
 			}
 		}
 	}
 
-	private void generateType(XSSimpleType simpleType, XmlString defaultValue, JsonGenerator jsonGenerator) {
+	private void generateType(XSSimpleType simpleType, XmlString defaultValue, boolean nillable, JsonGenerator jsonGenerator) {
 		XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
 		if (itemType != null) {
 			jsonGenerator.write("type", "array");
 			jsonGenerator.writeStartObject("items");
-			generateType(itemType, defaultValue, jsonGenerator);
+			generateType(itemType, defaultValue, nillable, jsonGenerator);
 			jsonGenerator.writeEnd();
 		} else if (simpleType.isUnion()) {
 			jsonGenerator.writeStartArray("anyOf");
 			XSUnionSimpleType unionType = simpleType.asUnion();
 			for (int i = 0; i < unionType.getMemberSize(); ++i) {
 				jsonGenerator.writeStartObject();
-				generateType(unionType.getMember(i), defaultValue, jsonGenerator);
+				generateType(unionType.getMember(i), defaultValue, nillable, jsonGenerator);
 				jsonGenerator.writeEnd();
 			}
 			jsonGenerator.writeEnd();
@@ -240,7 +239,11 @@ public final class JsonSchemaGenerator {
 			default:
 				throw new IllegalArgumentException("No mapping defined for " + jsonType);
 			}
-			jsonGenerator.write("type", jsonType);
+			if (nillable) {
+				jsonGenerator.writeStartArray("type").write(jsonType).write("null").writeEnd();
+			} else {
+				jsonGenerator.write("type", jsonType);
+			}
 			if (format != null) {
 				jsonGenerator.write("format", format);
 			}
