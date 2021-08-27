@@ -702,6 +702,7 @@
 									<attribute name="minPool" type="unsignedShort" default="1" />
 									<attribute name="maxPool" type="tns:positiveInt" default="20" />
 									<attribute name="keepAlive" type="unsignedInt" default="300000" />
+									<attribute name="resourceLimit" type="int" default="-1" />
 								</extension>
 							</simpleContent>
 						</complexType>
@@ -761,7 +762,6 @@
 			<attribute name="protocol" type="tns:Protocol" use="required" />
 			<attribute name="errorHandler" type="NCName" />
 			<attribute name="enabled" type="boolean" default="true" />
-			<attribute name="resourceLimit" type="int" default="-1" />
 			<attribute name="version" type="tns:positiveInt" default="1" />
 		</complexType>
 	</element>

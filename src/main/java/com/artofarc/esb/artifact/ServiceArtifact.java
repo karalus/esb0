@@ -109,7 +109,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			switch (_protocol = service.getProtocol()) {
 			case HTTP:
 				Service.HttpBindURI httpBinding = checkBindingPresent(service.getHttpBindURI());
-				_consumerPort = new HttpConsumer(getURI(), service.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
+				_consumerPort = new HttpConsumer(getURI(), httpBinding.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
 						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
 				globalContext.checkBindHttpService((HttpConsumer) _consumerPort);
 				break;
