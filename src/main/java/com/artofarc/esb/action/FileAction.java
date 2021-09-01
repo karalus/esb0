@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -57,6 +56,23 @@ public class FileAction extends TerminalAction {
 		_writable = writable;
 	}
 
+	private void setPermissions(File file) {
+		if (_readable != null) {
+			file.setReadable(_readable, false);
+		}
+		if (_writable != null) {
+			file.setWritable(_writable, false);
+		}
+	}
+
+	private void mkdirs(File dir) {
+		if (dir != null && !dir.exists()) {
+			mkdirs(dir.getParentFile());
+			dir.mkdir();
+			setPermissions(dir);
+		}
+	}
+
 	@Override
 	protected void execute(Context context, ESBMessage message) throws Exception {
 		String contentType = HttpConstants.parseContentType(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
@@ -65,7 +81,7 @@ public class FileAction extends TerminalAction {
 		boolean zip = Boolean.parseBoolean(String.valueOf(bindVariable(_zip, context, message)));
 		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
 		if (_mkdirs) {
-			file.getParentFile().mkdirs();
+			mkdirs(file.getCanonicalFile().getParentFile());
 		}
 		String verb = (String) bindVariable(_verb, context, message);
 		if (verb == null) {
@@ -96,12 +112,7 @@ public class FileAction extends TerminalAction {
 				}
 				context.getTimeGauge().startTimeMeasurement();
 				try (FileOutputStream fileOutputStream = new FileOutputStream(file, append)) {
-					if (_readable != null) {
-						file.setReadable(_readable, false);
-					}
-					if (_writable != null) {
-						file.setWritable(_writable, false);
-					}
+					setPermissions(file);
 					if (zip) {
 						try (ZipOutputStream zos = new ZipOutputStream(fileOutputStream)) {
 							zos.putNextEntry(new ZipEntry(filename + fileExtension));
