@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +14,6 @@
  * limitations under the License.
  */
 package com.artofarc.esb.artifact;
-
-import java.util.Properties;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.service.DataSource;
@@ -28,7 +25,7 @@ public class DataSourceArtifact extends AbstractServiceArtifact {
 	public final static String FILE_EXTENSION = "dsdef";
 
 	private String _dataSourceName;
-	private Properties _properties;
+	private HikariConfig _hikariConfig;
 
 	public DataSourceArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -50,14 +47,14 @@ public class DataSourceArtifact extends AbstractServiceArtifact {
 	}
 
 	public HikariDataSource createDataSource() {
-		return new HikariDataSource(new HikariConfig(_properties));
+		return new HikariDataSource(_hikariConfig);
 	}
 
 	@Override
 	protected DataSourceArtifact clone(FileSystem fileSystem, Directory parent) {
 		DataSourceArtifact clone = initClone(new DataSourceArtifact(fileSystem, parent, getName()));
 		clone._dataSourceName = _dataSourceName;
-		clone._properties = _properties;
+		clone._hikariConfig = _hikariConfig;
 		return clone;
 	}
 
@@ -65,7 +62,8 @@ public class DataSourceArtifact extends AbstractServiceArtifact {
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		DataSource dataSource = unmarshal();
 		_dataSourceName = dataSource.getName();
-		_properties = createProperties(dataSource.getProperty(), globalContext);
+		_hikariConfig = new HikariConfig(createProperties(dataSource.getProperty(), globalContext));
+		_hikariConfig.validate();
 	}
 
 }
