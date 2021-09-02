@@ -59,6 +59,9 @@ public class FileAction extends TerminalAction {
 	private void setPermissions(File file) {
 		if (_readable != null) {
 			file.setReadable(_readable, false);
+			if (file.isDirectory()) {
+				file.setExecutable(_readable, false);
+			}
 		}
 		if (_writable != null) {
 			file.setWritable(_writable, false);
