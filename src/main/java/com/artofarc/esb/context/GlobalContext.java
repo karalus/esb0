@@ -264,6 +264,10 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		return _propertyCache.putResource(key, object);
 	}
 
+	public Object removeProperty(String key) {
+		return _propertyCache.removeResource(key);
+	}
+
 	public void invalidatePropertyCache() throws Exception {
 		_propertyCache.reset(false);
 	}

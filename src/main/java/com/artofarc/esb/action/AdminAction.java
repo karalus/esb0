@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +29,7 @@ import com.artofarc.esb.context.*;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.Collections;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.JsonFactoryHelper;
 
@@ -206,7 +206,7 @@ public class AdminAction extends Action {
 				newFileSystem.writeBackChanges();
 				logger.info("Configuration changed by: " + message.getVariable(ESBConstants.RemoteUser));
 				logger.info("Number of created/updated services: " + serviceCount);
-				logger.info("Number of deleted services: " + changeSet.getDeletedServiceArtifacts().size());
+				logger.info("Number of deleted services: " + Collections.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).count());
 				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
 				message.reset(BodyType.INVALID, null);
 			} catch (ValidationException | RuntimeException e) {

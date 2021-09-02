@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,6 +25,7 @@ import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
+import com.artofarc.util.Collections;
 import com.artofarc.util.IOUtils;
 
 public final class DeployHelper {
@@ -33,7 +33,7 @@ public final class DeployHelper {
 	public static int deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet changeSet) throws ValidationException {
 		List<ServiceArtifact> serviceArtifacts = changeSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
-		for (ServiceArtifact service : changeSet.getDeletedServiceArtifacts()) {
+		Collections.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).forEach(service -> {
 			switch (service.getProtocol()) {
 			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();
@@ -63,7 +63,18 @@ public final class DeployHelper {
 				globalContext.unbindInternalService(service.getConsumerPort());
 				break;
 			}
-		}
+		});
+		Collections.typeSelect(changeSet.getDeletedArtifacts(), WorkerPoolArtifact.class).forEach(workerPool -> {
+			String name = IOUtils.stripExt(workerPool.getURI());
+			WorkerPool oldWorkerPool = globalContext.getWorkerPool(name);
+			// close later
+			closer.add(oldWorkerPool);
+		});
+		Collections.typeSelect(changeSet.getDeletedArtifacts(), DataSourceArtifact.class).forEach(dataSourceArtifact -> {
+			Object dataSource = globalContext.removeProperty(dataSourceArtifact.getDataSourceName());
+			// close later
+			closer.add((AutoCloseable) dataSource);
+		});
 		for (WorkerPoolArtifact workerPoolArtifact : changeSet.getWorkerPoolArtifacts()) {
 			String name = IOUtils.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
@@ -79,10 +90,10 @@ public final class DeployHelper {
 			}
 		}
 		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
-			Object oldDataSource = globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
-			if (DataSourceArtifact.isDataSource(oldDataSource)) {
-				closer.add((AutoCloseable) oldDataSource);
-			}
+				Object oldDataSource = globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
+				if (DataSourceArtifact.isDataSource(oldDataSource)) {
+					closer.add((AutoCloseable) oldDataSource);
+				}
 		}
 		for (ServiceArtifact service : serviceArtifacts) {
 			ConsumerPort oldConsumerPort;

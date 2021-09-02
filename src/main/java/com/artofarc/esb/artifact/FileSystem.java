@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -236,15 +235,6 @@ public abstract class FileSystem {
 		return result;
 	}
 
-	public static boolean deleteArtifact(Artifact artifact) {
-		boolean deleted = false;
-		if (artifact.getReferencedBy().isEmpty()) {
-			artifact.detachFromReferenced();
-			deleted = artifact == artifact.getParent().getArtifacts().remove(artifact.getName());
-		}
-		return deleted;
-	}
-
 	public final boolean tidyOut() {
 		HashSet<String> visited = new HashSet<>();
 		collectFolders(visited, _root);
@@ -259,7 +249,7 @@ public abstract class FileSystem {
 				if (!XMLCatalog.isXMLCatalog(child)) {
 					detachOrphans(child, visited);
 				}
-			} else if (!visited.contains(artifact.getURI())) {
+			} else if (!(artifact instanceof DataSourceArtifact || visited.contains(artifact.getURI()))) {
 				artifact.detachFromReferenced();
 			}
 		}
@@ -275,7 +265,7 @@ public abstract class FileSystem {
 					iterator.remove();
 					noteChange(artifact.getURI(), ChangeType.DELETE);
 				}
-			} else if (!visited.contains(artifact.getURI())) {
+			} else if (!(artifact instanceof DataSourceArtifact || visited.contains(artifact.getURI()))) {
 				logger.info("Remove: " + artifact);
 				iterator.remove();
 				noteChange(artifact.getURI(), ChangeType.DELETE);
@@ -316,9 +306,9 @@ public abstract class FileSystem {
 
 	public final class ChangeSet {
 		private final List<Future<ServiceArtifact>> futures = new ArrayList<>();
-		private final List<ServiceArtifact> deletedServiceArtifacts = new ArrayList<>();
 		private final List<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
 		private final List<DataSourceArtifact> dataSourceArtifacts = new ArrayList<>();
+		private final List<Artifact> deletedArtifacts = new ArrayList<>();
 
 		public FileSystem getFileSystem() {
 			return FileSystem.this;
@@ -351,16 +341,16 @@ public abstract class FileSystem {
 			return serviceArtifacts;
 		}
 
-		public List<ServiceArtifact> getDeletedServiceArtifacts() {
-			return deletedServiceArtifacts;
-		}
-
 		public List<WorkerPoolArtifact> getWorkerPoolArtifacts() {
 			return workerPoolArtifacts;
 		}
 
 		public List<DataSourceArtifact> getDataSourceArtifacts() {
 			return dataSourceArtifacts;
+		}
+
+		public List<Artifact> getDeletedArtifacts() {
+			return deletedArtifacts;
 		}
 	}
 
@@ -401,14 +391,12 @@ public abstract class FileSystem {
 	public final ChangeSet createChangeSet(GlobalContext globalContext, String uriToDelete) throws FileNotFoundException, ValidationException {
 		FileSystem copy = copy();
 		Artifact artifact = copy.loadArtifact(copy.getRoot(), uriToDelete);
-		if (!deleteArtifact(artifact)) {
+		if (!artifact.delete()) {
 			throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
 		}
 		copy.noteChange(uriToDelete, ChangeType.DELETE);
 		ChangeSet changeSet = copy.new ChangeSet();
-		if (artifact instanceof ServiceArtifact) {
-			changeSet.deletedServiceArtifacts.add((ServiceArtifact) artifact);
-		}
+		changeSet.getDeletedArtifacts().add(artifact);
 		copy.tidyOut();
 		return changeSet;
 	}
@@ -437,12 +425,10 @@ public abstract class FileSystem {
 			if (entry.getValue() == ChangeType.CREATE) {
 				validateService(globalContext, artifact, changeSet);
 			} else if (entry.getValue() == ChangeType.DELETE) {
-				if (!deleteArtifact(artifact)) {
+				if (!artifact.delete()) {
 					throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
 				}
-				if (artifact instanceof ServiceArtifact) {
-					changeSet.deletedServiceArtifacts.add((ServiceArtifact) artifact);
-				}
+				changeSet.getDeletedArtifacts().add(artifact);
 			}
 		}
 		return changeSet;
