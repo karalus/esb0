@@ -83,7 +83,8 @@ public final class ESBMessage implements Cloneable {
 
 	private BodyType _bodyType;
 	private Object _body;
-	private Charset _charset, _sinkEncoding; 
+	private Charset _charset, _sinkEncoding;
+	private String _contentEncoding, _contentType;
 	private Schema _schema;
 
 	private ESBMessage(BodyType bodyType, Object body, Charset charset) {
@@ -108,7 +109,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void reset(BodyType bodyType, Object body, String charsetName) {
-		_bodyType = bodyType; 
+		_bodyType = bodyType;
 		_body = body;
 		setCharset(charsetName);
 	}
@@ -121,9 +122,9 @@ public final class ESBMessage implements Cloneable {
 			if (_bodyType.hasCharset() && _charset != null) {
 				System.err.println("Warning: old binary type had non default charset");
 			}
-			init(bodyType, body, _charset); 
+			init(bodyType, body, _charset);
 		} else {
-			init(bodyType, body, null); 
+			init(bodyType, body, null);
 		}
 	}
 
@@ -234,6 +235,22 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
+	public String getContentEncoding() {
+		return _contentEncoding;
+	}
+
+	public void setContentEncoding(String contentEncoding) {
+		_contentEncoding = contentEncoding;
+	}
+
+	public String getContentType() {
+		return _contentType;
+	}
+
+	public void setContentType(String contentType) {
+		_contentType = contentType;
+	}
+
 	public void setSinkEncoding(String sinkEncoding) {
 		_sinkEncoding = sinkEncoding != null ? Charset.forName(sinkEncoding) : null;
 	}
@@ -290,37 +307,30 @@ public final class ESBMessage implements Cloneable {
 
 	private boolean isOutputCompressed() {
 		final String contentEncoding = getHeader(HTTP_HEADER_CONTENT_ENCODING);
-		if (contentEncoding != null) {
-			final String fileName = getVariable(ESBConstants.filename);
-			final boolean isGZIP = fileName != null && fileName.endsWith(".gz");
-			return !("gzip".equals(contentEncoding) && isGZIP);
-		}
-		return false;
+		return contentEncoding != null && !contentEncoding.equals(getContentEncoding());
 	}
 
 	private OutputStream getCompressedOutputStream(OutputStream outputStream) throws IOException {
 		final String contentEncoding = getHeader(HTTP_HEADER_CONTENT_ENCODING);
-		final String fileName = getVariable(ESBConstants.filename);
-		final boolean isGZIP = fileName != null && fileName.endsWith(".gz");
 		if (contentEncoding != null) {
-			switch (contentEncoding) {
-			case "gzip":
-				return isGZIP ? outputStream : new GZIPOutputStream(outputStream, IOUtils.MTU);
-			case "deflate":
-				outputStream = new DeflaterOutputStream(outputStream);
-				break;
-			default:
-				throw new IOException("Content-Encoding not supported: " + contentEncoding);
+			if (contentEncoding.equals(getContentEncoding()) && !isSinkEncodingdifferent()) {
+				setContentEncoding(null);
+			} else {
+				switch (contentEncoding) {
+				case "gzip":
+					return new GZIPOutputStream(outputStream, IOUtils.MTU);
+				case "deflate":
+					return new DeflaterOutputStream(outputStream);
+				default:
+					throw new IOException("Content-Encoding not supported: " + contentEncoding);
+				}
 			}
-		}
-		if (isGZIP) {
-			_body = new GZIPInputStream((InputStream) _body, IOUtils.MTU);
 		}
 		return outputStream;
 	}
 
 	private InputStream getUncompressedInputStream(InputStream inputStream) throws IOException {
-		final String contentEncoding = removeHeader(HTTP_HEADER_CONTENT_ENCODING);
+		final String contentEncoding = getContentEncoding();
 		if (contentEncoding != null) {
 			switch (contentEncoding) {
 			case "gzip":
@@ -334,6 +344,7 @@ public final class ESBMessage implements Cloneable {
 			default:
 				throw new IOException("Unsupported content encoding " + contentEncoding);
 			}
+			setContentEncoding(null);
 		}
 		return inputStream;
 	}
@@ -724,7 +735,7 @@ public final class ESBMessage implements Cloneable {
 				}
 			} else {
 				// writes compressed data through!
-				try (InputStream inputStream = (InputStream) _body) {
+				try (InputStream inputStream = getUncompressedInputStream((InputStream) _body)) {
 					IOUtils.copy(inputStream, os);
 				}
 			}

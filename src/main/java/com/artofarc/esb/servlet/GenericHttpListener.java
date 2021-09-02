@@ -142,7 +142,9 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(ClientCertificate, certs[0]);
 		}
 		if (bodyPresent) {
+			message.setContentEncoding(message.removeHeader(HTTP_HEADER_CONTENT_ENCODING));
 			MimeHelper.parseMultipart(message, request.getContentType());
+			message.setContentType(message.getHeader(HTTP_HEADER_CONTENT_TYPE));
 		}
 		// copy into variable for HttpServletResponseAction
 		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));

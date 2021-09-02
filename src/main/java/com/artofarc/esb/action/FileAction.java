@@ -89,6 +89,7 @@ public class FileAction extends TerminalAction {
 		String verb = (String) eval(_verb, context, message);
 		if (verb == null) {
 			message.clearHeaders();
+			File file = new File(_destDir, filename);
 			if (file.isDirectory()) {
 				JsonArrayBuilder builder = JsonFactoryHelper.JSON_BUILDER_FACTORY.createArrayBuilder();
 				for (File f : file.listFiles()) {
@@ -100,11 +101,16 @@ public class FileAction extends TerminalAction {
 			} else {
 				if (IOUtils.getExt(filename).equals("gz")) {
 					filename = IOUtils.stripExt(filename);
+					message.setContentEncoding("gzip");
 				}
 				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MimeHelper.guessContentTypeFromName(filename));
 				message.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFileInputStream(file));
 			}
 		} else {
+			String contentType = HttpConstants.parseContentType(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
+			String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(contentType) : "";
+			boolean zip = Boolean.parseBoolean(String.valueOf(bindVariable(_zip, context, message)));
+			File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
 			boolean append = false;
 			switch (verb) {
 			case "ENTRY_MODIFY":
@@ -114,6 +120,9 @@ public class FileAction extends TerminalAction {
 					throw new ExecutionException(this, "zip plus append is not supported, yet");
 				}
 				context.getTimeGauge().startTimeMeasurement();
+				if (_mkdirs) {
+					mkdirs(file.getCanonicalFile().getParentFile());
+				}
 				try (FileOutputStream fileOutputStream = new FileOutputStream(file, append)) {
 					setPermissions(file);
 					if (zip) {
