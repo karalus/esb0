@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,8 +24,6 @@ import com.artofarc.util.XQuerySource;
 
 public class XQueryArtifact extends XMLProcessingArtifact {
 
-	static final boolean legacyXqmResolver = Boolean.parseBoolean(System.getProperty("esb0.legacyXqmResolver"));
-
 	public XQueryArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
 	}
@@ -40,9 +37,8 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		ValidationErrorListener errorListener = new ValidationErrorListener(owner.getURI());
 		factory.setErrorListener(errorListener);
 		XQConnection connection = factory.getConnection();
-		String baseURI = legacyXqmResolver ? owner.getParent().getURI() : owner.getURI();
 		try {
-			xQuerySource.prepareExpression(connection, baseURI).close();
+			xQuerySource.prepareExpression(connection, owner.getURI()).close();
 		} catch (XQException e) {
 			throw errorListener.build(e);
 		} catch (StackOverflowError e) {
