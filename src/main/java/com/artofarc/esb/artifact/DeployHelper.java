@@ -154,8 +154,8 @@ public final class DeployHelper {
 	}
 
 	public static void createAdminService(GlobalContext globalContext, String path) throws Exception {
-		HttpConsumer adminService = globalContext.getHttpService(path);
-		if (adminService == null || !adminService.getBindPath().equals(path)) {
+		HttpConsumer adminService = globalContext.getHttpService(path + '/');
+		if (adminService == null || !adminService.getBindPath().startsWith(path)) {
 			Directory parent = globalContext.getFileSystem().makeDirectory("admin");
 			ServiceArtifact serviceArtifact = new ServiceArtifact(globalContext.getFileSystem(), parent, "Admin.xservice");
 			serviceArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("Admin.xservice")));
