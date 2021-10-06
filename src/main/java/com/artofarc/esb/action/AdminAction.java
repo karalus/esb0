@@ -204,7 +204,7 @@ public class AdminAction extends Action {
 				FileSystem newFileSystem = changeSet.getFileSystem();
 				globalContext.setFileSystem(newFileSystem);
 				newFileSystem.writeBackChanges();
-				logger.info("Configuration changed by: " + message.getVariable(ESBConstants.RemoteUser));
+				logger.info("Configuration changed by: " + resolve(message, ESBConstants.RemoteUser, false));
 				logger.info("Number of created/updated services: " + serviceCount);
 				logger.info("Number of deleted services: " + Collections.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).count());
 				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
