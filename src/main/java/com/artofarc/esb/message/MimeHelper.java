@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,21 +15,22 @@
  */
 package com.artofarc.esb.message;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import javax.activation.DataSource;
 import javax.mail.Header;
 import javax.mail.MessagingException;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
-import javax.mail.util.ByteArrayDataSource;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.util.ByteArrayOutputStream;
-
 import static com.artofarc.esb.http.HttpConstants.*;
+import com.artofarc.util.ByteArrayOutputStream;
 
 public final class MimeHelper {
 
@@ -88,7 +88,29 @@ public final class MimeHelper {
 	public static boolean parseMultipart(ESBMessage message, String contentType) throws Exception {
 		final boolean isMultipart = contentType != null && contentType.startsWith("multipart/");
 		if (isMultipart) {
-			MimeMultipart mmp = new MimeMultipart(new ByteArrayDataSource(message.getBodyAsInputStream(null), contentType));
+			InputStream inputStream = message.getBodyAsInputStream(null);
+			MimeMultipart mmp = new MimeMultipart(new DataSource() {
+				
+				@Override
+				public InputStream getInputStream() {
+					return inputStream;
+				}
+				
+				@Override
+				public OutputStream getOutputStream() {
+					throw new UnsupportedOperationException();
+				}
+				
+				@Override
+				public String getContentType() {
+					return contentType;
+				}
+
+				@Override
+				public String getName() {
+					return null;
+				}
+			});
 			String start = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START);
 			String soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
 			if (soapAction != null) {
@@ -122,7 +144,7 @@ public final class MimeHelper {
 	 * This is very rudimentary, but using http://tika.apache.org/ is overdone.
 	 */
 	public static String getFileExtension(String contentType) {
-		if (isSOAP11(contentType) || isSOAP12(contentType)) {
+		if (!isNotXML(contentType)) {
 			return "xml";
 		}
 		if (contentType.startsWith(APPLICATION)) {
