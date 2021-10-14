@@ -123,7 +123,6 @@ public class JMSAction extends Action {
 				_destination = session.createTopic(_topicName);
 			}
 		}
-		final Destination destination = _destination != null ? _destination : getDestination(message, jmsSession);
 		context.getTimeGauge().startTimeMeasurement();
 		Message jmsMessage;
 		if (execContext != null && execContext.getResource() instanceof Message) {
@@ -181,10 +180,14 @@ public class JMSAction extends Action {
 			Long jmsExpiration = message.getVariable(ESBConstants.JMSExpiration);
 			if (jmsExpiration != null && jmsExpiration > 0) {
 				timeToLive = jmsExpiration - System.currentTimeMillis();
+				if (timeToLive <= 0) {
+					throw new ExecutionException(this, "Incoming message has expired or system clocks differ too much");
+				}
 			} else {
 				timeToLive = Message.DEFAULT_TIME_TO_LIVE;
 			}
 		}
+		Destination destination = _destination != null ? _destination : getDestination(message, jmsSession);
 		if (_receiveFromTempQueue) {
 			jmsMessage.setJMSReplyTo(jmsSession.getTemporaryQueue());
 			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
@@ -196,7 +199,11 @@ public class JMSAction extends Action {
 			}
 			JMSConsumer.fillESBMessage(message, replyMessage);
 		} else {
-			if (destination != null) {
+			Destination replyTo = message.getVariable(ESBConstants.JMSReplyTo);
+			if (replyTo != null) {
+				MessageProducer producer = jmsSession.createProducer(null);
+				producer.send(replyTo, jmsMessage, _deliveryMode, _priority, timeToLive);
+			} else if (destination != null) {
 				MessageProducer producer = jmsSession.createProducer(destination);
 				if (_deliveryDelay != null) {
 					long deliveryDelay;
@@ -216,8 +223,7 @@ public class JMSAction extends Action {
 				}
 				producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
 			} else {
-				MessageProducer producer = jmsSession.createProducer(null);
-				producer.send(message.<Destination> getVariable(ESBConstants.JMSReplyTo), jmsMessage, _deliveryMode, _priority, timeToLive);
+				throw new ExecutionException(this, "Could not determine destination");
 			}
 			context.getTimeGauge().stopTimeMeasurement("JMS send", false);
 			message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
