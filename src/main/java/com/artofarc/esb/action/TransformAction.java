@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -105,23 +104,25 @@ public class TransformAction extends Action {
 				// Nothing to bind, but we need a context item
 				xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 			} else {
-				String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-				if (HttpConstants.isNotXML(contentType)) {
-					xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
-				} else {
-					switch (message.getBodyType()) {
-					case XQ_SEQUENCE:
-						XQSequence sequence = message.getBody();
-						checkNext(sequence, "body");
-						xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
-						break;
-					case XQ_ITEM:
-						xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
-						break;
-					default:
+				switch (message.getBodyType()) {
+				case XQ_SEQUENCE:
+					XQSequence sequence = message.getBody();
+					checkNext(sequence, "body");
+					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
+					break;
+				case XQ_ITEM:
+					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
+					break;
+				case EXCEPTION:
+					xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
+					break;
+				default:
+					if (HttpConstants.isNotXML(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE))) {
+						xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
+					} else {
 						xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
-						break;
 					}
+					break;
 				}
 			}
 		}
