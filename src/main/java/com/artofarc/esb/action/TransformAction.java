@@ -131,11 +131,6 @@ public class TransformAction extends Action {
 		for (int i = 0; i < externalVariables.length; ++i) {
 			QName name = externalVariables[i];
 			Object value = resolve(message, name.getLocalPart(), true);
-			if (externalVariableTypes[i] == null && value != null) {
-				externalVariableTypes[i] = context.getXQDataFactory().createItemFromObject(value, null).getItemType();
-				// Memory barrier to make this visible to other threads
-				_xquery.setExternalVariableTypes(externalVariableTypes);
-			}
 			if (value == null && _checkNotNull.contains(name.getLocalPart())) {
 				throw new ExecutionException(this, "Must not be null: " + name);
 			}
@@ -169,6 +164,19 @@ public class TransformAction extends Action {
 					XQSequence xqSequence = context.getXQDataFactory().createSequence(((Iterable<?>) value).iterator());
 					xqExpression.bindSequence(qName, xqSequence);
 				} else {
+					if (type != null) {
+						switch (type.getItemKind()) {
+						case XQItemType.XQITEMKIND_ELEMENT:
+							QName nodeName = type.getNodeName();
+							if (nodeName != null) {
+								// For Saxon a named ElementType must be cloned
+								type = context.getXQDataFactory().createElementType(nodeName, type.getBaseType());
+							}
+							break;
+						default:
+							break;
+						}
+					}
 					xqExpression.bindObject(qName, value, type);
 				}
 			} else {
@@ -176,7 +184,7 @@ public class TransformAction extends Action {
 				xqExpression.bindString(qName, "", null);
 			}
 		} catch (XQException e) {
-			throw new ExecutionException(this, "binding " + qName + " failed", e);
+			throw new ExecutionException(this, "binding " + qName + " to " + type + " failed", e);
 		}
 	}
 
