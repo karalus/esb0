@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,9 +35,9 @@ import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
 
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.action.Action;
-import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.NamespaceBeautifier;
 import com.artofarc.util.TimeGauge;
@@ -58,7 +57,7 @@ public final class Context extends AbstractContext {
 	private final ArrayDeque<Integer> _stackPos = new ArrayDeque<>();
 
 	private SAXParser _saxParser;
-	private FastInfosetDeserializer _fastInfosetDeserializer;
+	private XMLReader _fastInfosetDeserializer;
 
 	public Context(PoolContext poolContext) {
 		_poolContext = poolContext;
@@ -117,9 +116,9 @@ public final class Context extends AbstractContext {
 		return _saxParser;
 	}
 
-	public FastInfosetDeserializer getFastInfosetDeserializer() {
+	public XMLReader getFastInfosetDeserializer() {
 		if (_fastInfosetDeserializer == null) {
-			_fastInfosetDeserializer = new FastInfosetDeserializer();
+			_fastInfosetDeserializer = new com.sun.xml.fastinfoset.sax.SAXDocumentParser();
 		}
 		return _fastInfosetDeserializer;
 	}

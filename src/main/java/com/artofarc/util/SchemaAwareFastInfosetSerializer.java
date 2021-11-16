@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +21,7 @@ import javax.xml.validation.ValidatorHandler;
 
 import org.jvnet.fastinfoset.EncodingAlgorithmIndexes;
 import org.jvnet.fastinfoset.FastInfosetSerializer;
+import org.jvnet.fastinfoset.RestrictedAlphabet;
 import org.jvnet.fastinfoset.sax.helpers.EncodingAlgorithmAttributesImpl;
 import org.w3c.dom.TypeInfo;
 import org.xml.sax.Attributes;
@@ -34,6 +34,13 @@ import com.sun.xml.fastinfoset.sax.SAXDocumentSerializer;
 
 // Not thread safe
 public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
+
+	static boolean notContains(char[] ch, int start, int length, char c) {
+		for (int i = 0; i < length; ++i) {
+			if (ch[start + i] == c) return false;
+		}
+		return true;
+	}
 
 	private final SAXDocumentSerializer saxDocumentSerializer = new SAXDocumentSerializer();
 	private final ValidatorHandler validatorHandler;
@@ -63,7 +70,7 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 		private TypeInfo typeInfo;
 
 		private boolean isXSType(String type) {
-			return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION);
+			return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_LIST);
 		}
 
 		@Override
@@ -94,19 +101,19 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
 			if (atts.getLength() > 0) {
-				EncodingAlgorithmAttributesImpl eatts = new EncodingAlgorithmAttributesImpl(atts);
+				EncodingAlgorithmAttributesImpl eatts = new EncodingAlgorithmAttributesImpl();
 				for (int i = 0; i < atts.getLength(); ++i) {
 					typeInfo = validatorHandler.getTypeInfoProvider().getAttributeTypeInfo(i);
-					char[] ch = atts.getValue(i).toCharArray();
-					if (isXSType("base64Binary")) {
-						byte[] bytes = (byte[]) BuiltInEncodingAlgorithmFactory.base64EncodingAlgorithm.convertFromCharacters(ch, 0, ch.length);
-						eatts.replaceWithAttributeAlgorithmData(i, null, EncodingAlgorithmIndexes.BASE64, bytes);
-					} else if (isXSType("int")) {
-						int[] ints = (int[]) BuiltInEncodingAlgorithmFactory.intEncodingAlgorithm.convertFromCharacters(ch, 0, ch.length);
-						eatts.replaceWithAttributeAlgorithmData(i, null, EncodingAlgorithmIndexes.INT, ints);
-					} else if (isXSType("long")) {
-						long[] longs = (long[]) BuiltInEncodingAlgorithmFactory.longEncodingAlgorithm.convertFromCharacters(ch, 0, ch.length);
-						eatts.replaceWithAttributeAlgorithmData(i, null, EncodingAlgorithmIndexes.LONG, longs);
+					final String value = atts.getValue(i);
+					if (value.length() > 2 && isXSType("decimal")) {
+						eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value, false, RestrictedAlphabet.NUMERIC_CHARACTERS);
+					} else if (value.length() > 9 && value.indexOf('+', 10) < 0 && isXSType("date")) {
+						eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value, false, RestrictedAlphabet.DATE_TIME_CHARACTERS);
+					} else if (value.length() > 2 && isXSType("boolean")) {
+						Object booleans = BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm.convertFromCharacters(value.toCharArray(), 0, value.length());
+						eatts.addAttributeWithBuiltInAlgorithmData(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), EncodingAlgorithmIndexes.BOOLEAN, booleans);
+					} else {
+						eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value);
 					}
 				}
 				atts = eatts;
@@ -124,15 +131,16 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 		@Override
 		public void characters(char[] ch, int start, int length) throws SAXException {
 			if (typeInfo != null) {
-				if (isXSType("base64Binary")) {
+				if (length > 2 && isXSType("decimal")) {
+					saxDocumentSerializer.numericCharacters(ch, start, length);
+				} else if (length > 9 && notContains(ch, start + 10, length - 10, '+') && isXSType("date")) {
+					saxDocumentSerializer.dateTimeCharacters(ch, start, length);
+				} else if (length > 2 && isXSType("boolean")) {
+					boolean[] booleans = (boolean[]) BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm.convertFromCharacters(ch, start, length);
+					saxDocumentSerializer.booleans(booleans, 0, booleans.length);
+				} else if (length > 7 && isXSType("base64Binary")) {
 					byte[] bytes = (byte[]) BuiltInEncodingAlgorithmFactory.base64EncodingAlgorithm.convertFromCharacters(ch, start, length);
 					saxDocumentSerializer.bytes(bytes, 0, bytes.length);
-				} else if (isXSType("int")) {
-					int[] ints = (int[]) BuiltInEncodingAlgorithmFactory.intEncodingAlgorithm.convertFromCharacters(ch, start, length);
-					saxDocumentSerializer.ints(ints, 0, ints.length);
-				} else if (isXSType("long")) {
-					long[] longs = (long[]) BuiltInEncodingAlgorithmFactory.longEncodingAlgorithm.convertFromCharacters(ch, start, length);
-					saxDocumentSerializer.longs(longs, 0, longs.length);
 				} else {
 					saxDocumentSerializer.characters(ch, start, length);
 				}
