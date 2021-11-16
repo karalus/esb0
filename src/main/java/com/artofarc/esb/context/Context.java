@@ -34,8 +34,8 @@ import javax.xml.xquery.XQDataFactory;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
 
+import org.jvnet.fastinfoset.sax.FastInfosetReader;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.util.JAXPFactoryHelper;
@@ -57,7 +57,7 @@ public final class Context extends AbstractContext {
 	private final ArrayDeque<Integer> _stackPos = new ArrayDeque<>();
 
 	private SAXParser _saxParser;
-	private XMLReader _fastInfosetDeserializer;
+	private FastInfosetReader _fastInfosetDeserializer;
 
 	public Context(PoolContext poolContext) {
 		_poolContext = poolContext;
@@ -116,7 +116,7 @@ public final class Context extends AbstractContext {
 		return _saxParser;
 	}
 
-	public XMLReader getFastInfosetDeserializer() {
+	public FastInfosetReader getFastInfosetDeserializer() {
 		if (_fastInfosetDeserializer == null) {
 			_fastInfosetDeserializer = new com.sun.xml.fastinfoset.sax.SAXDocumentParser();
 		}
