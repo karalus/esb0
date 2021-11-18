@@ -29,9 +29,9 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
-import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.Collections;
 import com.artofarc.util.WSDL4JUtil;
 import com.artofarc.util.XQuerySource;
@@ -421,6 +421,7 @@ public class SOAPTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
       message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
       message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
+      
       @SuppressWarnings("unchecked")
 		Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), null, null).getBindingOperations(), null, false);
       ConsumerPort consumerPort = new ConsumerPort(null);

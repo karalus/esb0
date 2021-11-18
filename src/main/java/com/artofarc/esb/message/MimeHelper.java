@@ -59,10 +59,13 @@ public final class MimeHelper {
 			message.writeTo(bos, context);
 			message.closeBody();
 		}
-		return createMimeMultipart(context, message, multipartContentType, bos.toByteArray());
+		return createMimeMultipart(context, message, multipartContentType, bos.toByteArray(), true, true);
 	}
 
-	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartContentType, byte[] body) throws Exception {
+	/**
+	 * @param multipartContentType e.g. "application/xop+xml"
+	 */
+	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartContentType, byte[] body, boolean withHeaders, boolean withAttachments) throws Exception {
 		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType == null) {
 			throw new NullPointerException("Content-Type is null");
@@ -73,14 +76,18 @@ public final class MimeHelper {
 			contentType = multipartContentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
 		}
 		MimeBodyPart part = createMimeBodyPart(ROOTPART, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding(), body, null);
-		for (Entry<String, Object> entry : message.getHeaders()) {
-			part.setHeader(entry.getKey(), entry.getValue().toString());
+		if (withHeaders) {
+			for (Entry<String, Object> entry : message.getHeaders()) {
+				part.setHeader(entry.getKey(), entry.getValue().toString());
+			}
 		}
 		mmp.addBodyPart(part);
-		for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
-			MimeBodyPart bodyPart = iter.next();
-			mmp.addBodyPart(bodyPart);
-			iter.remove();
+		if (withAttachments) {
+			for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
+				MimeBodyPart bodyPart = iter.next();
+				mmp.addBodyPart(bodyPart);
+				iter.remove();
+			}
 		}
 		return mmp;
 	}
@@ -111,6 +118,7 @@ public final class MimeHelper {
 					return null;
 				}
 			});
+			boolean formData = contentType.startsWith("multipart/form-data");
 			String start = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START);
 			String soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
 			if (soapAction != null) {
@@ -127,9 +135,15 @@ public final class MimeHelper {
 					String charset = getValueFromHttpHeader(bodyPart.getContentType(), HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);
 					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream(), charset);
 				} else if (cid != null) {
-					message.addAttachment(cid, bodyPart);
+					// remove angle brackets (https://tools.ietf.org/html/rfc2392)
+					message.addAttachment(cid.substring(1, cid.length() - 1), bodyPart);
 				} else {
-					message.putVariable(getDispositionName(bodyPart), bodyPart.getContent());
+					String dispositionName = getDispositionName(bodyPart);
+					if (formData) {
+						message.putVariable(dispositionName, bodyPart.getContent());
+					} else {
+						message.addAttachment(dispositionName, bodyPart);
+					}
 				}
 			}
 		}

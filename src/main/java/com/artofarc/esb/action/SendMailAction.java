@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,18 +15,25 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.Iterator;
 import java.util.Properties;
 
+import javax.activation.DataHandler;
 import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.internet.MimePartDataSource;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.resource.MailSessionFactory;
 
 public class SendMailAction extends TerminalAction {
@@ -64,7 +70,22 @@ public class SendMailAction extends TerminalAction {
 			msg.setReplyTo(InternetAddress.parse((String) bindVariable(replyTo, context, message), false));
 		}
 		msg.setSubject((String) bindVariable(subject, context, message));
-		msg.setText((String) bindVariable(text, context, message));
+		String content = (String) bindVariable(text, context, message);
+		if (message.getAttachments().isEmpty()) {
+			msg.setText(content);
+		} else {
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE), content.getBytes(ESBMessage.CHARSET_DEFAULT), false, false);
+			for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
+				MimeBodyPart bodyPart = iter.next();
+				MimeBodyPart att = new MimeBodyPart(); 
+				att.setDataHandler(new DataHandler(new MimePartDataSource(bodyPart)));
+				att.setContentID(bodyPart.getContentID());
+				att.setFileName(MimeHelper.getDispositionName(bodyPart)); 
+				mmp.addBodyPart(att);
+				iter.remove();
+			}
+			msg.setContent(mmp);
+		}
 		Transport.send(msg);
 	}
 

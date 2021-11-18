@@ -138,7 +138,7 @@ public class JMSAction extends Action {
 			} else if (_isBytesMessage) {
 				BytesMessage bytesMessage = session.createBytesMessage();
 				if (_multipart != null) {
-					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipart, message.getBodyAsByteArray(context));
+					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipart, message.getBodyAsByteArray(context), false, true);
 					mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
 					message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
 				} else {

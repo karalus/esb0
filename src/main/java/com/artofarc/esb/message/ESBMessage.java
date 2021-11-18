@@ -199,14 +199,12 @@ public final class ESBMessage implements Cloneable {
 		return result;
 	}
 
-	public void addAttachment(String cid, MimeBodyPart bodyPart) {
-		// remove angle brackets (https://tools.ietf.org/html/rfc2392)
-		_attachments.put(cid.substring(1, cid.length() - 1), bodyPart);
+	void addAttachment(String cid, MimeBodyPart bodyPart) {
+		_attachments.put(cid, bodyPart);
 	}
 
-	public void addAttachment(String contentID, String contentType, byte[] content, String filename) throws MessagingException {
-		String cid = '<' + contentID + '>';
-		MimeBodyPart part = MimeHelper.createMimeBodyPart(cid, contentType, content, filename);
+	public void addAttachment(String cid, String contentType, byte[] content, String filename) throws MessagingException {
+		MimeBodyPart part = MimeHelper.createMimeBodyPart('<' + cid + '>', contentType, content, filename);
 		part.setHeader(HTTP_HEADER_CONTENT_TRANSFER_ENCODING, "binary");
 		addAttachment(cid, part);
 	}
