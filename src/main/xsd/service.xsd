@@ -467,20 +467,31 @@
 								<attribute name="regEx" type="tns:string1" />
 							</complexType>
 						</element>
-						<element name="default" minOccurs="0">
-							<complexType>
-								<sequence>
-									<element ref="tns:action" maxOccurs="unbounded" />
-								</sequence>
-							</complexType>
-						</element>
-						<element name="null" minOccurs="0">
-							<complexType>
-								<sequence>
-									<element ref="tns:action" maxOccurs="unbounded" />
-								</sequence>
-							</complexType>
-						</element>
+						<choice>
+							<sequence>
+								<element name="default" minOccurs="0">
+									<complexType>
+										<sequence>
+											<element ref="tns:action" maxOccurs="unbounded" />
+										</sequence>
+									</complexType>
+								</element>
+								<element name="null" minOccurs="0">
+									<complexType>
+										<sequence>
+											<element ref="tns:action" maxOccurs="unbounded" />
+										</sequence>
+									</complexType>
+								</element>
+							</sequence>
+							<element name="defaultOrNull">
+								<complexType>
+									<sequence>
+										<element ref="tns:action" maxOccurs="unbounded" />
+									</sequence>
+								</complexType>
+							</element>
+						</choice>
 					</sequence>
 					<attribute name="variable" type="tns:identifier" use="required" />
 				</extension>
