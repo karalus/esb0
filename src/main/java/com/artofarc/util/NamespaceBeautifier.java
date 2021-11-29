@@ -33,7 +33,7 @@ public class NamespaceBeautifier extends XMLParserBase {
 	private final Transformer _transformer;
 	private final ArrayDeque<String[]> _attsPrefixes = new ArrayDeque<>();
 
-	private NamespaceBeautifier(Source source, Transformer transformer) {
+	public NamespaceBeautifier(Source source, Transformer transformer) {
 		super(true, null);
 		_source = source;
 		_transformer = transformer;
@@ -75,15 +75,24 @@ public class NamespaceBeautifier extends XMLParserBase {
 
 	@Override
 	public void parse(InputSource source) throws SAXException {
+		if (source != null) {
+			if (_source instanceof SAXSource) {
+				SAXSource saxSource = (SAXSource) _source;
+				if (saxSource.getInputSource() == null) {
+					saxSource.setInputSource(source);
+				}
+				if (saxSource.getInputSource() != source) {
+					throw new SAXException("Ambiguous InputSource");
+				}
+			} else {
+				throw new SAXException("Ambiguous source");
+			}
+		}
 		try {
 			_transformer.transform(_source, new SAXResult(this));
 		} catch (TransformerException e) {
 			throw new SAXException(e);
 		}
-	}
-
-	public static SAXSource create(Source source, Transformer transformer) {
-		return new SAXSource(new NamespaceBeautifier(source, transformer), null);
 	}
 
 }

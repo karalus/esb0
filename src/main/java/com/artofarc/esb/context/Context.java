@@ -46,6 +46,7 @@ import com.artofarc.util.XQuerySource;
 public final class Context extends AbstractContext {
 
 	public static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
+	public static final Boolean SCHEMA_AWARE_FI_SERIALIZER_IGNORE_WHITESPACE = Boolean.valueOf(System.getProperty("esb0.schemaAwareFastInfosetSerializer.ignoreWhitespace"));
 
 	private final PoolContext _poolContext;
 	private final Transformer _transformer;
@@ -140,9 +141,9 @@ public final class Context extends AbstractContext {
 		}
 	}
 
-	public Source createNamespaceBeautifier(Source source) throws TransformerException {
+	public NamespaceBeautifier createNamespaceBeautifier(Source source) throws TransformerException {
 		// If performance need to be improved, we could cache the transformer
-		return NamespaceBeautifier.create(source, JAXPFactoryHelper.newTransformer());
+		return new NamespaceBeautifier(source, JAXPFactoryHelper.newTransformer());
 	}
 
 	public XQDataFactory getXQDataFactory() {

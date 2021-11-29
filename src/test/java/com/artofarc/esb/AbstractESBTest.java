@@ -44,7 +44,7 @@ import com.artofarc.util.XQuerySource;
 
 public abstract class AbstractESBTest {
 
-	private static final boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
+	protected static boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
 
 	@BeforeClass
 	public static void init() {

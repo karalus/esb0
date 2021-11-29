@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
@@ -196,6 +197,19 @@ public class ActionTest extends AbstractESBTest {
 		action.process(context, message);
 		assertFalse(message.getVariable("keepConnection"));
 		assertTrue(message.getVariable("keepConnection2"));
+	}
+
+	@Test
+	public void testSetMakeArrayl() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		message.putVariable("value", "test");
+		message.putVariable("value2", new ArrayList());
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("array", false, "", "java.util.ArrayList", null, null);
+		action.addAssignment("test", false, "${array.class.isInstance(value2)}", null, null, null);
+		action.addAssignment("_dummy", false, "${array.add(value))}", null, null, null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
 	}
 
    @Test

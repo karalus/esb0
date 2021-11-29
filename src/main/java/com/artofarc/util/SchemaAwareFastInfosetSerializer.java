@@ -15,6 +15,9 @@
  */
 package com.artofarc.util;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 import javax.xml.XMLConstants;
 import javax.xml.validation.Schema;
 import javax.xml.validation.ValidatorHandler;
@@ -28,12 +31,12 @@ import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.XMLFilterImpl;
 
 import com.sun.xml.fastinfoset.algorithm.BuiltInEncodingAlgorithmFactory;
 import com.sun.xml.fastinfoset.sax.SAXDocumentSerializer;
 
-// Not thread safe
-public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
+public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implements AutoCloseable {
 
 	static boolean notContains(char[] ch, int start, int length, char c) {
 		for (int i = 0; i < length; ++i) {
@@ -43,14 +46,15 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 	}
 
 	private final SAXDocumentSerializer saxDocumentSerializer = new SAXDocumentSerializer();
-	private final ValidatorHandler validatorHandler;
+	private OutputStream outputStream;
 
-	public SchemaAwareFastInfosetSerializer(Schema schema) {
+	public SchemaAwareFastInfosetSerializer(Schema schema, boolean ignoreWhitespace) {
 		if (schema != null) {
-			validatorHandler = schema.newValidatorHandler();
-			validatorHandler.setContentHandler(new TypeInfoContentHandler());
+			ValidatorHandler validatorHandler = schema.newValidatorHandler();
+			validatorHandler.setContentHandler(new TypeInfoContentHandler(validatorHandler, !ignoreWhitespace));
+			setContentHandler(validatorHandler);
 		} else {
-			validatorHandler = null;
+			setContentHandler(saxDocumentSerializer);
 		}
 	}
 
@@ -62,12 +66,35 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 		return saxDocumentSerializer;
 	}
 
-	public ContentHandler getContentHandler() {
-		return validatorHandler != null ? validatorHandler : saxDocumentSerializer;
+	public ContentHandler getContentHandler(OutputStream os, String charsetName) {
+		saxDocumentSerializer.setOutputStream(outputStream = os);
+		if (charsetName.equals("UTF-16")) {
+			saxDocumentSerializer.setCharacterEncodingScheme("UTF-16BE");
+		}
+		return this;
+	}
+
+	@Override
+	public void endDocument() throws SAXException {
+		try {
+			super.endDocument();
+			outputStream.close();
+		} catch (IOException e) {
+			throw new SAXException(e);
+		} finally {
+			outputStream = null;
+		}
 	}
 
 	private class TypeInfoContentHandler implements ContentHandler {
+		private final ValidatorHandler validatorHandler;
+		private final boolean preserveWhitespace;
 		private TypeInfo typeInfo;
+
+		private TypeInfoContentHandler(ValidatorHandler validatorHandler, boolean preserveWhitespace) {
+			this.validatorHandler = validatorHandler;
+			this.preserveWhitespace = preserveWhitespace;
+		}
 
 		private boolean isXSType(String type) {
 			return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_LIST);
@@ -151,7 +178,9 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 
 		@Override
 		public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException {
-			saxDocumentSerializer.ignorableWhitespace(ch, start, length);
+			if (preserveWhitespace) {
+				saxDocumentSerializer.ignorableWhitespace(ch, start, length);
+			}
 		}
 
 		@Override
@@ -163,7 +192,6 @@ public final class SchemaAwareFastInfosetSerializer implements AutoCloseable {
 		public void skippedEntity(String name) throws SAXException {
 			saxDocumentSerializer.skippedEntity(name);
 		}
-
 	}
 
 }

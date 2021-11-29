@@ -445,19 +445,22 @@ public final class ESBMessage implements Cloneable {
 	public Source getBodyAsSource(Context context) throws IOException, XQException {
 		String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (isFastInfoset(contentType)) {
-			InputStream is;
+			InputSource is;
 			switch (_bodyType) {
+			case SOURCE:
+				is = SAXSource.sourceToInputSource((Source) _body);
+				break;
 			case BYTES:
-				is = new ByteArrayInputStream((byte[]) _body);
+				is = new InputSource(new ByteArrayInputStream((byte[]) _body));
 				break;
 			case INPUT_STREAM:
-				is = getUncompressedInputStream((InputStream) _body);
+				is = new InputSource(getUncompressedInputStream((InputStream) _body));
 				break;
 			default:
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
 			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
-			return new SAXSource(context.getFastInfosetDeserializer(), new InputSource(is));
+			return new SAXSource(context.getFastInfosetDeserializer(), is);
 		}
 		return getBodyAsSourceInternal();
 	}
@@ -603,10 +606,8 @@ public final class ESBMessage implements Cloneable {
 	private void prepareFI(Context context) throws IOException {
 		if (isFI()) {
 			if (_bodyType == BodyType.OUTPUT_STREAM) {
-				SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
-				serializer.getFastInfosetSerializer().setOutputStream(getCompressedOutputStream((OutputStream) _body));
-				serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
-				init(BodyType.RESULT, new SAXResult(serializer.getContentHandler()), null);
+				SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema, Context.SCHEMA_AWARE_FI_SERIALIZER_IGNORE_WHITESPACE);
+				init(BodyType.RESULT, new SAXResult(serializer.getContentHandler(getCompressedOutputStream((OutputStream) _body), getSinkEncoding())), null);
 			} else {
 				throw new IllegalStateException("Message cannot be converted to FastInfoset: " + _bodyType);
 			}
@@ -682,10 +683,8 @@ public final class ESBMessage implements Cloneable {
 	public void writeTo(OutputStream os, Context context) throws Exception {
 		os = getCompressedOutputStream(os);
 		if (isFI()) {
-			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
-			serializer.getFastInfosetSerializer().setOutputStream(os);
-			serializer.getFastInfosetSerializer().setCharacterEncodingScheme(getSinkEncoding());
-			writeToSAX(serializer.getContentHandler(), context);
+			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema, Context.SCHEMA_AWARE_FI_SERIALIZER_IGNORE_WHITESPACE);
+			writeToSAX(serializer.getContentHandler(os, getSinkEncoding()), context);
 		} else {
 			writeRawTo(os, context);
 		}
@@ -787,6 +786,13 @@ public final class ESBMessage implements Cloneable {
 			// necessary for filter streams
 			((java.io.Closeable) _body).close();
 			init(BodyType.INVALID, null, null);
+		} else if (_body instanceof StreamResult) {
+			StreamResult streamResult = getBody();
+			if (streamResult.getOutputStream() != null) {
+				streamResult.getOutputStream().close();
+			} else if (streamResult.getWriter() != null) {
+				streamResult.getWriter().close();
+			}
 		}
 	}
 
@@ -853,7 +859,7 @@ public final class ESBMessage implements Cloneable {
 			if (entry.getKey().startsWith("_")) continue;
 			logWriter.write(entry.getKey() + "=");
 			if (entry.getValue() instanceof Node) {
-				context.transform(context.createNamespaceBeautifier(new DOMSource((Node) entry.getValue())), new StreamResult(logWriter), null);
+				context.transform(new SAXSource(context.createNamespaceBeautifier(new DOMSource((Node) entry.getValue())), null), new StreamResult(logWriter), null);
 			} else {
 				logWriter.write(String.valueOf(entry.getValue()));
 			}
