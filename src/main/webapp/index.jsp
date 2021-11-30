@@ -21,6 +21,14 @@ textarea, pre {
 	-o-tab-size: 4;
 	tab-size: 4;
 }
+input[type="submit"][value="true"] {
+	color: white;
+	background-color: green;
+}
+input[type="submit"][value="false"] {
+	color: white;
+	background-color: red;
+}
 </style>
 </head>
 <body>
