@@ -126,7 +126,11 @@ public abstract class Action implements Cloneable {
 					nextAction = context.getExecutionStack().poll();
 				}
 			} catch (Exception e) {
-				logger.info("Exception while processing " + action, e);
+				if (e instanceof ExecutionException) {
+					logger.info("Flow interrupted by " + e.getMessage(), e.getCause());
+				} else {
+					logger.info("Exception while processing " + action, e);
+				}
 				logESBMessage(context, message);
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
