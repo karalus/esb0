@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -60,6 +59,7 @@ public class AssignAction extends TransformAction {
 		for (Assignment assignment : assignments) {
 			if (createLet(assignment, variables)) {
 				builder.append("let $").append(assignment.name).append(" := ").append(assignment.expr).append('\n');
+				assignment.expr = "$" + assignment.name;
 				flwor = true;
 			}
 		}
@@ -68,19 +68,11 @@ public class AssignAction extends TransformAction {
 		for (Assignment assignment : assignments) {
 			boolean hasAtomicType = assignment.type != null && !assignment.list && assignment.type.startsWith("xs:");
 			if (assignment.nullable || assignment.list) {
-				builder.append("count($").append(assignment.name).append("), ");
-				if (hasAtomicType) builder.append(assignment.type).append('(');
-				builder.append('$').append(assignment.name);
-				if (hasAtomicType) builder.append(')');
-			} else {
-				if (hasAtomicType) builder.append(assignment.type).append('(');
-				if (createLet(assignment, variables)) {
-					builder.append('$').append(assignment.name);
-				} else {
-					builder.append(assignment.expr);
-				}
-				if (hasAtomicType) builder.append(')');
+				builder.append("count(").append(assignment.expr).append("), ");
 			}
+			if (hasAtomicType) builder.append(assignment.type).append('(');
+			builder.append(assignment.expr);
+			if (hasAtomicType) builder.append(')');
 			builder.append(", ");
 			// save some bytes memory
 			assignment.expr = null;
