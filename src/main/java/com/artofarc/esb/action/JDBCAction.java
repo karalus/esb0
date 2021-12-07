@@ -44,7 +44,7 @@ public abstract class JDBCAction extends Action {
 	private final int _maxRows;
 	private final Integer _timeout;
 	private final String _keepConnection;
-	protected XSSchemaSet _schemaSet;
+	protected final XSSchemaSet _schemaSet;
 
 	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) {
 		_pipelineStop = true;

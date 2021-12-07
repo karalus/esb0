@@ -114,17 +114,17 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		_xqConnectionFactory.setErrorListener(new ErrorListener() {
 
 			@Override
-			public void warning(TransformerException exception) throws TransformerException {
+			public void warning(TransformerException exception) {
 				logger.debug("XQConnectionFactory", exception);
 			}
 
 			@Override
-			public void fatalError(TransformerException exception) throws TransformerException {
+			public void fatalError(TransformerException exception) {
 				logger.debug("XQConnectionFactory", exception);
 			}
 
 			@Override
-			public void error(TransformerException exception) throws TransformerException {
+			public void error(TransformerException exception) {
 				logger.debug("XQConnectionFactory", exception);
 			}
 		});
