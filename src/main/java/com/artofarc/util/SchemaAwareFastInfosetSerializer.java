@@ -23,6 +23,7 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.ValidatorHandler;
 
 import org.jvnet.fastinfoset.EncodingAlgorithmIndexes;
+import org.jvnet.fastinfoset.ExternalVocabulary;
 import org.jvnet.fastinfoset.FastInfosetSerializer;
 import org.jvnet.fastinfoset.RestrictedAlphabet;
 import org.jvnet.fastinfoset.sax.helpers.EncodingAlgorithmAttributesImpl;
@@ -46,6 +47,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 	}
 
 	private final SAXDocumentSerializer saxDocumentSerializer = new SAXDocumentSerializer();
+	private ExternalVocabulary externalVocabulary;
 	private OutputStream outputStream;
 
 	public SchemaAwareFastInfosetSerializer(Schema schema, boolean ignoreWhitespace) {
@@ -66,10 +68,23 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 		return saxDocumentSerializer;
 	}
 
+	public void setExternalVocabulary(ExternalVocabulary v) {
+		if (externalVocabulary != v) {
+			if (v != null) {
+				saxDocumentSerializer.setExternalVocabulary(v);
+			} else {
+				saxDocumentSerializer.setVocabulary(null);
+			}
+			externalVocabulary = v;
+		}
+	}
+
 	public ContentHandler getContentHandler(OutputStream os, String charsetName) {
 		saxDocumentSerializer.setOutputStream(outputStream = os);
 		if (charsetName.equals("UTF-16")) {
-			saxDocumentSerializer.setCharacterEncodingScheme("UTF-16BE");
+			saxDocumentSerializer.setCharacterEncodingScheme(FastInfosetSerializer.UTF_16BE);
+		} else {
+			saxDocumentSerializer.setCharacterEncodingScheme(charsetName);
 		}
 		return this;
 	}
