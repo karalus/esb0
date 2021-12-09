@@ -606,7 +606,7 @@ public final class ESBMessage implements Cloneable {
 	private void prepareFI(Context context) throws IOException {
 		if (isFI()) {
 			if (_bodyType == BodyType.OUTPUT_STREAM) {
-				SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema, Context.SCHEMA_AWARE_FI_SERIALIZER_IGNORE_WHITESPACE);
+				SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 				init(BodyType.RESULT, new SAXResult(serializer.getContentHandler(getCompressedOutputStream((OutputStream) _body), getSinkEncoding())), null);
 			} else {
 				throw new IllegalStateException("Message cannot be converted to FastInfoset: " + _bodyType);
@@ -683,7 +683,7 @@ public final class ESBMessage implements Cloneable {
 	public void writeTo(OutputStream os, Context context) throws Exception {
 		os = getCompressedOutputStream(os);
 		if (isFI()) {
-			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema, Context.SCHEMA_AWARE_FI_SERIALIZER_IGNORE_WHITESPACE);
+			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 			writeToSAX(serializer.getContentHandler(os, getSinkEncoding()), context);
 		} else {
 			writeRawTo(os, context);

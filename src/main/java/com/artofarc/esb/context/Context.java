@@ -46,7 +46,6 @@ import com.artofarc.util.XQuerySource;
 public final class Context extends AbstractContext {
 
 	public static final String XML_OUTPUT_INDENT = System.getProperty("esb0.xmlOutputIndent", "yes");
-	public static final Boolean SCHEMA_AWARE_FI_SERIALIZER_IGNORE_WHITESPACE = Boolean.valueOf(System.getProperty("esb0.schemaAwareFastInfosetSerializer.ignoreWhitespace"));
 
 	private final PoolContext _poolContext;
 	private final Transformer _transformer;

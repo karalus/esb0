@@ -21,9 +21,11 @@ import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 
 public class SchemaAwareFISerializerFactory extends ResourceFactory<SchemaAwareFastInfosetSerializer, Schema, Boolean, RuntimeException> {
 
+	private static final boolean IGNORE_WHITESPACE = Boolean.parseBoolean(System.getProperty("esb0.schemaAwareFastInfosetSerializer.ignoreWhitespace"));
+
 	@Override
 	protected SchemaAwareFastInfosetSerializer createResource(Schema schema, Boolean ignoreWhitespace) {
-		return new SchemaAwareFastInfosetSerializer(schema, ignoreWhitespace);
+		return new SchemaAwareFastInfosetSerializer(schema, ignoreWhitespace != null ? ignoreWhitespace : IGNORE_WHITESPACE);
 	}
 
 }
