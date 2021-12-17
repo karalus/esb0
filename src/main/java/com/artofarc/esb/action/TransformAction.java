@@ -114,7 +114,7 @@ public class TransformAction extends Action {
 					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
 					break;
 				case EXCEPTION:
-					xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
+					xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null, null);
 					break;
 				default:
 					if (HttpConstants.isNotXML(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE))) {
