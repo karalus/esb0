@@ -34,15 +34,17 @@ import com.artofarc.util.ByteArrayOutputStream;
 
 public final class MimeHelper {
 
-	private static final String ROOTPART = "<rootpart@artofarc.com>";
+	private static final String ROOTPART = "rootpart@artofarc.com";
 	private static final String APPLICATION = "application/";
 	private static final String TEXT = "text/";
 
-	static MimeBodyPart createMimeBodyPart(String contentID, String contentType, byte[] content, String name) throws MessagingException {
+	static MimeBodyPart createMimeBodyPart(String cid, String contentType, byte[] content, String name) throws MessagingException {
 		InternetHeaders headers = new InternetHeaders();
 		headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 		MimeBodyPart part = new MimeBodyPart(headers, content);
-		part.setContentID(contentID);
+		if (cid != null) {
+			part.setContentID('<' + cid + '>');
+		}
 		if (name != null) {
 			part.setDisposition(MimeBodyPart.ATTACHMENT + "; " + HTTP_HEADER_CONTENT_PARAMETER_NAME + '"' + name + '"');
 		}
@@ -70,8 +72,8 @@ public final class MimeHelper {
 		if (contentType == null) {
 			throw new NullPointerException("Content-Type is null");
 		}
-		MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START + '"' + ROOTPART
-				+ "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
+		MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START
+				+ "\"<" + ROOTPART + ">\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
 		if (!multipartContentType.equals(contentType)) {
 			contentType = multipartContentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
 		}
@@ -118,7 +120,6 @@ public final class MimeHelper {
 					return null;
 				}
 			});
-			boolean formData = contentType.startsWith("multipart/form-data");
 			String start = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_START);
 			String soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
 			if (soapAction != null) {
@@ -139,8 +140,9 @@ public final class MimeHelper {
 					message.addAttachment(cid.substring(1, cid.length() - 1), bodyPart);
 				} else {
 					String dispositionName = getDispositionName(bodyPart);
-					if (formData) {
-						message.putVariable(dispositionName, bodyPart.getContent());
+					Object content = bodyPart.getContent();
+					if (content instanceof String) {
+						message.putVariable(dispositionName, content);
 					} else {
 						message.addAttachment(dispositionName, bodyPart);
 					}
