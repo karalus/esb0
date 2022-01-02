@@ -26,7 +26,7 @@ Features:
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.8.2.
+Current stable version is 1.9.0.
 
 ### Design goals ###
 
@@ -40,6 +40,11 @@ Having no built-in state does not necessarily mean that you need more tools or p
 This general concept puts the burden of persistent state (not losing or corrupting it) on the MOM/DB.
 
 ESB Zero is not meant to be used for complex EAI scenarios (Orchestration, COTS Components, ETL, complex logic, ...). For this end better use another tool.
+
+__"Perfection is reached, not when there is no longer anything to add, but when there is no longer anything to take away."__
+
+-- <cite>[Antoine de Saint-Exupery](https://www.quotedb.com/quotes/2181)</cite>
+
 
 ### FAQ ###
 

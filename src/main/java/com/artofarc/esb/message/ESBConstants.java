@@ -96,6 +96,6 @@ public interface ESBConstants {
 	String filename = "filename";
 
 	// JDBC concepts
-	String JDBCConnection = "_JDBCConnection";
+	String JDBCConnections = "_JDBCConnections";
 
 }

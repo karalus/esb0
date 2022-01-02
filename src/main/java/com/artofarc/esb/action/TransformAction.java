@@ -199,7 +199,7 @@ public class TransformAction extends Action {
 				switch (count) {
 				case 0:
 					if (assignment.list && !assignment.nullable) {
-						message.getVariables().put(assignment.name, Collections.emptyList());
+						message.getVariables().put(assignment.name, Collections.EMPTY_LIST);
 					}
 					break;
 				case 1:

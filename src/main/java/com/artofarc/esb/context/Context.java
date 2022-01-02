@@ -18,7 +18,7 @@ package com.artofarc.esb.context;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -50,11 +50,11 @@ public final class Context extends AbstractContext {
 	private final PoolContext _poolContext;
 	private final Transformer _transformer;
 	private final XQConnection _xqConnection;
-	private final HashMap<XQuerySource, XQPreparedExpression> _mapXQ = new HashMap<>();
+	private final Map<XQuerySource, XQPreparedExpression> _mapXQ = new HashMap<>();
 	private final TimeGauge _timeGauge = new TimeGauge(logger);
 	private final Deque<Action> _executionStack = new ArrayDeque<>();
-	private final ArrayDeque<Action> _stackErrorHandler = new ArrayDeque<>();
-	private final ArrayDeque<Integer> _stackPos = new ArrayDeque<>();
+	private final Deque<Action> _stackErrorHandler = new ArrayDeque<>();
+	private final Deque<Integer> _stackPos = new ArrayDeque<>();
 
 	private SAXParser _saxParser;
 	private FastInfosetReader _fastInfosetDeserializer;
@@ -162,7 +162,7 @@ public final class Context extends AbstractContext {
 	@Override
 	public void close() {
 		try {
-			for (Entry<XQuerySource, XQPreparedExpression> entry : _mapXQ.entrySet()) {
+			for (Map.Entry<XQuerySource, XQPreparedExpression> entry : _mapXQ.entrySet()) {
 				_poolContext.getWorkerPool().removeCachedXQuery(entry.getKey());
 				entry.getValue().close();
 			}

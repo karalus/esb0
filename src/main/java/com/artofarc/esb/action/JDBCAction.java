@@ -19,6 +19,8 @@ import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.sql.*;
 import static java.sql.Types.*;
+import java.util.ArrayDeque;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.json.stream.JsonGenerator;
@@ -82,25 +84,43 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		String dsName = _dsName != null ? (String) bindVariable(_dsName, context, message) : null;
 		boolean keepConnection = Boolean.parseBoolean(bindVariable(_keepConnection, context, message).toString());
-		JDBCConnection connection = message.getVariable(ESBConstants.JDBCConnection);
+		JDBCConnection connection = null;
+		ArrayDeque<JDBCConnection> connections = message.getVariable(ESBConstants.JDBCConnections);
+		if (connections != null) {
+			if (dsName == null) {
+				connection = keepConnection ? connections.peek() : connections.poll();
+			} else {
+				for (Iterator<JDBCConnection> iter = connections.iterator(); iter.hasNext();) {
+					JDBCConnection jdbcConnection = iter.next();
+					if (jdbcConnection.getDsName().equals(dsName)) {
+						connection = jdbcConnection;
+						if (!keepConnection) {
+							iter.remove();
+						}
+						break;
+					}
+				}
+			}
+		}
 		if (connection == null) {
-			if (_dsName == null) {
+			if (dsName == null) {
 				throw new ExecutionException(this, "No DataSource configured and no Connection kept");
 			}
-			String dsName = (String) bindVariable(_dsName, context, message);
 			DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
 			if (dataSource == null) {
 				throw new ExecutionException(this, "DataSource not found: " + dsName);
 			}
-			connection = new JDBCConnection(dataSource.getConnection(), keepConnection);
+			connection = new JDBCConnection(dsName, dataSource.getConnection(), keepConnection);
 			if (keepConnection) {
-				message.putVariable(ESBConstants.JDBCConnection, connection);
+				if (connections == null) {
+					message.putVariable(ESBConstants.JDBCConnections, connections = new ArrayDeque<>());
+				}
+				connections.push(connection);
 			}
-		} else if (!keepConnection) {
-			message.getVariables().remove(ESBConstants.JDBCConnection);
 		}
-		ExecutionContext execContext = new ExecutionContext(connection);
+		ExecutionContext execContext = new ExecutionContext(connection, keepConnection);
 		if (inPipeline) {
 			for (JDBCParameter param : _params) {
 				if (param.isBody()) {
@@ -108,18 +128,18 @@ public abstract class JDBCAction extends Action {
 					case SQLXML:
 						SQLXML xmlObject = connection.createSQLXML();
 						message.reset(BodyType.RESULT, xmlObject.setResult(DOMResult.class));
-						execContext.setResource2(xmlObject);
+						execContext.setResource3(xmlObject);
 						break;
 					case CLOB:
 						Clob clob = connection.createClob();
 						message.reset(BodyType.WRITER, clob.setCharacterStream(1L));
-						execContext.setResource2(clob);
+						execContext.setResource3(clob);
 						break;
 					case BLOB:
 						Blob blob = connection.createBlob();
 						message.reset(BodyType.OUTPUT_STREAM, blob.setBinaryStream(1L));
 						message.setCharset(message.getSinkEncoding());						
-						execContext.setResource2(blob);
+						execContext.setResource3(blob);
 						break;
 					case STRUCT:
 						break;
@@ -138,7 +158,7 @@ public abstract class JDBCAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
-		logger.debug("JDBCAction sql=" + sql);
+		logger.debug("JDBCAction sql={}", sql);
 		if (sql.length() > 0) {
 			try (JDBCResult result = executeStatement(context, execContext, message, sql)) {
 				if (result.hasComplexContent()) {
@@ -162,19 +182,24 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception  {
-		boolean connectionKept = message.getVariables().containsKey(ESBConstants.JDBCConnection);
+		JDBCConnection connection = execContext.getResource();
+		boolean connectionKept = execContext.getResource2();
 		if (!connectionKept) {
-			JDBCConnection connection = execContext.getResource();
 			connection.close(!exception);
 		} else if (exception) {
-			closeKeptConnection(message, false);
+			ArrayDeque<JDBCConnection> connections = message.getVariable(ESBConstants.JDBCConnections);
+			connections.remove(connection);
+			connection.close(false);
 		}
 	}
 
-	public static void closeKeptConnection(ESBMessage message, boolean commit) throws SQLException {
-		JDBCConnection connection = (JDBCConnection) message.getVariables().remove(ESBConstants.JDBCConnection);
-		if (connection != null) {
-			connection.close(commit);
+	public static void closeKeptConnections(ESBMessage message, boolean commit) throws SQLException {
+		@SuppressWarnings("unchecked")
+		ArrayDeque<JDBCConnection> connections = (ArrayDeque<JDBCConnection>) message.getVariables().remove(ESBConstants.JDBCConnections);
+		if (connections != null) {
+			for (JDBCConnection connection : connections) {
+				connection.close(commit);
+			}
 		}
 	}
 
@@ -183,7 +208,7 @@ public abstract class JDBCAction extends Action {
 			if (param.isBody()) {
 				switch (param.getType()) {
 				case SQLXML:
-					SQLXML xmlObject = execContext.getResource2();
+					SQLXML xmlObject = execContext.getResource3();
 					if (xmlObject == null) {
 						xmlObject = conn.createSQLXML();
 						message.writeTo(xmlObject.setResult(DOMResult.class), context);
@@ -191,7 +216,7 @@ public abstract class JDBCAction extends Action {
 					ps.setSQLXML(param.getPos(), xmlObject);
 					break;
 				case CLOB:
-					Clob clob = execContext.getResource2();
+					Clob clob = execContext.getResource3();
 					if (clob != null) {
 						if (param.getTruncate() != null) {
 							clob.truncate(param.getTruncate());
@@ -210,7 +235,7 @@ public abstract class JDBCAction extends Action {
 					}
 					break;
 				case BLOB:
-					Blob blob = execContext.getResource2();
+					Blob blob = execContext.getResource3();
 					if (blob != null) {
 						if (param.getTruncate() != null) {
 							blob.truncate(param.getTruncate());
