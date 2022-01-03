@@ -36,6 +36,7 @@ import com.artofarc.esb.KafkaConsumerPort;
 import com.artofarc.esb.Registry;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.artifact.Artifact;
+import com.artofarc.esb.artifact.DataSourceArtifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.http.ProxyAuthenticator;
@@ -64,7 +65,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private volatile FileSystem _fileSystem;
 	private final ProxyAuthenticator proxyAuthenticator;
 
-	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, final Properties properties) {
+	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, Properties properties) {
 		super(mbs);
 		_classLoader = classLoader;
 		if (properties.getProperty(VERSION) != null) {
@@ -253,6 +254,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		} catch (NamingException e) {
 			// Ignore
 		}
+		_propertyCache.getResources().stream().filter(DataSourceArtifact::isDataSource).forEach(dataSource -> Closer.closeQuietly((AutoCloseable) dataSource));
 		super.close();
 	}
 

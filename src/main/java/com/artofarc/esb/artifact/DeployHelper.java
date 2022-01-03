@@ -90,10 +90,10 @@ public final class DeployHelper {
 			}
 		}
 		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
-				Object oldDataSource = globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
-				if (DataSourceArtifact.isDataSource(oldDataSource)) {
-					closer.add((AutoCloseable) oldDataSource);
-				}
+			Object oldDataSource = globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
+			if (DataSourceArtifact.isDataSource(oldDataSource)) {
+				closer.add((AutoCloseable) oldDataSource);
+			}
 		}
 		for (ServiceArtifact service : serviceArtifacts) {
 			ConsumerPort oldConsumerPort;
