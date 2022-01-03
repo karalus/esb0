@@ -17,7 +17,6 @@ package com.artofarc.esb.servlet;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
-import java.net.URLDecoder;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 import java.util.concurrent.RejectedExecutionException;
@@ -34,11 +33,9 @@ import javax.servlet.http.HttpServletResponse;
 import com.artofarc.esb.Registry;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
-
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
-
 import static com.artofarc.esb.message.ESBConstants.*;
 
 /**
@@ -124,7 +121,7 @@ public class GenericHttpListener extends HttpServlet {
 		message.getVariables().put(ContextPath, request.getContextPath());
 		message.getVariables().put(PathInfo, pathInfo);
 		if (httpConsumer.isPathMapping()) {
-			message.getVariables().put(appendHttpUrlPath, URLDecoder.decode(pathInfo.substring(httpConsumer.getBindPath().length()), "UTF-8"));
+			message.getVariables().put(appendHttpUrlPath, pathInfo.substring(httpConsumer.getBindPath().length()));
 		}
 		message.putVariableIfNotNull(QueryString, request.getQueryString());
 		message.setCharset(request.getCharacterEncoding());

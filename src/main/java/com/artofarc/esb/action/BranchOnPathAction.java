@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +15,8 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -119,7 +120,7 @@ public class BranchOnPathAction extends Action {
 			}
 		}
 
-		public Map<String, String> match(String path) {
+		public Map<String, String> match(String path) throws UnsupportedEncodingException {
 			final Map<String, String> result = new HashMap<>();
 			int pos = 0;
 			for (int i = 0; i < _list.size(); ) {
@@ -133,14 +134,14 @@ public class BranchOnPathAction extends Action {
 							// path is longer
 							return null;
 						}
-						result.put(item, path.substring(pos));
+						result.put(item, URLDecoder.decode(path.substring(pos), "UTF-8"));
 						pos = path.length();
 					} else {
 						if (j < 0) {
 							// path too short
 							return null;
 						}
-						result.put(item, path.substring(pos, j));
+						result.put(item, URLDecoder.decode(path.substring(pos, j), "UTF-8"));
 						pos = j;
 					}
 				} else {
@@ -195,7 +196,6 @@ public class BranchOnPathAction extends Action {
 			}
 			return builder.toString();
 		}
-
 	}
 
 }
