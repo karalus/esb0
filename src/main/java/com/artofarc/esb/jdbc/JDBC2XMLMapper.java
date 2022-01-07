@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +22,7 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Struct;
 import java.util.Date;
+import java.util.GregorianCalendar;
 
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
@@ -73,6 +73,7 @@ public final class JDBC2XMLMapper {
 		final Context _context;
 		final XSOMHelper _xsomHelper = new XSOMHelper(_element);
 		final AttributesImpl _atts = new AttributesImpl();
+		final GregorianCalendar calendar = new GregorianCalendar(JDBCParameter.TIME_ZONE);
 
 		Parser(Context context, JDBCConnection conn, Struct struct) {
 			super(true, null);
@@ -215,10 +216,12 @@ public final class JDBC2XMLMapper {
 				blob.free();
 				break;
 			case "date":
-				value = DatatypeConverter.printDate(JDBCParameter.convert((Date) attribute));
+				calendar.setTime((Date) attribute);
+				value = DatatypeConverter.printDate(calendar);
 				break;
 			case "dateTime":
-				value = DatatypeConverter.printDateTime(JDBCParameter.convert((Date) attribute));
+				calendar.setTime((Date) attribute);
+				value = DatatypeConverter.printDateTime(calendar);
 				break;
 			default:
 				value = attribute.toString();
@@ -227,7 +230,6 @@ public final class JDBC2XMLMapper {
 			characters(value);
 			endElement(uri, name, name);
 		}
-
 	}
 
 }

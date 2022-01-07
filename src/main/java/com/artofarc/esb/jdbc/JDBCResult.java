@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,6 +18,7 @@ package com.artofarc.esb.jdbc;
 import java.math.BigDecimal;
 import java.sql.*;
 import static java.sql.Types.*;
+import java.util.GregorianCalendar;
 
 import javax.json.stream.JsonGenerator;
 import javax.xml.bind.DatatypeConverter;
@@ -128,6 +128,7 @@ public final class JDBCResult implements AutoCloseable {
 			json.writeEnd();
 		}
 		json.writeEnd();
+		GregorianCalendar calendar = new GregorianCalendar(JDBCParameter.TIME_ZONE);
 		json.writeStartArray("rows");
 		while (resultSet.next()) {
 			json.writeStartArray();
@@ -156,13 +157,15 @@ public final class JDBCResult implements AutoCloseable {
 				case TIMESTAMP:
 					Timestamp timestamp = resultSet.getTimestamp(i);
 					if (checkNotNull(resultSet, json)) {
-						json.write(DatatypeConverter.printDateTime(JDBCParameter.convert(timestamp)));
+						calendar.setTime(timestamp);
+						json.write(DatatypeConverter.printDateTime(calendar));
 					}
 					break;
 				case DATE:
 					Date date = resultSet.getDate(i);
 					if (checkNotNull(resultSet, json)) {
-						json.write(DatatypeConverter.printDate(JDBCParameter.convert(date)));
+						calendar.setTime(date);
+						json.write(DatatypeConverter.printDate(calendar));
 					}
 					break;
 				case BLOB:
