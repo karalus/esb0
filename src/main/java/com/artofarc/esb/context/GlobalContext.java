@@ -21,6 +21,7 @@ import java.net.Authenticator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -61,9 +62,10 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
 	private final XQConnectionFactory _xqConnectionFactory;
+	private final ProxyAuthenticator proxyAuthenticator;
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
 	private volatile FileSystem _fileSystem;
-	private final ProxyAuthenticator proxyAuthenticator;
+	private volatile Future<?> _future;
 
 	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, Properties properties) {
 		super(mbs);
@@ -133,7 +135,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		String workerThreads = System.getProperty("esb0.workerThreads");
 		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
 		if (CONSUMER_IDLETIMEOUT > 0) {
-			getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, CONSUMER_IDLETIMEOUT, CONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
+			_future = getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, CONSUMER_IDLETIMEOUT, CONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
 		}
 		Authenticator.setDefault(proxyAuthenticator = new ProxyAuthenticator());
 	}
@@ -244,6 +246,9 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			kafkaConsumer.close();
 		}
 		// Phase 2
+		if (_future != null) {
+			_future.cancel(false);
+		}
 		getHttpEndpointRegistry().close();
 		for (WorkerPool workerPool : getWorkerPools()) {
 			workerPool.close();
