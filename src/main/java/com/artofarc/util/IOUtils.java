@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -88,6 +87,9 @@ public final class IOUtils {
 		if (is instanceof ByteArrayInputStream) {
 			ByteArrayInputStream bis = (ByteArrayInputStream) is;
 			return bis.toByteArray();
+		}
+		if (is instanceof java.io.ByteArrayInputStream) {
+			return ByteArrayInputStream.toByteArray(ReflectionUtils.getField(is, "buf"), ReflectionUtils.getField(is, "pos"), ReflectionUtils.getField(is, "count"));
 		}
 		if (is instanceof PredictableInputStream) {
 			final byte[] ba = new byte[Math.toIntExact(((PredictableInputStream) is).length())];
