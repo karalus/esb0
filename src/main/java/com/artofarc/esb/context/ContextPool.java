@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,12 +15,15 @@
  */
 package com.artofarc.esb.context;
 
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Map;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.artofarc.util.Collections;
 
 public final class ContextPool implements AutoCloseable {
 
-	private final LinkedBlockingQueue<Context> pool;
+	private final LinkedBlockingDeque<Map.Entry<Context, Long>> pool;
 	private final AtomicInteger poolSize = new AtomicInteger();
 	private final int minPoolSize;
 	private final int maxPoolSize;
@@ -29,23 +31,22 @@ public final class ContextPool implements AutoCloseable {
 	private final boolean isBlocking;
 	private final PoolContext _poolContext;
 
-	private volatile long lastAccess;
-
 	public ContextPool(PoolContext poolContext, int minPool, int maxPool, long keepAlive, boolean blocking) {
 		_poolContext = poolContext;
 		minPoolSize = minPool;
 		maxPoolSize = maxPool;
 		keepAliveMillis = keepAlive;
 		isBlocking = blocking;
-		pool = new LinkedBlockingQueue<>(maxPool);
+		pool = new LinkedBlockingDeque<>(maxPool);
 	}
 
 	public int getPoolSize() {
 		return poolSize.get();
 	}
 
-	public long getLastAccess() {
-		return lastAccess;
+	public Long getLastAccess() {
+		Map.Entry<Context, Long> context = pool.peekFirst();
+		return pool.size() < poolSize.get() ? System.currentTimeMillis() : context != null ? context.getValue() : null;
 	}
 
 	public int getMinPoolSize() {
@@ -61,42 +62,41 @@ public final class ContextPool implements AutoCloseable {
 	}
 
 	public Context getContext() throws InterruptedException {
-		Context context = pool.poll();
+		Map.Entry<Context, Long> context = pool.pollFirst();
 		if (context == null) {
 			int newPoolSize = poolSize.incrementAndGet();
 			if (newPoolSize > maxPoolSize) {
 				poolSize.decrementAndGet();
 				if (isBlocking) {
-					context = pool.take();
+					context = pool.takeFirst();
+				} else {
+					return null;
 				}
 			} else {
-				context = new Context(_poolContext);
+				return new Context(_poolContext);
 			}
 		}
-		return context;
+		return context.getKey();
 	}
 
 	public void releaseContext(Context context) {
-		pool.add(context);
-		lastAccess = System.currentTimeMillis();
+		pool.addFirst(Collections.createEntry(context, System.currentTimeMillis()));
 	}
 
 	public void shrinkPool() {
 		int overflow = poolSize.get() - minPoolSize;
-		if (overflow > 0) {
-			long timediff = System.currentTimeMillis() - lastAccess;
-			if (timediff > keepAliveMillis) {
-				while (overflow > 0) {
-					Context context = pool.poll();
-					if (context != null) {
-						overflow = poolSize.decrementAndGet() - minPoolSize;
-						context.close();
-					} else {
-						Context.logger.info("Context not yet given back to pool for " + _poolContext);
-						break;
-					}
+		while (overflow > 0) {
+			Map.Entry<Context, Long> context = pool.pollLast();
+			if (context != null) {
+				if (System.currentTimeMillis() - context.getValue() > keepAliveMillis) {
+					overflow = poolSize.decrementAndGet() - minPoolSize;
+					context.getKey().close();
+					continue;
+				} else {
+					pool.addLast(context);
 				}
-			}
+			} 
+			break;
 		}
 	}
 
@@ -104,8 +104,8 @@ public final class ContextPool implements AutoCloseable {
 	public void close() throws InterruptedException {
 		while (poolSize.getAndDecrement() > 0) {
 			// this possibly blocks for a long time
-			Context context = pool.take();
-			context.close();
+			Map.Entry<Context, Long> context = pool.take();
+			context.getKey().close();
 		}
 		poolSize.set(0);
 	}
