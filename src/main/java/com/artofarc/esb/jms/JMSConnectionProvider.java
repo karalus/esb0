@@ -196,7 +196,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		@Override
 		public void onException(JMSException jmsException) {
-			logger.warn("JMSException received", jmsException);
+			logger.warn("JMSException received for " + _jmsConnectionData, jmsException);
 			reconnect();
 		}
 
