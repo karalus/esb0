@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +23,8 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 public final class ReflectionUtils {
+
+	private final static Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
 	public interface ParamResolver<E extends Exception> {
 		Object resolve(String param) throws E;
@@ -53,15 +54,21 @@ public final class ReflectionUtils {
 				String argName = tokenizerMethod.nextToken();
 				args.add(paramResolver.resolve(argName));
 			}
-			for (Class<?> cls = root.getClass(); cls != null; cls = cls.getSuperclass()) {
-				Method method = findMethod(cls.getDeclaredMethods(), methodName, args);
-				if (method != null) {
-					method.setAccessible(true);
-					root = method.invoke(root, args.toArray());
-					continue outer;
+			Method method = findMethod(root.getClass().getMethods(), methodName, args);
+			if (method != null) {
+				method.setAccessible(true);
+				root = method.invoke(root, args.isEmpty() ? EMPTY_OBJECT_ARRAY : args.toArray());
+			} else {
+				for (Class<?> cls = root.getClass(); cls != null; cls = cls.getSuperclass()) {
+					method = findMethod(cls.getDeclaredMethods(), methodName, args);
+					if (method != null) {
+						method.setAccessible(true);
+						root = method.invoke(root, args.isEmpty() ? EMPTY_OBJECT_ARRAY : args.toArray());
+						continue outer;
+					}
 				}
+				throw new NoSuchMethodException(methodName);
 			}
-			throw new NoSuchMethodException(methodName);
 		}
 		return (T) root;
 	}
