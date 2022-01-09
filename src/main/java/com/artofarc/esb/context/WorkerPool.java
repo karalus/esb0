@@ -93,7 +93,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	}
 
 	public void addThread(Thread thread, String info) {
-		if (_scheduledExecutorService != null && thread.getThreadGroup() != _threadFactory && _threads.put(thread, info) == null) {
+		if (_scheduledExecutorService != null && _threads.put(thread, info) == null) {
 			PoolContext.logger.debug("adding thread " + thread.getName() + " for " + info);
 		}
 	}
@@ -113,13 +113,6 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 			_contextPool.close();
 		} catch (InterruptedException e) {
 			PoolContext.logger.error("Unexpected", e);
-		}
-		if (_threadFactory != null) {
-			while (_threadFactory.activeCount() > 0) {
-				PoolContext.logger.info("WorkerPoolThreadFactory not terminated, yet: ", _threadFactory.getName());
-				Thread.yield();
-			}
-			_threadFactory.destroy();
 		}
 	}
 
@@ -219,14 +212,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	}
 
 	public List<String> getActiveThreads() {
-		List<String> result = new ArrayList<>();
-		if (_threadFactory != null) {
-			Thread[] list = new Thread[_threadFactory.activeCount()];
-			int c = _threadFactory.enumerate(list);
-			for (int i = 0; i < c; ++i) {
-				result.add(list[i].getName());
-			}
-		}
+		List<String> result = _threadFactory != null ? _threadFactory.getActiveThreads() : new ArrayList<>();
 		for (Thread thread : _threads.keySet()) {
 			if (thread.isAlive()) {
 				result.add(thread.getName());
