@@ -17,7 +17,6 @@ package com.artofarc.esb.context;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.net.Authenticator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -40,7 +39,6 @@ import com.artofarc.esb.artifact.Artifact;
 import com.artofarc.esb.artifact.DataSourceArtifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
-import com.artofarc.esb.http.ProxyAuthenticator;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.resource.XQConnectionFactory;
@@ -62,7 +60,6 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
 	private final XQConnectionFactory _xqConnectionFactory;
-	private final ProxyAuthenticator proxyAuthenticator;
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
 	private volatile FileSystem _fileSystem;
 	private volatile Future<?> _future;
@@ -137,7 +134,6 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		if (CONSUMER_IDLETIMEOUT > 0) {
 			_future = getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, CONSUMER_IDLETIMEOUT, CONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
 		}
-		Authenticator.setDefault(proxyAuthenticator = new ProxyAuthenticator());
 	}
 
 	private void logVersion(String capability, String ifcPkg, String factoryClass, String factoryField) {
@@ -199,11 +195,11 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			return false;
 		}
 	}
-	
+
 	public void unlockFileSystem() {
 		_fileSystemLock.unlock();
 	}
-	
+
 	public FileSystem getFileSystem() {
 		return _fileSystem;
 	}
@@ -288,13 +284,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	}
 
 	public Set<String> getCaches() {
-		@SuppressWarnings("unchecked")
-		LRUCacheWithExpirationFactory<Object, Object[]> factory = getResourceFactory(LRUCacheWithExpirationFactory.class);
+		LRUCacheWithExpirationFactory<?, ?> factory = getResourceFactory(LRUCacheWithExpirationFactory.class);
 		return factory.getResourceDescriptors();
-	}
-
-	public ProxyAuthenticator getProxyAuthenticator() {
-		return proxyAuthenticator;
 	}
 
 	public String bindProperties(String exp) throws NamingException {

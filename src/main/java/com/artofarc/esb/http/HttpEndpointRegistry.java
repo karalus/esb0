@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +15,7 @@
  */
 package com.artofarc.esb.http;
 
+import java.net.Authenticator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -31,13 +31,19 @@ public final class HttpEndpointRegistry {
 
 	private final Map<HttpEndpoint, HttpUrlSelector> _map = new HashMap<>(128);
 	private final Registry _registry;
+	private final ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator();
 
 	public HttpEndpointRegistry(Registry registry) {
 		_registry = registry;
+		Authenticator.setDefault(proxyAuthenticator);
 	}
 
 	public Set<Map.Entry<HttpEndpoint, HttpUrlSelector>> getHttpEndpoints() {
 		return _map.entrySet();
+	}
+
+	public ProxyAuthenticator getProxyAuthenticator() {
+		return proxyAuthenticator;
 	}
 
 	public synchronized HttpEndpoint validate(HttpEndpoint httpEndpoint) {
@@ -89,6 +95,7 @@ public final class HttpEndpointRegistry {
 				removeHttpUrlSelector(entry.getKey(), entry.getValue());
 			}
 		}
+		Authenticator.setDefault(null);
 	}
 
 }

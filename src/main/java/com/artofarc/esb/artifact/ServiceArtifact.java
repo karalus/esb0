@@ -190,7 +190,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			for (Http.Url url : http.getUrl()) {
 				endpoints.add(new HttpUrl(globalContext.bindProperties(url.getValue()), url.getWeight(), url.isActive()));
 			}
-			Proxy proxy = http.getProxyUrl() != null ? globalContext.getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl())) : Proxy.NO_PROXY;
+			Proxy proxy = http.getProxyUrl() != null ? globalContext.getHttpEndpointRegistry().getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl())) : Proxy.NO_PROXY;
 			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(),
 					http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime(), proxy);
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
