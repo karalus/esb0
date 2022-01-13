@@ -23,7 +23,7 @@ import javax.xml.xquery.*;
 
 public final class XQuerySource {
 
-	private static final WeakHashMap<XQuerySource, XQuerySource> CACHE = new WeakHashMap<>(512);
+	private static final ObjectPool<XQuerySource> POOL = new ObjectPool<>(new WeakHashMap<>(1024));
 
 	private final String _xquery;
 	private final byte[] _data;
@@ -45,22 +45,12 @@ public final class XQuerySource {
 		_hashCode = xquery.hashCode();
 	}
 
-	private synchronized static XQuerySource intern(XQuerySource instance) {
-		XQuerySource existing = CACHE.get(instance);
-		if (existing != null) {
-			return existing;
-		} else {
-			CACHE.put(instance, instance);
-			return instance;
-		}
-	}
-
 	public static XQuerySource create(byte[] data) {
-		return intern(new XQuerySource(data));
+		return POOL.intern(new XQuerySource(data));
 	}
 
 	public static XQuerySource create(String xquery) {
-		return intern(new XQuerySource(xquery));
+		return POOL.intern(new XQuerySource(xquery));
 	}
 
 	@Override

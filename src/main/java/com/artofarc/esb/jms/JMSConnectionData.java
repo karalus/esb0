@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,16 +21,35 @@ import javax.jms.JMSException;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.ObjectPool;
 
 public final class JMSConnectionData {
 
-	private final String _jndiConnectionFactory, _userName, _password;
-	private final ConnectionFactory _connectionFactory;
+	private static final ObjectPool<JMSConnectionData> POOL = new ObjectPool<>(new java.util.HashMap<>());
 
+	private final String _jndiConnectionFactory, _userName, _password;
+	private ConnectionFactory _connectionFactory;
+
+	@Deprecated
 	public JMSConnectionData(GlobalContext globalContext, String jndiConnectionFactory, String userName, String password) throws NamingException {
-		_connectionFactory = globalContext.lookup(_jndiConnectionFactory = jndiConnectionFactory);
-		_userName = globalContext.bindProperties(userName);
-		_password = globalContext.bindProperties(password);
+		this(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password));
+		_connectionFactory = globalContext.lookup(jndiConnectionFactory);
+	}
+
+	private JMSConnectionData(String jndiConnectionFactory, String userName, String password) {
+		_jndiConnectionFactory = jndiConnectionFactory;
+		_userName = userName;
+		_password = password;
+	}
+
+	public static JMSConnectionData create(GlobalContext globalContext, String jndiConnectionFactory, String userName, String password) throws NamingException {
+		synchronized (POOL) {
+			JMSConnectionData instance = POOL.intern(new JMSConnectionData(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password)));
+			if (instance._connectionFactory == null) {
+				instance._connectionFactory = globalContext.lookup(jndiConnectionFactory);
+			}
+			return instance;
+		}
 	}
 
 	@Override
