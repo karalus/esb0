@@ -46,17 +46,19 @@ public abstract class ConcurrentResourcePool<R, D, P, E extends Exception> {
 	}
 
 	public final R getResource(D descriptor, P param) throws E {
-		if (_pool.containsKey(descriptor)) {
-			return _pool.get(descriptor);
+		Map<D, R> pool = _pool;
+		if (pool.containsKey(descriptor)) {
+			return pool.get(descriptor);
 		}
 		_lock.lock();
 		try {
 			// Really! Things maybe changed while acquiring the lock.
-			if (_pool.containsKey(descriptor)) {
-				return _pool.get(descriptor);
+			pool = _pool;
+			if (pool.containsKey(descriptor)) {
+				return pool.get(descriptor);
 			}
 			R resource = createResource(descriptor, param);
-			Map<D, R> pool = new HashMap<>(_pool);
+			pool = new HashMap<>(pool);
 			pool.put(descriptor, resource);
 			_pool = pool;
 			return resource;
