@@ -23,22 +23,17 @@ final class WorkerPoolThreadFactory implements ThreadFactory {
 
 	private final ThreadGroup _threadGroup = Thread.currentThread().getThreadGroup();
 	private final AtomicInteger threadNumber = new AtomicInteger();
-	private final String _name, namePrefix;
+	private final String namePrefix;
 	private final int _priority;
 
 	WorkerPoolThreadFactory(String name, int priority) {
-		_name = name;
 		namePrefix = "WorkerPool-" + name + "-thread-";
 		_priority = priority;
 	}
 
-	public String getName() {
-		return _name;
-	}
-
 	@Override
-	public Thread newThread(final Runnable r) {
-		final Thread thread = new Thread(_threadGroup, r, namePrefix + threadNumber.incrementAndGet());
+	public Thread newThread(Runnable r) {
+		Thread thread = new Thread(_threadGroup, r, namePrefix + threadNumber.incrementAndGet());
 		thread.setPriority(_priority);
 		return thread;
 	}

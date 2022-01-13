@@ -28,6 +28,7 @@ import com.artofarc.util.XQuerySource;
 
 public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
+	private final String _name;
 	private final PoolContext _poolContext;
 	private final ContextPool _contextPool;
 	private final WorkerPoolThreadFactory _threadFactory;
@@ -38,6 +39,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	private final ConcurrentHashMap<Thread, String> _threads = new ConcurrentHashMap<>();
 
 	public WorkerPool(PoolContext poolContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
+		_name = name;
 		_contextPool = new ContextPool(_poolContext = poolContext, minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L, true);
 		if (maxThreads > 0 || scheduledThreads > 0) {
 			_threadFactory = new WorkerPoolThreadFactory(name, priority);
@@ -66,6 +68,10 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 
 	WorkerPool(GlobalContext globalContext, String name, int nThreads) {
 		this(new PoolContext(globalContext, name), name, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
+	}
+
+	public String getName() {
+		return _name;
 	}
 
 	public PoolContext getPoolContext() {
@@ -117,10 +123,6 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	}
 
 	// Methods for monitoring
-
-	public String getName() {
-		return _threadFactory != null ? _threadFactory.getName() : null;
-	}
 
 	public int getMaximumPoolSize() {
 		return _executorService != null ? _executorService.getMaximumPoolSize() : -1;
