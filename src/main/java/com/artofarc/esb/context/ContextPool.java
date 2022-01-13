@@ -86,17 +86,15 @@ public final class ContextPool implements AutoCloseable {
 	public void shrinkPool() {
 		int overflow = poolSize.get() - minPoolSize;
 		while (overflow > 0) {
+			Map.Entry<Context, Long> candidate = pool.peekLast();
+			if (candidate == null || System.currentTimeMillis() - candidate.getValue() < keepAliveMillis) break;
 			Map.Entry<Context, Long> context = pool.pollLast();
-			if (context != null) {
-				if (System.currentTimeMillis() - context.getValue() > keepAliveMillis) {
-					overflow = poolSize.decrementAndGet() - minPoolSize;
-					context.getKey().close();
-					continue;
-				} else {
-					pool.addLast(context);
-				}
-			} 
-			break;
+			if (context != candidate) {
+				if (context != null) pool.addLast(context);
+				break;
+			}
+			overflow = poolSize.decrementAndGet() - minPoolSize;
+			context.getKey().close();
 		}
 	}
 
