@@ -35,6 +35,7 @@ import com.artofarc.esb.KafkaConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.action.*;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.http.HttpCheckAlive;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.jdbc.JDBCParameter;
@@ -191,8 +192,19 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				endpoints.add(new HttpUrl(globalContext.bindProperties(url.getValue()), url.getWeight(), url.isActive()));
 			}
 			Proxy proxy = http.getProxyUrl() != null ? globalContext.getHttpEndpointRegistry().getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl())) : Proxy.NO_PROXY;
+			HttpCheckAlive httpCheckAlive = null;
+			if (http.getCheckAliveInterval() != null) {
+				if (http.getCheckAliveClass() != null) {
+					java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, http.getClassLoader());
+					@SuppressWarnings("unchecked")
+					Class<? extends HttpCheckAlive> cls = (Class<? extends HttpCheckAlive>) Class.forName(http.getCheckAliveClass(), true, classLoader);
+					httpCheckAlive = cls.newInstance();
+				} else {
+					httpCheckAlive = new HttpCheckAlive();
+				}
+			}
 			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(),
-					http.getRetries(), http.getCheckAliveInterval(), http.getKeepAliveInterval(), getModificationTime(), proxy);
+					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy);
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 			addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), http.getMultipartRequest()), location);
 			if (http.getWorkerPool() != null) {

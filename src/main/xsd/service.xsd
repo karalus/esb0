@@ -63,7 +63,8 @@
 					<attribute name="connectionTimeout" type="int" default="10000" />
 					<attribute name="retries" type="int" default="0" />
 					<attribute name="checkAliveInterval" type="int" />
-					<attribute name="keepAliveInterval" type="int" />
+					<attribute name="checkAliveClass" type="tns:identifier" />
+					<attribute name="classLoader" type="anyURI" />
 					<attribute name="readTimeout" type="int" default="60000" />
 					<attribute name="chunkLength" type="int" />
 					<attribute name="workerPool" type="anyURI" />

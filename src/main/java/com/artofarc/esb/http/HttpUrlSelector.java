@@ -37,6 +37,7 @@ import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
 
 import com.artofarc.esb.context.WorkerPool;
+import com.artofarc.util.IOUtils;
 
 public final class HttpUrlSelector extends NotificationBroadcasterSupport implements Runnable, HttpUrlSelectorMBean {
 
@@ -58,6 +59,20 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 
 		public HttpURLConnection getHttpURLConnection() {
 			return _httpURLConnection;
+		}
+
+		public int getResponseCode() throws IOException {
+			int responseCode = _httpURLConnection.getResponseCode();
+			HttpCheckAlive httpCheckAlive = _httpEndpoint.getHttpCheckAlive();
+			if (httpCheckAlive != null && !httpCheckAlive.isAlive(_httpURLConnection, responseCode)) {
+				setActive(_pos, false);
+				if (_httpURLConnection.getErrorStream() != null) {
+					// Consume error message
+					IOUtils.copy(_httpURLConnection.getErrorStream());
+				}
+				throw new HttpCheckAlive.ConnectException(_httpUrl + " is not alive. Response code " + responseCode);
+			}
+			return responseCode;
 		}
 
 		public void close() {
@@ -138,11 +153,10 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		for (int i = 0; i < size; ++i) {
 			if (!isActive(i)) {
 				try {
-					HttpURLConnection conn = (HttpURLConnection) _httpEndpoint.getHttpUrls().get(i).getUrl().openConnection();
-					conn.setConnectTimeout(_httpEndpoint.getConnectionTimeout());
-					conn.setRequestMethod("HEAD");
-					conn.getResponseCode();
-					setActive(i, true);
+					HttpURLConnection conn = _httpEndpoint.getHttpCheckAlive().connect(_httpEndpoint, i);
+					if (_httpEndpoint.getHttpCheckAlive().isAlive(conn, conn.getResponseCode())) {
+						setActive(i, true);
+					}
 				} catch (IOException e) {
 					// ignore
 				}

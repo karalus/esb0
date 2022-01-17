@@ -27,11 +27,11 @@ public final class HttpEndpoint {
 	private final int _connectionTimeout;
 	private final int _retries;
 	private final Integer _checkAliveInterval;
-	private final Integer _keepAliveInterval;
+	private final HttpCheckAlive _checkAlive;
 	private final long _modificationTime;
 	private final Proxy _proxy;
 
-	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectionTimeout, int retries, Integer checkAliveInterval, Integer keepAliveInterval, long modificationTime, Proxy proxy) {
+	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectionTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy) {
 		if (name != null) {
 			_name = name;
 		} else {
@@ -47,7 +47,7 @@ public final class HttpEndpoint {
 		_connectionTimeout = connectionTimeout;
 		_retries = retries;
 		_checkAliveInterval = checkAliveInterval;
-		_keepAliveInterval = keepAliveInterval;
+		_checkAlive = checkAlive;
 		_modificationTime = modificationTime;
 		_proxy = proxy;
 	}
@@ -76,8 +76,8 @@ public final class HttpEndpoint {
 		return _checkAliveInterval;
 	}
 
-	public Integer getKeepAliveInterval() {
-		return _keepAliveInterval;
+	public HttpCheckAlive getHttpCheckAlive() {
+		return _checkAlive;
 	}
 
 	public long getModificationTime() {
@@ -113,7 +113,7 @@ public final class HttpEndpoint {
 
 	public boolean hasSameConfig(HttpEndpoint other) {
 		return _endpoints.equals(other._endpoints) && _connectionTimeout == other._connectionTimeout && _retries == other._retries && isEqual(_checkAliveInterval, other._checkAliveInterval)
-				&& isEqual(_keepAliveInterval, other._keepAliveInterval) && isEqual(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy);
+			&& isEqual(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy) && isEqual(_checkAlive, other._checkAlive);
 	}
 
 	private static boolean isEqual(Object i, Object j) {
