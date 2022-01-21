@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Andre Karalus
+ * Copyright 2022 Andre Karalus
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -193,15 +193,13 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			Proxy proxy = http.getProxyUrl() != null ? globalContext.getHttpEndpointRegistry().getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl())) : Proxy.NO_PROXY;
 			HttpCheckAlive httpCheckAlive = null;
-			if (http.getCheckAliveInterval() != null) {
-				if (http.getCheckAliveClass() != null) {
-					java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, http.getClassLoader());
-					@SuppressWarnings("unchecked")
-					Class<? extends HttpCheckAlive> cls = (Class<? extends HttpCheckAlive>) Class.forName(http.getCheckAliveClass(), true, classLoader);
-					httpCheckAlive = cls.newInstance();
-				} else {
-					httpCheckAlive = new HttpCheckAlive();
-				}
+			if (http.getCheckAliveClass() != null) {
+				java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, http.getClassLoader());
+				@SuppressWarnings("unchecked")
+				Class<? extends HttpCheckAlive> cls = (Class<? extends HttpCheckAlive>) Class.forName(http.getCheckAliveClass(), true, classLoader);
+				httpCheckAlive = cls.newInstance();
+			} else if (http.getCheckAliveInterval() != null) {
+				httpCheckAlive = new HttpCheckAlive();
 			}
 			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(),
 					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy);

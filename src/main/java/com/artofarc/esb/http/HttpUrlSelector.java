@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Andre Karalus
+ * Copyright 2022 Andre Karalus
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ import com.artofarc.util.IOUtils;
 public final class HttpUrlSelector extends NotificationBroadcasterSupport implements Runnable, HttpUrlSelectorMBean {
 
 	public final class HttpUrlConnectionWrapper {
+
 		private final HttpUrl _httpUrl;
 		private final int _pos;
 		private final HttpURLConnection _httpURLConnection;
@@ -65,7 +66,9 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			int responseCode = _httpURLConnection.getResponseCode();
 			HttpCheckAlive httpCheckAlive = _httpEndpoint.getHttpCheckAlive();
 			if (httpCheckAlive != null && !httpCheckAlive.isAlive(_httpURLConnection, responseCode)) {
-				setActive(_pos, false);
+				if (_httpEndpoint.getCheckAliveInterval() != null) {
+					setActive(_pos, false);
+				}
 				if (_httpURLConnection.getErrorStream() != null) {
 					// Consume error message
 					IOUtils.copy(_httpURLConnection.getErrorStream());
@@ -95,7 +98,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	public HttpUrlSelector(HttpEndpoint httpEndpoint, WorkerPool workerPool) {
 		super(workerPool.getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
 				AttributeChangeNotification.class.getName(), "An endpoint of " + httpEndpoint.getName() + " changes its state"));
-		
+
 		_httpEndpoint = httpEndpoint;
 		_workerPool = workerPool;
 		size = httpEndpoint.getHttpUrls().size();
