@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +15,6 @@
  */
 package com.artofarc.util;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
@@ -50,19 +48,13 @@ public final class Closer implements AutoCloseable {
 		}
 	}
 
-	public static <E extends Exception> boolean closeWithTimeout(final Object obj, ExecutorService executorService, long timeout, String context, final Class<E> cls) throws E {
-		final Method method;
-		try {
-			method = obj.getClass().getMethod("close");
-		} catch (NoSuchMethodException e) {
-			throw new IllegalArgumentException(obj.getClass() + " has no method close");
-		}
+	public static <E extends Exception> boolean closeWithTimeout(AutoCloseable obj, ExecutorService executorService, long timeout, String context, Class<E> cls) throws E {
 		Future<Boolean> future = executorService.submit(new Callable<Boolean>() {
 
 			@Override
-			public Boolean call() throws E {
-				ReflectionUtils.invoke(method, cls, obj);
-				return true;
+			public Boolean call() throws Exception {
+				obj.close();
+				return Boolean.TRUE;
 			}
 		});
 		try {
