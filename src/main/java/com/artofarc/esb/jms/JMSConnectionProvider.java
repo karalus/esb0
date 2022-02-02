@@ -87,6 +87,12 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		return new JMSSession(this, jmsConnectionData, connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE));
 	}
 
+	public void checkConnection(JMSConnectionData jmsConnectionData) throws JMSException {
+		if (!getResource(jmsConnectionData).isConnected()) {
+			throw new JMSException("Currently reconnecting " + jmsConnectionData);
+		}
+	}
+
 	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws JMSException {
 		if (closeWithTimeout > 0) {
 			// Oracle AQ sometimes waits forever in close()
@@ -137,12 +143,14 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			return connection;
 		}
 
-		private Connection getConnection() throws JMSException {
-			if (_connection == null && _future == null) {
+		Connection getConnection(JMSSessionFactory jmsSessionFactory) throws JMSException {
+			Connection connection = _connection;
+			if (connection == null && _future == null) {
 				_lock.lock();
 				try {
-					if (_connection == null && _future == null) {
-						Connection connection = createConnection();
+					connection = _connection;
+					if (connection == null && _future == null) {
+						connection = createConnection();
 						connection.setExceptionListener(this);
 						_connection = connection;
 					}
@@ -154,11 +162,6 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 					_lock.unlock();
 				}
 			}
-			return _connection;
-		}
-
-		Connection getConnection(JMSSessionFactory jmsSessionFactory) throws JMSException {
-			Connection connection = getConnection();
 			if (connection == null) {
 				throw new JMSException("Currently reconnecting " + _jmsConnectionData);
 			}

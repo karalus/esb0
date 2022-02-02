@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +29,8 @@ import com.artofarc.util.Collections;
  * Cache producers because it is expensive to create them.
  */
 public final class JMSSession implements AutoCloseable {
+
+	private static final boolean checkConnection = Boolean.parseBoolean(System.getProperty("esb0.jms.producer.checkConnection"));
 
 	private final JMSConnectionProvider _jmsConnectionProvider;
 	private final JMSConnectionData _jmsConnectionData;
@@ -73,6 +74,9 @@ public final class JMSSession implements AutoCloseable {
 	}
 
 	public MessageProducer createProducer(Destination destination) throws JMSException {
+		if (checkConnection) {
+			_jmsConnectionProvider.checkConnection(_jmsConnectionData);
+		}
 		MessageProducer producer = _producers.get(destination);
 		if (producer == null) {
 			producer = _session.createProducer(destination);
