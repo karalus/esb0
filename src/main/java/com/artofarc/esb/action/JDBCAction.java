@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Andre Karalus
+ * Copyright 2022 Andre Karalus
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ public abstract class JDBCAction extends Action {
 			} else if (jdbcParameter.getBindName() == null) {
 				throw new IllegalArgumentException("Parameter must bind to variable, body or attachment");
 			}
-			if (_schemaSet == null && jdbcParameter.getType() == STRUCT) {
+			if (_schemaSet == null && jdbcParameter.getType() == JDBCType.STRUCT) {
 				throw new IllegalArgumentException("When using parameter type STRUCT, a schema is mandatory");
 			}
 		}
@@ -144,7 +144,7 @@ public abstract class JDBCAction extends Action {
 					case STRUCT:
 						break;
 					default:
-						throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
+						throw new ExecutionException(this, "SQL type for body not supported: " + param.getType());
 					}
 					break;
 				}
@@ -260,7 +260,7 @@ public abstract class JDBCAction extends Action {
 					ps.setObject(param.getPos(), mapper.getObject());
 					break;
 				default:
-					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
+					throw new ExecutionException(this, "SQL type for body not supported: " + param.getType());
 				}
 			} else if (param.isAttachments()) {
 				if (message.getAttachments().size() > 0) {
@@ -270,9 +270,9 @@ public abstract class JDBCAction extends Action {
 			} else {
 				Object value = resolve(message, param.getBindName(), false);
 				if (value != null) {
-					ps.setObject(param.getPos(), param.alignValue(value, conn), param.getType());
+					ps.setObject(param.getPos(), param.alignValue(value, conn), param.getType().getVendorTypeNumber());
 				} else {
-					ps.setNull(param.getPos(), param.getType());
+					ps.setNull(param.getPos(), param.getType().getVendorTypeNumber());
 				}
 			}
 		}

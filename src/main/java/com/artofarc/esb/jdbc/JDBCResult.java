@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Andre Karalus
+ * Copyright 2022 Andre Karalus
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.sql.*;
 import static java.sql.Types.*;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 
 import javax.json.stream.JsonGenerator;
 import javax.xml.bind.DatatypeConverter;
@@ -26,6 +27,14 @@ import javax.xml.bind.DatatypeConverter;
 public final class JDBCResult implements AutoCloseable {
 
 	public static final String SQL_UPDATE_COUNT = "sqlUpdateCount";
+
+	private static final HashMap<Integer, String> TYPES = new HashMap<>(64);
+
+	static{
+		for (JDBCType type : JDBCType.class.getEnumConstants()) {
+			TYPES.put(type.getVendorTypeNumber(), type.name());
+		}
+	}
 
 	private final Statement _statement;
 	private final int firstUpdateCount;
@@ -122,7 +131,7 @@ public final class JDBCResult implements AutoCloseable {
 		for (int i = 1; i <= colSize; ++i) {
 			int precision = metaData.getPrecision(i);
 			int scale = metaData.getScale(i);
-			String type = JDBCParameter.CODES.get(metaData.getColumnType(i)) + (precision > 0 ? "(" + precision + (scale > 0 ? ", " + scale : "") + ')' : "");
+			String type = TYPES.get(metaData.getColumnType(i)) + (precision > 0 ? "(" + precision + (scale > 0 ? ", " + scale : "") + ')' : "");
 			json.writeStartObject();
 			json.write(metaData.getColumnLabel(i), type);
 			json.writeEnd();

@@ -251,9 +251,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "jdbcProcedure": {
 			JdbcProcedure jdbcProcedure = (JdbcProcedure) actionElement.getValue();
-			if (jdbcProcedure.getWorkerPool() != null) {
-				addAction(list, new SpawnAction(resolveWorkerPool(jdbcProcedure.getWorkerPool()), true, jdbcProcedure.isJoin()), location);
-			}
 			XSSchemaSet schemaSet = null;
 			if (jdbcProcedure.getSchemaURI() != null) {
 				SchemaArtifact schemaArtifact = loadArtifact(jdbcProcedure.getSchemaURI());
@@ -268,9 +265,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "jdbc": {
 			Jdbc jdbc = (Jdbc) actionElement.getValue();
-			if (jdbc.getWorkerPool() != null) {
-				addAction(list, new SpawnAction(resolveWorkerPool(jdbc.getWorkerPool()), true, jdbc.isJoin()), location);
-			}
 			boolean[] posUsed = new boolean[jdbc.getJdbcParameter().size()];
 			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter(), posUsed),
 					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.getKeepConnection()), location);

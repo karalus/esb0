@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Andre Karalus
+ * Copyright 2022 Andre Karalus
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,13 @@
  */
 package com.artofarc.esb.jdbc;
 
-import java.lang.reflect.Field;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.JDBCType;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.TimeZone;
 
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -33,30 +30,17 @@ import javax.xml.transform.dom.DOMResult;
 
 import org.w3c.dom.Node;
 
-import com.artofarc.util.Collections;
-
 public final class JDBCParameter {
 
-	final static Map<String, Integer> TYPES = new HashMap<>();
-	final static Map<Integer, String> CODES;
 	final static TimeZone TIME_ZONE;
 
 	static{
-		for (Field field : Types.class.getFields()) {
-			try {
-				TYPES.put(field.getName(), field.getInt(null));
-			} catch (IllegalAccessException e) {
-				throw new RuntimeException(e);
-			}
-		}
-		CODES = Collections.inverseMap(TYPES.entrySet(), true);
 		String timezone = System.getProperty("esb0.jdbc.mapper.timezone");
 		TIME_ZONE = timezone != null ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault();
 	}
 
 	private final int _pos;
-	private final String _typeName;
-	private final int _type;
+	private final JDBCType _type;
 	private final boolean _body;
 	private final boolean _attachments;
 	private final String _bindName;
@@ -64,13 +48,8 @@ public final class JDBCParameter {
 	private final QName _xmlElement;
 
 	public JDBCParameter(int pos, String typeName, boolean body, boolean attachments, String bindName, Integer truncate, String xmlElement) {
-		Integer code = TYPES.get(typeName);
-		if (code == null) {
-			throw new IllegalArgumentException("Not a SQL type: " + typeName);
-		}
 		_pos = pos;
-		_typeName = typeName;
-		_type = code;
+		_type = JDBCType.valueOf(typeName);
 		_body = body;
 		_attachments = attachments;
 		_bindName = bindName;
@@ -82,11 +61,7 @@ public final class JDBCParameter {
 		return _pos;
 	}
 
-	public String getTypeName() {
-		return _typeName;
-	}
-
-	public int getType() {
+	public JDBCType getType() {
 		return _type;
 	}
 
@@ -112,7 +87,7 @@ public final class JDBCParameter {
 
 	public Object alignValue(Object value, JDBCConnection conn) throws SQLException {
 		switch (_type) {
-		case Types.TIMESTAMP:
+		case TIMESTAMP:
 			if (value instanceof XMLGregorianCalendar) {
 				XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
 				return new Timestamp(calendar.toGregorianCalendar(TIME_ZONE, null, null).getTimeInMillis());
@@ -125,21 +100,21 @@ public final class JDBCParameter {
 				return new Timestamp((Long) value);
 			}
 			break;
-		case Types.CHAR:
-		case Types.VARCHAR:
+		case CHAR:
+		case VARCHAR:
 			if (_truncate != null) {
 				return truncate((String) value);
 			}
 			break;
-		case Types.CLOB:
+		case CLOB:
 			Clob clob = conn.createClob();
 			clob.setString(1, (String) value);
 			return clob;
-		case Types.BLOB:
+		case BLOB:
 			Blob blob = conn.createBlob();
 			blob.setBytes(1, (byte[]) value);
 			return blob;
-		case Types.SQLXML:
+		case SQLXML:
 			SQLXML sqlxml = conn.createSQLXML();
 			sqlxml.setResult(DOMResult.class).setNode((Node) value);
 			return sqlxml;

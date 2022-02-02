@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Andre Karalus
+ * Copyright 2022 Andre Karalus
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,6 +79,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			logVersion("JavaMail", "javax.mail.internet", "javax.mail.internet.MimeMultipart", null);
 			logVersion("metro-fi", "com.sun.xml.fastinfoset", "com.sun.xml.fastinfoset.Encoder", null);
 			logVersion("XSOM", "com.sun.xml.xsom", "com.artofarc.util.XSOMHelper", "anySchema");
+			logVersion("OJDBC", "oracle.jdbc", "oracle.jdbc.pool.OracleDataSource", null);
 		}
 		_propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
 
@@ -96,7 +97,6 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			protected Object createResource(String key, Void param) throws NamingException {
 				return key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
 			}
-
 		};
 		try {
 			_initialContext = new InitialContext();
@@ -158,7 +158,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			}
 			logger.info(capability + ", implementation: " + impl);
 		} catch (ReflectiveOperationException e) {
-			logger.error("Could not get factory", e);
+			logger.warn("Could not get factory", e);
 		}
 	}
 

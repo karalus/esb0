@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,11 +14,6 @@
  * limitations under the License.
  */
 package com.artofarc.esb.action;
-
-import static java.sql.Types.BLOB;
-import static java.sql.Types.CLOB;
-import static java.sql.Types.SQLXML;
-import static java.sql.Types.STRUCT;
 
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -59,9 +53,9 @@ public class JDBCProcedureAction extends JDBCAction {
 		for (JDBCParameter param : _outParams) {
 			if (param.getXmlElement() != null) {
 				JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
-				cs.registerOutParameter(param.getPos(), param.getType(), mapper.getTypeName());
+				cs.registerOutParameter(param.getPos(), param.getType().getVendorTypeNumber(), mapper.getTypeName());
 			} else {
-				cs.registerOutParameter(param.getPos(), param.getType());
+				cs.registerOutParameter(param.getPos(), param.getType().getVendorTypeNumber());
 			}
 		}
 		bindParameters(conn, cs, context, execContext, message);
@@ -89,7 +83,7 @@ public class JDBCProcedureAction extends JDBCAction {
 					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
 					break;
 				default:
-					throw new ExecutionException(this, "SQL type for body not supported: " + param.getTypeName());
+					throw new ExecutionException(this, "SQL type for body not supported: " + param.getType());
 				}
 			} else if (param.isAttachments()) {
 				Struct struct = (Struct) cs.getObject(param.getPos());
