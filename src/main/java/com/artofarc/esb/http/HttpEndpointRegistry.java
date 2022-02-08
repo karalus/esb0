@@ -89,6 +89,10 @@ public final class HttpEndpointRegistry {
 		_registry.unregisterMBean(",group=HttpEndpointState,name=" + httpEndpoint.getName());
 	}
 
+	public synchronized void evictHttpUrlSelector(HttpEndpoint httpEndpoint) {
+		removeHttpUrlSelector(httpEndpoint, _map.remove(httpEndpoint));
+	}
+
 	public synchronized void close() {
 		for (Map.Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
 			if (entry.getValue() != null) {

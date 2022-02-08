@@ -276,4 +276,8 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		return activeCount;
 	}
 
+	public void evict() {
+		_workerPool.getPoolContext().getGlobalContext().getHttpEndpointRegistry().evictHttpUrlSelector(_httpEndpoint);
+	}
+
 }
