@@ -40,15 +40,12 @@ public final class Collections {
 	}
 
 	/**
-	 * @param unique If true throw an Exception in case of a collision else return empty map.
+	 * In case of a collision return empty map.
 	 */
-	public static <K, V> Map<V, K> inverseMap(Collection<Map.Entry<K, V>> entrySet, boolean unique) {
+	public static <K, V> Map<V, K> inverseMap(Map<K, V> map) {
 		Map<V, K> result = new HashMap<>();
-		for (Map.Entry<K, V> entry : entrySet) {
+		for (Map.Entry<K, V> entry : map.entrySet()) {
 			if (result.put(entry.getValue(), entry.getKey()) != null) {
-				if (unique) {
-					throw new IllegalArgumentException("Value is not unique: " + entry.getValue());
-				} 
 				return java.util.Collections.emptyMap();
 			}
 		}
@@ -76,7 +73,7 @@ public final class Collections {
 
 	@SuppressWarnings("unchecked")
 	public static <T> Stream<T> typeSelect(Collection<? super T> coll, Class<T> cls) {
-		return (Stream<T>) coll.stream().filter(a -> cls.isInstance(a));
+		return (Stream<T>) coll.stream().filter(cls::isInstance);
 	}
 
 }
