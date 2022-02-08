@@ -36,7 +36,6 @@ import com.artofarc.esb.KafkaConsumerPort;
 import com.artofarc.esb.Registry;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.artifact.Artifact;
-import com.artofarc.esb.artifact.DataSourceArtifact;
 import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.jms.JMSConsumer;
@@ -44,6 +43,7 @@ import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
+import com.artofarc.util.Collections;
 import com.artofarc.util.ConcurrentResourcePool;
 
 public final class GlobalContext extends Registry implements Runnable, com.artofarc.esb.mbean.GlobalContextMXBean {
@@ -158,7 +158,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			}
 			logger.info(capability + ", implementation: " + impl);
 		} catch (ReflectiveOperationException e) {
-			logger.warn("Could not get factory", e);
+			logger.warn("Could not get factory for " + capability);
 		}
 	}
 
@@ -255,7 +255,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		} catch (NamingException e) {
 			// Ignore
 		}
-		_propertyCache.getResources().stream().filter(DataSourceArtifact::isDataSource).forEach(dataSource -> Closer.closeQuietly((AutoCloseable) dataSource));
+		// Close HikariDataSource from DataSourceArtifact
+		Collections.typeSelect(_propertyCache.getResources(), AutoCloseable.class).forEach(closeable -> Closer.closeQuietly(closeable));
 		super.close();
 	}
 
