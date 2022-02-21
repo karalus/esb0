@@ -168,7 +168,7 @@ public class HttpConstants {
 	public static boolean isNotXML(String contentType) {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType);
-			return !(isSOAP11(type) || isSOAP12(type) || type.equals("application/xml") || type.equals("application/xop+xml"));
+			return !(type.endsWith("/xml") || type.endsWith("+xml") || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
 		}
 		return false;
 	}
