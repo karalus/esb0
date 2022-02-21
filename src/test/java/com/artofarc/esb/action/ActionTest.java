@@ -212,6 +212,16 @@ public class ActionTest extends AbstractESBTest {
 		action.process(context, message);
 	}
 
+	@Test
+	public void testURLEncoding() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		message.putVariable("value", "test/file;fn=1.png");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("encValue", false, "${value}", "java.net.URLEncoder", "encode", null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+	}
+
    @Test
    public void testJsonPointer() throws Exception {
       String msgStr = "{\"name\":\"esb0\",\"alive\":true,\"surname\":null,\"no\":1,\"amount\":5.0,\"foo\":[\"bar\",\"baz\"]}";

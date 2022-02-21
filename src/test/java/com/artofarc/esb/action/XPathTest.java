@@ -35,6 +35,17 @@ public class XPathTest extends AbstractESBTest {
    }
 
    @Test
+   public void testXQueryAttr() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.STRING, "<test type='text'>Hello</test>");
+      Action action = createAssignAction("result", "string(test/@type)");
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+      assertEquals("text",  message.getVariable("result"));
+   }
+
+   @Test
    public void testXQueryWithExternalVariable() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
       message.putVariable("inVar", "myValue");
@@ -197,7 +208,7 @@ public class XPathTest extends AbstractESBTest {
    @Test
    public void testArray() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
-      message.putVariable("RedeliveryCount", 5);
+      message.putVariable("RedeliveryCount", 0);
       List<AssignAction.Assignment> assignments = createAssignments(false);
       assignments.add(new AssignAction.Assignment("NewRedeliveryCount", true, "if ($RedeliveryCount) then $RedeliveryCount + 1 else 1", false, null));
       assignments.add(new AssignAction.Assignment("deliveryDelay", false, "let $array := [10,20,40] return $array(if ($NewRedeliveryCount>array:size($array)) then array:size($array) else $NewRedeliveryCount)", false, null));
@@ -209,5 +220,24 @@ public class XPathTest extends AbstractESBTest {
       consumerPort.setStartAction(action);
       consumerPort.process(context, message);
    }
+   
+//   @Test
+//   public void testAssignBody() throws Exception {
+//      ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
+//      List<AssignAction.Assignment> assignments = createAssignments(false);
+//      assignments.add(new AssignAction.Assignment("request", false, "*[1]", false, null));
+//      Action action = createAssignAction(assignments, "<test2/>", null);
+//      ConsumerPort consumerPort = new ConsumerPort(null);
+//      consumerPort.setStartAction(action);
+//      action = action.setNextAction(new DumpAction());
+//      List<AssignAction.Assignment> assignments2 = createAssignments(false);
+//      assignments2.add(new AssignAction.Assignment("ln", false, "*/local-name()", false, null));
+//      AssignAction assignAction = createAssignAction(assignments2, "$request", null, "request");
+//      assignAction._xquery.prepareExpression( XQConnectionFactory.newInstance(null).getConnection(), null);
+//      action = action.setNextAction(assignAction);
+//      action = action.setNextAction(new DumpAction());
+//      consumerPort.process(context, message);
+//      assertTrue(message.getVariable("request") instanceof Node);
+//   }
    
 }
