@@ -19,7 +19,9 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import javax.activation.DataHandler;
+import javax.mail.Authenticator;
 import javax.mail.Message;
+import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
@@ -31,7 +33,6 @@ import javax.mail.internet.MimePartDataSource;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
-import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.resource.MailSessionFactory;
@@ -39,13 +40,20 @@ import com.artofarc.esb.resource.MailSessionFactory;
 public class SendMailAction extends TerminalAction {
 
 	private final Session _session;
-	private final String from, to, cc, bcc, replyTo, subject, text;
+	private final String from, to, cc, bcc, replyTo, subject, text, type;
 
-	public SendMailAction(GlobalContext globalContext, Properties properties, String workerPoolName, String from, String to, String cc, String bcc, String replyTo, String subject, String text) {
+	public SendMailAction(GlobalContext globalContext, Properties properties, String workerPoolName, String from, String to, String cc, String bcc, String replyTo, String subject, String text, String type, String userName, String password) {
 		WorkerPool workerPool = globalContext.getWorkerPool(workerPoolName);
 		properties.put("mail.event.executor", workerPool.getExecutorService());
 		MailSessionFactory mailSessionFactory = globalContext.getResourceFactory(MailSessionFactory.class);
-		_session = mailSessionFactory.getResource(properties).getSession();
+		Authenticator authenticator = userName == null ? null : new Authenticator() {
+
+			@Override
+			protected PasswordAuthentication getPasswordAuthentication() {
+				return new PasswordAuthentication(userName, password);
+			}
+		};
+		_session = mailSessionFactory.getResource(properties, authenticator).getSession();
 		this.from = from;
 		this.to = to;
 		this.cc = cc;
@@ -53,6 +61,7 @@ public class SendMailAction extends TerminalAction {
 		this.replyTo = replyTo;
 		this.subject = subject;
 		this.text = text;
+		this.type = type;
 	}
 
 	@Override
@@ -71,10 +80,11 @@ public class SendMailAction extends TerminalAction {
 		}
 		msg.setSubject((String) bindVariable(subject, context, message));
 		String content = (String) bindVariable(text, context, message);
+		String contentType = (String) bindVariable(type, context, message);
 		if (message.getAttachments().isEmpty()) {
-			msg.setText(content);
+			msg.setContent(content, contentType);
 		} else {
-			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE), content.getBytes(ESBMessage.CHARSET_DEFAULT), false, false);
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, contentType, content.getBytes(ESBMessage.CHARSET_DEFAULT), false, false);
 			for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
 				MimeBodyPart bodyPart = iter.next();
 				MimeBodyPart att = new MimeBodyPart(); 

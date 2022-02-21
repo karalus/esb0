@@ -226,8 +226,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "sendMail": {
 			SendMail sendMail = (SendMail) actionElement.getValue();
-			addAction(list, new SendMailAction(globalContext, createProperties(sendMail.getProperty(), globalContext), resolveWorkerPool(sendMail.getWorkerPool()),
-					sendMail.getFrom(), sendMail.getTo(), sendMail.getCc(), sendMail.getBcc(), sendMail.getReplyTo(), sendMail.getSubject(), sendMail.getText()), location);
+			addAction(list, new SendMailAction(globalContext, createProperties(sendMail.getProperty(), globalContext), resolveWorkerPool(sendMail.getWorkerPool()), sendMail.getFrom(), sendMail.getTo(),
+					sendMail.getCc(), sendMail.getBcc(), sendMail.getReplyTo(), sendMail.getSubject(), sendMail.getText(), sendMail.getType(), sendMail.getUserName(), sendMail.getPassword()), location);
 			break;
 		}
 		case "executeJava": {
