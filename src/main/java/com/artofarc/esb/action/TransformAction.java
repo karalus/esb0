@@ -24,6 +24,8 @@ import javax.xml.namespace.QName;
 import javax.xml.transform.Source;
 import javax.xml.xquery.*;
 
+import org.w3c.dom.Text;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
@@ -232,11 +234,8 @@ public class TransformAction extends Action {
 	}
 
 	private static Object next(XQResultSequence resultSequence) throws XQException {
-		if (resultSequence.getItemType().getItemKind() == XQItemType.XQITEMKIND_TEXT) {
-			return resultSequence.getItemAsString(null);
-		} else {
-			return resultSequence.getObject();
-		}
+		final Object object = resultSequence.getObject();
+		return object instanceof Text ? ((Text) object).getData() : object;
 	}
 
 	@Override
