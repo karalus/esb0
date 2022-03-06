@@ -14,7 +14,7 @@ Features:
 - Can map between synchronous and asynchronous messages exchange patterns
 - Supports GZIP and [Fast Infoset](https://en.wikipedia.org/wiki/Fast_Infoset) encoding/decoding and MTOM/XOP
 - Uses resource- and thread pools for effective resource utilization, thus supporting QoS per service.
-- Includes a HTTP load balancer component with health check for outbound HTTP traffic
+- Includes a HTTP load balancer component with customizable health check for outbound HTTP traffic
 - New service flows and thread pools can be configured at runtime without service outage
 - Is performant like a network component. Can act at the speed of a reverse proxy (only few millis penalty) even when processing XML.
 - Outperforms most other Service Gateways when XML processing is needed.
@@ -26,7 +26,7 @@ Features:
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.9.0.
+Current stable version is 1.9.1.
 
 ### Design goals ###
 

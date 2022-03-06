@@ -19,7 +19,7 @@
 	<groupId>com.artofarc.eai</groupId>
 	<artifactId>esb0</artifactId>
 	<packaging>war</packaging>
-	<version>1.9.1-SNAPSHOT</version>
+	<version>1.9.2-SNAPSHOT</version>
 	<name>ESB Zero Maven Webapp</name>
 	<url>http://maven.apache.org</url>
 	<properties>
