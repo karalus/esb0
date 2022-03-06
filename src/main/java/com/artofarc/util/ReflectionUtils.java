@@ -181,7 +181,7 @@ public final class ReflectionUtils {
 				return (Constructor<T>) con;
 			}
 		}
-		throw new NoSuchMethodException();
+		throw new NoSuchMethodException(cls + " has no ctor for " + params);
 	}
 
 	@SuppressWarnings("unchecked")
