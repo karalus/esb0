@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +14,9 @@
  * limitations under the License.
  */
 package com.artofarc.esb.http;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 public class HttpConstants {
 
@@ -143,6 +145,20 @@ public class HttpConstants {
 			return (type != null ? type : getValueFromHttpHeader(contentType)).toLowerCase();
 		}
 		return null;
+	}
+
+	public static String getFilename(String contentDisposition) throws UnsupportedEncodingException {
+		// https://www.rfc-editor.org/rfc/rfc5987
+		String filename = getValueFromHttpHeader(contentDisposition, "filename*=");
+		if (filename != null) {
+			int i = filename.indexOf('\'');
+			String enc = filename.substring(0, i);
+			// skip locale
+			i = filename.indexOf('\'', i + 1);
+			return URLDecoder.decode(filename.substring(i + 1), enc);
+		} else {
+			return getValueFromHttpHeader(contentDisposition, "filename=");
+		}
 	}
 
 	public static boolean isFastInfoset(String contentType) {

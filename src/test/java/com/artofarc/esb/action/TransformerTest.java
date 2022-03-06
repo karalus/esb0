@@ -34,6 +34,19 @@ public class TransformerTest extends AbstractESBTest {
 	}
 
 	@Test
+	public void testTransformWithParam() throws Exception {
+		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
+		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
+		xsltArtifact.validateInternal(getGlobalContext());
+		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new XSLTAction(xsltArtifact.getTemplates(), xsltArtifact.getParams()), new TransformAction(
+				"."), new DumpAction());
+		consumerPort.process(context, message);
+	}
+
+	@Test
 	public void testTransformStart() throws Exception {
 		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));

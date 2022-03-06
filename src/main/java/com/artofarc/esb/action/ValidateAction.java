@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,15 +23,18 @@ import javax.xml.validation.Schema;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQResultSequence;
 
+import org.xml.sax.ContentHandler;
+
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
+import com.artofarc.util.XopAwareValidatorHandler;
 
 public class ValidateAction extends AssignAction {
 
 	private final Schema _schema;
 
 	public ValidateAction(Schema schema, String expression, Collection<Map.Entry<String, String>> namespaces, String contextItem) {
-		super(null, expression, namespaces, Collections.<XQDecl> emptyList(), contextItem);
+		super(null, expression, namespaces, Collections.<XQDecl>emptyList(), contextItem);
 		_schema = schema;
 	}
 
@@ -40,7 +42,8 @@ public class ValidateAction extends AssignAction {
 	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws ExecutionException {
 		try {
 			checkNext(resultSequence, "expression");
-			resultSequence.writeItemToSAX(_schema.newValidatorHandler());
+			ContentHandler saxhdlr = message.getAttachments().isEmpty() ? _schema.newValidatorHandler() : new XopAwareValidatorHandler(_schema, message.getAttachments().keySet());
+			resultSequence.writeItemToSAX(saxhdlr);
 		} catch (XQException e) {
 			throw new ExecutionException(this, "Validation failed", e.getCause());
 		}

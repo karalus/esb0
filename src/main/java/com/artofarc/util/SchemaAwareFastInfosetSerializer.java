@@ -112,7 +112,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 		}
 
 		private boolean isXSType(String type) {
-			return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_LIST);
+			return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_EXTENSION | TypeInfo.DERIVATION_LIST);
 		}
 
 		@Override

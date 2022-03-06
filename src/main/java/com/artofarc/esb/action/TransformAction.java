@@ -22,6 +22,7 @@ import java.util.Set;
 
 import javax.xml.namespace.QName;
 import javax.xml.transform.Source;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.xquery.*;
 
 import org.w3c.dom.Text;
@@ -29,6 +30,7 @@ import org.w3c.dom.Text;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
+import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.XQuerySource;
@@ -132,9 +134,16 @@ public class TransformAction extends Action {
 		XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
 		for (int i = 0; i < externalVariables.length; ++i) {
 			QName name = externalVariables[i];
-			Object value = resolve(message, name.getLocalPart(), true);
-			if (value == null && _checkNotNull.contains(name.getLocalPart())) {
-				throw new ExecutionException(this, "Must not be null: " + name);
+			Object value;
+			if (name.getLocalPart().equals("attachmentsHull")) {
+				value = new SAXSource(new Attachments2SAX(message, false), null);
+			} else if (name.getLocalPart().equals("attachments")) {
+				value = new SAXSource(new Attachments2SAX(message, true), null);
+			} else {
+				value = resolve(message, name.getLocalPart(), true);
+				if (value == null && _checkNotNull.contains(name.getLocalPart())) {
+					throw new ExecutionException(this, "Must not be null: " + name);
+				}
 			}
 			bind(context, xqExpression, name, externalVariableTypes[i], value);
 		}

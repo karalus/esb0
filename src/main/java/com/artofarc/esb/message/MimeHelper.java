@@ -144,7 +144,9 @@ public final class MimeHelper {
 					if (content instanceof String) {
 						message.putVariable(dispositionName, content);
 					} else {
-						message.addAttachment(dispositionName, bodyPart);
+						cid = getFilename(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null));
+						bodyPart.setContentID('<' + cid + '>');
+						message.addAttachment(cid, bodyPart);
 					}
 				}
 			}

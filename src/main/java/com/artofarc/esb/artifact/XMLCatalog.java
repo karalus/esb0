@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -98,16 +97,6 @@ public final class XMLCatalog extends Directory {
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "soap12.xsd");
 				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
 				xmlCatalog.addSchemaArtifact("http://www.w3.org/2003/05/soap-envelope", xsdArtifact);
-			}
-			{
-				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "xop-include.xsd");
-				xsdArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("xop-include.xsd")));
-				xmlCatalog.addSchemaArtifact("http://www.w3.org/2004/08/xop/include", xsdArtifact);
-			}
-			{
-				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "xmlmime.xsd");
-				xsdArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("xmlmime.xsd")));
-				xmlCatalog.addSchemaArtifact("http://www.w3.org/2005/05/xmlmime", xsdArtifact);
 			}
 		} catch (IOException | XPathExpressionException | TransformerException e) {
 			throw new RuntimeException(e);

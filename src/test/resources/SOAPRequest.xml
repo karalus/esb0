@@ -1,5 +1,7 @@
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:v1="http://aoa.de/xsd/demo/v1/" xmlns:dem="http://aoa.de/service/demo/Demo1/">
-   <soapenv:Header/>
+   <soapenv:Header>
+      <test xmlns="http://aoa.de/test">In Header</test>
+   </soapenv:Header>
    <soapenv:Body>
       <v1:demoElementRequest xmlns:v1="http://aoa.de/xsd/demo/v1/" >
          <v12:messageHeader xmlns:v12="http://aoa.de/ei/foundation/v1">

@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -40,11 +39,11 @@ import com.artofarc.util.XMLFilterBase;
 public final class Attachments2SAX extends XMLFilterBase {
 
 	private final Iterator<Entry<String, MimeBodyPart>> _iterator;
-	private final boolean _remove;
+	private final boolean _consume;
 
-	public Attachments2SAX(ESBMessage message, boolean remove) {
+	public Attachments2SAX(ESBMessage message, boolean consume) {
 		_iterator = message.getAttachments().entrySet().iterator();
-		_remove = remove;
+		_consume = consume;
 	}
 
 	@Override
@@ -55,20 +54,28 @@ public final class Attachments2SAX extends XMLFilterBase {
 		while (_iterator.hasNext()) {
 			Entry<String, MimeBodyPart> entry = _iterator.next();
 			String cid = "cid:" + URLEncoder.encode(entry.getKey(), "UTF-8");
-			if (atts.getLength() == 0) {
-				atts.addAttribute(XMLConstants.NULL_NS_URI, "cid", "cid", "CDATA", cid);
-			} else {
-				atts.setAttribute(0, XMLConstants.NULL_NS_URI, "cid", "cid", "CDATA", cid);
-			}
-			startElement(XMLConstants.NULL_NS_URI, "attachment", "attachment", atts);
-			try (InputStream is = entry.getValue().getInputStream()) {
-				if (_remove) {
-					_iterator.remove();
-				}
-				entry = null;
-				characters(DatatypeConverter.printBase64Binary(IOUtils.copy(is)));
+			String contentType;
+			try {
+				contentType = entry.getValue().getContentType();
 			} catch (MessagingException e) {
 				throw new SAXException(e);
+			}
+			if (atts.getLength() == 0) {
+				atts.addAttribute(XMLConstants.NULL_NS_URI, "cid", "cid", "CDATA", cid);
+				atts.addAttribute(XMLConstants.NULL_NS_URI, "contentType", "contentType", "CDATA", contentType);
+			} else {
+				atts.setAttribute(0, XMLConstants.NULL_NS_URI, "cid", "cid", "CDATA", cid);
+				atts.setAttribute(1, XMLConstants.NULL_NS_URI, "contentType", "contentType", "CDATA", contentType);
+			}
+			startElement(XMLConstants.NULL_NS_URI, "attachment", "attachment", atts);
+			if (_consume) {
+				try (InputStream is = entry.getValue().getInputStream()) {
+					_iterator.remove();
+					entry = null;
+					characters(DatatypeConverter.printBase64Binary(IOUtils.copy(is)));
+				} catch (MessagingException e) {
+					throw new SAXException(e);
+				}
 			}
 			endElement(XMLConstants.NULL_NS_URI, "attachment", "attachment");
 		}

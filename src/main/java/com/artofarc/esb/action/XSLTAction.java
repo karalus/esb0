@@ -21,7 +21,6 @@ import java.util.List;
 import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
@@ -34,6 +33,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.XMLFilterBase;
@@ -63,17 +63,17 @@ public class XSLTAction extends SAXAction {
 			}
 			transformer.setURIResolver(context.getGlobalContext().getURIResolver());
 			for (String param : _params) {
-				Object value = message.getVariable(param);
-				if (value instanceof Node) {
-					// We need to make a copy otherwise Saxon complains with:
-					// "A node supplied in a global parameter must be built using the same Configuration that was used to compile the stylesheet or query"
-					DOMResult domResult = new DOMResult();
-					context.transformRaw(new DOMSource((Node) value), domResult);
-					value = domResult.getNode();
-				} else if (value == null) {
-					value = "";
+				if (param.equals("attachmentsHull")) {
+					transformer.setParameter(param, new SAXSource(new Attachments2SAX(message, false), null));
+				} else if (param.equals("attachments")) {
+					transformer.setParameter(param, new SAXSource(new Attachments2SAX(message, true), null));
+				} else {
+					Object value = message.getVariable(param, "");
+					if (value instanceof Node) {
+						value = new DOMSource((Node) value);
+					}
+					transformer.setParameter(param, value);
 				}
-				transformer.setParameter(param, value);
 			}
 		}
 
