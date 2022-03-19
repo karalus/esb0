@@ -15,8 +15,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,9 +22,10 @@ import java.util.TreeMap;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.HttpQueryHelper;
-import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.util.URLUtils;
 
 public class BranchOnPathAction extends Action {
 
@@ -120,7 +119,7 @@ public class BranchOnPathAction extends Action {
 			}
 		}
 
-		public Map<String, String> match(String path) throws UnsupportedEncodingException {
+		public Map<String, String> match(String path) {
 			final Map<String, String> result = new HashMap<>();
 			int pos = 0;
 			for (int i = 0; i < _list.size(); ) {
@@ -134,14 +133,14 @@ public class BranchOnPathAction extends Action {
 							// path is longer
 							return null;
 						}
-						result.put(item, URLDecoder.decode(path.substring(pos), "UTF-8"));
+						result.put(item, URLUtils.decode(path.substring(pos)));
 						pos = path.length();
 					} else {
 						if (j < 0) {
 							// path too short
 							return null;
 						}
-						result.put(item, URLDecoder.decode(path.substring(pos, j), "UTF-8"));
+						result.put(item, URLUtils.decode(path.substring(pos, j)));
 						pos = j;
 					}
 				} else {

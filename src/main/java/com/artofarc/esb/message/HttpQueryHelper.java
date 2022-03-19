@@ -15,20 +15,17 @@
  */
 package com.artofarc.esb.message;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 
+import com.artofarc.util.URLUtils;
+
 public class HttpQueryHelper {
 
-	private static final String UTF_8 = "UTF-8";
-
 	@SuppressWarnings("unchecked")
-	public static void parseQueryString(ESBMessage message, boolean generic) throws UnsupportedEncodingException {
+	public static void parseQueryString(ESBMessage message, boolean generic) {
 		String queryString = message.getVariable(ESBConstants.QueryString);
 		if (queryString != null) {
 			int count = 0;
@@ -38,10 +35,10 @@ public class HttpQueryHelper {
 				final int i = pair.indexOf("=");
 				final String key, value;
 				if (i > 0) {
-					key = URLDecoder.decode(pair.substring(0, i), UTF_8);
-					value = URLDecoder.decode(pair.substring(i + 1), UTF_8);
+					key = URLUtils.decode(pair.substring(0, i));
+					value = URLUtils.decode(pair.substring(i + 1));
 				} else {
-					key = URLDecoder.decode(pair, UTF_8);
+					key = URLUtils.decode(pair);
 					value = null;
 				}
 				if (generic) {
@@ -70,7 +67,7 @@ public class HttpQueryHelper {
 		}
 	}
 
-	public static String getQueryString(ESBMessage message) throws UnsupportedEncodingException {
+	public static String getQueryString(ESBMessage message) {
 		String queryString = message.getVariable(ESBConstants.QueryString);
 		if (queryString == null || queryString.isEmpty()) {
 			queryString = null;
@@ -82,7 +79,7 @@ public class HttpQueryHelper {
 					String varName = st.nextToken();
 					Object value = message.getVariables().get(varName);
 					if (value != null) {
-						varName = URLEncoder.encode(varName, UTF_8);
+						varName = URLUtils.encode(varName);
 						if (value instanceof Iterable) {
 							for (Object object : (Iterable<?>) value) {
 								append(qs, varName, object);
@@ -100,14 +97,14 @@ public class HttpQueryHelper {
 		return queryString;
 	}
 
-	private static void append(StringBuilder sb, String key, Object value) throws UnsupportedEncodingException {
+	private static void append(StringBuilder sb, String key, Object value) {
 		if (value instanceof XMLGregorianCalendar) {
 			com.artofarc.esb.json.Xml2JsonTransformer.omitTZfromDate((XMLGregorianCalendar) value);
 		}
 		if (sb.length() > 0) {
 			sb.append('&');
 		}
-		sb.append(key).append('=').append(URLEncoder.encode(value.toString(), UTF_8));
+		sb.append(key).append('=').append(URLUtils.encode(value.toString()));
 	}
 
 }

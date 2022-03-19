@@ -293,6 +293,7 @@ public class XSOMTest extends AbstractESBTest {
 		JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(System.out);
 		
 		//generator.generate("{http://aoa.de/ei/foundation/v1}propertyListType", jsonGenerator);
+		//generator.generate("/type::demoType/model::sequence/element::payload", jsonGenerator);
 		generator.generate("/type::demoType", jsonGenerator);
 		jsonGenerator.close();
 	}

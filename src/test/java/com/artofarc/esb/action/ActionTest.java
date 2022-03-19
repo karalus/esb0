@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
@@ -210,6 +211,24 @@ public class ActionTest extends AbstractESBTest {
 		action.addAssignment("_dummy", false, "${array.add(value))}", null, null, null);
 		action.setNextAction(new DumpAction());
 		action.process(context, message);
+	}
+
+	@Test
+	public void testSetMakeJSONArray() throws Exception {
+		String msgStr = "{\"name\":\"esb0\",\"alive\":true,\"surname\":null,\"no\":1,\"amount\":5.0,\"foo\":[\"<bar/>\",\"baz\"]}";
+		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
+		ProcessJsonAction processJsonAction = new ProcessJsonAction(null);
+		processJsonAction.addVariable("foes", "/foo/0");
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("_builder", false, "", "javax.json.Json", "createArrayBuilder", null);
+		action.addAssignment("_builder", false, "${_builder.add(foes}", null, null, null);
+		action.addAssignment("test", false, "Str: ${_builder.build.toString}", null, null, null);
+	      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("foes", null, null);
+	      branchOnVariableAction.addBranchRegEx("<.*", action);
+	      branchOnVariableAction.setNextAction(new DumpAction());
+		processJsonAction.setNextAction(branchOnVariableAction);
+		action.setNextAction(new DumpAction());
+		processJsonAction.process(context, message);
 	}
 
 	@Test

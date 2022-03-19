@@ -15,7 +15,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -28,6 +27,7 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.JsonFactoryHelper;
+import com.artofarc.util.URLUtils;
 
 /**
  * Extract data from message using JSON Pointer.
@@ -92,11 +92,7 @@ public class ProcessJsonAction extends Action {
 			_name = name;
 			StringTokenizer st = new StringTokenizer(jsonPointer, "/");
 			while (st.hasMoreTokens()) {
-				try {
-					_pointer.add(java.net.URLDecoder.decode(st.nextToken().replace("~1","/").replace("~0", "~"), "UTF-8"));
-				} catch (UnsupportedEncodingException e) {
-					//
-				}
+				_pointer.add(URLUtils.decode(st.nextToken().replace("~1","/").replace("~0", "~")));
 			}
 			// needs javax.json v1.1 (JSR 374)
 			//_jsonPointer = Json.createPointer(jsonPointer);

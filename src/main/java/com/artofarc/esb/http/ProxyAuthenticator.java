@@ -21,8 +21,9 @@ import java.net.InetSocketAddress;
 import java.net.PasswordAuthentication;
 import java.net.Proxy;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.artofarc.util.URLUtils;
 
 public class ProxyAuthenticator extends Authenticator {
 
@@ -33,8 +34,8 @@ public class ProxyAuthenticator extends Authenticator {
 		Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(url.getHost(), url.getPort()));
 		if (url.getUserInfo() != null) {
 			int i = url.getUserInfo().indexOf(':');
-			String user = URLDecoder.decode(url.getUserInfo().substring(0, i), "UTF-8");
-			String password = URLDecoder.decode(url.getUserInfo().substring(i + 1), "UTF-8");
+			String user = URLUtils.decode(url.getUserInfo().substring(0, i));
+			String password = URLUtils.decode(url.getUserInfo().substring(i + 1));
 			PasswordAuthentication old = _map.put(proxy, new PasswordAuthentication(user, password.toCharArray()));
 			if (old != null && !old.getUserName().equals(user)) {
 				HttpEndpointRegistry.logger.warn("Proxy user has changed for " + proxy);

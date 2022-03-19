@@ -11,6 +11,7 @@ import com.artofarc.esb.ConsumerPort;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.URLUtils;
 
 
 public class EncodingTest extends AbstractESBTest {
@@ -38,4 +39,10 @@ public class EncodingTest extends AbstractESBTest {
 		assertEquals("urn:listShipments", getValueFromHttpHeader("application/soap+xml;charset=UTF-8;action=\"urn:listShipments\"", HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION));
 	}
 
+	@Test
+	public void testPathEncoding() throws Exception {
+		assertEquals("root%2Fbook%20name+m", URLUtils.encodePathSegment("root/book name+m"));
+		assertEquals("root%2Fbook+name%2Bm", URLUtils.encode("root/book name+m"));
+	}
+	
 }

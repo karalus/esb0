@@ -17,7 +17,6 @@ package com.artofarc.esb.message;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -31,6 +30,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
 import com.artofarc.util.IOUtils;
+import com.artofarc.util.URLUtils;
 import com.artofarc.util.XMLFilterBase;
 
 /**
@@ -53,7 +53,7 @@ public final class Attachments2SAX extends XMLFilterBase {
 		startElement(XMLConstants.NULL_NS_URI, "attachments", "attachments", atts);
 		while (_iterator.hasNext()) {
 			Entry<String, MimeBodyPart> entry = _iterator.next();
-			String cid = "cid:" + URLEncoder.encode(entry.getKey(), "UTF-8");
+			String cid = "cid:" + URLUtils.encode(entry.getKey());
 			String contentType;
 			try {
 				contentType = entry.getValue().getContentType();
