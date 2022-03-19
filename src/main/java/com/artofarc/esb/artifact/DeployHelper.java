@@ -19,6 +19,7 @@ import java.util.List;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.FileWatchEventConsumer;
+import com.artofarc.esb.KafkaConsumerPort;
 import com.artofarc.esb.TimerService;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
@@ -53,6 +54,11 @@ public final class DeployHelper {
 				FileWatchEventConsumer fileWatchEventConsumer = service.getConsumerPort();
 				globalContext.unbindFileWatchEventService(fileWatchEventConsumer);
 				fileWatchEventConsumer.close();
+				break;
+			case KAFKA:
+				KafkaConsumerPort kafkaConsumerPort = service.getConsumerPort();
+				globalContext.unbindKafkaConsumer(kafkaConsumerPort);
+				kafkaConsumerPort.close();
 				break;
 			case TIMER:
 				TimerService timerService = service.getConsumerPort();
@@ -130,6 +136,14 @@ public final class DeployHelper {
 					closer.closeAsync(oldConsumerPort);
 				}
 				fileWatchEventConsumer.init(globalContext);
+				break;
+			case KAFKA:
+				KafkaConsumerPort kafkaConsumerPort = service.getConsumerPort();
+				oldConsumerPort = globalContext.bindKafkaConsumer(kafkaConsumerPort);
+				if (oldConsumerPort != null) {
+					closer.closeAsync(oldConsumerPort);
+				}
+				kafkaConsumerPort.init(globalContext);
 				break;
 			case TIMER:
 				TimerService timerService = service.getConsumerPort();
