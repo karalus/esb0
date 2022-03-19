@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,11 +27,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.*;
 import javax.naming.NamingException;
+import javax.xml.datatype.XMLGregorianCalendar;
 
-import com.artofarc.esb.ConsumerPort;
+import com.artofarc.esb.SchedulingConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
@@ -44,7 +43,7 @@ import com.artofarc.util.ConcurrentResourcePool;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.ReflectionUtils;
 
-public final class JMSConsumer extends ConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
+public final class JMSConsumer extends SchedulingConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	static class BytesMessageInputStream extends InputStream implements IOUtils.PredictableInputStream{
 		final BytesMessage _bytesMessage;
@@ -104,8 +103,6 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		}
 	}
 
-	private final String _workerPoolName;
-	private WorkerPool _workerPool; 
 	private final JMSConnectionData _jmsConnectionData;
 	private Destination _destination;
 	private final String _queueName;
@@ -114,7 +111,6 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 	private final boolean _shared;
 	private final String _messageSelector;
 	private final JMSWorker[] _jmsWorker;
-	private final long _pollInterval;
 	private final Integer _maximumRetries;
 	private final ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException> _retries;
 	private final Long _redeliveryDelay;
@@ -132,10 +128,9 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 	private Future<?> _control;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, String subscription,
-			boolean shared, String messageSelector, int workerCount, int minWorkerCount, long pollInterval, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
+			boolean shared, String messageSelector, int workerCount, int minWorkerCount, long pollInterval, String timeUnit, XMLGregorianCalendar at, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
 
-		super(uri);
-		_workerPoolName = workerPool;
+		super(uri, workerPool, at, timeUnit, pollInterval, false);
 		_jmsConnectionData = jmsConnectionData;
 		_messageSelector = globalContext.bindProperties(messageSelector);
 		if (jndiDestination != null) {
@@ -159,7 +154,6 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		_subscription = subscription;
 		_shared = shared;
 		_jmsWorker = new JMSWorker[workerCount];
-		_pollInterval = pollInterval;
 		_maximumRetries = maximumRetries;
 		if (maximumRetries != null) {
 			_retries = new ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException>() {
@@ -219,13 +213,12 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		return getKey().compareTo(o.getKey());
 	}
 
-	@Override
 	public synchronized void init(GlobalContext globalContext) throws JMSException {
-		_workerPool = globalContext.getWorkerPool(_workerPoolName);
+		initWorkerPool(globalContext);
 		// distribute evenly over poll interval
-		long initialDelay = _pollInterval / _jmsWorker.length;
+		long delay = _period / _jmsWorker.length;
 		for (; _workerCount < _minWorkerCount; ++_workerCount) {
-			_jmsWorker[_workerCount] = _pollInterval > 0L ? new JMSPollingWorker(initialDelay * _workerCount) : new JMSWorker();
+			_jmsWorker[_workerCount] = _period > 0L ? new JMSPollingWorker(delay * _workerCount) : new JMSWorker();
 		}
 		JMSConnectionProvider jmsConnectionProvider = _workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 		jmsConnectionProvider.registerJMSConsumer(_jmsConnectionData, this, super.isEnabled());
@@ -243,7 +236,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		boolean notBusy = _control == null || _control.isDone();
 		if (_operating && _workerCount < _jmsWorker.length && sentReceiveDelay > _rampUpThreshold && notBusy && _lastControlChange + _rampUpDelay < receiveTimestamp) {
 			// add Worker
-			final JMSWorker jmsWorker = _pollInterval > 0L ? new JMSPollingWorker(0L) : new JMSWorker();
+			final JMSWorker jmsWorker = _period > 0L ? new JMSPollingWorker(0L) : new JMSWorker();
 			_control = _workerPool.getExecutorService().submit(() -> {
 				try {
 					jmsWorker.open();
@@ -512,7 +505,7 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		void startListening() throws JMSException {
 			initMessageConsumer();
 			if (_messageConsumer != null) {
-				_poller = _workerPool.getExecutorService().submit(this);
+				_poller = schedule(this, _initialDelay);
 			}
 		}
 
@@ -527,13 +520,12 @@ public final class JMSConsumer extends ConsumerPort implements Comparable<JMSCon
 		@Override
 		public void run() {
 			try {
-				Thread.sleep(_initialDelay);
-				for (long last = System.nanoTime();;) {
-					Message message = _messageConsumer.receiveNoWait();
-					if (message == null || !processMessage(message)) {
-						Thread.sleep(_pollInterval - (System.nanoTime() - last) / 1000000L % _pollInterval);
-						last = System.nanoTime();
-					}
+				Message message;
+				do {
+					message = _messageConsumer.receiveNoWait();
+				} while (message != null && processMessage(message));
+				if (needsReschedule()) {
+					_poller = schedule(this, _initialDelay);
 				}
 			} catch (JMSException e) {
 				JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);

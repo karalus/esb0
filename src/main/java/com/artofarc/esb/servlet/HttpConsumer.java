@@ -70,7 +70,6 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 		return _contextPool;
 	}
 
-	@Override
 	public void init(GlobalContext globalContext) {
 		PoolContext poolContext = globalContext.getDefaultWorkerPool().getPoolContext();
 		_contextPool = new ContextPool(poolContext, _minPool, _maxPool, _keepAlive, false);

@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +20,7 @@ import java.util.List;
 
 import javax.xml.bind.DatatypeConverter;
 
-import com.artofarc.esb.TimerService;
+import com.artofarc.esb.SchedulingConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
@@ -83,7 +82,7 @@ public class CacheAction extends Action {
 								ttl = Long.parseLong(_ttl);
 							} catch (NumberFormatException e) {
 								Calendar time = DatatypeConverter.parseTime(_ttl);
-								ttl = TimerService.millisUntilNext(time.get(Calendar.HOUR_OF_DAY), time.get(Calendar.MINUTE), time.get(Calendar.SECOND), time.getTimeZone()) / 1000;
+								ttl = SchedulingConsumerPort.millisUntilNext(time.get(Calendar.HOUR_OF_DAY), time.get(Calendar.MINUTE), time.get(Calendar.SECOND), time.getTimeZone()) / 1000;
 							}
 						} else {
 							ttl = this.<Number> resolve(message, _ttl, true).longValue();

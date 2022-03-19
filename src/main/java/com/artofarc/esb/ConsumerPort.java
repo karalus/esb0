@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.action.JDBCAction;
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.ESBMessage;
 
 public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.ConsumerPortMXBean {
@@ -74,9 +73,6 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	public final Action setServiceFlow(List<Action> service) {
 		_serviceFlow = service;
 		return _startAction = Action.linkList(service);
-	}
-
-	public void init(GlobalContext globalContext) throws Exception {
 	}
 
 	public void process(Context context, ESBMessage message) throws Exception {
