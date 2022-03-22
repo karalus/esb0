@@ -16,6 +16,7 @@
 package com.artofarc.esb;
 
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +40,7 @@ public abstract class SchedulingConsumerPort extends ConsumerPort {
 		super(uri);
 		_workerPoolName = workerPool;
 		_at = at;
-		_timeUnit = TimeUnit.valueOf(timeUnit.toUpperCase());
+		_timeUnit = TimeUnit.valueOf(timeUnit.toUpperCase(Locale.ROOT));
 		_period = at != null ? _timeUnit.toMillis(period) : period;
 		_fixedDelay = fixedDelay;
 	}

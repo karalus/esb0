@@ -17,6 +17,7 @@ package com.artofarc.esb.http;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.Locale;
 
 public class HttpConstants {
 
@@ -142,7 +143,7 @@ public class HttpConstants {
 	public static String parseContentType(String contentType) {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);
-			return (type != null ? type : getValueFromHttpHeader(contentType)).toLowerCase();
+			return (type != null ? type : getValueFromHttpHeader(contentType)).toLowerCase(Locale.ROOT);
 		}
 		return null;
 	}

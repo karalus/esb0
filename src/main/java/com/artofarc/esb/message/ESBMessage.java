@@ -28,6 +28,7 @@ import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -77,7 +78,7 @@ public final class ESBMessage implements Cloneable {
 	private static String toLowerCase(String headerName) {
 		String result = HEADER_NAMES.get(headerName);
 		if (result == null) {
-			result = headerName.toLowerCase().replace('_', '-');
+			result = headerName.toLowerCase(Locale.ROOT).replace('_', '-');
 			HEADER_NAMES.put(headerName, result);
 		}
 		return result;
