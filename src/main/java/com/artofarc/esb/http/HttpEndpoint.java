@@ -18,6 +18,7 @@ package com.artofarc.esb.http;
 import java.net.Proxy;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Objects;
 
 public final class HttpEndpoint {
 
@@ -112,12 +113,8 @@ public final class HttpEndpoint {
 	}
 
 	public boolean hasSameConfig(HttpEndpoint other) {
-		return _endpoints.equals(other._endpoints) && _connectionTimeout == other._connectionTimeout && _retries == other._retries && isEqual(_checkAliveInterval, other._checkAliveInterval)
-			&& isEqual(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy) && isEqual(_checkAlive, other._checkAlive);
-	}
-
-	private static boolean isEqual(Object i, Object j) {
-		return i == null && j == null || i != null && i.equals(j);
+		return _endpoints.equals(other._endpoints) && _connectionTimeout == other._connectionTimeout && _retries == other._retries && Objects.equals(_checkAliveInterval, other._checkAliveInterval)
+			&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy) && Objects.equals(_checkAlive, other._checkAlive);
 	}
 
 }

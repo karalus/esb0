@@ -29,6 +29,8 @@ import com.artofarc.util.XQuerySource;
 public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
 	private final String _name;
+	private final int _queueDepth, _scheduledThreads;
+	private final boolean _allowCoreThreadTimeOut;
 	private final PoolContext _poolContext;
 	private final ContextPool _contextPool;
 	private final WorkerPoolThreadFactory _threadFactory;
@@ -40,6 +42,9 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 
 	public WorkerPool(PoolContext poolContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
 		_name = name;
+		_queueDepth = queueDepth;
+		_scheduledThreads = scheduledThreads;
+		_allowCoreThreadTimeOut = allowCoreThreadTimeOut;
 		_contextPool = new ContextPool(_poolContext = poolContext, minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L, true);
 		if (maxThreads > 0 || scheduledThreads > 0) {
 			_threadFactory = new WorkerPoolThreadFactory(name, priority);
@@ -68,6 +73,15 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 
 	WorkerPool(GlobalContext globalContext, String name, int nThreads) {
 		this(new PoolContext(globalContext, name), name, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
+	}
+
+	public boolean tryUpdate(int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
+		if (maxThreads > 0 && getMaximumPoolSize() < 0 || queueDepth != _queueDepth || scheduledThreads != _scheduledThreads || allowCoreThreadTimeOut != _allowCoreThreadTimeOut) {
+			return false;
+		}
+		setCorePoolSize(minThreads);
+		setMaximumPoolSize(maxThreads);
+		return true;
 	}
 
 	public String getName() {
@@ -166,6 +180,10 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 
 	public int getRemainingCapacity() {
 		return _executorService != null ? _executorService.getQueue().remainingCapacity() : -1;
+	}
+
+	public int getScheduledThreadPoolSize() {
+		return _scheduledThreads;
 	}
 
 	public int getAsyncProcessingPoolSize() {

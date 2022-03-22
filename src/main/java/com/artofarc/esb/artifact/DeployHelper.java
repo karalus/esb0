@@ -86,20 +86,33 @@ public final class DeployHelper {
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
 			WorkerPool oldWorkerPool = globalContext.getWorkerPool(name);
 			if (oldWorkerPool != null) {
-				globalContext.putWorkerPool(name, new WorkerPool(oldWorkerPool.getPoolContext(), name, wpDef.getMinThreads(), wpDef.getMaxThreads(),
-						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
-				// close later
-				closer.add(oldWorkerPool);
+				if (!oldWorkerPool.tryUpdate(wpDef.getMinThreads(), wpDef.getMaxThreads(),
+						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut())) {
+
+					globalContext.putWorkerPool(name, new WorkerPool(oldWorkerPool.getPoolContext(), name, wpDef.getMinThreads(), wpDef.getMaxThreads(),
+							wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
+					// close later
+					closer.add(oldWorkerPool);
+				}
 			} else {
 				globalContext.putWorkerPool(name, new WorkerPool(globalContext, name, wpDef.getMinThreads(), wpDef.getMaxThreads(),
 						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
 			}
 		}
-		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
-			Object oldDataSource = globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
+		outer: for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
+			Object oldDataSource = null;
+			try {
+				oldDataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
+			} catch (javax.naming.NamingException e) {
+				// ignore
+			}
 			if (DataSourceArtifact.isDataSource(oldDataSource)) {
+				if (dataSourceArtifact.tryUpdate(oldDataSource)) {
+					continue outer;
+				}
 				closer.add((AutoCloseable) oldDataSource);
 			}
+			globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
 		}
 		for (ServiceArtifact service : serviceArtifacts) {
 			ConsumerPort oldConsumerPort;

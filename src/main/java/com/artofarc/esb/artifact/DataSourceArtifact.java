@@ -15,12 +15,17 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Objects;
+
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.service.DataSource;
 import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariConfigMXBean;
 import com.zaxxer.hikari.HikariDataSource;
 
-public class DataSourceArtifact extends AbstractServiceArtifact {
+public final class DataSourceArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "dsdef";
 
@@ -64,6 +69,30 @@ public class DataSourceArtifact extends AbstractServiceArtifact {
 		_dataSourceName = dataSource.getName();
 		_hikariConfig = new HikariConfig(createProperties(dataSource.getProperty(), globalContext));
 		_hikariConfig.validate();
+	}
+
+	boolean tryUpdate(Object other) {
+		Object[] EMPTY_OBJECT_ARRAY = new Object[0];
+		outer: for (Method method : HikariConfig.class.getDeclaredMethods()) {
+			String name = method.getName();
+			if (Modifier.isPublic(method.getModifiers()) && (name.startsWith("get") || name.startsWith("is"))) {
+				try {
+					Object newValue = method.invoke(_hikariConfig, EMPTY_OBJECT_ARRAY);
+					if (!Objects.equals(method.invoke(other, EMPTY_OBJECT_ARRAY), newValue)) {
+						for (Method methodMX : HikariConfigMXBean.class.getMethods()) {
+							if (methodMX.getParameterCount() == 1 && methodMX.getName().endsWith(name.substring(2))) {
+								methodMX.invoke(other, new Object[] { newValue });
+								continue outer;
+							}
+						}
+						return false;
+					}
+				} catch (ReflectiveOperationException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+		return true;
 	}
 
 }
