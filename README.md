@@ -134,3 +134,12 @@ Optional
 - For using Kafka you need the [Kafka Java Client](https://cwiki.apache.org/confluence/display/KAFKA/Clients)
 - For using ActiveMQ as JMS provider you need to include it into your Servlet Container
 - For using Oracle AQ or IBM MQ as JMS provider refer to [aq-jndi](https://github.com/karalus/aq-jndi)
+
+### Roadmap ###
+
+__1.10__ (summer 2022):
+- Bugfix: DumpAction may corrupt message exchange (e.g. when using FastInfoSet)
+- Feature: https://github.com/karalus/esb0/issues/5
+
+__1.11__ (winter 2022):
+- Optimized for Java 11 and later (deprecate support for Java 8)
