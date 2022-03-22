@@ -16,6 +16,7 @@
 package com.artofarc.esb.action;
 
 import java.util.Iterator;
+import java.util.List;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -41,10 +42,13 @@ public class IterateAction extends Action {
 		Iterator<?> iterator = message.getVariable(_iterName);
 		if (iterator == null) {
 			Object iterable = bindVariable(_iterExp, context, message);
-			if (!(iterable instanceof Iterable)) {
+			if (iterable instanceof List) {
+				iterator = ((List<?>) iterable).listIterator();
+			} else if (iterable instanceof Iterable) {
+				iterator = ((Iterable<?>) iterable).iterator();
+			} else {
 				throw new ExecutionException(this, _iterExp + " is not an Iterable, but " + iterable.getClass());
 			}
-			iterator = ((Iterable<?>) iterable).iterator();
 			message.putVariable(_iterName, iterator);
 		}
 		return new ExecutionContext(iterator);

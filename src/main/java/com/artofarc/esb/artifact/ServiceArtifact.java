@@ -465,7 +465,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "iterate":
 			Iterate iterate = (Iterate) actionElement.getValue();
-			IterateAction iterateAction = new IterateAction(iterate.getIterable(), "_iter" + location, iterate.isRemove(), iterate.getVariable(), Action.linkList(transform(globalContext, iterate.getAction(), null)));
+			String iterName = iterate.getIterName() != null ? iterate.getIterName() : "_iter" + location;
+			IterateAction iterateAction = new IterateAction(iterate.getIterable(), iterName, iterate.isRemove(), iterate.getVariable(), Action.linkList(transform(globalContext, iterate.getAction(), null)));
 			addAction(list, iterateAction, location);
 			break;
 		case "branchOnVariable": {

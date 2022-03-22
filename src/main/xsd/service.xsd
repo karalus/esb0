@@ -401,6 +401,7 @@
 						<element ref="tns:action" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="iterable" type="tns:string1" use="required" />
+					<attribute name="iterName" type="tns:string1" />
 					<attribute name="variable" type="tns:identifier" use="required"  />
 					<attribute name="remove" type="boolean" default="false" />
 				</extension>
