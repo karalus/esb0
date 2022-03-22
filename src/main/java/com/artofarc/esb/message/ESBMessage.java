@@ -801,10 +801,7 @@ public final class ESBMessage implements Cloneable {
 		return (ESBMessage) super.clone();
 	}
 
-	/**
-	 * @param destContext Should be the context of the Thread receiving this copy
-	 */
-	public ESBMessage copy(Context context, Context destContext, boolean withBody, boolean withHeaders, boolean withAttachments) throws Exception {
+	public ESBMessage copy(Context context, boolean withBody, boolean withHeaders, boolean withAttachments) throws Exception {
 		final ESBMessage clone;
 		if (withBody) {
 			final Object newBody;
@@ -826,7 +823,7 @@ public final class ESBMessage implements Cloneable {
 			case SOURCE:
 				init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument((Source) _body, null), null);
 			case XQ_ITEM:
-				newBody = destContext.getXQDataFactory().createItem((XQItem) _body);
+				newBody = context.getXQDataFactory().createItem((XQItem) _body);
 				break;
 			default:
 				newBody = _body;

@@ -28,15 +28,13 @@ public final class ContextPool implements AutoCloseable {
 	private final int minPoolSize;
 	private final int maxPoolSize;
 	private final long keepAliveMillis;
-	private final boolean isBlocking;
 	private final PoolContext _poolContext;
 
-	public ContextPool(PoolContext poolContext, int minPool, int maxPool, long keepAlive, boolean blocking) {
+	public ContextPool(PoolContext poolContext, int minPool, int maxPool, long keepAlive) {
 		_poolContext = poolContext;
 		minPoolSize = minPool;
 		maxPoolSize = maxPool;
 		keepAliveMillis = keepAlive;
-		isBlocking = blocking;
 		pool = new LinkedBlockingDeque<>(maxPool);
 	}
 
@@ -61,17 +59,13 @@ public final class ContextPool implements AutoCloseable {
 		return keepAliveMillis;
 	}
 
-	public Context getContext() throws InterruptedException {
+	public Context getContext() {
 		Map.Entry<Context, Long> context = pool.pollFirst();
 		if (context == null) {
 			int newPoolSize = poolSize.incrementAndGet();
 			if (newPoolSize > maxPoolSize) {
 				poolSize.decrementAndGet();
-				if (isBlocking) {
-					context = pool.takeFirst();
-				} else {
-					return null;
-				}
+				return null;
 			} else {
 				return new Context(_poolContext);
 			}

@@ -45,7 +45,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		_queueDepth = queueDepth;
 		_scheduledThreads = scheduledThreads;
 		_allowCoreThreadTimeOut = allowCoreThreadTimeOut;
-		_contextPool = new ContextPool(_poolContext = poolContext, minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L, true);
+		_contextPool = new ContextPool(_poolContext = poolContext, minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L);
 		if (maxThreads > 0 || scheduledThreads > 0) {
 			_threadFactory = new WorkerPoolThreadFactory(name, priority);
 		} else {
@@ -104,8 +104,12 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		return _asyncProcessingPool;
 	}
 
-	public Context getContext() throws InterruptedException {
-		return _contextPool.getContext();
+	public Context getContext() {
+		Context context = _contextPool.getContext();
+		if (context == null) {
+			throw new RejectedExecutionException("ContextPool size wrong or resource leak");
+		}
+		return context;
 	}
 
 	public void releaseContext(Context context) {

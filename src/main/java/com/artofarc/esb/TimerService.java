@@ -72,20 +72,16 @@ public final class TimerService extends SchedulingConsumerPort implements Runnab
 
 	@Override
 	public void run() {
+		Context context = _workerPool.getContext();
 		try {
-			Context context = _workerPool.getContext();
-			try {
-				process(context, new ESBMessage(BodyType.INVALID, null));
-			} catch (Exception e) {
-				logger.error("Exception in forked action pipeline", e);
-			} finally {
-				_workerPool.releaseContext(context);
-				if (needsReschedule()) {
-					_future = schedule(this, _initialDelay);
-				}
+			process(context, new ESBMessage(BodyType.INVALID, null));
+		} catch (Exception e) {
+			logger.error("Exception in forked action pipeline", e);
+		} finally {
+			_workerPool.releaseContext(context);
+			if (needsReschedule()) {
+				_future = schedule(this, _initialDelay);
 			}
-		} catch (InterruptedException e) {
-			// cancelled
 		}
 	}
 
