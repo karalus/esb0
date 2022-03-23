@@ -55,7 +55,7 @@ public abstract class SchedulingConsumerPort extends ConsumerPort {
 
 	protected final ScheduledFuture<?> schedule(Runnable runnable, long initialDelay) {
 		if (_at != null) {
-			initialDelay = millisUntilNext(_at.getHour(), _at.getMinute(), _at.getSecond(), _at.getTimeZone(DatatypeConstants.FIELD_UNDEFINED)) % _period;
+			initialDelay = millisUntilNext(_at) % _period;
 			return _workerPool.getScheduledExecutorService().schedule(runnable, initialDelay, TimeUnit.MILLISECONDS);
 		}
 		if (_fixedDelay) {
@@ -67,6 +67,10 @@ public abstract class SchedulingConsumerPort extends ConsumerPort {
 
 	protected final boolean needsReschedule() {
 		return _at != null;
+	}
+
+	public static long millisUntilNext(XMLGregorianCalendar at) {
+		return millisUntilNext(at.getHour(), at.getMinute(), at.getSecond(), at.getTimeZone(DatatypeConstants.FIELD_UNDEFINED));
 	}
 
 	public static long millisUntilNext(int hour, int minute, int second, TimeZone timeZone) {
