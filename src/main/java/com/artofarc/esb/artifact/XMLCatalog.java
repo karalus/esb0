@@ -75,7 +75,7 @@ public final class XMLCatalog extends Directory {
 		try {
 			{
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "xml.xsd");
-				xsdArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("xml.xsd")));
+				xsdArtifact.setContent(IOUtils.toByteArray(globalContext.getResourceAsStream("xml.xsd")));
 				xmlCatalog.addSchemaArtifact("http://www.w3.org/XML/1998/namespace", xsdArtifact);
 			}
 			XPath xPath = JAXPFactoryHelper.getXPathFactory().newXPath();

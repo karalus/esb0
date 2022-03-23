@@ -72,7 +72,7 @@ public abstract class FileSystem {
 
 	protected byte[] reloadContent(String uri) throws Exception {
 		try (InputStream contentAsStream = createInputStream(uri)) {
-			return IOUtils.copy(contentAsStream);
+			return IOUtils.toByteArray(contentAsStream);
 		}
 	}
 
@@ -454,7 +454,7 @@ public abstract class FileSystem {
 				if (!entry.isDirectory()) {
 					Artifact artifact = getArtifact(entry.getName());
 					if (artifact != null) {
-						byte[] content = IOUtils.copy(zis);
+						byte[] content = IOUtils.toByteArray(zis);
 						if (artifact.isDifferent(content, entry.getCrc())) {
 							artifact.setContent(content);
 							artifact.setModificationTime(entry.getTime());
@@ -467,7 +467,7 @@ public abstract class FileSystem {
 					} else {
 						artifact = createArtifact(entry.getName());
 						if (artifact != null) {
-							artifact.setContent(IOUtils.copy(zis));
+							artifact.setContent(IOUtils.toByteArray(zis));
 							artifact.setModificationTime(entry.getTime());
 							artifact.setCrc(entry.getCrc());
 							noteChange(artifact.getURI(), ChangeType.CREATE);

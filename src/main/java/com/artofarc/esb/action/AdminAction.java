@@ -102,7 +102,7 @@ public class AdminAction extends Action {
 				if (headerAccept == null || headerAccept.contains("text/")) {
 					InputStream contentAsStream = artifact.getContentAsStream();
 					if (artifact instanceof WSDLArtifact) {
-						String content = new String(IOUtils.copy(contentAsStream), ESBMessage.CHARSET_DEFAULT);
+						String content = new String(IOUtils.toByteArray(contentAsStream), ESBMessage.CHARSET_DEFAULT);
 						contentAsStream.close();
 						try {
 							content = (String) bindVariable(content, context, message);

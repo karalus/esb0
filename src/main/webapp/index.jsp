@@ -376,10 +376,10 @@ Upload Service-JAR:
 		   </table>
 		   <%
 		   	if (a.getContentType().startsWith("text/")) {
-		   		java.io.InputStream inputStream = a.getContentAsStream();
-		   		String content = new String(com.artofarc.util.IOUtils.copy(inputStream), "UTF-8").replace("&", "&amp;");
-		   		inputStream.close();
-			%>
+		   		   		java.io.InputStream inputStream = a.getContentAsStream();
+		   		   		String content = new String(com.artofarc.util.IOUtils.toByteArray(inputStream), "UTF-8").replace("&", "&amp;");
+		   		   		inputStream.close();
+		   %>
 				<br>
 				<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + pathInfo%>" enctype="text/plain" method="POST">
 					<textarea name="content" rows="50" cols="200" spellcheck="false"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=content%></textarea>

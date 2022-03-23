@@ -16,7 +16,6 @@
 package com.artofarc.util;
 
 import java.io.*;
-import java.util.Formatter;
 
 public final class IOUtils {
 
@@ -83,7 +82,12 @@ public final class IOUtils {
 		}
 	}
 
+	@Deprecated
 	public static byte[] copy(InputStream is) throws IOException {
+		return toByteArray(is);
+	}
+
+	public static byte[] toByteArray(InputStream is) throws IOException {
 		if (is instanceof ByteArrayInputStream) {
 			ByteArrayInputStream bis = (ByteArrayInputStream) is;
 			return bis.toByteArray();
@@ -123,12 +127,10 @@ public final class IOUtils {
 		int c;
 		StringBuilder text = new StringBuilder();
 		StringBuilder result = new StringBuilder();
-		Formatter formatter = new Formatter(result);
+		String lineSeparator = System.getProperty("line.separator");
 
 		while ((c = is.read()) >= 0) {
-			// convert to hex value with "X" formatter
-			formatter.format("%02X ", c);
-
+			result.append(URLUtils.convertNibble2Char(c >> 4)).append(URLUtils.convertNibble2Char(c)).append(' ');
 			// If the character is not printable, just print a dot symbol "."
 			if (Character.isISOControl(c)) {
 				text.append('.');
@@ -136,19 +138,18 @@ public final class IOUtils {
 				text.append((char) c);
 			}
 			if (++pos == 16) {
-				result.append("   ").append(text).append(System.getProperty("line.separator"));
+				result.append("   ").append(text).append(lineSeparator);
 				text.setLength(0);
 				pos = 0;
 			}
 		}
-		formatter.close();
 		// remaining content
 		if (pos != 0) {
 			// add spaces for formatting purpose
 			for (; pos < 16; ++pos) {
 				result.append("   ");
 			}
-			result.append("   ").append(text).append(System.getProperty("line.separator"));
+			result.append("   ").append(text).append(lineSeparator);
 		}
 		is.close();
 		return result.toString();

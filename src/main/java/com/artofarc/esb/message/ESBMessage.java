@@ -343,7 +343,7 @@ public final class ESBMessage implements Cloneable {
 		case BYTES:
 			return (byte[]) _body;
 		case INPUT_STREAM:
-			ba = IOUtils.copy(getUncompressedInputStream((InputStream) _body));
+			ba = IOUtils.toByteArray(getUncompressedInputStream((InputStream) _body));
 			break;
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;

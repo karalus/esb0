@@ -72,7 +72,7 @@ public final class Attachments2SAX extends XMLFilterBase {
 				try (InputStream is = entry.getValue().getInputStream()) {
 					_iterator.remove();
 					entry = null;
-					characters(DatatypeConverter.printBase64Binary(IOUtils.copy(is)));
+					characters(DatatypeConverter.printBase64Binary(IOUtils.toByteArray(is)));
 				} catch (MessagingException e) {
 					throw new SAXException(e);
 				}

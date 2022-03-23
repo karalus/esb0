@@ -71,7 +71,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				}
 				if (_httpURLConnection.getErrorStream() != null) {
 					// Consume error message
-					IOUtils.copy(_httpURLConnection.getErrorStream());
+					IOUtils.toByteArray(_httpURLConnection.getErrorStream());
 				}
 				throw new HttpCheckAlive.ConnectException(_httpUrl.getUrlStr() + " is not alive. Response code " + responseCode);
 			}

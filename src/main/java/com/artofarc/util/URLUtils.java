@@ -78,7 +78,7 @@ public final class URLUtils {
 		return modified ? result.toString() : s;
 	}
 
-	private static char convertNibble2Char(int n) {
+	static char convertNibble2Char(int n) {
 		char c = Character.forDigit(n & 0xF, 16);
 		return Character.isLowerCase((int) c) ? (char) (c - 32) : c;
 	}

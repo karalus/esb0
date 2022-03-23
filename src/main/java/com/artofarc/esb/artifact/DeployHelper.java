@@ -185,7 +185,7 @@ public final class DeployHelper {
 		if (adminService == null || !adminService.getBindPath().startsWith(path)) {
 			Directory parent = globalContext.getFileSystem().makeDirectory("admin");
 			ServiceArtifact serviceArtifact = new ServiceArtifact(globalContext.getFileSystem(), parent, "Admin.xservice");
-			serviceArtifact.setContent(IOUtils.copy(globalContext.getResourceAsStream("Admin.xservice")));
+			serviceArtifact.setContent(IOUtils.toByteArray(globalContext.getResourceAsStream("Admin.xservice")));
 			serviceArtifact.validate(globalContext);
 			adminService = serviceArtifact.getConsumerPort();
 			adminService.init(globalContext);
