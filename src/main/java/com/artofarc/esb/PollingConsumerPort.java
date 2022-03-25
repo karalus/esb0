@@ -17,7 +17,6 @@ package com.artofarc.esb;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
@@ -41,15 +40,8 @@ public abstract class PollingConsumerPort extends ConsumerPort implements Runnab
 		}
 	}
 
-	protected final <T> Future<T> submit(Callable<T> callable) throws InterruptedException {
-		for (;;) {
-			try {
-				return _workerPool.getExecutorService().submit(callable);
-			} catch (RejectedExecutionException e) {
-				logger.warn("Could not submit to worker pool " + _workerPoolName);
-				Thread.sleep(100L);
-			}
-		}
+	protected final <T> Future<T> submit(Callable<T> callable) {
+		return _workerPool.getExecutorService().submit(callable);
 	}
 
 	@Override

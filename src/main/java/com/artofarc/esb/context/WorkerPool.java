@@ -16,12 +16,13 @@
 package com.artofarc.esb.context;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 
-public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.esb.mbean.WorkerPoolMXBean {
+public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecutionHandler, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
 	private final String _name;
 	private final int _queueDepth, _scheduledThreads;
@@ -39,14 +40,14 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		_queueDepth = queueDepth;
 		_scheduledThreads = scheduledThreads;
 		_allowCoreThreadTimeOut = allowCoreThreadTimeOut;
-		_contextPool = new ContextPool(_poolContext = poolContext, minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L);
+		_contextPool = new ContextPool(_poolContext = poolContext, allowCoreThreadTimeOut ? scheduledThreads : minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L);
 		if (maxThreads > 0 || scheduledThreads > 0) {
 			_threadFactory = new WorkerPoolThreadFactory(name, priority);
 		} else {
 			_threadFactory = null;
 		}
 		if (maxThreads > 0) {
-			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<>(queueDepth) : new LinkedBlockingQueue<>(), _threadFactory);
+			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<>(queueDepth) : new LinkedBlockingQueue<>(), _threadFactory, this);
 			_executorService.allowCoreThreadTimeOut(allowCoreThreadTimeOut);
 		} else {
 			_executorService = null;
@@ -117,6 +118,28 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	}
 
 	@Override
+	public void run() {
+		for (Map.Entry<Thread, String> entry : _threads.entrySet()) {
+			Thread thread = entry.getKey();
+			if (!thread.isAlive()) {
+				_threads.remove(thread);
+				PoolContext.logger.debug("removing Thread " + thread.getName() + " for " + entry.getValue());
+			}
+		}
+	}
+
+	@Override
+	public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+		try {
+			do {
+				PoolContext.logger.warn("Could not submit to worker pool " + _name);
+			} while (!executor.getQueue().offer(r, 60, TimeUnit.SECONDS));
+		} catch (InterruptedException e) {
+			throw new RejectedExecutionException("Interrupted while trying to submit to " + _name);
+		}
+	}
+
+	@Override
 	public void close() {
 		if (_executorService != null) {
 			_executorService.shutdown();
@@ -134,13 +157,12 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		}
 	}
 
-	// Methods for monitoring
-
 	public int getMaximumPoolSize() {
 		return _executorService != null ? _executorService.getMaximumPoolSize() : -1;
 	}
 
 	public void setMaximumPoolSize(int maximumPoolSize) {
+		_contextPool.setMaxPoolSize(maximumPoolSize + _scheduledThreads);
 		if (_executorService != null) {
 			_executorService.setMaximumPoolSize(maximumPoolSize);
 		}
@@ -151,10 +173,13 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	}
 
 	public void setCorePoolSize(int corePoolSize) {
+		_contextPool.setMinPoolSize(_allowCoreThreadTimeOut ? _scheduledThreads : corePoolSize + _scheduledThreads);
 		if (_executorService != null) {
 			_executorService.setCorePoolSize(corePoolSize);
 		}
 	}
+
+	// Methods for monitoring
 
 	public int getPoolSize() {
 		return _executorService != null ? _executorService.getPoolSize() : -1;
@@ -210,19 +235,12 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 		return result;
 	}
 
-	@Override
-	public void run() {
-		for (Map.Entry<Thread, String> entry : _threads.entrySet()) {
-			Thread thread = entry.getKey();
-			if (!thread.isAlive()) {
-				_threads.remove(thread);
-				PoolContext.logger.debug("removing Thread " + thread.getName() + " for " + entry.getValue());
-			}
-		}
+	public int getContextPoolSize() {
+		return _contextPool.getPoolSize();
 	}
 
-	public int getContextCount() {
-		return _contextPool.getPoolSize();
+	public Date getContextPoolLastAccess() {
+		return _contextPool.getLastAccess();
 	}
 
 }

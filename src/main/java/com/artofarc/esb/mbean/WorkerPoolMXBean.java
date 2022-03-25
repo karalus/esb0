@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.mbean;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -52,6 +53,8 @@ public interface WorkerPoolMXBean {
 
 	int getCachedXQueriesTotal();
 
-	int getContextCount();
+	int getContextPoolSize();
+
+	Date getContextPoolLastAccess();
 
 }

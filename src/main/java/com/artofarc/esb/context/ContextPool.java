@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.context;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,47 +24,54 @@ import com.artofarc.util.Collections;
 
 public final class ContextPool implements AutoCloseable {
 
-	private final LinkedBlockingDeque<Map.Entry<Context, Long>> pool;
+	private final LinkedBlockingDeque<Map.Entry<Context, Long>> _pool = new LinkedBlockingDeque<>();
 	private final AtomicInteger poolSize = new AtomicInteger();
-	private final int minPoolSize;
-	private final int maxPoolSize;
-	private final long keepAliveMillis;
 	private final PoolContext _poolContext;
+	private volatile int _minPoolSize;
+	private volatile int _maxPoolSize;
+	private final long _keepAliveMillis;
 
-	public ContextPool(PoolContext poolContext, int minPool, int maxPool, long keepAlive) {
+	public ContextPool(PoolContext poolContext, int minPool, int maxPool, long keepAliveMillis) {
 		_poolContext = poolContext;
-		minPoolSize = minPool;
-		maxPoolSize = maxPool;
-		keepAliveMillis = keepAlive;
-		pool = new LinkedBlockingDeque<>(maxPool);
+		_minPoolSize = minPool;
+		_maxPoolSize = maxPool;
+		_keepAliveMillis = keepAliveMillis;
 	}
 
 	public int getPoolSize() {
 		return poolSize.get();
 	}
 
-	public Long getLastAccess() {
-		Map.Entry<Context, Long> context = pool.peekFirst();
-		return pool.size() < poolSize.get() ? System.currentTimeMillis() : context != null ? context.getValue() : null;
+	public Date getLastAccess() {
+		Map.Entry<Context, Long> context = _pool.peekFirst();
+		return _pool.size() < poolSize.get() ? new Date() : context != null ? new Date(context.getValue()) : null;
 	}
 
 	public int getMinPoolSize() {
-		return minPoolSize;
+		return _minPoolSize;
+	}
+
+	public void setMinPoolSize(int minPoolSize) {
+		_minPoolSize = minPoolSize;
 	}
 
 	public int getMaxPoolSize() {
-		return maxPoolSize;
+		return _maxPoolSize;
+	}
+
+	public void setMaxPoolSize(int maxPoolSize) {
+		_maxPoolSize = maxPoolSize;
 	}
 
 	public long getKeepAliveMillis() {
-		return keepAliveMillis;
+		return _keepAliveMillis;
 	}
 
 	public Context getContext() {
-		Map.Entry<Context, Long> context = pool.pollFirst();
+		Map.Entry<Context, Long> context = _pool.pollFirst();
 		if (context == null) {
 			int newPoolSize = poolSize.incrementAndGet();
-			if (newPoolSize > maxPoolSize) {
+			if (newPoolSize > _maxPoolSize) {
 				poolSize.decrementAndGet();
 				return null;
 			} else {
@@ -74,20 +82,20 @@ public final class ContextPool implements AutoCloseable {
 	}
 
 	public void releaseContext(Context context) {
-		pool.addFirst(Collections.createEntry(context, System.currentTimeMillis()));
+		_pool.addFirst(Collections.createEntry(context, System.currentTimeMillis()));
 	}
 
 	public void shrinkPool() {
-		int overflow = poolSize.get() - minPoolSize;
+		int overflow = poolSize.get() - _minPoolSize;
 		while (overflow > 0) {
-			Map.Entry<Context, Long> candidate = pool.peekLast();
-			if (candidate == null || System.currentTimeMillis() - candidate.getValue() < keepAliveMillis) break;
-			Map.Entry<Context, Long> context = pool.pollLast();
+			Map.Entry<Context, Long> candidate = _pool.peekLast();
+			if (candidate == null || System.currentTimeMillis() - candidate.getValue() < _keepAliveMillis) break;
+			Map.Entry<Context, Long> context = _pool.pollLast();
 			if (context != candidate) {
-				if (context != null) pool.addLast(context);
+				if (context != null) _pool.addLast(context);
 				break;
 			}
-			overflow = poolSize.decrementAndGet() - minPoolSize;
+			overflow = poolSize.decrementAndGet() - _minPoolSize;
 			context.getKey().close();
 		}
 	}
@@ -96,7 +104,7 @@ public final class ContextPool implements AutoCloseable {
 	public void close() throws InterruptedException {
 		while (poolSize.getAndDecrement() > 0) {
 			// this possibly blocks for a long time
-			Map.Entry<Context, Long> context = pool.take();
+			Map.Entry<Context, Long> context = _pool.take();
 			context.getKey().close();
 		}
 		poolSize.set(0);

@@ -116,28 +116,23 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	}
 
 	// Methods for monitoring
-	@Override
+
 	public int getPoolSize() {
 		return _contextPool.getPoolSize();
 	}
 
-	@Override
 	public Date getLastAccess() {
-		Long lastAccess = _contextPool.getLastAccess();
-		return lastAccess != null ? new Date(lastAccess) : null;
+		return _contextPool.getLastAccess();
 	}
 
-	@Override
 	public int getMinPoolSize() {
 		return _minPool;
 	}
 
-	@Override
 	public int getMaxPoolSize() {
 		return _maxPool;
 	}
 
-	@Override
 	public long getKeepAliveMillis() {
 		return _keepAlive;
 	}
