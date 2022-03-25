@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,7 +27,7 @@ public class SuspendAction extends Action {
 
 	private final String _correlationID;
 	private final Long _timeout;
-	
+
 	public SuspendAction(String correlationID, long timeout) {
 		_correlationID = correlationID;
 		_timeout = timeout;
@@ -51,11 +50,8 @@ public class SuspendAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		Object correlationID = bindVariable(_correlationID, context, message);
 		AsyncProcessingPool asyncProcessingPool = context.getPoolContext().getWorkerPool().getAsyncProcessingPool();
-		AsyncProcessingPool.AsyncContext asyncContext = new AsyncProcessingPool.AsyncContext();
-		asyncContext.nextAction = _nextAction;
-		asyncContext.executionStack = execContext.getResource();
-		asyncContext.variables = message.getVariables();
-		asyncContext.expiry = message.<Long> getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue();
+		AsyncProcessingPool.AsyncContext asyncContext = new AsyncProcessingPool.AsyncContext(_nextAction, execContext.getResource(), message.getVariables(),
+				message.<Long> getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue());
 		asyncProcessingPool.putAsyncContext(correlationID, asyncContext);
 	}
 

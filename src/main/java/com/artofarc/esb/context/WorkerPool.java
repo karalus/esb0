@@ -16,15 +16,10 @@
 package com.artofarc.esb.context;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
-
-import com.artofarc.esb.jms.JMSConnectionData;
-import com.artofarc.esb.jms.JMSConnectionProvider;
-import com.artofarc.util.XQuerySource;
 
 public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.esb.mbean.WorkerPoolMXBean {
 
@@ -37,7 +32,6 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	private final ThreadPoolExecutor _executorService;
 	private final ScheduledExecutorService _scheduledExecutorService;
 	private final AsyncProcessingPool _asyncProcessingPool;
-	private final ConcurrentHashMap<XQuerySource, Integer> _cachedXQueries = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Thread, String> _threads = new ConcurrentHashMap<>();
 
 	public WorkerPool(PoolContext poolContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
@@ -195,44 +189,15 @@ public final class WorkerPool implements AutoCloseable, Runnable, com.artofarc.e
 	}
 
 	public Set<String> getJMSSessionFactories() {
-		JMSConnectionProvider jmsConnectionProvider = _poolContext.getResourceFactory(JMSConnectionProvider.class);
-		Set<String> result = new HashSet<>();
-		for (JMSConnectionData jmsConnectionData : jmsConnectionProvider.getResourceDescriptors()) {
-			result.add(jmsConnectionData.toString());
-		}
-		return result;
+		return _poolContext.getJMSSessionFactories();
 	}
 
 	public List<String> getCachedXQueries() {
-		List<String> result = new ArrayList<>(); 
-		for (XQuerySource xquery : _cachedXQueries.keySet()) {
-			result.add(xquery.toString());
-		}
-		return result;
-	}
-
-	public void addCachedXQuery(XQuerySource xquery) {
-		Integer count;
-		if ((count = _cachedXQueries.putIfAbsent(xquery, 1)) != null) {
-			while (!_cachedXQueries.replace(xquery, count, ++count)) {
-				count = _cachedXQueries.get(xquery);
-			}
-		}
-	}
-
-	public void removeCachedXQuery(XQuerySource xquery) {
-		Integer count;
-		do {
-			count = _cachedXQueries.get(xquery);
-		} while (count != null && !(count == 1 ? _cachedXQueries.remove(xquery, count) : _cachedXQueries.replace(xquery, count, --count)));
+		return _poolContext.getCachedXQueries();
 	}
 
 	public int getCachedXQueriesTotal() {
-		int sum = 0;
-		for (Integer count : _cachedXQueries.values()) {
-			sum += count;
-		}
-		return sum;
+		return _poolContext.getCachedXQueriesTotal();
 	}
 
 	public List<String> getActiveThreads() {

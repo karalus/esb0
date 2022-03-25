@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,10 +30,17 @@ import com.artofarc.esb.message.ESBMessage;
 public final class AsyncProcessingPool implements Runnable {
 
 	public static class AsyncContext {
-		public Action nextAction;
-		public Collection<Action> executionStack;
-		public Map<String, Object> variables;
-		public long expiry;
+		public final Action nextAction;
+		public final Collection<Action> executionStack;
+		public final Map<String, Object> variables;
+		public final long expiry;
+
+		public AsyncContext(Action nextAction, Collection<Action> executionStack, Map<String, Object> variables, long expiry) {
+			this.nextAction = nextAction;
+			this.executionStack = executionStack;
+			this.variables = variables;
+			this.expiry = expiry;
+		}
 	}
 
 	private final Map<Object, AsyncContext> _asyncContexts = new ConcurrentHashMap<>();
@@ -56,7 +62,7 @@ public final class AsyncProcessingPool implements Runnable {
 		}
 	}
 
-	public synchronized void stop() {
+	synchronized void stop() {
 		if (_scheduledFuture != null) {
 			_scheduledFuture.cancel(true);
 		}
@@ -75,12 +81,11 @@ public final class AsyncProcessingPool implements Runnable {
 
 	@Override
 	public void run() {
-		for (Iterator<Map.Entry<Object, AsyncContext>> iter = _asyncContexts.entrySet().iterator(); iter.hasNext();) {
-			Map.Entry<Object, AsyncContext> entry = iter.next();
-			AsyncContext asyncContext = entry.getValue();
+		for (Iterator<AsyncContext> iter = _asyncContexts.values().iterator(); iter.hasNext();) {
+			AsyncContext asyncContext = iter.next();
 			if (asyncContext.expiry < System.currentTimeMillis()) {
-				iter.remove();
 				try {
+					iter.remove();
 					Context context = new Context(_workerPool.getPoolContext());
 					context.getExecutionStack().addAll(asyncContext.executionStack);
 					ESBMessage message = new ESBMessage(BodyType.INVALID, null);
@@ -89,7 +94,7 @@ public final class AsyncProcessingPool implements Runnable {
 					action.setNextAction(asyncContext.nextAction);
 					action.process(context, message);
 				} catch (Exception e) {
-					Context.logger.info("Exception while expriring AsyncContext", e);
+					Context.logger.info("Exception while expiring AsyncContext", e);
 				}
 			}
 		}
