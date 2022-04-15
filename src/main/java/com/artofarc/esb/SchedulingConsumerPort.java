@@ -73,17 +73,25 @@ public abstract class SchedulingConsumerPort extends ConsumerPort {
 		return millisUntilNext(at.getHour(), at.getMinute(), at.getSecond(), at.getTimeZone(DatatypeConstants.FIELD_UNDEFINED));
 	}
 
+	public static long millisUntilNext(Calendar time) {
+		return millisUntilNext(time.get(Calendar.HOUR_OF_DAY), time.get(Calendar.MINUTE), time.get(Calendar.SECOND), time.getTimeZone());
+	}
+
 	public static long millisUntilNext(int hour, int minute, int second, TimeZone timeZone) {
 		Calendar now = Calendar.getInstance(timeZone);
-		Calendar atTime = (Calendar) now.clone();
-		atTime.set(Calendar.HOUR_OF_DAY, hour);
-		atTime.set(Calendar.MINUTE, minute);
-		atTime.set(Calendar.SECOND, second);
-		atTime.set(Calendar.MILLISECOND, 0);
-		if (now.after(atTime)) {
-			atTime.add(Calendar.DATE, 1);
+		return nextDateTime(now, hour, minute, second).getTimeInMillis() - now.getTimeInMillis();
+	}
+
+	public static Calendar nextDateTime(Calendar ref, int hour, int minute, int second) {
+		Calendar next = (Calendar) ref.clone();
+		next.set(Calendar.HOUR_OF_DAY, hour);
+		next.set(Calendar.MINUTE, minute);
+		next.set(Calendar.SECOND, second);
+		next.set(Calendar.MILLISECOND, 0);
+		if (ref.after(next)) {
+			next.add(Calendar.DATE, 1);
 		}
-		return atTime.getTimeInMillis() - now.getTimeInMillis();
+		return next;
 	}
 
 }

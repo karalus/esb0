@@ -82,7 +82,7 @@ public class CacheAction extends Action {
 								ttl = Long.parseLong(_ttl);
 							} catch (NumberFormatException e) {
 								Calendar time = DatatypeConverter.parseTime(_ttl);
-								ttl = SchedulingConsumerPort.millisUntilNext(time.get(Calendar.HOUR_OF_DAY), time.get(Calendar.MINUTE), time.get(Calendar.SECOND), time.getTimeZone()) / 1000;
+								ttl = SchedulingConsumerPort.millisUntilNext(time) / 1000;
 							}
 						} else {
 							ttl = this.<Number> resolve(message, _ttl, true).longValue();
