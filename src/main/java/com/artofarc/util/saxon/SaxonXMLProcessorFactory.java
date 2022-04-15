@@ -46,7 +46,7 @@ import net.sf.saxon.value.StringValue;
 import com.artofarc.esb.resource.XQConnectionFactory;
 import com.saxonica.xqj.SaxonXQDataSource;
 
-public final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURIResolver {
+public final class SaxonXMLProcessorFactory extends XQConnectionFactory implements ModuleURIResolver {
 
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
@@ -55,7 +55,7 @@ public final class XQDataSourceFactory extends XQConnectionFactory implements Mo
 	private final Evaluate functionEvaluate = new Evaluate();
 	private final SaxonXQDataSource _dataSource = new SaxonXQDataSource();
 
-	public XQDataSourceFactory(URIResolver uriResolver) {
+	public SaxonXMLProcessorFactory(URIResolver uriResolver) {
 		super(uriResolver);
 		Configuration configuration = _dataSource.getConfiguration();
 		configuration.registerExtensionFunction(functionUUID);
