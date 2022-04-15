@@ -108,6 +108,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private final String _queueName;
 	private final String _topicName;
 	private final String _subscription;
+	private final boolean _noLocal;
 	private final boolean _shared;
 	private final String _messageSelector;
 	private final JMSWorker[] _jmsWorker;
@@ -128,7 +129,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private Future<?> _control;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, String subscription,
-			boolean shared, String messageSelector, int workerCount, int minWorkerCount, long pollInterval, String timeUnit, XMLGregorianCalendar at, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
+			boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, long pollInterval, String timeUnit, XMLGregorianCalendar at, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
 
 		super(uri, workerPool, at, timeUnit, pollInterval, false);
 		_jmsConnectionData = jmsConnectionData;
@@ -152,6 +153,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			if (workerCount != 1) throw new IllegalArgumentException("Subscriptions can only have one worker: " + getKey());
 		}
 		_subscription = subscription;
+		_noLocal = noLocal;
 		_shared = shared;
 		_jmsWorker = new JMSWorker[workerCount];
 		_maximumRetries = maximumRetries;
@@ -397,10 +399,10 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 					if (_shared) {
 						_messageConsumer = _session.createSharedDurableConsumer((Topic) getDestination(_session), _subscription, _messageSelector);
 					} else {
-						_messageConsumer = _session.createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, false);
+						_messageConsumer = _session.createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, _noLocal);
 					}
 				} else {
-					_messageConsumer = _session.createConsumer(getDestination(_session), _messageSelector);
+					_messageConsumer = _session.createConsumer(getDestination(_session), _messageSelector, _noLocal);
 				}
 			}
 		}
