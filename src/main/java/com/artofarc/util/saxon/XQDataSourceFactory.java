@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.resource;
+package com.artofarc.util.saxon;
 
 import java.util.HashMap;
 
@@ -43,9 +43,10 @@ import net.sf.saxon.value.Int64Value;
 import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
+import com.artofarc.esb.resource.XQConnectionFactory;
 import com.saxonica.xqj.SaxonXQDataSource;
 
-final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURIResolver {
+public final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURIResolver {
 
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
@@ -54,7 +55,7 @@ final class XQDataSourceFactory extends XQConnectionFactory implements ModuleURI
 	private final Evaluate functionEvaluate = new Evaluate();
 	private final SaxonXQDataSource _dataSource = new SaxonXQDataSource();
 
-	XQDataSourceFactory(URIResolver uriResolver) {
+	public XQDataSourceFactory(URIResolver uriResolver) {
 		super(uriResolver);
 		Configuration configuration = _dataSource.getConfiguration();
 		configuration.registerExtensionFunction(functionUUID);

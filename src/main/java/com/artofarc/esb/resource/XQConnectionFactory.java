@@ -36,7 +36,7 @@ public class XQConnectionFactory {
 	static {
 		try {
 			conXQConnectionFactory = MethodHandles.lookup().unreflectConstructor(ReflectionUtils.findConstructor(
-				System.getProperty("esb0.XQConnectionFactory", "com.artofarc.esb.resource.XQDataSourceFactory"), URIResolver.class));
+				System.getProperty("esb0.XQConnectionFactory", "com.artofarc.util.saxon.XQDataSourceFactory"), URIResolver.class));
 		} catch (IllegalAccessException e) {
 			throw new RuntimeException(e);
 		}
