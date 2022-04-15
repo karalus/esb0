@@ -283,18 +283,23 @@ public final class Json2XmlTransformer {
 						break;
 					case START_ARRAY:
 						Element container = null;
-						if (keyName == null) {
-							container = _arrays.peek();
+						if (keyName == null && (container = _arrays.peek()) != null) {
 							e = new Element(container.uri, container.localName, container.qName);
 							startElement(e.uri, e.localName, e.qName, _atts);
-						} else if (xsomHelper.getCurrentComplexType().isMixed() && valueWrapper.equals(keyName)) {
+						} else if (valueWrapper.equals(keyName) && xsomHelper.getCurrentComplexType().isMixed()) {
 							// dummy element for mixed content represented as ARRAY
 							e = new Element(uri, keyName, null);
 						} else {
-							XSTerm term = xsomHelper.matchElement(uri, keyName);
-							uri = term.apply(XSOMHelper.GetNamespace);
+							if (keyName != null) {
+								XSTerm term = xsomHelper.matchElement(uri, keyName);
+								uri = term.apply(XSOMHelper.GetNamespace);
+							} else {
+								keyName = _rootName;
+								uri = _rootUri;
+								xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
+							}
 							if (!xsomHelper.isLastElementRepeated()) {
-								term = xsomHelper.getWrappedElement();
+								XSTerm term = xsomHelper.getWrappedElement();
 								if (term != null) {
 									_objects.push(container = e = new Element(uri, keyName, createQName(uri, keyName)));
 									startElement(e.uri, e.localName, e.qName, _atts);
@@ -524,7 +529,7 @@ public final class Json2XmlTransformer {
 				parse(e, _jsonValue, (XSSimpleType) _type);
 			} else {
 				xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
-				parse(e, (JsonObject) _jsonValue);
+				parse(e, _jsonValue, null);
 			}
 			endDocument();
 		}
