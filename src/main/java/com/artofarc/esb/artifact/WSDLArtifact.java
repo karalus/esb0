@@ -38,7 +38,7 @@ import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.WSDL4JUtil;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.parser.XSOMParser;
@@ -82,7 +82,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		_allBindings = definition.getAllBindings();
 		_namespace.set(definition.getTargetNamespace());
 		latestImportURI = null;
-		Transformer transformer = JAXPFactoryHelper.newTransformer();
+		Transformer transformer = XMLProcessorFactory.newTransformer();
 		List<Source> sources = new ArrayList<>();
 		for (String referenced : getReferenced()) {
 			Artifact xsd = loadArtifact(referenced);
@@ -125,7 +125,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	@Override
 	public XSSchemaSet getXSSchemaSet() throws SAXException {
 		if (_schemaSet == null) {
-			XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
+			XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 			xsomParser.setEntityResolver(getResolver());
 			for (byte[] schemaContent : _schemas.values()) {
 				InputSource is = new InputSource(new ByteArrayInputStream(schemaContent));

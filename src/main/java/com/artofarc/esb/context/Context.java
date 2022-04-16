@@ -38,7 +38,7 @@ import org.jvnet.fastinfoset.sax.FastInfosetReader;
 import org.xml.sax.SAXException;
 
 import com.artofarc.esb.action.Action;
-import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.NamespaceBeautifier;
 import com.artofarc.util.TimeGauge;
 import com.artofarc.util.XQuerySource;
@@ -62,13 +62,13 @@ public final class Context extends AbstractContext {
 	public Context(PoolContext poolContext) {
 		_poolContext = poolContext;
 		try {
-			_transformer = JAXPFactoryHelper.newTransformer();
+			_transformer = XMLProcessorFactory.newTransformer();
 		} catch (TransformerConfigurationException e) {
 			throw new RuntimeException(e);
 		}
 		try {
 			// With Saxon connections are not limited so we will never get an Exception
-			_xqConnection = poolContext.getGlobalContext().getXQConnectionFactory().getConnection();
+			_xqConnection = poolContext.getGlobalContext().getXMLProcessorFactory().getConnection();
 		} catch (XQException e) {
 			throw new RuntimeException(e);
 		}
@@ -111,7 +111,7 @@ public final class Context extends AbstractContext {
 
 	public SAXParser getSAXParser() throws ParserConfigurationException, SAXException {
 		if (_saxParser == null) {
-			_saxParser = JAXPFactoryHelper.getSAXParserFactory().newSAXParser();
+			_saxParser = XMLProcessorFactory.getSAXParserFactory().newSAXParser();
 		}
 		return _saxParser;
 	}
@@ -142,7 +142,7 @@ public final class Context extends AbstractContext {
 
 	public NamespaceBeautifier createNamespaceBeautifier(Source source) throws TransformerException {
 		// If performance need to be improved, we could cache the transformer
-		return new NamespaceBeautifier(source, JAXPFactoryHelper.newTransformer());
+		return new NamespaceBeautifier(source, XMLProcessorFactory.newTransformer());
 	}
 
 	public XQDataFactory getXQDataFactory() {

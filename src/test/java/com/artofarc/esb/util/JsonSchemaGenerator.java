@@ -26,7 +26,7 @@ import javax.json.stream.JsonGenerator;
 
 import org.xml.sax.SAXException;
 
-import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.NamespaceMap;
 import com.artofarc.util.XSOMHelper;
@@ -297,7 +297,7 @@ public final class JsonSchemaGenerator {
 	}
 
 	public static JsonSchemaGenerator createJsonSchemaGenerator(String systemId, String namespace) throws SAXException {
-		XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
+		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 		xsomParser.parse(systemId);
 //		System.out.println("Number of parsed docs: " + xsomParser.getDocuments().size());
 		Map<String, String> prefixMap = new HashMap<String, String>();

@@ -35,7 +35,7 @@ import org.xml.sax.InputSource;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.IOUtils;
-import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.XMLProcessorFactory;
 
 public final class XMLCatalog extends Directory {
 
@@ -78,8 +78,8 @@ public final class XMLCatalog extends Directory {
 				xsdArtifact.setContent(IOUtils.toByteArray(globalContext.getResourceAsStream("xml.xsd")));
 				xmlCatalog.addSchemaArtifact("http://www.w3.org/XML/1998/namespace", xsdArtifact);
 			}
-			XPath xPath = JAXPFactoryHelper.getXPathFactory().newXPath();
-			Transformer transformer = JAXPFactoryHelper.newTransformer();
+			XPath xPath = XMLProcessorFactory.getXPathFactory().newXPath();
+			Transformer transformer = XMLProcessorFactory.newTransformer();
 			// Elements below Body must be strictly validated, with lax we don't detect some kind of errors
 			// TODO: Works only with document/literal WSDL style and messageParts referring to elements
 			String exp = "/*/*[local-name()='complexType' and @name='Body']/*/*/@processContents";

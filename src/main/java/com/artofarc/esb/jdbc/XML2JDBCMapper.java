@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,7 +34,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
 import com.artofarc.util.Collections;
-import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.PrefixHandler;
 import com.artofarc.util.XMLParserBase;
 import com.artofarc.util.XSOMHelper;
@@ -124,7 +123,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 					dbObject.name = null;
 					try {
 						SQLXML sqlxml = _connection.createSQLXML();
-						delegate = JAXPFactoryHelper.newTransformerHandler();
+						delegate = XMLProcessorFactory.newTransformerHandler();
 						delegate.setResult(sqlxml.setResult(DOMResult.class));
 						delegatePrefixHandler = new PrefixHandler();
 						dbObject.add(localName, sqlxml);

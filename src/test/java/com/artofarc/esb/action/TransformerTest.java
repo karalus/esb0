@@ -22,64 +22,77 @@ public class TransformerTest extends AbstractESBTest {
 
 	@Test
 	public void testTransform() throws Exception {
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()), new TransformAction(
+		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new XSLTAction(xsltArtifact.getURI(), Collections.<String> emptyList()), new TransformAction(
 				"."), new DumpAction());
 		consumerPort.process(context, message);
 	}
 
 	@Test
 	public void testTransformWithParam() throws Exception {
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(getGlobalContext());
-		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
+		byte[] file = readFile("src/test/resources/SOAPRequest.xml");
+		int count = 1;//1000000;
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new XSLTAction(xsltArtifact.getTemplates(), xsltArtifact.getParams()), new TransformAction(
-				"."), new DumpAction());
-		consumerPort.process(context, message);
+		consumerPort.setStartAction(
+				createUnwrapSOAPAction(false, true),
+				new XSLTAction(xsltArtifact.getURI(), xsltArtifact.getParams()),
+				new TransformAction("."),
+				count > 1 ?	new TerminalAction() {} : new DumpAction()
+				);
+		TimeGauge timeGauge = new TimeGauge(Action.logger, 0L, false);
+		timeGauge.startTimeMeasurement();
+		for (int i = 0; i < count; ++i) {
+			ESBMessage message = new ESBMessage(BodyType.BYTES, file);
+			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
+			consumerPort.process(context, message);
+		}
+		long measurement = timeGauge.stopTimeMeasurement("Performance", false);
+		System.out.println("Average in µs: " + measurement * 1000 / count);
+		
 	}
 
 	@Test
 	public void testTransformStart() throws Exception {
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()), new TransformAction("."), new DumpAction());
+		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getURI(), Collections.<String> emptyList()), new TransformAction("."), new DumpAction());
 		consumerPort.process(context, message);
 	}
 
 	@Test
 	public void testTransformEnd() throws Exception {
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()), new DumpAction());
+		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getURI(), Collections.<String> emptyList()), new DumpAction());
 		consumerPort.process(context, message);
 	}
 
 	@Test
 	public void testTransformDouble() throws Exception {
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()), new XSLTAction(
-				xsltArtifact.getTemplates(), Collections.<String> emptyList()), new DumpAction());
+		consumerPort.setStartAction(new XSLTAction(xsltArtifact.getURI(), Collections.<String> emptyList()), new XSLTAction(
+				xsltArtifact.getURI(), Collections.<String> emptyList()), new DumpAction());
 		consumerPort.process(context, message);
 	}
 
@@ -88,14 +101,14 @@ public class TransformerTest extends AbstractESBTest {
 		XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
 		xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
 		xsdArtifact.validateInternal(getGlobalContext());
-		XSLTArtifact xsltArtifact = new XSLTArtifact(null, null, "transformation.xslt");
+		XSLTArtifact xsltArtifact = new XSLTArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "transformation.xslt");
 		xsltArtifact.setContent(readFile("src/test/resources/transformation.xslt"));
 		xsltArtifact.validateInternal(getGlobalContext());
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new TransformAction(
-				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact.getTemplates(), Collections.<String> emptyList()),
+				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact.getURI(), Collections.<String> emptyList()),
 				createValidateAction(xsdArtifact), new DumpAction());
 		message.putVariable("param1", 42);
 		consumerPort.process(context, message);
@@ -176,7 +189,7 @@ public class TransformerTest extends AbstractESBTest {
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), new TransformAction(
-				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact1.getTemplates(), Collections.<String> emptyList()),
+				"declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"), new XSLTAction(xsltArtifact1.getURI(), Collections.<String> emptyList()),
 				new DumpAction());
 		message.putVariable("param1", 42);
 		consumerPort.process(context, message);

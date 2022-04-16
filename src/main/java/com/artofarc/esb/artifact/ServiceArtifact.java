@@ -41,13 +41,13 @@ import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
-import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWrapper;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.WSDL4JUtil;
+import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.XQuerySource;
 import com.sun.xml.xsom.XSSchemaSet;
 
@@ -61,7 +61,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	// only used during validation
 	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
-	private XQConnectionFactory _xqConnectionFactory;
+	private XMLProcessorFactory _xqConnectionFactory;
 
 	public ServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -84,9 +84,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return clone;
 	}
 
-	private XQConnectionFactory getXQConnectionFactory() {
+	private XMLProcessorFactory getXQConnectionFactory() {
 		if (_xqConnectionFactory == null) {
-			_xqConnectionFactory = XQConnectionFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this));
+			_xqConnectionFactory = XMLProcessorFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this));
 		}
 		return _xqConnectionFactory;
 	}
@@ -370,7 +370,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			XSLTArtifact xsltArtifact = loadArtifact(applyXSLT.getXslURI());
 			addReference(xsltArtifact);
 			xsltArtifact.validate(globalContext);
-			addAction(list, new XSLTAction(xsltArtifact.getTemplates(), xsltArtifact.getParams()), location);
+			addAction(list, new XSLTAction(xsltArtifact.getURI(), xsltArtifact.getParams()), location);
 			break;
 		}
 		case "unwrapSOAP": {

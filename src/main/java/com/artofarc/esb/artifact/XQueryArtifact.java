@@ -19,7 +19,7 @@ import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.resource.XQConnectionFactory;
+import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.XQuerySource;
 
 public class XQueryArtifact extends XMLProcessingArtifact {
@@ -33,7 +33,7 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		return initClone(new XQueryArtifact(fileSystem, parent, getName()));
 	}
 
-	static void validateXQuerySource(Artifact owner, XQConnectionFactory factory, XQuerySource xQuerySource) throws Exception {
+	static void validateXQuerySource(Artifact owner, XMLProcessorFactory factory, XQuerySource xQuerySource) throws Exception {
 		ValidationErrorListener errorListener = new ValidationErrorListener(owner.getURI());
 		factory.setErrorListener(errorListener);
 		XQConnection connection = factory.getConnection();
@@ -59,7 +59,7 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 	@Override
 	public void validateInternal(GlobalContext globalContext) throws Exception {
 		// Needs an individual XQConnectionFactory to track the use of modules
-		XQConnectionFactory factory = XQConnectionFactory.newInstance(new ArtifactURIResolver(this));
+		XMLProcessorFactory factory = XMLProcessorFactory.newInstance(new ArtifactURIResolver(this));
 		logger.info("Parsing XQuery in: " + getURI());
 		validateXQuerySource(this, factory, XQuerySource.create(getContentAsBytes()));
 	}

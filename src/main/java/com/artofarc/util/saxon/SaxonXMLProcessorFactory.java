@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +17,6 @@ package com.artofarc.util.saxon;
 
 import java.util.HashMap;
 
-import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
@@ -27,7 +25,11 @@ import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQStaticContext;
 
+import com.artofarc.util.XMLProcessorFactory;
+import com.saxonica.xqj.SaxonXQDataSource;
+
 import net.sf.saxon.Configuration;
+import net.sf.saxon.TransformerFactoryImpl;
 import net.sf.saxon.expr.XPathContext;
 import net.sf.saxon.lib.ExtensionFunctionCall;
 import net.sf.saxon.lib.ExtensionFunctionDefinition;
@@ -43,31 +45,21 @@ import net.sf.saxon.value.Int64Value;
 import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
-import com.artofarc.esb.resource.XQConnectionFactory;
-import com.saxonica.xqj.SaxonXQDataSource;
-
-public final class SaxonXMLProcessorFactory extends XQConnectionFactory implements ModuleURIResolver {
+public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implements ModuleURIResolver {
 
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
 
-	// Is instance variable because it maintains state
-	private final Evaluate functionEvaluate = new Evaluate();
-	private final SaxonXQDataSource _dataSource = new SaxonXQDataSource();
+	private final SaxonXQDataSource _dataSource;
 
-	public SaxonXMLProcessorFactory(URIResolver uriResolver) {
+	public SaxonXMLProcessorFactory(URIResolver uriResolver) throws Throwable {
 		super(uriResolver);
-		Configuration configuration = _dataSource.getConfiguration();
+		Configuration configuration = ((TransformerFactoryImpl) _saxTransformerFactory).getConfiguration();
 		configuration.registerExtensionFunction(functionUUID);
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
-		configuration.registerExtensionFunction(functionEvaluate);
+		configuration.registerExtensionFunction(new Evaluate());
 		configuration.setModuleURIResolver(this);
-		configuration.setURIResolver(uriResolver);
-	}
-
-	@Override
-	public void setErrorListener(ErrorListener listener) {
-		_dataSource.getConfiguration().setErrorListener(listener);
+		_dataSource = new SaxonXQDataSource(configuration);
 	}
 
 	@Override

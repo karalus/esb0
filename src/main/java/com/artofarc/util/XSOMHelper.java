@@ -172,7 +172,7 @@ public final class XSOMHelper {
 	public static final XSSchemaSet anySchema;
 
 	static {
-		XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
+		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 		try {
 			xsomParser.parse(new StringReader("<schema xmlns='http://www.w3.org/2001/XMLSchema'><element name='root' type='anyType'/></schema>"));
 			anySchema = xsomParser.getResult();

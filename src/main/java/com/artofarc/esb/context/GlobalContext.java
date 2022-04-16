@@ -40,11 +40,11 @@ import com.artofarc.esb.artifact.FileSystem;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
-import com.artofarc.esb.resource.XQConnectionFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
 import com.artofarc.util.Collections;
 import com.artofarc.util.ConcurrentResourcePool;
+import com.artofarc.util.XMLProcessorFactory;
 
 public final class GlobalContext extends Registry implements Runnable, com.artofarc.esb.mbean.GlobalContextMXBean {
 
@@ -59,7 +59,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache;
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
-	private final XQConnectionFactory _xqConnectionFactory;
+	private final XMLProcessorFactory _xmlProcessorFactory;
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
 	private volatile FileSystem _fileSystem;
 	private volatile Future<?> _future;
@@ -110,8 +110,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 				return getFileSystem().getRoot();
 			}
 		};
-		_xqConnectionFactory = XQConnectionFactory.newInstance(_uriResolver);
-		_xqConnectionFactory.setErrorListener(new ErrorListener() {
+		_xmlProcessorFactory = XMLProcessorFactory.newInstance(_uriResolver);
+		_xmlProcessorFactory.setErrorListener(new ErrorListener() {
 
 			@Override
 			public void warning(TransformerException exception) {
@@ -184,8 +184,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		return _uriResolver;
 	}
 
-	public XQConnectionFactory getXQConnectionFactory() {
-		return _xqConnectionFactory;
+	public XMLProcessorFactory getXMLProcessorFactory() {
+		return _xmlProcessorFactory;
 	}
 
 	public boolean lockFileSystem() {

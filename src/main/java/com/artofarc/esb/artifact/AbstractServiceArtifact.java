@@ -41,7 +41,7 @@ import org.xml.sax.SAXException;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.service.Property;
 import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.XMLProcessorFactory;
 
 public abstract class AbstractServiceArtifact extends Artifact {
 
@@ -64,7 +64,7 @@ public abstract class AbstractServiceArtifact extends Artifact {
 		}
 		try (InputStream inputStream = classLoader.getResourceAsStream("migrate.xsl")) {
 			if (inputStream != null) {
-				migrationXSLT = JAXPFactoryHelper.createSAXTransformerFactory().newTemplates(new StreamSource(inputStream));
+				migrationXSLT = XMLProcessorFactory.newInstance(null).newTemplates(new StreamSource(inputStream));
 				logger.info("Found migration XSLT");
 			} else {
 				migrationXSLT = null;
@@ -96,7 +96,7 @@ public abstract class AbstractServiceArtifact extends Artifact {
 	protected final void migrate(GlobalContext globalContext) throws TransformerException {
 		if (migrationXSLT != null) {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			byte[] content1 = transform(JAXPFactoryHelper.newTransformer(), bos);
+			byte[] content1 = transform(XMLProcessorFactory.newTransformer(), bos);
 			bos.reset();
 			byte[] content2 = transform(migrationXSLT.newTransformer(), bos);
 			if (!Arrays.equals(content1, content2)) {

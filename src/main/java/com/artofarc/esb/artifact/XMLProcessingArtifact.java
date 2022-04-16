@@ -26,7 +26,7 @@ import javax.xml.transform.stream.StreamSource;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.IOUtils;
-import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.XMLProcessorFactory;
 
 public class XMLProcessingArtifact extends Artifact {
 
@@ -42,7 +42,7 @@ public class XMLProcessingArtifact extends Artifact {
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		// checks well-formedness
-		JAXPFactoryHelper.getSAXParserFactory().newSAXParser().parse(getContentAsStream(), new org.xml.sax.helpers.DefaultHandler());
+		XMLProcessorFactory.getSAXParserFactory().newSAXParser().parse(getContentAsStream(), new org.xml.sax.helpers.DefaultHandler());
 	}
 
 	@Override
@@ -68,6 +68,9 @@ public class XMLProcessingArtifact extends Artifact {
 
 		Artifact resolveArtifact(String href, String base) throws FileNotFoundException {
 			if (base != null && !base.isEmpty()) {
+				if (base.startsWith(PROTOCOL_FILE)) {
+					base = base.substring(PROTOCOL_FILE.length());
+				}
 				if (href.startsWith("/.")) {
 					return getBaseArtifact().loadArtifact(base + href);
 				} else {

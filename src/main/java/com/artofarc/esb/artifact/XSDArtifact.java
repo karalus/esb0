@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +22,7 @@ import javax.xml.transform.stream.StreamSource;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import com.artofarc.util.JAXPFactoryHelper;
+import com.artofarc.util.XMLProcessorFactory;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.parser.XSOMParser;
 
@@ -50,7 +49,7 @@ public class XSDArtifact extends SchemaArtifact {
 	@Override
 	public XSSchemaSet getXSSchemaSet() throws SAXException {
 		if (_schemaSet == null) {
-			XSOMParser xsomParser = new XSOMParser(JAXPFactoryHelper.getSAXParserFactory());
+			XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 			xsomParser.setEntityResolver(getResolver());
 			InputSource is = new InputSource(getContentAsStream());
 			is.setSystemId(getURI());

@@ -21,31 +21,51 @@ import java.util.List;
 import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.sax.TransformerHandler;
 import javax.xml.xquery.XQItem;
 
-import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
+import com.artofarc.esb.artifact.XSLTArtifact;
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.JAXPFactoryHelper;
 import com.artofarc.util.XMLFilterBase;
+import com.artofarc.util.XMLProcessorFactory;
 
 public class XSLTAction extends SAXAction {
 
-	private final Templates _templates;
+	private final String _uri;
 	private final List<String> _params;
 
-	public XSLTAction(Templates templates, List<String> params) {
-		_templates = templates;
+	public XSLTAction(String uri, List<String> params) {
+		_uri = uri;
 		_params = params;
+	}
+
+	private Templates getTemplates(GlobalContext globalContext) throws TransformerException {
+		XSLTArtifact xsltArtifact = globalContext.getFileSystem().getArtifact(_uri);
+		return xsltArtifact.getTemplates(globalContext);
+	}
+
+	private void setParameters(Transformer transformer, ESBMessage message) {
+		for (String param : _params) {
+			if (param.equals("attachmentsHull")) {
+				transformer.setParameter(param, new SAXSource(new Attachments2SAX(message, false), null));
+			} else if (param.equals("attachments")) {
+				transformer.setParameter(param, new SAXSource(new Attachments2SAX(message, true), null));
+			} else {
+				Object value = message.getVariable(param);
+				if (value != null) {
+					transformer.setParameter(param, value);
+				}
+			}
+		}
 	}
 
 	class TransformerFilter extends XMLFilterBase {
@@ -55,26 +75,13 @@ public class XSLTAction extends SAXAction {
 		TransformerFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerException {
 			if (parent != null) {
 				super.setParent(parent);
-				transformerHandler = JAXPFactoryHelper.newTransformerHandler(_templates);
+				transformerHandler = XMLProcessorFactory.newTransformerHandler(getTemplates(context.getGlobalContext()));
 				transformer = transformerHandler.getTransformer();
 			} else {
 				transformerHandler = null;
-				transformer = _templates.newTransformer();
+				transformer = getTemplates(context.getGlobalContext()).newTransformer();
 			}
-			transformer.setURIResolver(context.getGlobalContext().getURIResolver());
-			for (String param : _params) {
-				if (param.equals("attachmentsHull")) {
-					transformer.setParameter(param, new SAXSource(new Attachments2SAX(message, false), null));
-				} else if (param.equals("attachments")) {
-					transformer.setParameter(param, new SAXSource(new Attachments2SAX(message, true), null));
-				} else {
-					Object value = message.getVariable(param, "");
-					if (value instanceof Node) {
-						value = new DOMSource((Node) value);
-					}
-					transformer.setParameter(param, value);
-				}
-			}
+			setParameters(transformer, message);
 		}
 
 		@Override
@@ -100,10 +107,11 @@ public class XSLTAction extends SAXAction {
 			}
 		}
 	}
-
+	
 	@Override
 	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws TransformerException {
-		TransformerFilter transformerFilter = new TransformerFilter(context, message, new XQJFilter(item));
+		XMLProcessorFactory.TransformerFilter transformerFilter = XMLProcessorFactory.createTransformerFilter(getTemplates(context.getGlobalContext()), item);
+		setParameters(transformerFilter.getTransformer(), message);
 		return new SAXSource(transformerFilter, null);
 	}
 
