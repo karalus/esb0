@@ -101,11 +101,9 @@ public class XMLProcessorFactory {
 		}
 	}
 
-	protected final URIResolver _uriResolver;
 	protected final SAXTransformerFactory _saxTransformerFactory;
 
 	protected XMLProcessorFactory(URIResolver uriResolver) throws Throwable {
-		_uriResolver = uriResolver;
 		_saxTransformerFactory = (SAXTransformerFactory) conSAXTransformerFactory.invoke();
 		_saxTransformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 		_saxTransformerFactory.setURIResolver(uriResolver);

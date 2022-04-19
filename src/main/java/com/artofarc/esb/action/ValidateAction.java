@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
+import javax.xml.transform.sax.SAXResult;
 import javax.xml.validation.Schema;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQResultSequence;
@@ -43,7 +44,7 @@ public class ValidateAction extends AssignAction {
 		try {
 			checkNext(resultSequence, "expression");
 			ContentHandler saxhdlr = message.getAttachments().isEmpty() ? _schema.newValidatorHandler() : new XopAwareValidatorHandler(_schema, message.getAttachments().keySet());
-			resultSequence.writeItemToSAX(saxhdlr);
+			resultSequence.writeItemToResult(new SAXResult(saxhdlr));
 		} catch (XQException e) {
 			throw new ExecutionException(this, "Validation failed", e.getCause());
 		}

@@ -654,7 +654,7 @@ public final class ESBMessage implements Cloneable {
 			// nobreak
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItemToSAX(contentHandler);
+			xqItem.writeItemToResult(new SAXResult(contentHandler));
 			break;
 		default:
 			Source source = getBodyAsSource(context);
@@ -843,7 +843,7 @@ public final class ESBMessage implements Cloneable {
 		for (Map.Entry<String, Object> entry : _variables.entrySet()) {
 			if (entry.getKey() == ESBConstants.initialTimestamp) {
 				clone._variables.put(ESBConstants.initialTimestampOrigin, entry.getValue());
-			} else {
+			} else if (!entry.getKey().startsWith("_")) {
 				clone._variables.put(entry.getKey(), entry.getValue());
 			}
 		}

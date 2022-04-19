@@ -15,7 +15,7 @@
  */
 package com.artofarc.util.saxon;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
@@ -50,14 +50,16 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
 
+	private final URIResolver _uriResolver;
 	private final SaxonXQDataSource _dataSource;
 
 	public SaxonXMLProcessorFactory(URIResolver uriResolver) throws Throwable {
 		super(uriResolver);
+		_uriResolver = uriResolver;
 		Configuration configuration = ((TransformerFactoryImpl) _saxTransformerFactory).getConfiguration();
 		configuration.registerExtensionFunction(functionUUID);
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
-		configuration.registerExtensionFunction(new Evaluate());
+		configuration.registerExtensionFunction(new Evaluate(configuration));
 		configuration.setModuleURIResolver(this);
 		_dataSource = new SaxonXQDataSource(configuration);
 	}
@@ -111,7 +113,6 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 				public Sequence<?> call(XPathContext context, Sequence[] arguments) {
 					return StringValue.makeStringValue(java.util.UUID.randomUUID().toString());
 				}
-
 			};
 		}
 	}
@@ -141,24 +142,24 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 				public Sequence<?> call(XPathContext context, Sequence[] arguments) {
 					return Int64Value.makeDerived(System.currentTimeMillis(), BuiltInAtomicType.LONG);
 				}
-
 			};
 		}
 	}
 
 	private static class Evaluate extends ExtensionFunctionDefinition {
 
-		private XPathEvaluator _xPathEvaluator;
-		private final HashMap<String, XPathExpression> _cache = new HashMap<>();
+		private final XPathEvaluator _xPathEvaluator;
+		private final ConcurrentHashMap<String, XPathExpression> _cache = new ConcurrentHashMap<>();
 
-		private synchronized XPathExpression getXPathExpression(XPathContext context, String expression) throws XPathException {
+		Evaluate(Configuration configuration) {
+			_xPathEvaluator = new XPathEvaluator(configuration);
+		}
+
+		private XPathExpression getXPathExpression(String expression) throws XPathException {
 			XPathExpression xPathExpression = _cache.get(expression);
 			if (xPathExpression == null) {
-				if (_xPathEvaluator == null) {
-					_xPathEvaluator = new XPathEvaluator(context.getConfiguration());
-				}
 				xPathExpression = _xPathEvaluator.createExpression(expression);
-				_cache.put(expression, xPathExpression);
+				_cache.putIfAbsent(expression, xPathExpression);
 			}
 			return xPathExpression;
 		}
@@ -185,11 +186,10 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 				@Override
 				public Sequence<?> call(XPathContext context, Sequence[] arguments) throws XPathException {
 					StringValue xpath = (StringValue) arguments[0].head();
-					XPathExpression xPathExpression = getXPathExpression(context, xpath.getStringValue());
+					XPathExpression xPathExpression = getXPathExpression(xpath.getStringValue());
 					XPathDynamicContext dynamicContext = xPathExpression.createDynamicContext(context.getController(), context.getContextItem());
 					return xPathExpression.iterate(dynamicContext).materialize();
 				}
-
 			};
 		}
 	}
