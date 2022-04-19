@@ -15,6 +15,8 @@
  */
 package com.artofarc.util;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -231,7 +233,7 @@ public final class ReflectionUtils {
 		}
 	}
 
-	public static Field findField(Class<?> cls, String name) throws NoSuchFieldException {
+	private static Field findField(Class<?> cls, String name) throws NoSuchFieldException {
 		try {
 			return cls.getDeclaredField(name);
 		} catch (NoSuchFieldException e) {
@@ -281,6 +283,24 @@ public final class ReflectionUtils {
 			throw ReflectionUtils.convert(e.getCause(), cls);
 		} catch (IllegalAccessException e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	public static MethodHandle unreflectGetter(Class<?> cls, String name) {
+		try {
+			Field field = findField(cls, name);
+			field.setAccessible(true);
+			return MethodHandles.lookup().unreflectGetter(field);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static <T> T invoke(MethodHandle methodHandle, Object obj) {
+		try {
+			return (T) methodHandle.invoke(obj);
+		} catch (Throwable e) {
+			throw ReflectionUtils.convert(e, RuntimeException.class);
 		}
 	}
 

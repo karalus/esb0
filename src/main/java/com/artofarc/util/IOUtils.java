@@ -16,6 +16,10 @@
 package com.artofarc.util;
 
 import java.io.*;
+import java.lang.invoke.MethodHandle;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.charset.Charset;
 
 public final class IOUtils {
 
@@ -44,7 +48,13 @@ public final class IOUtils {
 	}
 
 	public interface PredictableInputStream {
-		long length();
+		default long length() {
+			return lengthAsInt();
+		}
+
+		default int lengthAsInt() {
+			return Math.toIntExact(length());
+		}
 	}
 
 	public static class PredictableFileInputStream extends FileInputStream implements PredictableInputStream {
@@ -87,22 +97,50 @@ public final class IOUtils {
 		return toByteArray(is);
 	}
 
+	private final static MethodHandle BUF = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "buf");
+	private final static MethodHandle POS = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "pos");
+	private final static MethodHandle COUNT = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "count");
+
 	public static byte[] toByteArray(InputStream is) throws IOException {
 		if (is instanceof ByteArrayInputStream) {
 			ByteArrayInputStream bis = (ByteArrayInputStream) is;
 			return bis.toByteArray();
 		}
 		if (is instanceof java.io.ByteArrayInputStream) {
-			return ByteArrayInputStream.toByteArray(ReflectionUtils.getField(is, "buf"), ReflectionUtils.getField(is, "pos"), ReflectionUtils.getField(is, "count"));
+			return ByteArrayInputStream.toByteArray(ReflectionUtils.invoke(BUF, is), ReflectionUtils.invoke(POS, is), ReflectionUtils.invoke(COUNT, is));
 		}
 		if (is instanceof PredictableInputStream) {
-			final byte[] ba = new byte[Math.toIntExact(((PredictableInputStream) is).length())];
+			final byte[] ba = new byte[((PredictableInputStream) is).lengthAsInt()];
 			readFully(is, ba);
 			return ba;
 		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		copy(is, os);
 		return os.toByteArray();
+	}
+
+	public static ByteBuffer toByteBuffer(InputStream is) throws IOException {
+		if (is instanceof ByteArrayInputStream) {
+			ByteArrayInputStream bis = (ByteArrayInputStream) is;
+			return bis.toByteBuffer();
+		}
+		if (is instanceof java.io.ByteArrayInputStream) {
+			int pos = ReflectionUtils.invoke(POS, is);
+			int count = ReflectionUtils.invoke(COUNT, is);
+			return ByteBuffer.wrap(ReflectionUtils.invoke(BUF, is), pos, count - pos);
+		}
+		if (is instanceof PredictableInputStream) {
+			ByteBuffer byteBuffer = ByteBuffer.allocate(((PredictableInputStream) is).lengthAsInt());
+			while (Channels.newChannel(is).read(byteBuffer) >= 0);
+			return byteBuffer;
+		}
+		final ByteArrayOutputStream os = new ByteArrayOutputStream();
+		copy(is, os);
+		return os.toByteBuffer();
+	}
+
+	public static String toString(InputStream is, Charset charset) throws IOException {
+		return charset.decode(toByteBuffer(is)).toString();
 	}
 
 	public static void readFully(InputStream is, byte ba[]) throws IOException {

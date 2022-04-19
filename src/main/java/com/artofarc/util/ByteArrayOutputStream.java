@@ -16,6 +16,8 @@
  */
 package com.artofarc.util;
 
+import java.nio.ByteBuffer;
+
 public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 
 	public ByteArrayOutputStream() {
@@ -34,6 +36,10 @@ public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 
 	public ByteArrayInputStream getByteArrayInputStream() {
 		return new ByteArrayInputStream(buf, 0, count);
+	}
+
+	public ByteBuffer toByteBuffer() {
+		return ByteBuffer.wrap(buf, 0, count);
 	}
 
 }

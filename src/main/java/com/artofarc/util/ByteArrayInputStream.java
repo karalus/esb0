@@ -17,6 +17,7 @@ package com.artofarc.util;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 public final class ByteArrayInputStream extends java.io.ByteArrayInputStream implements Cloneable, IOUtils.PredictableInputStream {
 
@@ -29,12 +30,16 @@ public final class ByteArrayInputStream extends java.io.ByteArrayInputStream imp
 	}
 
 	@Override
-	public long length() {
+	public int lengthAsInt() {
 		return count - pos;
 	}
 
 	public void copyTo(OutputStream os) throws IOException {
 		os.write(buf, pos, count - pos);
+	}
+
+	public ByteBuffer toByteBuffer() {
+		return ByteBuffer.wrap(buf, pos, count - pos);
 	}
 
 	public byte[] toByteArray() {

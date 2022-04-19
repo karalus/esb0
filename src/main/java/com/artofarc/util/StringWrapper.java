@@ -63,7 +63,7 @@ public final class StringWrapper {
 			return smallString;
 		}
 		try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(compressedContent), IOUtils.MTU)) {
-			return new String(IOUtils.toByteArray(gzipInputStream), charset);
+			return IOUtils.toString(gzipInputStream, charset);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
