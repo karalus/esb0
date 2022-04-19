@@ -43,16 +43,7 @@ public final class ByteArrayInputStream extends java.io.ByteArrayInputStream imp
 	}
 
 	public byte[] toByteArray() {
-		return toByteArray(buf, pos, count);
-	}
-
-	static byte[] toByteArray(byte buf[], int pos, int count) {
-		if (pos == 0 && buf.length == count) {
-			return buf;
-		}
-		final byte[] copy = new byte[count - pos];
-		System.arraycopy(buf, pos, copy, 0, count - pos);
-		return copy;
+		return IOUtils.toByteArray(buf, pos, count);
 	}
 
 	@Override

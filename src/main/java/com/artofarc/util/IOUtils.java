@@ -19,6 +19,7 @@ import java.io.*;
 import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 
 public final class IOUtils {
@@ -54,6 +55,10 @@ public final class IOUtils {
 
 		default int lengthAsInt() {
 			return Math.toIntExact(length());
+		}
+
+		default ReadableByteChannel getChannel() {
+			return Channels.newChannel((InputStream) this);
 		}
 	}
 
@@ -101,13 +106,22 @@ public final class IOUtils {
 	private final static MethodHandle POS = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "pos");
 	private final static MethodHandle COUNT = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "count");
 
+	static byte[] toByteArray(byte buf[], int pos, int count) {
+		if (pos == 0 && buf.length == count) {
+			return buf;
+		}
+		final byte[] copy = new byte[count - pos];
+		System.arraycopy(buf, pos, copy, 0, count - pos);
+		return copy;
+	}
+
 	public static byte[] toByteArray(InputStream is) throws IOException {
 		if (is instanceof ByteArrayInputStream) {
 			ByteArrayInputStream bis = (ByteArrayInputStream) is;
 			return bis.toByteArray();
 		}
 		if (is instanceof java.io.ByteArrayInputStream) {
-			return ByteArrayInputStream.toByteArray(ReflectionUtils.invoke(BUF, is), ReflectionUtils.invoke(POS, is), ReflectionUtils.invoke(COUNT, is));
+			return toByteArray(ReflectionUtils.invoke(BUF, is), ReflectionUtils.invoke(POS, is), ReflectionUtils.invoke(COUNT, is));
 		}
 		if (is instanceof PredictableInputStream) {
 			final byte[] ba = new byte[((PredictableInputStream) is).lengthAsInt()];
@@ -131,7 +145,8 @@ public final class IOUtils {
 		}
 		if (is instanceof PredictableInputStream) {
 			ByteBuffer byteBuffer = ByteBuffer.allocate(((PredictableInputStream) is).lengthAsInt());
-			while (Channels.newChannel(is).read(byteBuffer) >= 0);
+			for (ReadableByteChannel channel = ((PredictableInputStream) is).getChannel(); channel.read(byteBuffer) >= 0 && byteBuffer.remaining() > 0;);
+			if (byteBuffer.remaining() > 0) throw new EOFException();
 			return byteBuffer;
 		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -153,10 +168,8 @@ public final class IOUtils {
 	}
 
 	public static byte[] readFile(File file) throws IOException {
-		try (InputStream is = new FileInputStream(file)) {
-			final byte[] ba = new byte[Math.toIntExact(file.length())];
-			readFully(is, ba);
-			return ba;
+		try (InputStream is = new PredictableFileInputStream(file)) {
+			return toByteArray(is);
 		}
 	}
 
