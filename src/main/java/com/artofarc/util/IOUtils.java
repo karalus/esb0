@@ -147,7 +147,7 @@ public final class IOUtils {
 			ByteBuffer byteBuffer = ByteBuffer.allocate(((PredictableInputStream) is).lengthAsInt());
 			for (ReadableByteChannel channel = ((PredictableInputStream) is).getChannel(); channel.read(byteBuffer) >= 0 && byteBuffer.remaining() > 0;);
 			if (byteBuffer.remaining() > 0) throw new EOFException();
-			return byteBuffer;
+			return (ByteBuffer) byteBuffer.rewind();
 		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		copy(is, os);
