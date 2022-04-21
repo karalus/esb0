@@ -44,6 +44,7 @@ public final class DeployHelper {
 			case JMS:
 				JMSConsumer jmsConsumer = service.getConsumerPort();
 				globalContext.unbindJmsConsumer(jmsConsumer);
+				jmsConsumer.unsubscribe();
 				try {
 					jmsConsumer.close();
 				} catch (Exception e) {

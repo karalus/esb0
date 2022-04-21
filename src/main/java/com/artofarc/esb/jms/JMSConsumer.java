@@ -324,9 +324,9 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		_lastChangeOfState = System.currentTimeMillis();
 	}
 
-	private void await(Future<?> future) throws JMSException {
+	private <T> T await(Future<T> future) throws JMSException {
 		try {
-			future.get();
+			return future.get();
 		} catch (InterruptedException e) {
 			logger.error("Unexpected cancellation during control of " + getKey());
 		} catch (ExecutionException e) {
@@ -335,6 +335,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			}
 			logger.error("Unexpected Exception during control of " + getKey(), e);
 		}
+		return null;
 	}
 
 	void suspend() throws Exception {
@@ -355,6 +356,19 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		}
 		JMSConnectionProvider jmsConnectionProvider = _workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 		jmsConnectionProvider.unregisterJMSConsumer(_jmsConnectionData, this);
+	}
+
+	public Boolean unsubscribe() {
+		Session session = _jmsWorker[0]._session;
+		if (_subscription != null && session != null) {
+			try {
+				enable(false);
+				return await(_workerPool.getExecutorService().submit(() -> { session.unsubscribe(_subscription); return true; }));
+			} catch (JMSException e) {
+				logger.error("unsubscribe " + _subscription, e);
+			}
+		}
+		return false;
 	}
 
 	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws Exception {
