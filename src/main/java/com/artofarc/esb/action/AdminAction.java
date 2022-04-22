@@ -32,6 +32,7 @@ import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.Collections;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.JsonFactoryHelper;
+import com.artofarc.util.URLUtils;
 
 public class AdminAction extends Action {
 
@@ -45,8 +46,8 @@ public class AdminAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		String verb =  (String) bindVariable(_verb, context, message);
-		String resource = (String) bindVariable(_resourceExp, context, message);
+		String verb = (String) bindVariable(_verb, context, message);
+		String resource = URLUtils.decode((String) bindVariable(_resourceExp, context, message));
 		switch (verb) {
 		case "GET":
 			if (resource.isEmpty()) {
