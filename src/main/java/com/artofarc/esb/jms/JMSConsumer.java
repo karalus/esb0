@@ -324,9 +324,9 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		_lastChangeOfState = System.currentTimeMillis();
 	}
 
-	private <T> T await(Future<T> future) throws JMSException {
+	private void await(Future<?> future) throws JMSException {
 		try {
-			return future.get();
+			future.get();
 		} catch (InterruptedException e) {
 			logger.error("Unexpected cancellation during control of " + getKey());
 		} catch (ExecutionException e) {
@@ -335,7 +335,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			}
 			logger.error("Unexpected Exception during control of " + getKey(), e);
 		}
-		return null;
 	}
 
 	void suspend() throws Exception {
@@ -363,7 +362,8 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		if (_subscription != null && session != null) {
 			try {
 				enable(false);
-				return await(_workerPool.getExecutorService().submit(() -> { session.unsubscribe(_subscription); return true; }));
+				session.unsubscribe(_subscription);
+				return true;
 			} catch (JMSException e) {
 				logger.error("unsubscribe " + _subscription, e);
 			}
