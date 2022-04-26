@@ -16,7 +16,6 @@
 package com.artofarc.esb.artifact;
 
 import javax.xml.xquery.XQConnection;
-import javax.xml.xquery.XQException;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.XMLProcessorFactory;
@@ -39,8 +38,6 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		XQConnection connection = factory.getConnection();
 		try {
 			xQuerySource.prepareExpression(connection, owner.getURI()).close();
-		} catch (XQException e) {
-			throw errorListener.build(e);
 		} catch (StackOverflowError e) {
 			// StackOverflowError can happen when a XQuery is deeply nested
 			throw new ValidationException(owner, e);

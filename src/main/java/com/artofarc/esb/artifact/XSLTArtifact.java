@@ -71,11 +71,7 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 		XMLProcessorFactory xmlProcessorFactory = XMLProcessorFactory.newInstance(new ArtifactURIResolver(this));
 		ValidationErrorListener errorListener = new ValidationErrorListener(getURI());
 		xmlProcessorFactory.setErrorListener(errorListener);
-		try {
-			xmlProcessorFactory.newTemplates(new StreamSource(getContentAsStream()));
-		} catch (TransformerException e) {
-			throw errorListener.build(e);
-		}
+		xmlProcessorFactory.newTemplates(new StreamSource(getContentAsStream()));
 		// set imports/includes to validated 
 		for (String referenced : getReferenced()) {
 			getArtifact(referenced).setValidated();

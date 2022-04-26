@@ -316,7 +316,7 @@ public abstract class FileSystem {
 
 		public List<ServiceArtifact> getServiceArtifacts() throws ValidationException {
 			List<ServiceArtifact> serviceArtifacts = new ArrayList<>();
-			ValidationException exception = null;
+			HashSet<ValidationException> validationExceptions = new HashSet<>();
 			for (Future<ServiceArtifact> future : futures) {
 				try {
 					serviceArtifacts.add(future.get());
@@ -324,17 +324,17 @@ public abstract class FileSystem {
 					throw new RuntimeException(e);
 				} catch (ExecutionException e) {
 					if (e.getCause() instanceof ValidationException) {
-						if (exception == null) {
-							exception = (ValidationException) e.getCause();
-						} else {
-							exception.addSuppressed(e.getCause());
-						}
+						validationExceptions.add((ValidationException) e.getCause());
 					} else {
 						throw ReflectionUtils.convert(e.getCause(), RuntimeException.class);
 					}
 				} 
 			}
-			if (exception != null) {
+			if (validationExceptions.size() > 0) {
+				Iterator<ValidationException> iterator = validationExceptions.iterator();
+				ValidationException exception = iterator.next();
+				while (iterator.hasNext())
+					exception.addSuppressed(iterator.next());
 				throw exception;
 			}
 			dehydrateArtifacts(_root);

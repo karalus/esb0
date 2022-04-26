@@ -17,7 +17,6 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
@@ -122,42 +121,26 @@ public class XMLProcessingArtifact extends Artifact {
 
 	static final class ValidationErrorListener implements ErrorListener {
 
-		private final String uri;
-		private final ArrayList<TransformerException> exceptions = new ArrayList<>();
+		private final String _uri;
 
 		ValidationErrorListener(String uri) {
-			this.uri = uri;
+			_uri = uri;
 		}
 
 		@Override
 		public void warning(TransformerException exception) {
-			logger.warn(uri, exception);
-		}
-
-		@Override
-		public void fatalError(TransformerException exception) {
-			logger.error(uri, exception);
-			exceptions.add(exception);
+			logger.warn(_uri, exception);
 		}
 
 		@Override
 		public void error(TransformerException exception) {
-			logger.error(uri, exception);
-			exceptions.add(exception);
+			logger.error(_uri, exception);
 		}
 
-		public Exception build(Exception e) {
-			switch (exceptions.size()) {
-			case 0:
-				return e;
-			case 1:
-				return exceptions.get(0);
-			default:
-				for (TransformerException exception : exceptions) {
-					e.addSuppressed(exception);
-				}
-				return e;
-			}
+		@Override
+		public void fatalError(TransformerException exception) throws TransformerException {
+			logger.error(_uri, exception);
+			throw exception;
 		}
 	}
 
