@@ -526,7 +526,8 @@ public final class Json2XmlTransformer {
 			}
 			Element e = new Element(uri, keyName, createQName(uri, keyName));
 			if (_type instanceof XSSimpleType) {
-				parse(e, _jsonValue, (XSSimpleType) _type);
+				xsomHelper = new XSOMHelper((XSSimpleType) _type);
+				parse(e, _jsonValue);
 			} else {
 				xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
 				parse(e, _jsonValue, null);
@@ -534,19 +535,23 @@ public final class Json2XmlTransformer {
 			endDocument();
 		}
 
-		private void parse(Element e, JsonObject _jsonObject) throws SAXException {
-			final Map<String, JsonValue> jsonObject = new LinkedHashMap<>(_jsonObject);
+		private void parse(Element e, JsonObject jsonObject) throws SAXException {
+			final Map<String, JsonValue> jsonMap = new LinkedHashMap<>(jsonObject);
 			uri = null;
-			for (Iterator<String> iter = jsonObject.keySet().iterator(); iter.hasNext();) {
+			for (Iterator<String> iter = jsonMap.keySet().iterator(); iter.hasNext();) {
 				String key = iter.next();
 				if (key.startsWith(attributePrefix)) {
 					keyName = key.substring(attributePrefix.length());
-					addAttribute(getString(jsonObject.get(key)));
+					addAttribute(getString(jsonMap.get(key)));
 					iter.remove();
 				}
 			}
 			if (xsomHelper.getSimpleType() != null) {
-				parse(e, getJsonValue(jsonObject, valueWrapper));
+				JsonValue value = removeJsonValue(jsonMap, valueWrapper);
+				if (value == null) {
+					throw new SAXException("Not a simple type: " + jsonObject);
+				}
+				parse(e, value);
 				_atts.clear();
 			} else {
 				boolean mixed = any < 0 && xsomHelper.getComplexType().isMixed();
@@ -565,9 +570,9 @@ public final class Json2XmlTransformer {
 						if (++any == 0) {
 							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);							
 						}
-						for (String key : new ArrayList<>(jsonObject.keySet())) {
+						for (String key : new ArrayList<>(jsonMap.keySet())) {
 							uri = null;
-							final JsonValue jsonValue = getJsonValue(jsonObject, key);
+							final JsonValue jsonValue = removeJsonValue(jsonMap, key);
 							if (uri == null) {
 								uri = term.apply(XSOMHelper.GetNamespace);
 							}
@@ -580,7 +585,7 @@ public final class Json2XmlTransformer {
 					} else {
 						uri = null;
 						keyName = term.apply(XSOMHelper.GetName);
-						final JsonValue jsonValue = getJsonValue(jsonObject, keyName);
+						final JsonValue jsonValue = removeJsonValue(jsonMap, keyName);
 						if (jsonValue != null) {
 							if (uri == null) {
 								uri = term.apply(XSOMHelper.GetNamespace);
@@ -597,7 +602,7 @@ public final class Json2XmlTransformer {
 					}
 				}
 				if (mixed) {
-					JsonArray jsonArray = (JsonArray) getJsonValue(jsonObject, valueWrapper);
+					JsonArray jsonArray = (JsonArray) removeJsonValue(jsonMap, valueWrapper);
 					if (jsonArray != null) {
 						for (JsonValue jsonValue : jsonArray) {
 							JsonString jsonString = (JsonString) jsonValue;
@@ -726,13 +731,13 @@ public final class Json2XmlTransformer {
 			}
 		}
 
-		private JsonValue getJsonValue(Map<String, JsonValue> jsonObject, String key) {
-			JsonValue jsonValue = jsonObject.remove(key);
+		private JsonValue removeJsonValue(Map<String, JsonValue> jsonMap, String key) {
+			JsonValue jsonValue = jsonMap.remove(key);
 			if (jsonValue == null && _namespaceMap != null) {
 				for (Map.Entry<String, String> entry : _namespaceMap.getPrefixes()) {
 					String prefix = entry.getKey();
 					if (prefix.length() > 0) {
-						jsonValue = jsonObject.remove(prefix + '.' + key);
+						jsonValue = jsonMap.remove(prefix + '.' + key);
 						if (jsonValue != null) {
 							uri = entry.getValue();
 							break;

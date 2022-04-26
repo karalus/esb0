@@ -200,6 +200,10 @@ public final class XSOMHelper {
 		expandGroup(_complexType = elementDecl.getType().asComplexType(), elementDecl);
 	}
 
+	public XSOMHelper(XSSimpleType simpleType) {
+		_simpleType = simpleType;
+	}
+
 	public int getLevel() {
 		return _stack.size();
 	}
