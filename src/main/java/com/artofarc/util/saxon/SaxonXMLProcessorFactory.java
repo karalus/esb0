@@ -90,14 +90,24 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 
 	private static class UUID extends ExtensionFunctionDefinition {
 
+		private static final StructuredQName FUNCTION_QNAME = new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "uuid");
+		private static final SequenceType[] ARGUMENT_TYPES = new SequenceType[0];
+		private static final ExtensionFunctionCall EXTENSION_FUNCTION_CALL = new ExtensionFunctionCall() {
+
+			@Override
+			public Sequence<?> call(XPathContext context, @SuppressWarnings("rawtypes") Sequence[] arguments) {
+				return StringValue.makeStringValue(java.util.UUID.randomUUID().toString());
+			}
+		};
+
 		@Override
 		public StructuredQName getFunctionQName() {
-			return new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "uuid");
+			return FUNCTION_QNAME;
 		}
 
 		@Override
 		public SequenceType[] getArgumentTypes() {
-			return new SequenceType[0];
+			return ARGUMENT_TYPES;
 		}
 
 		@Override
@@ -107,26 +117,30 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 
 		@Override
 		public ExtensionFunctionCall makeCallExpression() {
-			return new ExtensionFunctionCall() {
-
-				@Override
-				public Sequence<?> call(XPathContext context, Sequence[] arguments) {
-					return StringValue.makeStringValue(java.util.UUID.randomUUID().toString());
-				}
-			};
+			return EXTENSION_FUNCTION_CALL;
 		}
 	}
 
 	private static class CurrentTimeMillis extends ExtensionFunctionDefinition {
 
+		private static final StructuredQName FUNCTION_QNAME = new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "currentTimeMillis");
+		private static final SequenceType[] ARGUMENT_TYPES = new SequenceType[0];
+		private static final ExtensionFunctionCall EXTENSION_FUNCTION_CALL = new ExtensionFunctionCall() {
+
+			@Override
+			public Sequence<?> call(XPathContext context, @SuppressWarnings("rawtypes") Sequence[] arguments) {
+				return Int64Value.makeDerived(System.currentTimeMillis(), BuiltInAtomicType.LONG);
+			}
+		};
+
 		@Override
 		public StructuredQName getFunctionQName() {
-			return new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "currentTimeMillis");
+			return FUNCTION_QNAME;
 		}
 
 		@Override
 		public SequenceType[] getArgumentTypes() {
-			return new SequenceType[0];
+			return ARGUMENT_TYPES;
 		}
 
 		@Override
@@ -136,20 +150,27 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 
 		@Override
 		public ExtensionFunctionCall makeCallExpression() {
-			return new ExtensionFunctionCall() {
-
-				@Override
-				public Sequence<?> call(XPathContext context, Sequence[] arguments) {
-					return Int64Value.makeDerived(System.currentTimeMillis(), BuiltInAtomicType.LONG);
-				}
-			};
+			return EXTENSION_FUNCTION_CALL;
 		}
 	}
 
 	private static class Evaluate extends ExtensionFunctionDefinition {
 
-		private final XPathEvaluator _xPathEvaluator;
+		private static final StructuredQName FUNCTION_QNAME = new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "evaluate");
+		private static final SequenceType[] ARGUMENT_TYPES = new SequenceType[] { BuiltInAtomicType.STRING.one() };
+
+		private final ExtensionFunctionCall _extensionFunctionCall = new ExtensionFunctionCall() {
+
+			@Override
+			public Sequence<?> call(XPathContext context, @SuppressWarnings("rawtypes") Sequence[] arguments) throws XPathException {
+				StringValue xpath = (StringValue) arguments[0].head();
+				XPathExpression xPathExpression = getXPathExpression(xpath.getStringValue());
+				XPathDynamicContext dynamicContext = xPathExpression.createDynamicContext(context.getController(), context.getContextItem());
+				return xPathExpression.iterate(dynamicContext).materialize();
+			}
+		};
 		private final ConcurrentHashMap<String, XPathExpression> _cache = new ConcurrentHashMap<>();
+		private final XPathEvaluator _xPathEvaluator;
 
 		Evaluate(Configuration configuration) {
 			_xPathEvaluator = new XPathEvaluator(configuration);
@@ -166,12 +187,12 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 
 		@Override
 		public StructuredQName getFunctionQName() {
-			return new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "evaluate");
+			return FUNCTION_QNAME;
 		}
 
 		@Override
 		public SequenceType[] getArgumentTypes() {
-			return new SequenceType[] { BuiltInAtomicType.STRING.one() };
+			return ARGUMENT_TYPES;
 		}
 
 		@Override
@@ -181,16 +202,7 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 
 		@Override
 		public ExtensionFunctionCall makeCallExpression() {
-			return new ExtensionFunctionCall() {
-
-				@Override
-				public Sequence<?> call(XPathContext context, Sequence[] arguments) throws XPathException {
-					StringValue xpath = (StringValue) arguments[0].head();
-					XPathExpression xPathExpression = getXPathExpression(xpath.getStringValue());
-					XPathDynamicContext dynamicContext = xPathExpression.createDynamicContext(context.getController(), context.getContextItem());
-					return xPathExpression.iterate(dynamicContext).materialize();
-				}
-			};
+			return _extensionFunctionCall;
 		}
 	}
 
