@@ -51,7 +51,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 	private final ArrayDeque<Map.Entry<Integer, String>> _prefixPos = new ArrayDeque<>();
 
 	private XSOMHelper xsomHelper;
-	private boolean root = true, complex;
+	private boolean root = true;
 	private String primitiveType;
 	private int anyLevel;
 	private Object object;
@@ -111,6 +111,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 			++anyLevel;
 			return;
 		}
+		boolean complex;
 		if (root) {
 			root = false;
 			xsomHelper = new XSOMHelper(_schemaSet.getElementDecl(uri, localName));
