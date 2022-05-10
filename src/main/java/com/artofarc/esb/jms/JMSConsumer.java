@@ -47,11 +47,12 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 	static class BytesMessageInputStream extends InputStream implements IOUtils.PredictableInputStream{
 		final BytesMessage _bytesMessage;
-		long available;
+		final long length; 
+		long available, markpos = -1;
 
 		BytesMessageInputStream(BytesMessage bytesMessage) throws JMSException {
 			_bytesMessage = bytesMessage;
-			available = bytesMessage.getBodyLength();
+			available = length = bytesMessage.getBodyLength();
 		}
 
 		@Override
@@ -62,6 +63,30 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		@Override
 		public int available() {
 			return available > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) available;
+		}
+
+ 		@Override
+		public boolean markSupported() {
+			return true;
+		}
+
+		public void mark(int readlimit) {
+			markpos = length - available;
+		}
+
+		@Override
+		public void reset() throws IOException {
+			if (markpos < 0)
+				throw new IOException("Resetting to invalid mark");
+			try {
+				_bytesMessage.reset();
+			} catch (JMSException e) {
+				throw new IOException(e);
+			}
+			available = length;
+			if (skip(markpos) != markpos) {
+				throw new IOException("Resetting to mark did not work");
+			}
 		}
 
 		@Override
@@ -93,10 +118,20 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 						System.arraycopy(ba, 0, b, off, len);
 					}
 				}
-				if (len > 0 && (available -= len) == 0L) {
+				if (len > 0 && (available -= len) == 0L && markpos < 0L) {
 					_bytesMessage.clearBody();
 				}
 				return len;
+			} catch (JMSException e) {
+				throw new IOException(e);
+			}
+		}
+
+		@Override
+		public void close() throws IOException {
+			available = 0;
+			try {
+				_bytesMessage.clearBody();
 			} catch (JMSException e) {
 				throw new IOException(e);
 			}
