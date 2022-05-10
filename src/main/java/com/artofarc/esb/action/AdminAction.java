@@ -26,6 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.*;
 import com.artofarc.esb.context.*;
+
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.ByteArrayOutputStream;
@@ -192,6 +193,10 @@ public class AdminAction extends Action {
 				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
 				message.reset(BodyType.INVALID, null);
 			} else {
+				String filename = getFilename(message.getHeader(HTTP_HEADER_CONTENT_DISPOSITION));
+				if (filename != null) {
+					resource += '/' + filename;
+				}
 				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, content);
 				deployChangeset(globalContext, changeSet, message);
 			}
