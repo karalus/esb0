@@ -337,6 +337,10 @@ Upload Service-JAR:
 			   %>
 					   <tr><td>Namespace</td><td><%=((SchemaArtifact) a).getNamespace()%></td></tr>
 			   <%
+			   	} else if (a instanceof DataSourceArtifact) {
+			   %>
+		   			<tr><td/><td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>" onsubmit="return confirm('Are you sure to delete \'<%=a.getURI()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td></tr>
+			   <%
 			   	} else if (a instanceof JarArtifact && a.isValidated()) {
 			   %>
 					   <tr><td>Used</td><td><%=((JarArtifact) a).isUsed()%></td></tr>
