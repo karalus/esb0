@@ -416,12 +416,13 @@ public final class Json2XmlTransformer {
 						}
 					} else {
 						final XSSimpleType simpleType = xsomHelper.getSimpleType();
-						if (simpleType == null) {
+						if (simpleType != null) {
+							union = simpleType.isUnion();
+							if (e == _arrays.peek()) {
+								simpleList = xsomHelper.isListSimpleType();
+							}
+						} else if (value != null) {
 							throw new SAXException("Expected simple type: " + e.qName);
-						}
-						union = simpleType.isUnion();
-						if (e == _arrays.peek()) {
-							simpleList = xsomHelper.isListSimpleType();
 						}
 					}
 					if (value != null) {
@@ -706,6 +707,9 @@ public final class Json2XmlTransformer {
 				_atts.clear();
 				if (any < 0) {
 					endPrefixMapping("xsi");
+				}
+				if (simpleType == null) {
+					xsomHelper.endComplex();
 				}
 				break;
 			default:
