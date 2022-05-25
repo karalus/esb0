@@ -53,7 +53,8 @@ public final class Attachments2SAX extends XMLFilterBase {
 		startElement(XMLConstants.NULL_NS_URI, "attachments", "attachments", atts);
 		while (_iterator.hasNext()) {
 			Entry<String, MimeBodyPart> entry = _iterator.next();
-			String cid = "cid:" + URLUtils.encode(entry.getKey());
+			// Conform to https://www.w3.org/TR/xop10/#xop_href
+			String cid = "cid:" + URLUtils.encodePathSegment(entry.getKey());
 			String contentType;
 			try {
 				contentType = entry.getValue().getContentType();
