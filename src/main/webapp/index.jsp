@@ -314,6 +314,17 @@ Upload Service-JAR:
 		   Set<String> artifacts = ((Directory) a).getArtifacts().keySet();
 %>
 <br>Filesystem directory "<%=a.getURI()%>" (<%=artifacts.size()%> artifacts)
+<%
+		   if (!a.getURI().isEmpty()) {
+%>
+
+<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>" enctype="multipart/form-data" method="POST">
+  	<input type="file" name="file">
+	<input type="submit" value="Upload">
+</form>
+<%
+		   }
+%>
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td></tr>
 <%
 		   for (String name : artifacts) {
