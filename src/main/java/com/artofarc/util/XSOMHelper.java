@@ -293,7 +293,7 @@ public final class XSOMHelper {
 						processElement(element);
 						return element;
 					}
-					if (_required && !(_currentGroup.all || _currentGroup.choice)) {
+					if (_required && !(_currentGroup.all || _currentGroup.choice || _currentGroup.middleArray)) {
 						throw new SAXException("Missing required element: " + new QName(element.getTargetNamespace(), element.getName()));
 					}
 					final boolean endArray = isEndArray();
