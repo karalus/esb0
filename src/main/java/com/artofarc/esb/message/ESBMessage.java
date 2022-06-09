@@ -28,6 +28,7 @@ import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
@@ -86,7 +87,7 @@ public final class ESBMessage implements Cloneable {
 
 	private final Map<String, Map.Entry<String, Object>> _headers = new HashMap<>(32);
 	private final Map<String, Object> _variables = new HashMap<>(32);
-	private final Map<String, MimeBodyPart> _attachments = new HashMap<>();
+	private final Map<String, MimeBodyPart> _attachments = new LinkedHashMap<>();
 
 	private BodyType _bodyType;
 	private Object _body;
@@ -336,6 +337,9 @@ public final class ESBMessage implements Cloneable {
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
 			break;
+		case READER:
+			getBodyAsString(context);
+			// nobreak
 		case STRING:
 			ba = ((String) _body).getBytes(getSinkEncodingCharset());
 			charset = _sinkEncoding;
@@ -371,12 +375,12 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case STRING:
 			return (String) _body;
+		case INPUT_STREAM:
+			getBodyAsByteArray(context);
+			// nobreak
 		case BYTES:
 			str = new String((byte[]) _body, getCharset());
 			break;
-		case INPUT_STREAM:
-			getBodyAsByteArray(context);
-			return getBodyAsString(context);
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
 			xqItem.writeItem(sw = new StringBuilderWriter(), getSinkProperties());

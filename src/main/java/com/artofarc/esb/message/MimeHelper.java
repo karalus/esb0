@@ -20,10 +20,12 @@ import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.StringTokenizer;
 
 import javax.activation.DataSource;
 import javax.mail.Header;
 import javax.mail.MessagingException;
+import javax.mail.internet.ContentDisposition;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
@@ -38,6 +40,14 @@ public final class MimeHelper {
 	private static final String APPLICATION = "application/";
 	private static final String TEXT = "text/";
 
+	private static final Evaluator<Exception> evaluator = new Evaluator<Exception>() {
+
+		@Override
+		protected Exception createException(String message) {
+			return new IllegalArgumentException(message);
+		}
+	};
+
 	static MimeBodyPart createMimeBodyPart(String cid, String contentType, byte[] content, String name) throws MessagingException {
 		InternetHeaders headers = new InternetHeaders();
 		headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
@@ -46,49 +56,101 @@ public final class MimeHelper {
 			part.setContentID('<' + cid + '>');
 		}
 		if (name != null) {
-			part.setDisposition(MimeBodyPart.ATTACHMENT + "; " + HTTP_HEADER_CONTENT_PARAMETER_NAME + '"' + name + '"');
+			setDisposition(part, MimeBodyPart.ATTACHMENT, name);
 		}
 		return part;
+	}
+
+	private static void setDisposition(MimeBodyPart bodyPart, String type, String name) throws MessagingException {
+		bodyPart.setDisposition(type + "; " + HTTP_HEADER_CONTENT_PARAMETER_NAME + '"' + name + '"');
 	}
 
 	public static String getDispositionName(MimeBodyPart bodyPart) throws MessagingException {
 		return getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), HTTP_HEADER_CONTENT_PARAMETER_NAME);
 	}
 
-	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
-		if (bos == null) {
-			bos = new ByteArrayOutputStream();
-			message.writeTo(bos, context);
-			message.closeBody();
-		}
-		return createMimeMultipart(context, message, multipartContentType, bos.toByteArray(), true, true);
+	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
+		byte[] body = bos != null ? bos.toByteArray() : message.getBodyAsByteArray(context);
+		return createMimeMultipart(context, message, multipartSubtype, multipartContentType, body, true, true);
 	}
 
 	/**
 	 * @param multipartContentType e.g. "application/xop+xml"
 	 */
-	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartContentType, byte[] body, boolean withHeaders, boolean withAttachments) throws Exception {
+	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, byte[] body, boolean withHeaders, boolean withAttachments) throws Exception {
 		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (contentType == null) {
-			throw new NullPointerException("Content-Type is null");
-		}
-		MimeMultipart mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START
-				+ "\"<" + ROOTPART + ">\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"');
-		if (!multipartContentType.equals(contentType)) {
-			contentType = multipartContentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
-		}
-		MimeBodyPart part = createMimeBodyPart(ROOTPART, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding(), body, null);
-		if (withHeaders) {
-			for (Entry<String, Object> entry : message.getHeaders()) {
-				part.setHeader(entry.getKey(), entry.getValue().toString());
+		MimeMultipart mmp;
+		MimeBodyPart part;
+		if (multipartSubtype == "form-data") {
+			if (multipartContentType == null) {
+				throw new IllegalArgumentException("For multipart/form-data a list of form data is required");
 			}
-		}
-		mmp.addBodyPart(part);
-		if (withAttachments) {
-			for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
-				MimeBodyPart bodyPart = iter.next();
-				mmp.addBodyPart(bodyPart);
-				iter.remove();
+			mmp = new MimeMultipart(multipartSubtype);
+			StringTokenizer tokenizer = new StringTokenizer(multipartContentType, ",");
+			while (tokenizer.hasMoreTokens()) {
+				String pair = tokenizer.nextToken();
+				int i = pair.indexOf("=");
+				if (i < 0) {
+					throw new IllegalArgumentException("Delimiter '=' is missing: " + pair);
+				}
+				String name = pair.substring(0, i);
+				String exp = pair.substring(i + 1);
+				Object value = evaluator.eval(exp, context, message);
+				if (value instanceof MimeBodyPart) {
+					part = (MimeBodyPart) value;
+					part.setContentID(null);
+					String disposition = part.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null);
+					if (disposition != null) {
+						ContentDisposition cd = new ContentDisposition(disposition);
+						cd.setDisposition("form-data");
+						cd.setParameter("name", name);
+						part.setHeader(HTTP_HEADER_CONTENT_DISPOSITION, cd.toString());
+					} else {
+						setDisposition(part, "form-data", name);
+					}
+				} else {
+					InternetHeaders headers = new InternetHeaders();
+					if (exp.startsWith("${body")) {
+						headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
+						for (Entry<String, Object> entry : message.getHeaders()) {
+							headers.setHeader(entry.getKey(), entry.getValue().toString());
+						}
+					}
+					part = new MimeBodyPart(headers, value.toString().getBytes(ESBMessage.CHARSET_DEFAULT));
+					setDisposition(part, "form-data", name);
+				}
+				mmp.addBodyPart(part);
+			}
+		} else {
+			if (contentType == null) {
+				throw new NullPointerException("Content-Type is null");
+			}
+			if (multipartSubtype == "related") {
+				if (multipartContentType == null) {
+					multipartContentType = contentType;
+				}
+				mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START
+						+ "\"<" + ROOTPART + ">\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"'); 
+				if (!multipartContentType.equals(contentType)) {
+					contentType = multipartContentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
+				}
+				part = createMimeBodyPart(ROOTPART, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding(), body, null);
+			} else {
+				mmp = new MimeMultipart(multipartSubtype);
+				part = createMimeBodyPart(null, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding(), body, null);
+			}
+			if (withHeaders) {
+				for (Entry<String, Object> entry : message.getHeaders()) {
+					part.setHeader(entry.getKey(), entry.getValue().toString());
+				}
+			}
+			mmp.addBodyPart(part);
+			if (withAttachments) {
+				for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
+					MimeBodyPart bodyPart = iter.next();
+					mmp.addBodyPart(bodyPart);
+					iter.remove();
+				}
 			}
 		}
 		return mmp;
@@ -99,17 +161,17 @@ public final class MimeHelper {
 		if (isMultipart) {
 			InputStream inputStream = message.getBodyAsInputStream(null);
 			MimeMultipart mmp = new MimeMultipart(new DataSource() {
-				
+
 				@Override
 				public InputStream getInputStream() {
 					return inputStream;
 				}
-				
+
 				@Override
 				public OutputStream getOutputStream() {
 					throw new UnsupportedOperationException();
 				}
-				
+
 				@Override
 				public String getContentType() {
 					return contentType;

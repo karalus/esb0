@@ -84,7 +84,7 @@ public class SendMailAction extends TerminalAction {
 		if (message.getAttachments().isEmpty()) {
 			msg.setContent(content, contentType);
 		} else {
-			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, contentType, content.getBytes(ESBMessage.CHARSET_DEFAULT), false, false);
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "mixed", contentType, content.getBytes(ESBMessage.CHARSET_DEFAULT), false, false);
 			for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
 				MimeBodyPart bodyPart = iter.next();
 				MimeBodyPart att = new MimeBodyPart(); 

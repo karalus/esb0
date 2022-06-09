@@ -42,7 +42,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	private ContextPool _contextPool;
 	private volatile ScheduledFuture<?> _scheduledFuture;
 
-	public HttpConsumer(String uri, int resourceLimit, String bindPath, String requiredRole, int minPool, int maxPool, long keepAlive, boolean supportCompression, String multipartResponse, Integer bufferSize) {
+	public HttpConsumer(String uri, int resourceLimit, String bindPath, String requiredRole, int minPool, int maxPool, long keepAlive, boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
 		super(uri);
 		_pathMapping = bindPath.charAt(bindPath.length() - 1) == '*';
 		_bindPath = _pathMapping ? bindPath.substring(0, bindPath.length() - 1) : bindPath;
@@ -51,7 +51,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 		_maxPool = maxPool;
 		_keepAlive = keepAlive;
 		_resourceLimit = resourceLimit;
-		_terminalAction = new HttpServletResponseAction(supportCompression, multipartResponse, bufferSize);
+		_terminalAction = new HttpServletResponseAction(supportCompression, multipartSubtype, multipartOption, bufferSize);
 	}
 
 	public boolean isPathMapping() {

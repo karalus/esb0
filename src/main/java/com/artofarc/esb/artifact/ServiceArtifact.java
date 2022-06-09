@@ -110,8 +110,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			switch (_protocol = service.getProtocol()) {
 			case HTTP:
 				Service.HttpBindURI httpBinding = checkBindingPresent(service.getHttpBindURI());
+				String multipartSubtype = httpBinding.getMultipartSubtype() != null ? httpBinding.getMultipartSubtype().value() : httpBinding.getMultipartResponse() != null ? "related" : null;
 				_consumerPort = new HttpConsumer(getURI(), httpBinding.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
-						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
+						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), multipartSubtype, httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
 				globalContext.checkBindHttpService((HttpConsumer) _consumerPort);
 				break;
 			case JMS:
@@ -207,7 +208,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(),
 					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy);
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
-			addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), http.getMultipartRequest()), location);
+			String multipartSubtype = http.getMultipartSubtype() != null ? http.getMultipartSubtype().value() : http.getMultipartRequest() != null ? "related" : null;
+			addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), multipartSubtype, http.getMultipartRequest()), location);
 			if (http.getWorkerPool() != null) {
 				addAction(list, new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, http.isJoin()), location);
 			}

@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,13 +36,14 @@ import com.artofarc.util.IOUtils;
 public class HttpServletResponseAction extends Action {
 
 	private final boolean _supportCompression;
-	private final String _multipartResponse;
+	private final String _multipartSubtype, _multipartOption;
 	private final Integer _bufferSize;
 
-	public HttpServletResponseAction(boolean supportCompression, String multipartResponse, Integer bufferSize) {
+	public HttpServletResponseAction(boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
 		_pipelineStop = true;
 		_supportCompression = supportCompression;
-		_multipartResponse = multipartResponse;
+		_multipartSubtype = multipartSubtype;
+		_multipartOption = multipartOption;
 		_bufferSize = bufferSize;
 	}
 
@@ -73,7 +73,7 @@ public class HttpServletResponseAction extends Action {
 			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
 			if (_supportCompression) checkCompression(message);
 			checkFastInfoSet(message);
-			if (_multipartResponse != null) {
+			if (_multipartSubtype != null) {
 				if (inPipeline) {
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -136,9 +136,9 @@ public class HttpServletResponseAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		AsyncContext asyncContext = execContext.getResource();
 		message.closeBody();
-		if (_multipartResponse != null) {
+		if (_multipartSubtype != null) {
 			ByteArrayOutputStream bos = execContext.getResource2();
-			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartResponse, bos);
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
 			HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
 			response.setContentType(mmp.getContentType());
 			mmp.writeTo(response.getOutputStream());
