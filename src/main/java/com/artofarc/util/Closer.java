@@ -15,6 +15,7 @@
  */
 package com.artofarc.util;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
@@ -49,14 +50,16 @@ public final class Closer implements AutoCloseable {
 	}
 
 	public static <E extends Exception> boolean closeWithTimeout(AutoCloseable obj, ExecutorService executorService, long timeout, String context, Class<E> cls) throws E {
-		Future<Boolean> future = executorService.submit(new Callable<Boolean>() {
-
-			@Override
-			public Boolean call() throws Exception {
-				obj.close();
-				return Boolean.TRUE;
-			}
-		});
+		// At runtime the obj might not support AutoCloseable (e.g. Oracle AQ JMS), fall back to reflection
+		Callable<Boolean> task = obj instanceof AutoCloseable ? () -> {
+			obj.close();
+			return Boolean.TRUE;
+		} : () -> {
+			Method method = obj.getClass().getMethod("close");
+			ReflectionUtils.invoke(method, cls, obj);
+			return Boolean.TRUE;
+		};
+		Future<Boolean> future = executorService.submit(task);
 		try {
 			return future.get(timeout, TimeUnit.MILLISECONDS);
 		} catch (TimeoutException e) {
