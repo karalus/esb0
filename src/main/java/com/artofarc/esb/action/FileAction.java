@@ -79,14 +79,14 @@ public class FileAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ESBMessage message) throws Exception {
 		String contentType = HttpConstants.parseContentType(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
-		String filename = (String) bindVariable(_filename, context, message);
+		String filename = (String) eval(_filename, context, message);
 		String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(contentType) : "";
-		boolean zip = Boolean.parseBoolean(String.valueOf(bindVariable(_zip, context, message)));
+		boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
 		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
 		if (_mkdirs) {
 			mkdirs(file.getCanonicalFile().getParentFile());
 		}
-		String verb = (String) bindVariable(_verb, context, message);
+		String verb = (String) eval(_verb, context, message);
 		if (verb == null) {
 			message.clearHeaders();
 			if (file.isDirectory()) {
@@ -108,7 +108,7 @@ public class FileAction extends TerminalAction {
 			boolean append = false;
 			switch (verb) {
 			case "ENTRY_MODIFY":
-				append = Boolean.parseBoolean(String.valueOf(bindVariable(_append, context, message)));
+				append = Boolean.parseBoolean(String.valueOf(eval(_append, context, message)));
 			case "ENTRY_CREATE":
 				if (append && zip) {
 					throw new ExecutionException(this, "zip plus append is not supported, yet");

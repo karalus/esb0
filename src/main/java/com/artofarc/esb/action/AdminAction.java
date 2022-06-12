@@ -47,8 +47,8 @@ public class AdminAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		String verb = (String) bindVariable(_verb, context, message);
-		String resource = URLUtils.decode((String) bindVariable(_resourceExp, context, message));
+		String verb = (String) eval(_verb, context, message);
+		String resource = URLUtils.decode((String) eval(_resourceExp, context, message));
 		switch (verb) {
 		case "GET":
 			if (resource.isEmpty()) {
@@ -107,7 +107,7 @@ public class AdminAction extends Action {
 						String content = IOUtils.toString(contentAsStream, ESBMessage.CHARSET_DEFAULT);
 						contentAsStream.close();
 						try {
-							content = (String) bindVariable(content, context, message);
+							content = (String) eval(content, context, message);
 						} catch (Exception e) {
 							logger.warn("Could not adapt WSDL " + resource, e);
 						}

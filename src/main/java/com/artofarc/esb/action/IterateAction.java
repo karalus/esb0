@@ -41,7 +41,7 @@ public class IterateAction extends Action {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		Iterator<?> iterator = message.getVariable(_iterName);
 		if (iterator == null) {
-			Object iterable = bindVariable(_iterExp, context, message);
+			Object iterable = eval(_iterExp, context, message);
 			if (iterable instanceof List) {
 				iterator = ((List<?>) iterable).listIterator();
 			} else if (iterable instanceof Iterable) {

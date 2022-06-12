@@ -56,7 +56,7 @@ public class CacheAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		final Object key = bindVariable(_keyExp, context, message);
+		final Object key = eval(_keyExp, context, message);
 		if (key != null) {
 			checkAtomic(key, _keyExp);
 			if (_nextAction != null) {

@@ -67,20 +67,20 @@ public class SendMailAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ESBMessage message) throws Exception {
 		MimeMessage msg = new MimeMessage(_session);
-		msg.setFrom(new InternetAddress((String) bindVariable(from, context, message)));
-		msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse((String) bindVariable(to, context, message), false));
+		msg.setFrom(new InternetAddress((String) eval(from, context, message)));
+		msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse((String) eval(to, context, message), false));
 		if (cc != null) {
-			msg.setRecipients(Message.RecipientType.CC, InternetAddress.parse((String) bindVariable(cc, context, message), false));
+			msg.setRecipients(Message.RecipientType.CC, InternetAddress.parse((String) eval(cc, context, message), false));
 		}
 		if (bcc != null) {
-			msg.setRecipients(Message.RecipientType.BCC, InternetAddress.parse((String) bindVariable(bcc, context, message), false));
+			msg.setRecipients(Message.RecipientType.BCC, InternetAddress.parse((String) eval(bcc, context, message), false));
 		}
 		if (replyTo != null) {
-			msg.setReplyTo(InternetAddress.parse((String) bindVariable(replyTo, context, message), false));
+			msg.setReplyTo(InternetAddress.parse((String) eval(replyTo, context, message), false));
 		}
-		msg.setSubject((String) bindVariable(subject, context, message));
-		String content = (String) bindVariable(text, context, message);
-		String contentType = (String) bindVariable(type, context, message);
+		msg.setSubject((String) eval(subject, context, message));
+		String content = (String) eval(text, context, message);
+		String contentType = (String) eval(type, context, message);
 		if (message.getAttachments().isEmpty()) {
 			msg.setContent(content, contentType);
 		} else {

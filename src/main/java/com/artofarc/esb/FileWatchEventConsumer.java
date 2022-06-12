@@ -140,7 +140,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 	private void moveFile(Context context, ESBMessage msg, Path srcPath, String dest) {
 		try {
 			if (dest != null) {
-				dest = (String) _startAction.bindVariable(dest, context, msg);
+				dest = (String) _startAction.eval(dest, context, msg);
 				Files.move(srcPath, Paths.get(dest), StandardCopyOption.ATOMIC_MOVE);
 			}
 		} catch (Exception e) {

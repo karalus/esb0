@@ -84,8 +84,8 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String dsName = _dsName != null ? (String) bindVariable(_dsName, context, message) : null;
-		boolean keepConnection = Boolean.parseBoolean(bindVariable(_keepConnection, context, message).toString());
+		String dsName = _dsName != null ? (String) eval(_dsName, context, message) : null;
+		boolean keepConnection = Boolean.parseBoolean(eval(_keepConnection, context, message).toString());
 		JDBCConnection connection = null;
 		ArrayDeque<JDBCConnection> connections = message.getVariable(ESBConstants.JDBCConnections);
 		if (connections != null) {
@@ -157,7 +157,7 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		String sql = (String) bindVariable(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
+		String sql = (String) eval(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
 		logger.debug("JDBCAction sql={}", sql);
 		if (sql.length() > 0) {
 			try (JDBCResult result = executeStatement(context, execContext, message, sql)) {

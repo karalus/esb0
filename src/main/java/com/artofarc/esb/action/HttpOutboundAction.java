@@ -63,7 +63,7 @@ public class HttpOutboundAction extends Action {
 		}
 		String basicAuthCredential = _httpEndpoint.getBasicAuthCredential();
 		if (basicAuthCredential != null) {
-			basicAuthCredential = (String) bindVariable(basicAuthCredential, context, message);
+			basicAuthCredential = (String) eval(basicAuthCredential, context, message);
 			message.putHeader(HTTP_HEADER_AUTHORIZATION, "Basic " + DatatypeConverter.printBase64Binary(basicAuthCredential.getBytes(ESBMessage.CHARSET_DEFAULT)));
 		}
 		int timeout = message.getTimeleft(_readTimeout).intValue();

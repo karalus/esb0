@@ -48,7 +48,7 @@ public class SuspendAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		Object correlationID = bindVariable(_correlationID, context, message);
+		Object correlationID = eval(_correlationID, context, message);
 		AsyncProcessingPool asyncProcessingPool = context.getPoolContext().getWorkerPool().getAsyncProcessingPool();
 		AsyncProcessingPool.AsyncContext asyncContext = new AsyncProcessingPool.AsyncContext(_nextAction, execContext.getResource(), message.getVariables(),
 				message.<Long> getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue());

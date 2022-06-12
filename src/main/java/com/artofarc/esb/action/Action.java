@@ -249,6 +249,9 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		return startAction;
 	}
 
+	/**
+	 * @deprecated Use {@link #eval(String,Context,ESBMessage)} instead
+	 */
 	public final Object bindVariable(String exp, Context context, final ESBMessage message) throws Exception {
 		return eval(exp, context, message);
 	}

@@ -37,13 +37,13 @@ public class ActionTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
       message.getVariables().put(ESBConstants.SOAP_OPERATION, "op1");
       Action action = new DumpAction(); 
-      assertEquals("void", action.bindVariable("void", context, message));
-      assertEquals("{call op1}", action.bindVariable("{call ${operation}}", context, message));
-      assertEquals("Myop1", action.bindVariable("My${operation}", context, message));
+      assertEquals("void", action.eval("void", context, message));
+      assertEquals("{call op1}", action.eval("{call ${operation}}", context, message));
+      assertEquals("Myop1", action.eval("My${operation}", context, message));
       // new feature
       Exception exception = new Exception("my message", new IllegalArgumentException("wrong arg"));
       message.getVariables().put("exception", exception);
-      assertEquals("Error: my message, wrong arg", action.bindVariable("Error: ${exception.getMessage}, ${exception.getCause.getMessage}", context, message));
+      assertEquals("Error: my message, wrong arg", action.eval("Error: ${exception.getMessage}, ${exception.getCause.getMessage}", context, message));
       Object object = new Object() {
       	@SuppressWarnings("unused")
 			public void test() {
@@ -52,7 +52,7 @@ public class ActionTest extends AbstractESBTest {
       };
       message.getVariables().put("object", object);
       try {
-      	action.bindVariable("${object.test}", context, message);
+      	action.eval("${object.test}", context, message);
       } catch (InvocationTargetException e) {
       	assertTrue(e.getCause() instanceof IllegalStateException);
       }

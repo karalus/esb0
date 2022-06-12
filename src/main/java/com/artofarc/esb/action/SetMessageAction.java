@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -62,7 +61,7 @@ public class SetMessageAction extends ForwardAction {
 			if (assignment._needsBody) {
 				break;
 			} else {
-				assignment.assign(message, bindVariable(assignment._expr.getString(), context, message));
+				assignment.assign(message, eval(assignment._expr.getString(), context, message));
 			}
 		}
 		return super.prepare(context, message, inPipeline);
@@ -73,11 +72,11 @@ public class SetMessageAction extends ForwardAction {
 		boolean forBody = false;
 		for (Assignment assignment : _assignments) {
 			if (forBody |= assignment._needsBody) {
-				assignment.assign(message, bindVariable(assignment._expr.getString(), context, message));
+				assignment.assign(message, eval(assignment._expr.getString(), context, message));
 			}
 		}
 		if (_body != null) {
-			message.reset(null, _body.convert(bindVariable(_body._expr.getString(), context, message)));
+			message.reset(null, _body.convert(eval(_body._expr.getString(), context, message)));
 			if (!_clearAll) {
 				message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 			}
