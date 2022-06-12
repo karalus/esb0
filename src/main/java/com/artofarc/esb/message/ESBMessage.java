@@ -482,8 +482,6 @@ public final class ESBMessage implements Cloneable {
 			return new DOMSource(xqItem.getNode());
 		case DOM:
 			return new DOMSource((Node) _body);
-		case EXCEPTION:
-			init(BodyType.STRING, asXMLString((Exception) _body), null);
 		case STRING:
 			return new StreamSource(new StringReader((String) _body));
 		case BYTES:
