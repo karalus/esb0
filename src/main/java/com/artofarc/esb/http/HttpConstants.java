@@ -90,6 +90,12 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_X_METHOD_OVERRIDE = "X-HTTP-Method-Override";
 
+	public static final String MEDIATYPE_APPLICATION = "application/";
+
+	public static final String MEDIATYPE_TEXT = "text/";
+
+	public static final String MEDIATYPE_WILDCARD = "*/*";
+
 	private static int findNextDelim(String s, int i) {
 		for (; i < s.length(); ++i) {
 			final char c = s.charAt(i);
@@ -186,6 +192,14 @@ public class HttpConstants {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType);
 			return !(type.endsWith("/xml") || type.endsWith("+xml") || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
+		}
+		return false;
+	}
+
+	public static boolean isNotJSON(String contentType) {
+		if (contentType != null) {
+			final String type = getValueFromHttpHeader(contentType);
+			return !(type.startsWith(MEDIATYPE_APPLICATION) && (type.endsWith("/json") || type.endsWith("+json")));
 		}
 		return false;
 	}

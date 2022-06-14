@@ -23,7 +23,7 @@ import javax.json.*;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.http.HttpConstants;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.JsonFactoryHelper;
@@ -55,8 +55,8 @@ public class ProcessJsonAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null && !contentType.startsWith(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON)) {
+		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (isNotJSON(contentType)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		if (message.getBodyType() != BodyType.JSON_VALUE) {
@@ -79,7 +79,7 @@ public class ProcessJsonAction extends Action {
 		}
 		if (_bodyExpr != null) {
 			message.reset(BodyType.STRING, eval(_bodyExpr, context, message).toString());
-			message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
+			message.removeHeader(HTTP_HEADER_CONTENT_LENGTH);
 		}
 	}
 

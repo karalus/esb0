@@ -61,6 +61,10 @@ public class HttpOutboundAction extends Action {
 		if (contentType != null) {
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 		}
+		if (message.getHeader(HTTP_HEADER_ACCEPT) == null) {
+			// https://bugs.openjdk.org/browse/JDK-8163921
+			message.putHeader(HTTP_HEADER_ACCEPT, MEDIATYPE_WILDCARD);
+		}
 		String basicAuthCredential = _httpEndpoint.getBasicAuthCredential();
 		if (basicAuthCredential != null) {
 			basicAuthCredential = (String) eval(basicAuthCredential, context, message);
@@ -75,7 +79,7 @@ public class HttpOutboundAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		if (_multipartSubtype!= null) {
+		if (_multipartSubtype != null) {
 			if (inPipeline) {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -84,18 +88,17 @@ public class HttpOutboundAction extends Action {
 			return null;
 		} else {
 			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-			if (contentType != null) {
-				contentType += ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
+			if (contentType != null && contentType.startsWith(MEDIATYPE_TEXT)) {
+				// https://www.w3.org/International/articles/http-charset/index.en.html
+				contentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
 			}
 			Long contentLength = inPipeline ? null : message.getByteLength();
 			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentType, contentLength);
 			try {
 				if (inPipeline) {
 					message.reset(BodyType.OUTPUT_STREAM, wrapper.getHttpURLConnection().getOutputStream());
-				} else {
-					if (!message.isEmpty()) {
-						message.writeTo(wrapper.getHttpURLConnection().getOutputStream(), context);
-					}
+				} else if (!message.isEmpty()) {
+					message.writeTo(wrapper.getHttpURLConnection().getOutputStream(), context);
 				}
 			} catch (Exception e) {
 				wrapper.close();

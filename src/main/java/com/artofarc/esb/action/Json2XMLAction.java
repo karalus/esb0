@@ -46,7 +46,7 @@ public class Json2XMLAction extends SAXAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (contentType != null && !contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_JSON)) {
+		if (isNotJSON(contentType)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		message.putHeader(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
@@ -60,14 +60,14 @@ public class Json2XMLAction extends SAXAction {
 	}
 
 	@Override
-	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) {
-		throw new IllegalArgumentException("JSON expected, got XQItem");
+	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception {
+		throw new ExecutionException(this, "JSON expected, got XQItem");
 	}
 
 	@Override
-	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception {
 		if (parent != null) {
-			throw new IllegalArgumentException("JSON expected: parent must be null");
+			throw new ExecutionException(this, "JSON expected: parent must be null");
 		}
 		return _streaming ? _json2xml.createStreamingParser() : _json2xml.createParser();
 	}

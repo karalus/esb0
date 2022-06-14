@@ -37,8 +37,6 @@ import com.artofarc.util.ByteArrayOutputStream;
 public final class MimeHelper {
 
 	private static final String ROOTPART = "rootpart@artofarc.com";
-	private static final String APPLICATION = "application/";
-	private static final String TEXT = "text/";
 
 	private static final Evaluator<Exception> evaluator = new Evaluator<Exception>() {
 
@@ -227,13 +225,13 @@ public final class MimeHelper {
 		if (!isNotXML(contentType)) {
 			return "xml";
 		}
-		if (contentType.startsWith(APPLICATION)) {
-			String ext = contentType.substring(APPLICATION.length());
-			return "json".equals(ext) ? ext : "bin";
+		if (contentType.startsWith(MEDIATYPE_APPLICATION)) {
+			String subtype = contentType.substring(MEDIATYPE_APPLICATION.length());
+			return "json".equals(subtype) ? subtype : "bin";
 		}
-		if (contentType.startsWith(TEXT)) {
-			String ext = contentType.substring(TEXT.length());
-			return "plain".equals(ext) ? "txt" : ext;
+		if (contentType.startsWith(MEDIATYPE_TEXT)) {
+			String subtype = contentType.substring(MEDIATYPE_TEXT.length());
+			return "plain".equals(subtype) ? "txt" : subtype;
 		}
 		return null;
 	}
