@@ -335,19 +335,27 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "xml2json": {
 			Xml2Json xml2Json = (Xml2Json) actionElement.getValue();
-			SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
-			addReference(schemaArtifact);
-			schemaArtifact.validate(globalContext);
-			addAction(list, new XML2JsonAction(schemaArtifact.getXSSchemaSet(), xml2Json.getType(), xml2Json.isJsonIncludeRoot(),
+			XSSchemaSet schemaSet = null;
+			if (xml2Json.getSchemaURI() != null) {
+				SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
+				addReference(schemaArtifact);
+				schemaArtifact.validate(globalContext);
+				schemaSet = schemaArtifact.getXSSchemaSet();
+			}
+			addAction(list, new XML2JsonAction(schemaSet, xml2Json.getType(), xml2Json.isJsonIncludeRoot(),
 				xml2Json.isWrapperAsArrayName(), xml2Json.getNsDecl().isEmpty() ? null : createNsDecls(xml2Json.getNsDecl())), location);
 			break;
 		}
 		case "json2xml": {
 			Json2Xml json2Xml = (Json2Xml) actionElement.getValue();
-			SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
-			addReference(schemaArtifact);
-			schemaArtifact.validate(globalContext);
-			addAction(list, new Json2XMLAction(schemaArtifact.getXSSchemaSet(), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(),
+			XSSchemaSet schemaSet = null;
+			if (json2Xml.getSchemaURI() != null) {
+				SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
+				addReference(schemaArtifact);
+				schemaArtifact.validate(globalContext);
+				schemaSet = schemaArtifact.getXSSchemaSet();
+			}
+			addAction(list, new Json2XMLAction(schemaSet, json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(),
 				json2Xml.getNsDecl().isEmpty() ? null : createNsDecls(json2Xml.getNsDecl()), json2Xml.isStreaming()), location);
 			break;
 		}

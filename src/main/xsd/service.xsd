@@ -273,7 +273,7 @@
 					<sequence>
 						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
-					<attribute name="schemaURI" type="anyURI" use="required" />
+					<attribute name="schemaURI" type="anyURI" />
 					<attribute name="type" type="tns:string1" />
 					<attribute name="jsonIncludeRoot" type="boolean" default="false" />
 					<attribute name="wrapperAsArrayName" type="boolean" />
@@ -288,7 +288,7 @@
 					<sequence>
 						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
-					<attribute name="schemaURI" type="anyURI" use="required" />
+					<attribute name="schemaURI" type="anyURI" />
 					<attribute name="type" type="tns:string1" />
 					<attribute name="jsonIncludeRoot" type="boolean" default="false" />
 					<attribute name="xmlElement" type="tns:string1" />
