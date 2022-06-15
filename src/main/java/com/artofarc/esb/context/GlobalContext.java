@@ -115,17 +115,16 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 			@Override
 			public void warning(TransformerException exception) {
-				logger.debug("XQConnectionFactory", exception);
-			}
-
-			@Override
-			public void fatalError(TransformerException exception) {
-				logger.debug("XQConnectionFactory", exception);
+				logger.warn(_xmlProcessorFactory.getClass().getSimpleName(), exception);
 			}
 
 			@Override
 			public void error(TransformerException exception) {
-				logger.debug("XQConnectionFactory", exception);
+			}
+
+			@Override
+			public void fatalError(TransformerException exception) throws TransformerException {
+				throw exception;
 			}
 		});
 		// default WorkerPool
