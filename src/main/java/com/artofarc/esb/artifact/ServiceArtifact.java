@@ -15,7 +15,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.FileNotFoundException;
 import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -256,16 +255,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "jdbcProcedure": {
 			JdbcProcedure jdbcProcedure = (JdbcProcedure) actionElement.getValue();
-			XSSchemaSet schemaSet = null;
-			if (jdbcProcedure.getSchemaURI() != null) {
-				SchemaArtifact schemaArtifact = loadArtifact(jdbcProcedure.getSchemaURI());
-				addReference(schemaArtifact);
-				schemaArtifact.validate(globalContext);
-				schemaSet = schemaArtifact.getXSSchemaSet();
-			}
 			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getJdbcParameter().size() + jdbcProcedure.getOut().getJdbcParameter().size()];
-			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getJdbcParameter(), posUsed),
-					createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter(), posUsed), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.getKeepConnection(), schemaSet), location);
+			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getJdbcParameter(), posUsed), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter(), posUsed),
+					jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.getKeepConnection(), resolveSchemaSet(globalContext, jdbcProcedure.getSchemaURI())), location);
 			break;
 		}
 		case "jdbc": {
@@ -335,27 +327,13 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "xml2json": {
 			Xml2Json xml2Json = (Xml2Json) actionElement.getValue();
-			XSSchemaSet schemaSet = null;
-			if (xml2Json.getSchemaURI() != null) {
-				SchemaArtifact schemaArtifact = loadArtifact(xml2Json.getSchemaURI());
-				addReference(schemaArtifact);
-				schemaArtifact.validate(globalContext);
-				schemaSet = schemaArtifact.getXSSchemaSet();
-			}
-			addAction(list, new XML2JsonAction(schemaSet, xml2Json.getType(), xml2Json.isJsonIncludeRoot(),
+			addAction(list, new XML2JsonAction(resolveSchemaSet(globalContext, xml2Json.getSchemaURI()), xml2Json.getType(), xml2Json.isJsonIncludeRoot(),
 				xml2Json.isWrapperAsArrayName(), xml2Json.getNsDecl().isEmpty() ? null : createNsDecls(xml2Json.getNsDecl())), location);
 			break;
 		}
 		case "json2xml": {
 			Json2Xml json2Xml = (Json2Xml) actionElement.getValue();
-			XSSchemaSet schemaSet = null;
-			if (json2Xml.getSchemaURI() != null) {
-				SchemaArtifact schemaArtifact = loadArtifact(json2Xml.getSchemaURI());
-				addReference(schemaArtifact);
-				schemaArtifact.validate(globalContext);
-				schemaSet = schemaArtifact.getXSSchemaSet();
-			}
-			addAction(list, new Json2XMLAction(schemaSet, json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(),
+			addAction(list, new Json2XMLAction(resolveSchemaSet(globalContext, json2Xml.getSchemaURI()), json2Xml.getType(), json2Xml.isJsonIncludeRoot(), json2Xml.getXmlElement(),
 				json2Xml.getNsDecl().isEmpty() ? null : createNsDecls(json2Xml.getNsDecl()), json2Xml.isStreaming()), location);
 			break;
 		}
@@ -545,25 +523,33 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 	}
 
-	private String resolveWorkerPool(String workerPool) throws FileNotFoundException {
+	private String resolveWorkerPool(String workerPool) throws Exception {
 		if (workerPool != null) {
 			WorkerPoolArtifact workerPoolArtifact = loadArtifact(workerPool + '.' + WorkerPoolArtifact.FILE_EXTENSION);
 			addReference(workerPoolArtifact);
 			return IOUtils.stripExt(workerPoolArtifact.getURI());
-		} else {
-			return null;
 		}
+		return null;
 	}
 
-	private java.lang.ClassLoader resolveClassLoader(GlobalContext globalContext, String classLoaderURI) throws FileNotFoundException, ValidationException {
+	private java.lang.ClassLoader resolveClassLoader(GlobalContext globalContext, String classLoaderURI) throws Exception {
 		if (classLoaderURI != null) {
 			ClassLoaderArtifact classLoaderArtifact = loadArtifact(classLoaderURI + '.' + ClassLoaderArtifact.FILE_EXTENSION);
 			addReference(classLoaderArtifact);
 			classLoaderArtifact.validate(globalContext);
 			return classLoaderArtifact.getFileSystemClassLoader();
-		} else {
-			return globalContext.getClassLoader();
 		}
+		return globalContext.getClassLoader();
+	}
+
+	private XSSchemaSet resolveSchemaSet(GlobalContext globalContext, String schemaURI) throws Exception {
+		if (schemaURI != null) {
+			SchemaArtifact schemaArtifact = loadArtifact(schemaURI);
+			addReference(schemaArtifact);
+			schemaArtifact.validate(globalContext);
+			return schemaArtifact.getXSSchemaSet();
+		}
+		return null;
 	}
 
 	private static HashMap<String, String> createNsDecls(List<NsDecl> nsDecls) {
