@@ -101,7 +101,7 @@ public class AdminAction extends Action {
 				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				String headerAccept = message.getVariable(HTTP_HEADER_ACCEPT);
-				if (headerAccept == null || headerAccept.contains(MEDIATYPE_TEXT) || headerAccept.contains(MEDIATYPE_WILDCARD)) {
+				if (headerAccept == null || isAcceptable(headerAccept, artifact.getContentType())) {
 					InputStream contentAsStream = artifact.getContentAsStream();
 					if (artifact instanceof WSDLArtifact) {
 						String content = IOUtils.toString(contentAsStream, ESBMessage.CHARSET_DEFAULT);

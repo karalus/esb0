@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.ReflectionUtils;
 
@@ -151,7 +152,7 @@ public abstract class Artifact {
 	}
 
 	public String getContentType() {
-		return "text/plain;charset=utf-8";		
+		return HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT;
 	}
 
 	public final <A extends Artifact> A getArtifact(String uri) {

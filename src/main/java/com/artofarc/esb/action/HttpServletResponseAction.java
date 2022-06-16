@@ -113,9 +113,9 @@ public class HttpServletResponseAction extends Action {
 	private static void checkCompression(ESBMessage message) {
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
-			if (acceptEncoding.contains("gzip")) {
+			if (isAcceptable(acceptEncoding, "gzip")) {
 				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
-			} else if (acceptEncoding.contains("deflate")) {
+			} else if (isAcceptable(acceptEncoding, "deflate")) {
 				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "deflate");
 			}
 		}

@@ -63,7 +63,7 @@ public class HttpOutboundAction extends Action {
 		}
 		if (message.getHeader(HTTP_HEADER_ACCEPT) == null) {
 			// https://bugs.openjdk.org/browse/JDK-8163921
-			message.putHeader(HTTP_HEADER_ACCEPT, MEDIATYPE_WILDCARD);
+			message.putHeader(HTTP_HEADER_ACCEPT, "*/*");
 		}
 		String basicAuthCredential = _httpEndpoint.getBasicAuthCredential();
 		if (basicAuthCredential != null) {

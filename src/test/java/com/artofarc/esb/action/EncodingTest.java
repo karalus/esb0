@@ -2,6 +2,7 @@ package com.artofarc.esb.action;
 
 import static org.junit.Assert.*;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 
 import org.junit.Test;
@@ -44,5 +45,18 @@ public class EncodingTest extends AbstractESBTest {
 		assertEquals("root%2Fbook%20name+m", URLUtils.encodePathSegment("root/book name+m"));
 		assertEquals("root%2Fbook+name%2Bm", URLUtils.encode("root/book name+m"));
 	}
-	
+
+	@Test
+	public void testAccept() throws Exception {
+		BigDecimal quality = getQuality("text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2", "text/xml");
+		assertTrue(quality.signum() > 0);
+		quality = getQuality("gzip;q=1.0, identity; q=0.5, *;q=0.2, compress; q=.000", "compress");
+		assertTrue(quality == null);
+		quality = getQuality("gzip;q=1.0, identity; q=0.5, *;q=0.2, compress; q=.000", "brotli");
+		assertTrue(quality != null);
+		System.out.println(getBestQualityValue("text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2"));
+		System.out.println(getBestQualityValue("gzip;q=1.0, identity; q=0.5, *;q=0, compress"));
+		System.out.println(getBestQualityValue("iso-8859-5; q=0.5, unicode-1-1"));
+	}
+
 }

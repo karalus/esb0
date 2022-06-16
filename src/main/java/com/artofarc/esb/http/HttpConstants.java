@@ -16,8 +16,15 @@
 package com.artofarc.esb.http;
 
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Map.Entry;
+import java.util.StringTokenizer;
+
+import com.artofarc.util.Collections;
+import com.artofarc.util.WeakCache;
 
 public class HttpConstants {
 
@@ -93,8 +100,6 @@ public class HttpConstants {
 	public static final String MEDIATYPE_APPLICATION = "application/";
 
 	public static final String MEDIATYPE_TEXT = "text/";
-
-	public static final String MEDIATYPE_WILDCARD = "*/*";
 
 	private static int findNextDelim(String s, int i) {
 		for (; i < s.length(); ++i) {
@@ -202,6 +207,95 @@ public class HttpConstants {
 			return !(type.startsWith(MEDIATYPE_APPLICATION) && (type.endsWith("/json") || type.endsWith("+json")));
 		}
 		return false;
+	}
+
+	private static final WeakCache<String, ArrayList<Entry<String, BigDecimal>>> ACCEPT_CACHE = new WeakCache<String, ArrayList<Entry<String, BigDecimal>>>() {
+
+		@Override
+		public ArrayList<Entry<String, BigDecimal>> create(String accept) {
+			ArrayList<Entry<String, BigDecimal>> result = new ArrayList<>();
+			StringTokenizer tokenizer = new StringTokenizer(accept, ",");
+			while (tokenizer.hasMoreTokens()) {
+				String mediaRange = tokenizer.nextToken().trim();
+				int i = mediaRange.lastIndexOf("q=");
+				if (i < 0) {
+					result.add(Collections.createEntry(mediaRange, BigDecimal.ONE));
+				} else {
+					try {
+						// https://www.rfc-editor.org/rfc/rfc9110.html#name-accept
+						BigDecimal quality = new BigDecimal(mediaRange.substring(i + 2));
+						if (quality.scale() < 4 && quality.signum() >= 0 && BigDecimal.ONE.compareTo(quality) >= 0) {
+							result.add(Collections.createEntry(mediaRange.substring(0, mediaRange.lastIndexOf(';', i)), quality.signum() > 0 ? quality : null));
+						}
+					} catch (NumberFormatException e) {
+						// ignore
+					}
+				}
+			}
+			return result;
+		}
+	};
+
+	public static boolean isAcceptable(String accept, String value) {
+		return getQuality(accept, value) != null;
+	}
+
+	public static BigDecimal getQuality(String accept, String value) {
+		String bestMatch = null;
+		BigDecimal bestQuality = null;
+		for (Entry<String, BigDecimal> entry : ACCEPT_CACHE.get(accept)) {
+			String mediaRange = entry.getKey();
+			int j = mediaRange.indexOf('/');
+			int k = value.indexOf('/');
+			if (j >= 0 && k >= 0) {
+				String type = mediaRange.substring(0, j);
+				if (type.equals("*") || type.equals(value.substring(0, k))) {
+					String subType = mediaRange.substring(j + 1);
+					if (subType.equals("*") || subType.equals(value.substring(k + 1))) {
+						if (bestMatch == null || bestMatch.length() < mediaRange.length()) {
+							bestMatch = mediaRange;
+							bestQuality = entry.getValue();
+						}
+					}
+				}
+			} else if (k < 0 && mediaRange.equals("*") || mediaRange.equals(value)) {
+				if (bestMatch == null || bestMatch.length() < mediaRange.length()) {
+					bestMatch = mediaRange;
+					bestQuality = entry.getValue();
+				}
+			}
+		}
+		return bestQuality;
+	}
+
+	public static String getBestQualityValue(String accept) {
+		String bestMatch = null;
+		BigDecimal bestQuality = BigDecimal.ZERO;
+		for (Entry<String, BigDecimal> entry : ACCEPT_CACHE.get(accept)) {
+			BigDecimal quality = entry.getValue();
+			if (quality != null) {
+				String mediaRange = entry.getKey();
+				int j = mediaRange.indexOf('/');
+				if (j >= 0) {
+					String type = mediaRange.substring(0, j);
+					if (!type.equals("*")) {
+						String subType = mediaRange.substring(j + 1);
+						if (!subType.equals("*")) {
+							if (quality.compareTo(bestQuality) > 0) {
+								bestMatch = mediaRange;
+								bestQuality = quality;
+							}
+						}
+					}
+				} else if (!mediaRange.equals("*")) {
+					if (quality.compareTo(bestQuality) > 0) {
+						bestMatch = mediaRange;
+						bestQuality = quality;
+					}
+				}
+			}
+		}
+		return bestMatch;
 	}
 
 }
