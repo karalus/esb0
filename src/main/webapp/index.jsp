@@ -392,11 +392,11 @@ Upload Service-JAR:
 		   <%
 		   	if (a.getContentType().startsWith("text/")) {
 		   		   		java.io.InputStream inputStream = a.getContentAsStream();
-		   		   		String content = new String(com.artofarc.util.IOUtils.toByteArray(inputStream), "UTF-8").replace("&", "&amp;");
+		   		   		String content = com.artofarc.util.IOUtils.toString(inputStream, java.nio.charset.StandardCharsets.UTF_8).replace("&", "&amp;");
 		   		   		inputStream.close();
 		   %>
 				<br>
-				<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + pathInfo%>" enctype="text/plain" method="POST">
+				<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + pathInfo%>" enctype="text/plain" method="POST" accept-charset="utf-8">
 					<textarea name="content" rows="50" cols="200" spellcheck="false"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=content%></textarea>
 					<input type="submit" value="Change">
 				</form>
