@@ -29,16 +29,6 @@ import com.artofarc.util.WeakCache;
 public class HttpConstants {
 
 	/**
-	 * The namespace identifier for the SOAP 1.1 envelope.
-	 */
-	public static final String URI_NS_SOAP_1_1_ENVELOPE = "http://schemas.xmlsoap.org/soap/envelope/";
-
-	/**
-	 * The namespace identifier for the SOAP 1.2 envelope.
-	 */
-	public static final String URI_NS_SOAP_1_2_ENVELOPE = "http://www.w3.org/2003/05/soap-envelope";
-
-	/**
 	 * The media type of the <code>Content-Type</code> MIME header in SOAP 1.1.
 	 */
 	public static final String SOAP_1_1_CONTENT_TYPE = "text/xml";
@@ -48,10 +38,13 @@ public class HttpConstants {
 	 */
 	public static final String SOAP_1_2_CONTENT_TYPE = "application/soap+xml";
 
+	public static final String HTTP_HEADER_ACCEPT = "Accept";
 
 	public static final String HTTP_HEADER_ACCEPT_CHARSET = "Accept-Charset";
 
 	public static final String HTTP_HEADER_ACCEPT_ENCODING = "Accept-Encoding";
+
+	public static final String HTTP_HEADER_VARY = "Vary";
 
 	public static final String HTTP_HEADER_TRANSFER_ENCODING = "Transfer-Encoding";
 
@@ -84,8 +77,6 @@ public class HttpConstants {
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE = "type=";
 
 	public static final String HTTP_HEADER_CONTENT_PARAMETER_NAME = "name=";
-
-	public static final String HTTP_HEADER_ACCEPT = "Accept";
 
 	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
 
@@ -236,6 +227,14 @@ public class HttpConstants {
 		}
 	};
 
+	private static ArrayList<Entry<String, BigDecimal>> parseAccept(String accept) {
+		if (accept.contains("q=")) {
+			return ACCEPT_CACHE.get(accept);
+		} else {
+			return ACCEPT_CACHE.create(accept);
+		}
+	}
+
 	public static boolean isAcceptable(String accept, String value) {
 		return getQuality(accept, value) != null;
 	}
@@ -243,25 +242,38 @@ public class HttpConstants {
 	public static BigDecimal getQuality(String accept, String value) {
 		String bestMatch = null;
 		BigDecimal bestQuality = null;
-		for (Entry<String, BigDecimal> entry : ACCEPT_CACHE.get(accept)) {
-			String mediaRange = entry.getKey();
-			int j = mediaRange.indexOf('/');
-			int k = value.indexOf('/');
-			if (j >= 0 && k >= 0) {
-				String type = mediaRange.substring(0, j);
-				if (type.equals("*") || type.equals(value.substring(0, k))) {
-					String subType = mediaRange.substring(j + 1);
-					if (subType.equals("*") || subType.equals(value.substring(k + 1))) {
-						if (bestMatch == null || bestMatch.length() < mediaRange.length()) {
-							bestMatch = mediaRange;
-							bestQuality = entry.getValue();
-						}
+		int k = value.indexOf('/');
+		if (k < 0 ) {
+			for (Entry<String, BigDecimal> entry : parseAccept(accept)) {
+				String mediaRange = entry.getKey();
+				if (mediaRange.equals(value)) {
+					return entry.getValue();
+				} else if (mediaRange.equals("*")) {
+					if (bestMatch == null || bestMatch.length() < mediaRange.length()) {
+						bestMatch = mediaRange;
+						bestQuality = entry.getValue();
 					}
 				}
-			} else if (k < 0 && mediaRange.equals("*") || mediaRange.equals(value)) {
-				if (bestMatch == null || bestMatch.length() < mediaRange.length()) {
-					bestMatch = mediaRange;
-					bestQuality = entry.getValue();
+			}
+		} else {
+			String valueType = value.substring(0, k);
+			String valueSubType = value.substring(k + 1);
+			for (Entry<String, BigDecimal> entry : parseAccept(accept)) {
+				String mediaRange = entry.getKey();
+				int j = mediaRange.indexOf('/');
+				if (j >= 0) {
+					String type = mediaRange.substring(0, j);
+					if (type.equals("*") || type.equals(valueType)) {
+						String subType = mediaRange.substring(j + 1);
+						if (subType.equals(valueSubType)) {
+							return entry.getValue();
+						} else if (subType.equals("*")) {
+							if (bestMatch == null || bestMatch.length() < mediaRange.length()) {
+								bestMatch = mediaRange;
+								bestQuality = entry.getValue();
+							}
+						}
+					}
 				}
 			}
 		}
@@ -271,7 +283,7 @@ public class HttpConstants {
 	public static String getBestQualityValue(String accept) {
 		String bestMatch = null;
 		BigDecimal bestQuality = BigDecimal.ZERO;
-		for (Entry<String, BigDecimal> entry : ACCEPT_CACHE.get(accept)) {
+		for (Entry<String, BigDecimal> entry : parseAccept(accept)) {
 			BigDecimal quality = entry.getValue();
 			if (quality != null) {
 				String mediaRange = entry.getKey();
@@ -284,6 +296,9 @@ public class HttpConstants {
 							if (quality.compareTo(bestQuality) > 0) {
 								bestMatch = mediaRange;
 								bestQuality = quality;
+								if (bestQuality.compareTo(BigDecimal.ONE) == 0) {
+									break;
+								}
 							}
 						}
 					}
@@ -291,6 +306,9 @@ public class HttpConstants {
 					if (quality.compareTo(bestQuality) > 0) {
 						bestMatch = mediaRange;
 						bestQuality = quality;
+						if (bestQuality.compareTo(BigDecimal.ONE) == 0) {
+							break;
+						}
 					}
 				}
 			}

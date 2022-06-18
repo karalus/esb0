@@ -34,7 +34,7 @@ import com.artofarc.esb.servlet.ESBServletContextListener;
 
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.util.Collections;
-import com.artofarc.util.WSDL4JUtil;
+import static com.artofarc.util.WSDL4JUtil.*;
 
 public class UnwrapSOAPAction extends TransformAction {
 
@@ -63,7 +63,7 @@ public class UnwrapSOAPAction extends TransformAction {
 		if (singlePart && bindingOperations != null) {
 			_operations = new HashMap<>();
 			for (BindingOperation bindingOperation : bindingOperations) {
-				_operations.put(bindingOperation.getName(), WSDL4JUtil.getInputElementQName(bindingOperation, soap12));
+				_operations.put(bindingOperation.getName(), getInputElementQName(bindingOperation, soap12));
 			}
 		} else {
 			_operations = null;
@@ -74,7 +74,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl) {
-		this(soap12, singlePart, Collections.inverseMap(WSDL4JUtil.getMapOperation2SoapActionURI(bindingOperations)), bindingOperations, wsdlUrl, getWsdl, schema);
+		this(soap12, singlePart, Collections.inverseMap(getMapOperation2SoapActionURI(bindingOperations)), bindingOperations, wsdlUrl, getWsdl, schema);
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart) {

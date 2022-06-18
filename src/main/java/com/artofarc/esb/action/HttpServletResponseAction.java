@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.Locale;
 import java.util.Map.Entry;
 
 import javax.mail.internet.MimeMultipart;
@@ -68,7 +69,7 @@ public class HttpServletResponseAction extends Action {
 			}
 			String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
 			if (acceptCharset != null) {
-				message.setSinkEncoding(getValueFromHttpHeader(acceptCharset));
+				message.setSinkEncoding(getBestQualityValue(acceptCharset));
 			}
 			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
 			if (_supportCompression) checkCompression(message);
@@ -80,7 +81,6 @@ public class HttpServletResponseAction extends Action {
 					executionContext.setResource2(bos);
 				}
 			} else {
-				response.setCharacterEncoding(message.getSinkEncoding());
 				for (Entry<String, Object> entry : message.getHeaders()) {
 					if (entry.getValue() instanceof String) {
 						response.setHeader(entry.getKey(), (String) entry.getValue());
@@ -89,6 +89,10 @@ public class HttpServletResponseAction extends Action {
 					} else if (entry.getValue() instanceof Long) {
 						response.setDateHeader(entry.getKey(), (Long) entry.getValue());
 					}
+				}
+				String contentType = response.getContentType();
+				if (contentType != null && contentType.startsWith(MEDIATYPE_TEXT)) {
+					response.setCharacterEncoding(message.getSinkEncoding());
 				}
 				// prevent flushing to avoid "transfer encoding chunked" on small responses
 				if (inPipeline) {
@@ -115,8 +119,10 @@ public class HttpServletResponseAction extends Action {
 		if (acceptEncoding != null) {
 			if (isAcceptable(acceptEncoding, "gzip")) {
 				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
+				message.putHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING.toLowerCase(Locale.ROOT));
 			} else if (isAcceptable(acceptEncoding, "deflate")) {
 				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "deflate");
+				message.putHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING.toLowerCase(Locale.ROOT));
 			}
 		}
 	}
