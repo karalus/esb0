@@ -15,7 +15,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.util.Locale;
 import java.util.Map.Entry;
 
 import javax.mail.internet.MimeMultipart;
@@ -61,15 +60,11 @@ public class HttpServletResponseAction extends Action {
 			GenericHttpListener.sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message.<Exception> getBody());
 		} else if (redirect != null && !redirect.isEmpty()) {
 			response.sendRedirect(redirect);
-		} else {
+		} else if (checkContentType(message, response)) {
 			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 			if (httpResponseCode != null) {
 				response.setStatus(httpResponseCode.intValue());
-			}
-			String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
-			if (acceptCharset != null) {
-				message.setSinkEncoding(getBestQualityValue(acceptCharset));
 			}
 			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
 			if (_supportCompression) checkCompression(message);
@@ -89,10 +84,6 @@ public class HttpServletResponseAction extends Action {
 					} else if (entry.getValue() instanceof Long) {
 						response.setDateHeader(entry.getKey(), (Long) entry.getValue());
 					}
-				}
-				String contentType = response.getContentType();
-				if (contentType != null && contentType.startsWith(MEDIATYPE_TEXT)) {
-					response.setCharacterEncoding(message.getSinkEncoding());
 				}
 				// prevent flushing to avoid "transfer encoding chunked" on small responses
 				if (inPipeline) {
@@ -114,15 +105,34 @@ public class HttpServletResponseAction extends Action {
 		return executionContext;
 	}
 
+	private static boolean checkContentType(ESBMessage message, HttpServletResponse response) throws Exception {
+		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType != null) {
+			String accept = message.getVariable(HTTP_HEADER_ACCEPT);
+			if (accept != null && !isAcceptable(accept, contentType)) {
+				GenericHttpListener.sendError(response, HttpServletResponse.SC_NOT_ACCEPTABLE, contentType + " does not match " + accept);
+				return false;
+			}
+			if (contentType.startsWith(MEDIATYPE_TEXT)) {
+				String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
+				if (acceptCharset != null) {
+					message.setSinkEncoding(getBestQualityValue(acceptCharset));
+				}
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+			}
+		}
+		return true;
+	}
+
 	private static void checkCompression(ESBMessage message) {
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
 			if (isAcceptable(acceptEncoding, "gzip")) {
 				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
-				message.putHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING.toLowerCase(Locale.ROOT));
+				message.putHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
 			} else if (isAcceptable(acceptEncoding, "deflate")) {
 				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "deflate");
-				message.putHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING.toLowerCase(Locale.ROOT));
+				message.putHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
 			}
 		}
 	}

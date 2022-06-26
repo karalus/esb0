@@ -33,6 +33,7 @@ import javax.mail.internet.MimePartDataSource;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.resource.MailSessionFactory;
@@ -80,11 +81,11 @@ public class SendMailAction extends TerminalAction {
 		}
 		msg.setSubject((String) eval(subject, context, message));
 		String content = (String) eval(text, context, message);
-		String contentType = (String) eval(type, context, message);
+		String contentType = type + "; " + HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
 		if (message.getAttachments().isEmpty()) {
 			msg.setContent(content, contentType);
 		} else {
-			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "mixed", contentType, content.getBytes(ESBMessage.CHARSET_DEFAULT), false, false);
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "mixed", contentType, content.getBytes(message.getSinkEncoding()), false, false);
 			for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
 				MimeBodyPart bodyPart = iter.next();
 				MimeBodyPart att = new MimeBodyPart(); 

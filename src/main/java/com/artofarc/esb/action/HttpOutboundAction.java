@@ -49,7 +49,7 @@ public class HttpOutboundAction extends Action {
 		_pipelineStop = true;
 	}
 
-	private HttpUrlSelector.HttpUrlConnectionWrapper createHttpURLConnection(Context context, ESBMessage message, String contentType, Long contentLength) throws Exception {
+	private HttpUrlSelector.HttpUrlConnectionWrapper createHttpURLConnection(Context context, ESBMessage message, Long contentLength) throws Exception {
 		HttpUrlSelector httpUrlSelector = context.getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
@@ -57,9 +57,6 @@ public class HttpOutboundAction extends Action {
 		String queryString = HttpQueryHelper.getQueryString(message);
 		if (queryString != null) {
 			appendHttpUrl += "?" + queryString;
-		}
-		if (contentType != null) {
-			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 		}
 		if (message.getHeader(HTTP_HEADER_ACCEPT) == null) {
 			// https://bugs.openjdk.org/browse/JDK-8163921
@@ -79,6 +76,11 @@ public class HttpOutboundAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType != null && contentType.startsWith(MEDIATYPE_TEXT)) {
+			// https://www.w3.org/International/articles/http-charset/index.en.html
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+		}
 		if (_multipartSubtype != null) {
 			if (inPipeline) {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -87,13 +89,8 @@ public class HttpOutboundAction extends Action {
 			}
 			return null;
 		} else {
-			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-			if (contentType != null && contentType.startsWith(MEDIATYPE_TEXT)) {
-				// https://www.w3.org/International/articles/http-charset/index.en.html
-				contentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
-			}
 			Long contentLength = inPipeline ? null : message.getByteLength();
-			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentType, contentLength);
+			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, contentLength);
 			try {
 				if (inPipeline) {
 					message.reset(BodyType.OUTPUT_STREAM, wrapper.getHttpURLConnection().getOutputStream());
@@ -115,7 +112,8 @@ public class HttpOutboundAction extends Action {
 		if (_multipartSubtype != null) {
 			ByteArrayOutputStream bos = execContext != null ? execContext.getResource() : null;
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
-			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, mmp.getContentType(), null);
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
+			HttpUrlConnectionWrapper wrapper = createHttpURLConnection(context, message, null);
 			mmp.writeTo(wrapper.getHttpURLConnection().getOutputStream());
 		}
 	}

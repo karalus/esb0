@@ -132,10 +132,10 @@ public final class MimeHelper {
 				if (!multipartContentType.equals(contentType)) {
 					contentType = multipartContentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
 				}
-				part = createMimeBodyPart(ROOTPART, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding(), body, null);
+				part = createMimeBodyPart(ROOTPART, contentType, body, null);
 			} else {
 				mmp = new MimeMultipart(multipartSubtype);
-				part = createMimeBodyPart(null, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding(), body, null);
+				part = createMimeBodyPart(null, contentType, body, null);
 			}
 			if (withHeaders) {
 				for (Entry<String, Object> entry : message.getHeaders()) {
