@@ -71,8 +71,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			logger.info("ESB0 version " + properties.getProperty(VERSION) + " build time " + properties.getProperty(BUILD_TIME));
 			logVersion("SLF4J", "org.slf4j", "com.artofarc.esb.context.AbstractContext", "logger");
 			logVersion("JAXB", "javax.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
-			logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.JAXPFactoryHelper", "SAX_PARSER_FACTORY");
-			logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.JAXPFactoryHelper", "SAX_TRANSFORMER_FACTORY");
+			logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.XMLProcessorFactory", "SAX_PARSER_FACTORY");
+			logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.XMLProcessorFactory", "SAX_TRANSFORMER_FACTORY");
 			logVersion("XQJ", "javax.xml.xquery", "com.saxonica.xqj.SaxonXQDataSource", null);
 			logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
 			logVersion("JSONParser", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
