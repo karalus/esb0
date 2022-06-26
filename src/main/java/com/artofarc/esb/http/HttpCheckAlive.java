@@ -28,6 +28,8 @@ public class HttpCheckAlive {
 	public HttpURLConnection connect(HttpEndpoint httpEndpoint, int pos) throws IOException {
 		HttpURLConnection conn = (HttpURLConnection) httpEndpoint.getHttpUrls().get(pos).getUrl().openConnection(httpEndpoint.getProxy());
 		conn.setConnectTimeout(httpEndpoint.getConnectionTimeout());
+		// SSL Handshake got stuck
+		conn.setReadTimeout(10000);
 		conn.setRequestMethod("HEAD");
 		return conn;
 	}
