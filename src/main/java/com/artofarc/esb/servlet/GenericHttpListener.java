@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.servlet;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.security.cert.X509Certificate;
@@ -151,6 +152,8 @@ public class GenericHttpListener extends HttpServlet {
 			sc = HttpServletResponse.SC_GATEWAY_TIMEOUT;
 		} else if (e instanceof RejectedExecutionException) {
 			sc = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+		} else if (e instanceof FileNotFoundException) {
+			sc = HttpServletResponse.SC_NOT_FOUND;
 		}
 		response.setStatus(sc);
 		response.setContentType(SOAP_1_1_CONTENT_TYPE);
