@@ -61,6 +61,8 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
 		configuration.registerExtensionFunction(new Evaluate(configuration));
 		configuration.setModuleURIResolver(this);
+		// Avoid concurrency bug in Saxon by eager initializing
+		configuration.getBuiltInExtensionLibraryList();
 		_dataSource = new SaxonXQDataSource(configuration);
 	}
 
