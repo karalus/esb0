@@ -81,11 +81,11 @@ public class SendMailAction extends TerminalAction {
 		}
 		msg.setSubject((String) eval(subject, context, message));
 		String content = (String) eval(text, context, message);
-		String contentType = type + "; " + HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
+		String contentType = type + "; " + HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + ESBMessage.CHARSET_DEFAULT;
 		if (message.getAttachments().isEmpty()) {
 			msg.setContent(content, contentType);
 		} else {
-			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "mixed", contentType, content.getBytes(message.getSinkEncoding()), false, false);
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "mixed", contentType, content.getBytes(ESBMessage.CHARSET_DEFAULT), false, false);
 			for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
 				MimeBodyPart bodyPart = iter.next();
 				MimeBodyPart att = new MimeBodyPart(); 
