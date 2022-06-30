@@ -78,7 +78,8 @@ public class ProcessJsonAction extends Action {
 			}
 		}
 		if (_bodyExpr != null) {
-			message.reset(BodyType.STRING, eval(_bodyExpr, context, message).toString());
+			Object body = eval(_bodyExpr, context, message);
+			message.reset(null, body != null ? body.toString() : null);
 			message.removeHeader(HTTP_HEADER_CONTENT_LENGTH);
 		}
 	}
