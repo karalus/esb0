@@ -37,6 +37,7 @@ import com.artofarc.util.ByteArrayOutputStream;
 public final class MimeHelper {
 
 	private static final String ROOTPART = "rootpart@artofarc.com";
+	private static final String START_ROOTPART = "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START + "\"<" + ROOTPART + ">\"";
 
 	private static final Evaluator<Exception> evaluator = new Evaluator<Exception>() {
 
@@ -124,22 +125,31 @@ public final class MimeHelper {
 				throw new NullPointerException("Content-Type is null");
 			}
 			if (multipartSubtype == "related") {
+				String mediaType = getValueFromHttpHeader(contentType);
 				if (multipartContentType == null) {
+					multipartContentType = mediaType;
+				}
+				multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + START_ROOTPART;
+				if (multipartContentType.equals(mediaType)) {
 					multipartContentType = contentType;
+				} else {
+					if (mediaType != contentType) {
+						multipartContentType += contentType.substring(mediaType.length());
+					}
+					multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + mediaType + '"';
+					multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + mediaType + '"';
 				}
-				mmp = new MimeMultipart("related; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START
-						+ "\"<" + ROOTPART + ">\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + contentType + '"'); 
-				if (!multipartContentType.equals(contentType)) {
-					contentType = multipartContentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + contentType + '"';
-				}
-				part = createMimeBodyPart(ROOTPART, contentType, body, null);
+				mmp = new MimeMultipart(multipartSubtype); 
+				part = createMimeBodyPart(ROOTPART, multipartContentType, body, null);
 			} else {
 				mmp = new MimeMultipart(multipartSubtype);
 				part = createMimeBodyPart(null, contentType, body, null);
 			}
 			if (withHeaders) {
 				for (Entry<String, Object> entry : message.getHeaders()) {
-					part.setHeader(entry.getKey(), entry.getValue().toString());
+					if (entry.getValue() != null) {
+						part.setHeader(entry.getKey(), entry.getValue().toString());
+					}
 				}
 			}
 			mmp.addBodyPart(part);
