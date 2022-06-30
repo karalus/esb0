@@ -57,7 +57,7 @@ public class HttpServletResponseAction extends Action {
 		ExecutionContext executionContext = new ExecutionContext(asyncContext);
 		String redirect = message.getVariable(ESBConstants.redirect);
 		if (message.getBodyType() == BodyType.EXCEPTION) {
-			GenericHttpListener.sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message.<Exception> getBody());
+			throw message.<Exception> getBody();
 		} else if (redirect != null && !redirect.isEmpty()) {
 			response.sendRedirect(redirect);
 		} else if (checkContentType(message, response)) {
@@ -129,10 +129,10 @@ public class HttpServletResponseAction extends Action {
 		if (acceptEncoding != null) {
 			if (isAcceptable(acceptEncoding, "gzip")) {
 				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
-				message.putHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
+				message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
 			} else if (isAcceptable(acceptEncoding, "deflate")) {
 				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "deflate");
-				message.putHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
+				message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
 			}
 		}
 	}
