@@ -33,12 +33,13 @@ public class CacheAction extends Action {
 	private final List<String> _valueNames;
 	private final int _indexBody;
 	private final Action _cacheAction;
-	private final boolean _notWriteOnly;
+	private final boolean _notWriteOnly, _isNullable;
 	private final LRUCacheWithExpirationFactory<Object, Object[]>.Cache _cache;
 	private final String _ttl;
 
-	public CacheAction(GlobalContext globalContext, String keyExp, List<String> valueNames, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, String ttl) {
+	public CacheAction(GlobalContext globalContext, String keyExp, boolean isNullable, List<String> valueNames, Action cacheAction, boolean writeOnly, String cacheName, int maxSize, String ttl) {
 		_keyExp = keyExp;
+		_isNullable = isNullable;
 		_valueNames = valueNames;
 		_cacheAction = cacheAction;
 		_notWriteOnly = !writeOnly;
@@ -90,7 +91,7 @@ public class CacheAction extends Action {
 						if (ttl > 0) {
 							Object[] values = new Object[_valueNames.size()];
 							for (int i = 0; i < _valueNames.size(); ++i) {
-								values[i] = i != _indexBody ? resolve(message, _valueNames.get(i), true) : message.getBodyAsString(context);
+								values[i] = i != _indexBody ? resolve(message, _valueNames.get(i), true) : message.materializeBody(context, false);
 							}
 							_cache.put(key, values, ttl);
 						}
@@ -98,6 +99,8 @@ public class CacheAction extends Action {
 				});
 			}
 			return new ExecutionContext(key, action);
+		} else if (_isNullable) {
+			return null;
 		} else {
 			throw new ExecutionException(this, _keyExp + " is not set");
 		}
@@ -105,7 +108,7 @@ public class CacheAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) {
-		if (_notWriteOnly && _indexBody >= 0) {
+		if (execContext != null && _notWriteOnly && _indexBody >= 0) {
 			Object[] values = _cache.get(execContext.getResource());
 			if (values != null) {
 				message.clearHeaders();
@@ -116,7 +119,7 @@ public class CacheAction extends Action {
 
 	@Override
 	protected Action nextAction(ExecutionContext execContext) {
-		return execContext.getResource2();
+		return execContext != null ? execContext.getResource2() : _nextAction;
 	}
 
 }

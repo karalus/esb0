@@ -53,6 +53,7 @@ import com.sun.xml.xsom.XSSchemaSet;
 public class ServiceArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "xservice";
+
 	private static final boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
 	private static final boolean ASSIGN_NULL_CHECK = Boolean.parseBoolean(System.getProperty("esb0.assignNullCheck"));
 
@@ -435,7 +436,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "cache":
 			Cache cache = (Cache) actionElement.getValue();
-			addAction(list, new CacheAction(globalContext, cache.getKey(), cache.getValue(),
+			addAction(list, new CacheAction(globalContext, cache.getKey(), cache.isNullable(), cache.getValue(),
 				Action.linkList(transform(globalContext, cache.getAction(), null)), cache.isWriteOnly(), cache.getName(), cache.getMaxSize(), cache.getTtl()), location);
 			break;
 		case "uncache":

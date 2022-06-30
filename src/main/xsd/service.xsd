@@ -417,6 +417,7 @@
 						<element ref="tns:action" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="key" type="tns:string1" use="required" />
+					<attribute name="nullable" type="boolean" default="false" />
 					<attribute name="value" use="required" >
 						<simpleType>
 							<list itemType="tns:identifier" />
