@@ -62,28 +62,30 @@ public class TransformAction extends Action {
 	private final XQuerySource _xquery;
 	private final Set<String> _checkNotNull;
 	private final List<Assignment> _assignments;
+	private final boolean _doNullCheck;
 	private final String _baseURI; 
 	protected final String _contextItem;
 
-	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, String baseURI, String contextItem) {
+	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, boolean doNullCheck, String baseURI, String contextItem) {
 		_xquery = xquery;
 		_checkNotNull = checkNotNull != null ? checkNotNull : Collections.emptySet();
 		_assignments = assignments;
+		_doNullCheck = doNullCheck;
 		_baseURI = baseURI;
 		_contextItem = contextItem;
 		_pipelineStop = contextItem != null;
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
-		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), baseURI, contextItem);
+		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), false, baseURI, contextItem);
 	}
 
 	protected TransformAction(String xquery, List<Assignment> varNames) {
-		this(XQuerySource.create(xquery), null, varNames, null, null);
+		this(XQuerySource.create(xquery), null, varNames, false, null, null);
 	}
 
 	protected TransformAction(String xquery) {
-		this(XQuerySource.create(xquery), null, Collections.emptyList(), null, null);
+		this(XQuerySource.create(xquery), null, Collections.emptyList(), false, null, null);
 	}
 
 	public final XQuerySource getXQuery() {
@@ -203,14 +205,18 @@ public class TransformAction extends Action {
 		for (Assignment assignment : _assignments) {
 			try {
 				int count = 1;
-				if (assignment.nullable || assignment.list) {
+				if (_doNullCheck || assignment.nullable || assignment.list) {
 					checkNext(resultSequence, assignment.name);
 					count = resultSequence.getInt();
 				}
 				switch (count) {
 				case 0:
-					if (assignment.list && !assignment.nullable) {
-						message.getVariables().put(assignment.name, Collections.EMPTY_LIST);
+					if (!assignment.nullable) {
+						if (assignment.list) {
+							message.getVariables().put(assignment.name, Collections.EMPTY_LIST);
+						} else {
+							throw new ExecutionException(this, "Must not be null: " + assignment.name);
+						}
 					}
 					break;
 				case 1:

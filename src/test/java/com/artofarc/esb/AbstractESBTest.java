@@ -1,3 +1,18 @@
+/*
+ * Copyright 2022 Andre Karalus
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.artofarc.esb;
 
 import java.io.File;
@@ -128,7 +143,7 @@ public abstract class AbstractESBTest {
 			decl.setValue(bindName);
 			decls.add(decl);
 		}
-		return new AssignAction(assignments, expression, namespaces != null ? namespaces.entrySet() : null, decls, null, false);
+		return new AssignAction(assignments, true, expression, namespaces != null ? namespaces.entrySet() : null, decls, null, false);
 	}
 
 	protected static List<AssignAction.Assignment> createAssignments(boolean header, String... tuples) {
@@ -164,7 +179,7 @@ public abstract class AbstractESBTest {
 		for (String varName : varNames) {
 			assignments.add(new AssignAction.Assignment(varName, false));
 		}
-		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), null, assignments, xqueryArtifact.getParent().getURI(), null);
+		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), null, assignments, false, xqueryArtifact.getParent().getURI(), null);
 	}
 
 }

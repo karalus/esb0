@@ -54,6 +54,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "xservice";
 	private static final boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
+	private static final boolean ASSIGN_NULL_CHECK = Boolean.parseBoolean(System.getProperty("esb0.assignNullCheck"));
 
 	private Protocol _protocol;
 	private ConsumerPort _consumerPort;
@@ -320,7 +321,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either variable or header");
 				}
 			}
-			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearAll());
+			AssignAction assignAction = new AssignAction(assignments, ASSIGN_NULL_CHECK, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearAll());
 			XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;

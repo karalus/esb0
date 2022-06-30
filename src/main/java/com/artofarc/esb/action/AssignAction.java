@@ -31,15 +31,15 @@ public class AssignAction extends TransformAction {
 	private final boolean _clearAll;
 
 	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
-		this(java.util.Collections.singletonList(new Assignment(varName, false, expression, false, null)), null, namespaces, bindNames, contextItem, false);
+		this(java.util.Collections.singletonList(new Assignment(varName, false, expression, false, null)), false, null, namespaces, bindNames, contextItem, false);
 	}
 
-	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearAll) {
-		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), createCheckNotNull(bindNames), assignments, null, contextItem);
+	public AssignAction(List<Assignment> assignments, boolean doNullCheck, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearAll) {
+		super(createXQuery(assignments, doNullCheck, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), createCheckNotNull(bindNames), assignments,	doNullCheck, null, contextItem);
 		_clearAll = clearAll;
 	}
 
-	private static XQuerySource createXQuery(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
+	private static XQuerySource createXQuery(List<Assignment> assignments, boolean doNullCheck, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
 		StringBuilder builder = new StringBuilder();
 		if (namespaces != null) {
 			for (Map.Entry<String, String> entry : namespaces) {
@@ -67,7 +67,7 @@ public class AssignAction extends TransformAction {
 		builder.append('(');
 		for (Assignment assignment : assignments) {
 			boolean hasAtomicType = assignment.type != null && !assignment.list && assignment.type.startsWith("xs:");
-			if (assignment.nullable || assignment.list) {
+			if (doNullCheck || assignment.nullable || assignment.list) {
 				builder.append("count(").append(assignment.expr).append("), ");
 			}
 			if (hasAtomicType) builder.append(assignment.type).append('(');
