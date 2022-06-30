@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -40,7 +41,6 @@ import org.xml.sax.SAXException;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.service.Property;
-import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.XMLProcessorFactory;
 
 public abstract class AbstractServiceArtifact extends Artifact {
@@ -97,6 +97,7 @@ public abstract class AbstractServiceArtifact extends Artifact {
 		if (migrationXSLT != null) {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			byte[] content1 = transform(XMLProcessorFactory.newTransformer(), bos);
+			// content1 could be overwritten when using com.artofarc.util.ByteArrayOutputStream
 			bos.reset();
 			byte[] content2 = transform(migrationXSLT.newTransformer(), bos);
 			if (!Arrays.equals(content1, content2)) {
