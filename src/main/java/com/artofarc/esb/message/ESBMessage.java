@@ -32,7 +32,6 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -74,15 +73,8 @@ public final class ESBMessage implements Cloneable {
 
 	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
 
-	private static final Map<String, String> HEADER_NAMES = new ConcurrentHashMap<>(256); 
-
 	private static String toLowerCase(String headerName) {
-		String result = HEADER_NAMES.get(headerName);
-		if (result == null) {
-			result = headerName.toLowerCase(Locale.ROOT).replace('_', '-');
-			HEADER_NAMES.put(headerName, result);
-		}
-		return result;
+		return headerName.toLowerCase(Locale.ROOT).replace('_', '-');
 	}
 
 	private final Map<String, Map.Entry<String, Object>> _headers = new HashMap<>(32);
@@ -159,6 +151,16 @@ public final class ESBMessage implements Cloneable {
 
 	public void putHeader(String headerName, Object value) {
 		_headers.put(toLowerCase(headerName), Collections.createEntry(headerName, value));
+	}
+
+	public void addHeader(String headerName, Object value) {
+		String key = toLowerCase(headerName);
+		Map.Entry<String, Object> entry = _headers.get(key);
+		if (entry != null) {
+			_headers.put(key, Collections.createEntry(entry.getKey(), entry.getValue() + ", " + value));
+		} else {
+			_headers.put(key, Collections.createEntry(headerName, value));
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -508,7 +510,7 @@ public final class ESBMessage implements Cloneable {
 		if (xqSequence.next()) {
 			init(BodyType.XQ_ITEM, xqSequence.getItem(), null);
 		} else {
-			throw new IllegalStateException("Message already consumed");
+			throw new IllegalStateException("Sequence prematurely ended. Could not get body");
 		}
 	}
 
@@ -804,34 +806,40 @@ public final class ESBMessage implements Cloneable {
 		return (ESBMessage) super.clone();
 	}
 
+	public Object materializeBody(Context context, boolean onetime) throws Exception {
+		final Object newBody;
+		switch (_bodyType) {
+		case INPUT_STREAM:
+			if (onetime && _body instanceof ByteArrayInputStream) {
+				newBody = ((ByteArrayInputStream) _body).clone();
+			} else {
+				newBody = getBodyAsByteArray(context);
+			}
+			break;
+		case READER:
+			if (onetime && _body instanceof StringBuilderReader) {
+				newBody = ((StringBuilderReader) _body).clone();
+			} else {
+				newBody = getBodyAsString(context);
+			}
+			break;
+		case SOURCE:
+			init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument((Source) _body, null), null);
+			// nobreak
+		case XQ_ITEM:
+			newBody = context.getXQDataFactory().createItem((XQItem) _body);
+			break;
+		default:
+			newBody = _body;
+			break;
+		}
+		return newBody;
+	}
+
 	public ESBMessage copy(Context context, boolean withBody, boolean withHeaders, boolean withAttachments) throws Exception {
 		final ESBMessage clone;
 		if (withBody) {
-			final Object newBody;
-			switch (_bodyType) {
-			case INPUT_STREAM:
-				if (_body instanceof ByteArrayInputStream) {
-					newBody = ((ByteArrayInputStream) _body).clone();
-				} else {
-					newBody = getBodyAsByteArray(context);
-				}
-				break;
-			case READER:
-				if (_body instanceof StringBuilderReader) {
-					newBody = ((StringBuilderReader) _body).clone();
-				} else {
-					newBody = getBodyAsString(context);
-				}
-				break;
-			case SOURCE:
-				init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument((Source) _body, null), null);
-			case XQ_ITEM:
-				newBody = context.getXQDataFactory().createItem((XQItem) _body);
-				break;
-			default:
-				newBody = _body;
-				break;
-			}
+			Object newBody = materializeBody(context, true);
 			clone = new ESBMessage(_bodyType, newBody, _charset);
 		} else {
 			clone = new ESBMessage(BodyType.INVALID, null, null);
