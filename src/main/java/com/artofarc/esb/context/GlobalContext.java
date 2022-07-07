@@ -30,6 +30,8 @@ import javax.naming.NamingException;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
+import javax.xml.xquery.XQConnection;
+import javax.xml.xquery.XQException;
 
 import com.artofarc.esb.FileWatchEventConsumer;
 import com.artofarc.esb.KafkaConsumerPort;
@@ -67,20 +69,6 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, Properties properties) {
 		super(mbs);
 		_classLoader = classLoader;
-		if (properties.getProperty(VERSION) != null) {
-			logger.info("ESB0 version " + properties.getProperty(VERSION) + " build time " + properties.getProperty(BUILD_TIME));
-			logVersion("SLF4J", "org.slf4j", "com.artofarc.esb.context.AbstractContext", "logger");
-			logVersion("JAXB", "javax.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
-			logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.XMLProcessorFactory", "SAX_PARSER_FACTORY");
-			logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.XMLProcessorFactory", "SAX_TRANSFORMER_FACTORY");
-			logVersion("XQJ", "javax.xml.xquery", "com.saxonica.xqj.SaxonXQDataSource", null);
-			logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
-			logVersion("JSONParser", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
-			logVersion("JavaMail", "javax.mail.internet", "javax.mail.internet.MimeMultipart", null);
-			logVersion("metro-fi", "com.sun.xml.fastinfoset", "com.sun.xml.fastinfoset.Encoder", null);
-			logVersion("XSOM", "com.sun.xml.xsom", "com.artofarc.util.XSOMHelper", "anySchema");
-			logVersion("OJDBC", "oracle.jdbc", "oracle.jdbc.pool.OracleDataSource", null);
-		}
 		_propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
 
 			@Override
@@ -127,6 +115,10 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 				throw exception;
 			}
 		});
+		if (properties.getProperty(VERSION) != null) {
+			logger.info("ESB0 version " + properties.getProperty(VERSION) + " build time " + properties.getProperty(BUILD_TIME));
+			logDependenciesVersion();
+		}
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
 		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
@@ -135,30 +127,61 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		}
 	}
 
+	private void logDependenciesVersion() {
+		logVersion("SLF4J", "org.slf4j", "com.artofarc.esb.context.AbstractContext", "logger");
+		logVersion("JAXB", "javax.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
+		logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.XMLProcessorFactory", "SAX_PARSER_FACTORY");
+		logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.XMLProcessorFactory", "SAX_TRANSFORMER_FACTORY");
+		try {
+			XQConnection connection = _xmlProcessorFactory.getConnection();
+			if (connection != null) {
+				logVersion("XQJ", Package.getPackage("javax.xml.xquery"), connection.getClass());
+				connection.close();
+			} else {
+				logger.warn("XQJ not suppoerted");
+			}
+		} catch (XQException e) {
+			throw new RuntimeException(e);
+		}
+		logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
+		logVersion("JSON", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
+		logVersion("JavaMail", "javax.mail.internet", "javax.mail.internet.MimeMultipart", null);
+		logVersion("metro-fi", "com.sun.xml.fastinfoset", "com.sun.xml.fastinfoset.Encoder", null);
+		logVersion("XSOM", "com.sun.xml.xsom", "com.artofarc.util.XSOMHelper", "anySchema");
+		logVersion("OJDBC", "oracle.jdbc", "com.artofarc.esb.jdbc.JDBCConnection", "ifcOracleConnection");
+	}
+
 	private void logVersion(String capability, String ifcPkg, String factoryClass, String factoryField) {
 		try {
 			Class<?> cls = Class.forName(factoryClass, true, _classLoader);
-			Package factoryPackage;
 			if (factoryField != null) {
 				java.lang.reflect.Field field = cls.getDeclaredField(factoryField);
 				field.setAccessible(true);
 				Object factory = field.get(null);
-				factoryPackage = factory.getClass().getPackage();
+				if (factory instanceof Class) {
+					logVersion(capability, Package.getPackage(ifcPkg), (Class<?>) factory);
+				} else if (factory != null) {
+					logVersion(capability, field.getType().getPackage(), factory.getClass());
+				}
 			} else {
-				factoryPackage = cls.getPackage();
+				logVersion(capability, Package.getPackage(ifcPkg), cls);
 			}
-			logger.info(capability + ", interface: " + Package.getPackage(ifcPkg));
-			String impl = "package " + factoryPackage.getName();
-			if (factoryPackage.getImplementationTitle() != null) {
-				impl += ", " + factoryPackage.getImplementationTitle();
-			}
-			if (factoryPackage.getImplementationVersion() != null) {
-				impl += ", version " + factoryPackage.getImplementationVersion();
-			}
-			logger.info(capability + ", implementation: " + impl);
 		} catch (ReflectiveOperationException e) {
-			logger.warn("Could not get factory for " + capability);
+			logger.error("Could not get factory for " + capability, e);
 		}
+	}
+
+	private void logVersion(String capability, Package ifcPackage, Class<?> factoryClass) {
+		Package factoryPackage = factoryClass.getPackage();
+		logger.info(capability + ", interface: " + ifcPackage);
+		String impl = "package " + factoryPackage.getName();
+		if (factoryPackage.getImplementationTitle() != null) {
+			impl += ", " + factoryPackage.getImplementationTitle();
+		}
+		if (factoryPackage.getImplementationVersion() != null) {
+			impl += ", version " + factoryPackage.getImplementationVersion();
+		}
+		logger.info(capability + ", implementation: " + impl);
 	}
 
 	public ClassLoader getClassLoader() {
