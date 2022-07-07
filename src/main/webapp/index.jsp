@@ -230,7 +230,7 @@ input[type="submit"][value="false"] {
 <%
 		for (WorkerPool workerPool : globalContext.getWorkerPools()) {
 		   %>
-		   <tr><td><a href="<%=request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION%>"><%=workerPool.getName()%></a></td><td><%=workerPool.getPoolSize()%></td><td><%=workerPool.getQueueSize()%></td><td><%=workerPool.getActiveCount()%></td><td><%=workerPool.getCompletedTaskCount()%></td></tr>
+		   <tr><td><a href="<%=workerPool.getName() != "default" ? request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION : ""%>"><%=workerPool.getName()%></a></td><td><%=workerPool.getPoolSize()%></td><td><%=workerPool.getQueueSize()%></td><td><%=workerPool.getActiveCount()%></td><td><%=workerPool.getCompletedTaskCount()%></td></tr>
 		   <%
 		}
 %>
