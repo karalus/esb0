@@ -66,8 +66,8 @@ public class XMLProcessorFactory {
 			} else {
 				throw new RuntimeException("Cannot be casted to SAXTransformerFactory: " + transformerFactory.getClass());
 			}
-			conXMLProcessorFactory = MethodHandles.lookup().unreflectConstructor(ReflectionUtils.findConstructor(
-					System.getProperty("esb0.XMLProcessorFactory", "com.artofarc.util.saxon.SaxonXMLProcessorFactory"), URIResolver.class));
+			conXMLProcessorFactory = MethodHandles.lookup().unreflectConstructor(Class.forName(
+					System.getProperty("esb0.XMLProcessorFactory", "com.artofarc.util.saxon.SaxonXMLProcessorFactory")).getDeclaredConstructor(URIResolver.class));
 		} catch (Exception e) {
 			throw ReflectionUtils.convert(e, RuntimeException.class);
 		}

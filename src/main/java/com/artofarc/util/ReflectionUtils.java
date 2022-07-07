@@ -186,15 +186,6 @@ public final class ReflectionUtils {
 		throw new NoSuchMethodException(cls + " has no ctor for " + params);
 	}
 
-	@SuppressWarnings("unchecked")
-	public static <T> Constructor<T> findConstructor(String className, Class<?>... parameterTypes) {
-		try {
-			return (Constructor<T>) Class.forName(className).getDeclaredConstructor(parameterTypes);
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	public static Constructor<?> findAnyConstructor(Class<?> cls, Class<?>... anyOfType) throws NoSuchMethodException {
 		for (Class<?> parameterType : anyOfType) {
 			try {
