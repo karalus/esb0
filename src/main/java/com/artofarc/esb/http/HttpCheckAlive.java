@@ -20,6 +20,8 @@ import java.net.HttpURLConnection;
 
 public class HttpCheckAlive {
 
+	protected Integer _retryAfter; 
+
 	@Override
 	public boolean equals(Object obj) {
 		return obj != null && getClass() == obj.getClass();
@@ -35,7 +37,25 @@ public class HttpCheckAlive {
 	}
 
 	public boolean isAlive(HttpURLConnection conn, int responseCode) {
-		return responseCode != HttpURLConnection.HTTP_UNAVAILABLE;
+		if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
+			_retryAfter = conn.getHeaderFieldInt(HttpConstants.HTTP_HEADER_RETRY_AFTER, -1);
+			if (_retryAfter < 0) {
+				long retryAfter = conn.getHeaderFieldDate(HttpConstants.HTTP_HEADER_RETRY_AFTER, 0) - System.currentTimeMillis();
+				if (retryAfter > 0) {
+					_retryAfter = ((int) retryAfter + 999) / 1000;
+				} else {
+					_retryAfter = null;
+				}
+			}
+			return false;
+		}
+		return true;
+	}
+
+	public final Integer consumeRetryAfter() {
+		Integer retryAfter = _retryAfter;
+		_retryAfter = null;
+		return retryAfter;
 	}
 
 	public static class ConnectException extends IOException {

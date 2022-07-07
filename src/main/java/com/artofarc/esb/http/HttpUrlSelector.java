@@ -137,11 +137,17 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			} else {
 				--activeCount;
 				if (_future == null && _httpEndpoint.getCheckAliveInterval() != null) {
-					_future = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, _httpEndpoint.getCheckAliveInterval(), _httpEndpoint.getCheckAliveInterval(), TimeUnit.SECONDS);
+					scheduleHealthCheck();
 				}
 			}
 			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Endpoint state changed", "active[" + pos + "]", "boolean", old, b));
 		}
+	}
+
+	private void scheduleHealthCheck() {
+		Integer retryAfter = _httpEndpoint.getHttpCheckAlive().consumeRetryAfter();
+		int nextCheckAlive = retryAfter != null ? retryAfter : _httpEndpoint.getCheckAliveInterval();
+		_future = _workerPool.getScheduledExecutorService().schedule(this, nextCheckAlive, TimeUnit.SECONDS);
 	}
 
 	public synchronized void stop() {
@@ -163,6 +169,11 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				} catch (IOException e) {
 					// ignore
 				}
+			}
+		}
+		synchronized (this) {
+			if (activeCount < size) {
+				scheduleHealthCheck();
 			}
 		}
 	}
