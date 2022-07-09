@@ -189,7 +189,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 		}
 		if (primitiveType == null) {
 			if (_stack.peek().array) {
-				xsomHelper.endArray();
+				xsomHelper.discardArray();
 			}
 			for (int level = _stack.size();;) {
 				XSTerm term = xsomHelper.nextElement();
@@ -204,7 +204,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 				} else {
 					if (xsomHelper.isLastElementRepeated()) {
 						_stack.peek().array = true;
-						xsomHelper.endArray();
+						xsomHelper.discardArray();
 						break;
 					} else {
 						_stack.peek().add(term.apply(XSOMHelper.GetName), null);
