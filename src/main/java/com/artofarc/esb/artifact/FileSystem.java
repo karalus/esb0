@@ -26,7 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.jar.JarInputStream;
@@ -155,18 +154,10 @@ public abstract class FileSystem {
 
 	private static void validateService(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
 		if (artifact instanceof ServiceArtifact) {
-			final ServiceArtifact serviceArtifact = (ServiceArtifact) artifact;
-			Callable<ServiceArtifact> task = new Callable<ServiceArtifact>() {
-
-				@Override
-				public ServiceArtifact call() throws ValidationException {
-					serviceArtifact.validate(globalContext);
-					return serviceArtifact;
-				}
-
-			};
-			Future<ServiceArtifact> future = globalContext.getDefaultWorkerPool().getExecutorService().submit(task);
-			changeSet.futures.add(future);
+			changeSet.futures.add(globalContext.getDefaultWorkerPool().getExecutorService().submit(() -> {
+				artifact.validate(globalContext);
+				return (ServiceArtifact) artifact;
+			}));
 		} else if (artifact instanceof WorkerPoolArtifact) {
 			artifact.validate(globalContext);
 			changeSet.getWorkerPoolArtifacts().add((WorkerPoolArtifact) artifact);

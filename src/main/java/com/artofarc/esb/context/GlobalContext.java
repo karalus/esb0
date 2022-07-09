@@ -278,7 +278,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			// Ignore
 		}
 		// Close HikariDataSource from DataSourceArtifact
-		Collections.typeSelect(_propertyCache.getResources(), AutoCloseable.class).forEach(closeable -> Closer.closeQuietly(closeable));
+		Collections.typeSelect(_propertyCache.getResources(), AutoCloseable.class).forEach(Closer::closeQuietly);
 		super.close();
 	}
 

@@ -19,7 +19,6 @@ package com.artofarc.esb;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -97,13 +96,7 @@ public class Registry extends AbstractContext {
 				result.add(consumerPort);
 			}
 		}
-		result.sort(new Comparator<ConsumerPort>() {
-
-			@Override
-			public int compare(ConsumerPort o1, ConsumerPort o2) {
-				return o1.getUri().compareTo(o2.getUri());
-			}
-		});
+		result.sort((o1, o2) -> o1.getUri().compareTo(o2.getUri()));
 		return result;
 	}
 

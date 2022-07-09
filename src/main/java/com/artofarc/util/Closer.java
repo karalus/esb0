@@ -74,14 +74,8 @@ public final class Closer implements AutoCloseable {
 		}
 	}
 
-	public Future<?> closeAsyncUnattended(final AutoCloseable closeable) {
-		return _executorService.submit(new Runnable() {
-
-			@Override
-			public void run() {
-				closeQuietly(closeable);
-			}
-		});
+	public Future<?> closeAsyncUnattended(AutoCloseable closeable) {
+		return _executorService.submit(() -> closeQuietly(closeable));
 	}
 
 	public void closeAsync(AutoCloseable closeable) {
