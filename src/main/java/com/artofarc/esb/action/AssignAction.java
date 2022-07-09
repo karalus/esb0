@@ -28,15 +28,15 @@ import com.artofarc.util.XQuerySource;
 
 public class AssignAction extends TransformAction {
 
-	private final boolean _clearAll;
+	private final boolean _clearHeaders;
 
 	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
 		this(java.util.Collections.singletonList(new Assignment(varName, false, expression, false, null)), false, null, namespaces, bindNames, contextItem, false);
 	}
 
-	public AssignAction(List<Assignment> assignments, boolean doNullCheck, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearAll) {
-		super(createXQuery(assignments, doNullCheck, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), createCheckNotNull(bindNames), assignments,	doNullCheck, null, contextItem);
-		_clearAll = clearAll;
+	public AssignAction(List<Assignment> assignments, boolean doNullCheck, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders) {
+		super(createXQuery(assignments, doNullCheck, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), createCheckNotNull(bindNames), assignments,	doNullCheck, bodyExpr != null, null, contextItem);
+		_clearHeaders = clearHeaders;
 	}
 
 	private static XQuerySource createXQuery(List<Assignment> assignments, boolean doNullCheck, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
@@ -101,7 +101,7 @@ public class AssignAction extends TransformAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		if (_clearAll) {
+		if (_clearHeaders) {
 			message.clearHeaders();
 		}
 		return super.prepare(context, message, inPipeline);

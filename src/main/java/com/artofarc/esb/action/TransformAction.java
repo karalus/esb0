@@ -62,30 +62,31 @@ public class TransformAction extends Action {
 	private final XQuerySource _xquery;
 	private final Set<String> _checkNotNull;
 	private final List<Assignment> _assignments;
-	private final boolean _doNullCheck;
+	private final boolean _doNullCheck, _clearSchema;
 	private final String _baseURI; 
 	protected final String _contextItem;
 
-	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, boolean doNullCheck, String baseURI, String contextItem) {
+	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, boolean doNullCheck, boolean clearSchema, String baseURI, String contextItem) {
 		_xquery = xquery;
 		_checkNotNull = checkNotNull != null ? checkNotNull : Collections.emptySet();
 		_assignments = assignments;
 		_doNullCheck = doNullCheck;
+		_clearSchema = clearSchema;
 		_baseURI = baseURI;
 		_contextItem = contextItem;
 		_pipelineStop = contextItem != null;
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
-		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), false, baseURI, contextItem);
+		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), false, true, baseURI, contextItem);
 	}
 
 	protected TransformAction(String xquery, List<Assignment> varNames) {
-		this(XQuerySource.create(xquery), null, varNames, false, null, null);
+		this(XQuerySource.create(xquery), null, varNames, false, false, null, null);
 	}
 
 	protected TransformAction(String xquery) {
-		this(XQuerySource.create(xquery), null, Collections.emptyList(), false, null, null);
+		this(XQuerySource.create(xquery), null, Collections.emptyList(), false, false, null, null);
 	}
 
 	public final XQuerySource getXQuery() {
@@ -163,6 +164,9 @@ public class TransformAction extends Action {
 				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
 			} else {
 				message.reset(BodyType.XQ_SEQUENCE, resultSequence);
+			}
+			if (_clearSchema) {
+				message.setSchema(null);
 			}
 		}
 		return new ExecutionContext(resultSequence, xqExpression);
