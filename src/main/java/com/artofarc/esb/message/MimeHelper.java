@@ -135,6 +135,8 @@ public final class MimeHelper {
 				} else {
 					if (mediaType != contentType) {
 						multipartContentType += contentType.substring(mediaType.length());
+					} else {
+						multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
 					}
 					multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + mediaType + '"';
 					multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + mediaType + '"';
