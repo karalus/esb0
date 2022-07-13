@@ -69,7 +69,7 @@ public class HttpServletResponseAction extends Action {
 			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
 			if (_supportCompression) checkCompression(message);
 			checkFastInfoSet(message);
-			if (_multipartSubtype != null) {
+			if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 				if (inPipeline) {
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -152,7 +152,7 @@ public class HttpServletResponseAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		AsyncContext asyncContext = execContext.getResource();
 		message.closeBody();
-		if (_multipartSubtype != null) {
+		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			ByteArrayOutputStream bos = execContext.getResource2();
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
 			HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();

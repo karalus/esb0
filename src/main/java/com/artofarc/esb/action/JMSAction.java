@@ -72,10 +72,10 @@ public class JMSAction extends Action {
 	private final Long _timeToLive;
 	private final String _deliveryDelay, _expiryQueue;
 	private final boolean _receiveFromTempQueue;
-	private final String _multipart;
+	private final String _multipartSubtype, _multipart;
 
 	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
-			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String multipart) throws NamingException {
+			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String multipartSubtype, String multipart) throws NamingException {
 		_pipelineStop = true;
 		_queueName = globalContext.bindProperties(queueName);
 		_topicName = globalContext.bindProperties(topicName);
@@ -90,6 +90,7 @@ public class JMSAction extends Action {
 		_deliveryDelay = deliveryDelay;
 		_expiryQueue = expiryQueue;
 		_receiveFromTempQueue = receiveFromTempQueue;
+		_multipartSubtype = multipartSubtype;
 		_multipart = multipart;
 	}
 
@@ -137,8 +138,8 @@ public class JMSAction extends Action {
 				jmsMessage = session.createMessage();
 			} else if (_isBytesMessage) {
 				BytesMessage bytesMessage = session.createBytesMessage();
-				if (_multipart != null) {
-					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "related", _multipart, message.getBodyAsByteArray(context), false, true);
+				if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipart, message.getBodyAsByteArray(context), false, true);
 					mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
 					message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
 				} else {

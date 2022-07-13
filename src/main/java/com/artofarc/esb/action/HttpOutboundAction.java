@@ -81,7 +81,7 @@ public class HttpOutboundAction extends Action {
 			// https://www.w3.org/International/articles/http-charset/index.en.html
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
 		}
-		if (_multipartSubtype != null) {
+		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			if (inPipeline) {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -109,7 +109,7 @@ public class HttpOutboundAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		message.closeBody();
-		if (_multipartSubtype != null) {
+		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			ByteArrayOutputStream bos = execContext != null ? execContext.getResource() : null;
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());

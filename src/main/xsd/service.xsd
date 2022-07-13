@@ -88,6 +88,7 @@
 					<attribute name="deliveryDelay" type="tns:string1" />
 					<attribute name="expiryQueue" type="tns:string1" />
 					<attribute name="receiveFromTempQueue" type="boolean" default="false" />
+					<attribute name="multipartSubtype" type="tns:multipartSubtype" />
 					<attribute name="multipart" type="tns:string1" />
 				</extension>
 			</complexContent>

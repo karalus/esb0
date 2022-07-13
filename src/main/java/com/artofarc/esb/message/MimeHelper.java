@@ -36,6 +36,7 @@ import com.artofarc.util.ByteArrayOutputStream;
 
 public final class MimeHelper {
 
+	private static final boolean FORCE_MIMEMULTIPART = Boolean.parseBoolean(System.getProperty("esb0.forceMimeMultipart"));
 	private static final String ROOTPART = "rootpart@artofarc.com";
 	private static final String START_ROOTPART = "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START + "\"<" + ROOTPART + ">\"";
 
@@ -66,6 +67,10 @@ public final class MimeHelper {
 
 	public static String getDispositionName(MimeBodyPart bodyPart) throws MessagingException {
 		return getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), HTTP_HEADER_CONTENT_PARAMETER_NAME);
+	}
+
+	public static boolean isMimeMultipart(String multipartSubtype, ESBMessage message) {
+		return multipartSubtype != null && (FORCE_MIMEMULTIPART || multipartSubtype == "form-data" || message.getAttachments().size() > 0);
 	}
 
 	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
@@ -133,12 +138,7 @@ public final class MimeHelper {
 				if (multipartContentType.equals(mediaType)) {
 					multipartContentType = contentType;
 				} else {
-					if (mediaType != contentType) {
-						multipartContentType += contentType.substring(mediaType.length());
-					} else {
-						multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
-					}
-					multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + mediaType + '"';
+					multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding() + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + mediaType + '"';
 					multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + mediaType + '"';
 				}
 				mmp = new MimeMultipart(multipartSubtype); 
