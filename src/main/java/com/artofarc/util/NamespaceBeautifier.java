@@ -80,8 +80,7 @@ public class NamespaceBeautifier extends XMLParserBase {
 				SAXSource saxSource = (SAXSource) _source;
 				if (saxSource.getInputSource() == null) {
 					saxSource.setInputSource(source);
-				}
-				if (saxSource.getInputSource() != source) {
+				} else if (saxSource.getInputSource() != source) {
 					throw new SAXException("Ambiguous InputSource");
 				}
 			} else {

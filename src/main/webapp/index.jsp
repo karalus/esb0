@@ -13,14 +13,6 @@
 <html>
 <head>
 <style>
-body {
-	background-color: <%=System.getProperty("esb0.adminUI.bgcolor", "transparent")%>;
-}
-textarea, pre {
-	-moz-tab-size: 4;
-	-o-tab-size: 4;
-	tab-size: 4;
-}
 input[type="submit"][value="true"] {
 	color: white;
 	background-color: green;
@@ -29,9 +21,12 @@ input[type="submit"][value="false"] {
 	color: white;
 	background-color: red;
 }
+.main * td {
+	padding: 10;
+}
 </style>
 </head>
-<body>
+<body style="background-color:<%=System.getProperty("esb0.adminUI.bgcolor", "transparent")%>">
 <%
 	GlobalContext globalContext = (GlobalContext) application.getAttribute(ESBServletContextListener.CONTEXT);
 %>
@@ -271,7 +266,7 @@ input[type="submit"][value="false"] {
 			break;
 		default:
 			%>
-<table border="1" width="960" cellpadding="10">
+<table border="1" style="width:960" class="main">
 	<tr bgcolor="#EEEEEE">
 		<td><a href="<%=request.getContextPath()%>/admin?HttpServices">HttpServices</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?MappedHttpServices">HttpServices with path mapping</a></td>
@@ -397,7 +392,7 @@ Upload Service-JAR:
 		   %>
 				<br>
 				<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + pathInfo%>" enctype="text/plain" method="POST" accept-charset="utf-8">
-					<textarea name="content" rows="50" cols="200" spellcheck="false"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=content%></textarea>
+					<textarea name="content" rows="50" cols="200" spellcheck="false" style="tab-size:4"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=content%></textarea>
 					<input type="submit" value="Change">
 				</form>
 			<%
