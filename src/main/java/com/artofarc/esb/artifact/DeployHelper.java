@@ -100,7 +100,7 @@ public final class DeployHelper {
 						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
 			}
 		}
-		outer: for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
+		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
 			Object oldDataSource = null;
 			try {
 				oldDataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
@@ -109,7 +109,7 @@ public final class DeployHelper {
 			}
 			if (DataSourceArtifact.isDataSource(oldDataSource)) {
 				if (dataSourceArtifact.tryUpdate(oldDataSource)) {
-					continue outer;
+					continue;
 				}
 				closer.add((AutoCloseable) oldDataSource);
 			}

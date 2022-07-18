@@ -51,6 +51,15 @@ public final class DataSourceArtifact extends AbstractServiceArtifact {
 		}
 	}
 
+	public static Integer getActiveConnections(Object object){
+		// used from index.jsp also for other datasources, HikariCP maybe not in classpath
+		if (object.getClass().getName().equals("com.zaxxer.hikari.HikariDataSource")) {
+			HikariDataSource dataSource = (HikariDataSource) object;
+			return dataSource.getHikariPoolMXBean().getActiveConnections();
+		}
+		return null;
+	}
+
 	public HikariDataSource createDataSource() {
 		return new HikariDataSource(_hikariConfig);
 	}
@@ -81,7 +90,7 @@ public final class DataSourceArtifact extends AbstractServiceArtifact {
 					if (!Objects.equals(method.invoke(other, EMPTY_OBJECT_ARRAY), newValue)) {
 						for (Method methodMX : HikariConfigMXBean.class.getMethods()) {
 							if (methodMX.getParameterCount() == 1 && methodMX.getName().endsWith(name.substring(2))) {
-								methodMX.invoke(other, new Object[] { newValue });
+								methodMX.invoke(other, newValue);
 								continue outer;
 							}
 						}

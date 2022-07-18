@@ -9,7 +9,6 @@
 <%@page import="com.artofarc.esb.http.HttpUrlSelector"%>
 <%@page import="com.artofarc.esb.resource.LRUCacheWithExpirationFactory"%>
 <%@page import="com.artofarc.esb.artifact.*"%>
-<%@page import="com.artofarc.util.ReflectionUtils"%>
 <html>
 <head>
 <style>
@@ -208,9 +207,9 @@ input[type="submit"][value="false"] {
 		for (String propertyName : globalContext.getCachedProperties()) {
 			Object object = globalContext.getProperty(propertyName);
 			if (object instanceof javax.sql.DataSource) {
-				Object activeConnections = DataSourceArtifact.isDataSource(object) ? ReflectionUtils.eval(object, "hikariPoolMXBean.activeConnections") : "N/A";
+				Integer activeConnections = DataSourceArtifact.getActiveConnections(object);
 			   %>
-			   <tr><td><%=propertyName%></td><td><%=object.getClass().getName()%></td><td><%=activeConnections%></td></tr>
+			   <tr><td><%=propertyName%></td><td><%=object.getClass().getName()%></td><td><%=activeConnections != null ? activeConnections : "N/A"%></td></tr>
 			   <%
 			}
 		}
