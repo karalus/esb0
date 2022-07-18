@@ -26,7 +26,7 @@ import javax.naming.NamingException;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.http.HttpConstants;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSSession;
@@ -139,9 +139,13 @@ public class JMSAction extends Action {
 			} else if (_isBytesMessage) {
 				BytesMessage bytesMessage = session.createBytesMessage();
 				if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+					String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+					if (hasCharset(contentType)) {
+						message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
+					}
 					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipart, message.getBodyAsByteArray(context), false, true);
 					mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
-					message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
+					message.putHeader(HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
 				} else {
 					// raw or not?
 					message.writeTo(new BytesMessageOutputStream(bytesMessage), context);

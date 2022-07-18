@@ -125,7 +125,7 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(appendHttpUrlPath, pathInfo.substring(httpConsumer.getBindPath().length()));
 		}
 		message.putVariableIfNotNull(QueryString, request.getQueryString());
-		message.setCharset(request.getCharacterEncoding());
+		message.setCharset(getCharset(request.getContentType()));
 		for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 			String headerName = headerNames.nextElement();
 			message.putHeader(headerName, request.getHeader(headerName));

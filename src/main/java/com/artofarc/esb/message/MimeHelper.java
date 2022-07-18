@@ -138,7 +138,11 @@ public final class MimeHelper {
 				if (multipartContentType.equals(mediaType)) {
 					multipartContentType = contentType;
 				} else {
-					multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding() + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + mediaType + '"';
+					if (mediaType != contentType) {
+						// append params like action and charset
+						multipartContentType += contentType.substring(mediaType.length());
+					}
+					multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + mediaType + '"';
 					multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + mediaType + '"';
 				}
 				mmp = new MimeMultipart(multipartSubtype); 
@@ -205,8 +209,7 @@ public final class MimeHelper {
 						Header header = allHeaders.nextElement();
 						message.putHeader(header.getName(), header.getValue());
 					}
-					String charset = getValueFromHttpHeader(bodyPart.getContentType(), HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);
-					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream(), charset);
+					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream(), getCharset(bodyPart.getContentType()));
 				} else if (cid != null) {
 					// remove angle brackets (https://tools.ietf.org/html/rfc2392)
 					message.addAttachment(cid.substring(1, cid.length() - 1), bodyPart);

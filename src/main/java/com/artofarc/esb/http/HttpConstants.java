@@ -200,6 +200,35 @@ public class HttpConstants {
 		return false;
 	}
 
+	public static String getCharset(String contentType) {
+		final String charset = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);
+		if (charset == null && contentType != null) {
+			if (isNotJSON(contentType)) {
+				if (contentType.startsWith(MEDIATYPE_TEXT)) {
+					// https://www.ietf.org/rfc/rfc2068.txt (3.7.1)
+					return "ISO-8859-1";
+				}
+			} else {
+				return "UTF-8";
+			}
+		}
+		return charset;
+	}
+
+	public static boolean hasCharset(String contentType) {
+		if (contentType != null) {
+			// https://www.iana.org/assignments/media-types/media-types.xhtml
+			if (contentType.startsWith(MEDIATYPE_TEXT)) {
+				return true;
+			}
+			if (contentType.startsWith(MEDIATYPE_APPLICATION)) {
+				final String type = getValueFromHttpHeader(contentType);
+				return type.endsWith("/xml") || type.endsWith("+xml");
+			}
+		}
+		return false;
+	}
+
 	private static final WeakCache<String, ArrayList<Entry<String, BigDecimal>>> ACCEPT_CACHE = new WeakCache<String, ArrayList<Entry<String, BigDecimal>>>() {
 
 		@Override
