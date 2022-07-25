@@ -176,9 +176,10 @@ public class ActionTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
 		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
 		action.addAssignment("LogTimeStamp1", true, "1598427971440", "java.lang.Long", null, null);
-		action.addAssignment("LogTimeStamp2", true, "1607954675000", "java.lang.Long", null, null);
+		action.addAssignment("l1209600000", true, "1209600000", "java.lang.Long", null, null);
 		action.addAssignment("_LogTimeStamp", false, "${LogTimeStamp1}", "java.math.BigInteger", "valueOf", null);
-		action.addAssignment("_LogTimeStamp14d", false, "${_LogTimeStamp.add(1209600000)}", null, null, null);
+		action.addAssignment("_1209600000", false, "${l1209600000}", "java.math.BigInteger", "valueOf", null);
+		action.addAssignment("_LogTimeStamp14d", false, "${_LogTimeStamp.add(_1209600000)}", null, null, null);
 		action.addAssignment("_initialTimestamp", false, "${initialTimestamp}", "java.math.BigInteger", "valueOf", null);
 		action.addAssignment("compareTo", false, "${_LogTimeStamp14d.longValue.compareTo(initialTimestamp)}", null, null, null);
 		action.setNextAction(new DumpAction());

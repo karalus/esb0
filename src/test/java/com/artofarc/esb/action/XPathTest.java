@@ -144,8 +144,21 @@ public class XPathTest extends AbstractESBTest {
       consumerPort.process(context, message);
       assertNull(message.getVariable("result"));
    }
+
+   @Test
+   public void testBoolean() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.STRING, "<test><no>75</no></test>");
+      List<AssignAction.Assignment> assignments = createAssignments(false);
+      assignments.add(new AssignAction.Assignment("result", false, "(not(test/bool) or xs:boolean(test/bool)) and test/no=('86','75')", false, "xs:boolean"));
+ 	  Action action = createAssignAction(assignments, ".", null);
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      consumerPort.process(context, message);
+      assertTrue(message.getVariable("result"));
+   }
    
- @Test
+   @Test
    public void testJavaExtensionEvaluate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
       List<AssignAction.Assignment> assignments = createAssignments(false);
