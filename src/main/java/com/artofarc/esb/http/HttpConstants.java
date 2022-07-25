@@ -215,8 +215,8 @@ public class HttpConstants {
 		return charset;
 	}
 
-	public static boolean hasCharset(String contentType) {
-		if (contentType != null) {
+	public static boolean needsCharset(String contentType) {
+		if (contentType != null && getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET) == null) {
 			// https://www.iana.org/assignments/media-types/media-types.xhtml
 			if (contentType.startsWith(MEDIATYPE_TEXT)) {
 				return true;

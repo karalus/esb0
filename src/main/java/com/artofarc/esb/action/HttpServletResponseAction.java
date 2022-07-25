@@ -113,7 +113,7 @@ public class HttpServletResponseAction extends Action {
 				GenericHttpListener.sendError(response, HttpServletResponse.SC_NOT_ACCEPTABLE, contentType + " does not match " + accept);
 				return false;
 			}
-			if (hasCharset(contentType)) {
+			if (needsCharset(contentType)) {
 				String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
 				if (acceptCharset != null) {
 					message.setSinkEncoding(getBestQualityValue(acceptCharset));

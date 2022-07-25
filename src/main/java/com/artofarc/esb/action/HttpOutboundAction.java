@@ -77,7 +77,7 @@ public class HttpOutboundAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (hasCharset(contentType)) {
+		if (needsCharset(contentType)) {
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
 		}
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
