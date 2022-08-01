@@ -186,31 +186,49 @@ public final class ReflectionUtils {
 		throw new NoSuchMethodException(cls + " has no ctor for " + params);
 	}
 
-	public static Constructor<?> findAnyConstructor(Class<?> cls, Class<?>... anyOfType) throws NoSuchMethodException {
-		for (Class<?> parameterType : anyOfType) {
-			try {
-				return cls.getConstructor(parameterType);
-			} catch (NoSuchMethodException e) {
-				// continue
+	public static Map.Entry<Class<?>, MethodHandle>[] findConstructors(Class<?> cls, int parameterCount) throws ReflectiveOperationException {
+		List<Map.Entry<Class<?>, MethodHandle>> result = new ArrayList<>();
+		for (Constructor<?> constructor : cls.getConstructors()) {
+			if (constructor.getParameterCount() == parameterCount) {
+				addToResult(result, Collections.createEntry(parameterCount > 0 ? constructor.getParameterTypes()[0] : null, MethodHandles.publicLookup().unreflectConstructor(constructor)));
 			}
 		}
-		throw new NoSuchMethodException(cls + " has no ctor for any of " + Arrays.asList(anyOfType));
+		if (result.isEmpty()) {
+			throw new NoSuchMethodException(cls + " has no ctor with parameterCount " + parameterCount);
+		}
+		return Collections.toArray(result);
 	}
 
-	public static Method findAnyMethod(Class<?> cls, String name, Class<?>... anyOfType) throws NoSuchMethodException {
-		for (Class<?> parameterType : anyOfType) {
-			try {
-				return cls.getMethod(name, parameterType);
-			} catch (NoSuchMethodException e) {
-				// continue
-			}
-		}
+	public static Map.Entry<Class<?>, MethodHandle>[] findStaticMethods(Class<?> cls, String name, int parameterCount) throws ReflectiveOperationException {
+		List<Map.Entry<Class<?>, MethodHandle>> result = new ArrayList<>();
 		for (Method method : cls.getMethods()) {
-			if (method.getParameterCount() == 1 && method.getName().equals(name)) {
-				return method;
+			if (method.getParameterCount() == parameterCount && method.getName().equals(name) && (method.getModifiers() & Modifier.STATIC) != 0) {
+				addToResult(result, Collections.createEntry(parameterCount > 0 ? method.getParameterTypes()[0] : null, MethodHandles.publicLookup().unreflect(method)));
 			}
 		}
-		throw new NoSuchMethodException(cls + " has no method " + name + " with any parameter type of " + Arrays.asList(anyOfType));
+		if (result.isEmpty()) {
+			throw new NoSuchMethodException(cls + " has no static method " + name + " with parameterCount " + parameterCount);
+		}
+		return Collections.toArray(result);
+	}
+
+	private static void addToResult(List<Map.Entry<Class<?>, MethodHandle>> result, Map.Entry<Class<?>, MethodHandle> entry) {
+		int i = 0;
+		for (; i < result.size(); ++i) {
+			if (result.get(i).getKey().isAssignableFrom(entry.getKey())) {
+				break;
+			}
+		}
+		result.add(i, entry);
+	}
+
+	public static Object invokePolymorphic(Map.Entry<Class<?>, MethodHandle>[] methodHandles, Object value) throws Throwable {
+		for (Map.Entry<Class<?>, MethodHandle> entry : methodHandles) {
+			if (!isNotAssignable(entry.getKey(), value)) {
+				return entry.getValue().invoke(value);
+			}
+		}
+		throw new IllegalArgumentException("No match found for " + value.getClass());
 	}
 
 	@SuppressWarnings("unchecked")

@@ -17,15 +17,15 @@ package com.artofarc.esb.action;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Map.Entry;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.Collections;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWrapper;
 
@@ -91,7 +91,7 @@ public class SetMessageAction extends ForwardAction {
 		final boolean _header;
 		final StringWrapper _expr;
 		final boolean _needsBody;
-		final MethodHandle _methodHandle;
+		final Entry<Class<?>, MethodHandle>[] _methodHandles;
 
 		Assignment(String name, boolean header, StringWrapper expr, String javaType, String method, String field) throws ReflectiveOperationException {
 			_name = name.intern();
@@ -101,29 +101,32 @@ public class SetMessageAction extends ForwardAction {
 			if (javaType != null) {
 				Class<?> cls = Class.forName(javaType, true, _classLoader);
 				if (method != null) {
-					Method _method = _expr.isEmpty() ? cls.getMethod(method) : ReflectionUtils.findAnyMethod(cls, method, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
-					ReflectionUtils.checkStatic(_method);
-					_methodHandle = MethodHandles.publicLookup().unreflect(_method);
+					_methodHandles = ReflectionUtils.findStaticMethods(cls, method, _expr.isEmpty() ? 0 : 1);
 				} else if (field != null) {
 					if (!expr.isEmpty()) {
 						throw new IllegalArgumentException("Field must not have an expression");
 					}
 					Field _field = cls.getField(field);
 					ReflectionUtils.checkStatic(_field);
-					_methodHandle = MethodHandles.publicLookup().unreflectGetter(_field);
+					_methodHandles = Collections.toSingletonArray(Collections.createEntry(null, MethodHandles.publicLookup().unreflectGetter(_field)));
 				} else {
-					Constructor<?> con = _expr.isEmpty() ? cls.getConstructor() : ReflectionUtils.findAnyConstructor(cls, String.class, Long.TYPE, Long.class, Integer.TYPE, Integer.class);
-					_methodHandle = MethodHandles.publicLookup().unreflectConstructor(con);
+					_methodHandles = ReflectionUtils.findConstructors(cls, _expr.isEmpty() ? 0 : 1);
 				}
 			} else {
-				_methodHandle = null;
+				_methodHandles = null;
 			}
 		}
 
 		Object convert(Object value) throws Exception {
-			if (_methodHandle != null) {
+			if (_methodHandles != null) {
 				try {
-					return _expr.isEmpty() ? _methodHandle.invoke() : _methodHandle.invoke(value);
+					if (_expr.isEmpty()) {
+						return _methodHandles[0].getValue().invoke();
+					} else if (_methodHandles.length == 1) {
+						return _methodHandles[0].getValue().invoke(value);
+					} else {
+						return ReflectionUtils.invokePolymorphic(_methodHandles, value);
+					}
 				} catch (Throwable e) {
 					throw ReflectionUtils.convert(e, Exception.class);
 				}

@@ -15,6 +15,7 @@
  */
 package com.artofarc.util;
 
+import java.lang.reflect.Array;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,8 +68,15 @@ public final class Collections {
 			throw new IllegalArgumentException("Collection must not be empty");
 		}
 		@SuppressWarnings("unchecked")
-		T[] array = (T[]) java.lang.reflect.Array.newInstance(iter.next().getClass(), list.size());
+		T[] array = (T[]) Array.newInstance(iter.next().getClass(), list.size());
 		return list.toArray(array);
+	}
+
+	public static <T> T[] toSingletonArray(T value) {
+		@SuppressWarnings("unchecked")
+		T[] array = (T[]) Array.newInstance(value.getClass(), 1);
+		array[0] = value;
+		return array;
 	}
 
 	@SuppressWarnings("unchecked")
