@@ -25,10 +25,11 @@ import java.util.Map;
 import javax.wsdl.Binding;
 import javax.wsdl.Definition;
 import javax.wsdl.Import;
-import javax.wsdl.Types;
 import javax.wsdl.extensions.schema.Schema;
 import javax.wsdl.xml.WSDLLocator;
+import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.dom.DOMSource;
@@ -38,8 +39,8 @@ import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.WSDL4JUtil;
+import com.artofarc.util.XMLProcessorFactory;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.parser.XSOMParser;
 
@@ -100,22 +101,31 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 			sources.add(soap12.getStreamSource());
 			addReference(soap12);
 		}
-		processSchemas(definition.getTypes(), sources, transformer);
+		processSchemas(definition, sources, transformer);
 		Map<String, List<Import>> importMap = definition.getImports();
 		for (List<Import> imports : importMap.values()) {
 			for (Import import1 : imports) {
-				processSchemas(import1.getDefinition().getTypes(), sources, transformer);
+				processSchemas(import1.getDefinition(), sources, transformer);
 			}
 		}
 		return sources.toArray(new Source[sources.size()]);
 	}
 
-	private void processSchemas(Types types, List<Source> sources, Transformer transformer) throws Exception {
-		if (types != null) {
-			for (Schema schema : WSDL4JUtil.getExtensibilityElements(types, Schema.class)) {
+	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws Exception {
+		if (definition.getTypes() != null) {
+			for (Schema schema : WSDL4JUtil.getExtensibilityElements(definition.getTypes(), Schema.class)) {
 				Element element = schema.getElement();
+				@SuppressWarnings("unchecked")
+				Map<String, String> namespaces = definition.getNamespaces();
+				for (Map.Entry<String, String> entry : namespaces.entrySet()) {
+					String attrName = entry.getKey().isEmpty() ? "xmlns" : "xmlns:" + entry.getKey();
+					if (!element.hasAttribute(attrName)) {
+						element.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, attrName, entry.getValue());
+					}
+				}
 				String targetNamespace = element.getAttribute("targetNamespace");
 				DOMSource schemaElement = new DOMSource(element, getURI());
+				transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 				_schemas.put(targetNamespace, XMLCatalog.toByteArray(schemaElement, transformer));
 				sources.add(schemaElement);
 			}
