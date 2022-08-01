@@ -122,7 +122,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
 		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
-		if (CONSUMER_IDLETIMEOUT > 0) {
+		if (mbs != null && CONSUMER_IDLETIMEOUT > 0) {
 			_future = getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, CONSUMER_IDLETIMEOUT, CONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
 		}
 	}

@@ -8,17 +8,14 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
+import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.Properties;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
-import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.StringWrapper;
@@ -28,8 +25,8 @@ import com.artofarc.esb.message.ESBConstants;
 public class ActionTest extends AbstractESBTest {
    
    @Before
-   public void createContext() throws Exception {
-      context = new Context(new GlobalContext(getClass().getClassLoader(), null, new Properties()).getDefaultWorkerPool().getPoolContext());
+   public void createContext() {
+	   _createContext();
    }
 
    @Test
@@ -156,6 +153,16 @@ public class ActionTest extends AbstractESBTest {
 		assertTrue("Type is: " + calendar.getClass(), calendar instanceof Calendar);
 		Object timeInMillis = message.getVariable("timeInMillis");
 		assertTrue("Type is: " + timeInMillis.getClass(), timeInMillis instanceof Long);
+	}
+
+	@Test
+	public void testSetMessageOverloading() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+		message.putVariable("cal", new GregorianCalendar());
+		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		action.addAssignment("delay", false, "${cal}", "com.artofarc.esb.SchedulingConsumerPort", "millisUntilNext", null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
 	}
 
 	@Test

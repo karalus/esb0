@@ -62,12 +62,17 @@ public class XMLProcessorFactory {
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
 			if (transformerFactory.getFeature(SAXTransformerFactory.FEATURE)) {
 				SAX_TRANSFORMER_FACTORY = (SAXTransformerFactory) transformerFactory;
-				conSAXTransformerFactory = MethodHandles.publicLookup().unreflectConstructor(transformerFactory.getClass().getConstructor());
+				conSAXTransformerFactory = MethodHandles.lookup().unreflectConstructor(transformerFactory.getClass().getConstructor());
 			} else {
 				throw new RuntimeException("Cannot be casted to SAXTransformerFactory: " + transformerFactory.getClass());
 			}
-			conXMLProcessorFactory = MethodHandles.lookup().unreflectConstructor(Class.forName(
-					System.getProperty("esb0.XMLProcessorFactory", "com.artofarc.util.saxon.SaxonXMLProcessorFactory")).getDeclaredConstructor(URIResolver.class));
+			Class<?> xmlProcessorFactory;
+			try {
+				xmlProcessorFactory = Class.forName(System.getProperty("esb0.XMLProcessorFactory", "com.artofarc.util.saxon.SaxonXMLProcessorFactory"));
+			} catch (ClassNotFoundException e) {
+				xmlProcessorFactory = XMLProcessorFactory.class;
+			}
+			conXMLProcessorFactory = MethodHandles.lookup().unreflectConstructor(xmlProcessorFactory.getDeclaredConstructor(URIResolver.class));
 		} catch (Exception e) {
 			throw ReflectionUtils.convert(e, RuntimeException.class);
 		}

@@ -34,20 +34,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import com.artofarc.esb.action.Action;
-import com.artofarc.esb.action.AssignAction;
-import com.artofarc.esb.action.ExecutionException;
-import com.artofarc.esb.action.HttpOutboundAction;
-import com.artofarc.esb.action.SAXValidationAction;
-import com.artofarc.esb.action.TransformAction;
-import com.artofarc.esb.action.UnwrapSOAPAction;
-import com.artofarc.esb.action.ValidateAction;
-import com.artofarc.esb.artifact.FileSystem;
-import com.artofarc.esb.artifact.FileSystemDir;
-import com.artofarc.esb.artifact.SchemaArtifact;
-import com.artofarc.esb.artifact.ValidationException;
-import com.artofarc.esb.artifact.XMLCatalog;
-import com.artofarc.esb.artifact.XQueryArtifact;
+import com.artofarc.esb.action.*;
+import com.artofarc.esb.artifact.*;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpEndpoint;
@@ -73,15 +61,23 @@ public abstract class AbstractESBTest {
 
 	protected Context context;
 
-	@Before
-	public void createContext() throws Exception {
-		createContext(null);
+	protected final void _createContext() {
+		if (context == null) {
+			GlobalContext globalContext = new GlobalContext(getClass().getClassLoader(), null, new Properties());
+			context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());
+		}
 	}
 
-	protected void createContext(File dir) throws ValidationException {
-		System.setProperty("esb0.consumer.idletimeout", "0");
-		GlobalContext globalContext = new GlobalContext(getClass().getClassLoader(), null, new Properties());
-		globalContext.setFileSystem(dir != null ? new FileSystemDir(dir) : new FileSystem() {
+	protected final void createContext(File dir) {
+		_createContext();
+		getGlobalContext().setFileSystem(new FileSystemDir(dir));
+		XMLCatalog.attachToFileSystem(getGlobalContext());
+	}
+
+	@Before
+	public void createContext() throws Exception {
+		_createContext();
+		getGlobalContext().setFileSystem(new FileSystem() {
 
 			@Override
 			public FileSystem copy() {
@@ -95,26 +91,24 @@ public abstract class AbstractESBTest {
 			@Override
 			public void writeBackChanges() {
 			}
-
 		});
-		XMLCatalog.attachToFileSystem(globalContext);
-		context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());
+		XMLCatalog.attachToFileSystem(getGlobalContext());
 	}
 
 	@After
 	public void closeContext() {
 		if (context != null) {
 			context.close();
-			context.getPoolContext().close();
-			context.getPoolContext().getGlobalContext().close();
+			getGlobalContext().close();
+			context = null;
 		}
 	}
 
-	protected GlobalContext getGlobalContext() {
+	protected final GlobalContext getGlobalContext() {
 		return context.getPoolContext().getGlobalContext();
 	}
 
-	public void transform(Source source, Result result) throws TransformerException {
+	public final void transform(Source source, Result result) throws TransformerException {
 		context.transform(source, result, null);
 	}
 
