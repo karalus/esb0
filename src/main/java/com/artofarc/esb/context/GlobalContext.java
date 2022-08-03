@@ -31,6 +31,7 @@ import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.xquery.XQConnection;
+import javax.xml.xquery.XQDataFactory;
 import javax.xml.xquery.XQException;
 
 import com.artofarc.esb.FileWatchEventConsumer;
@@ -62,6 +63,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
 	private final XMLProcessorFactory _xmlProcessorFactory;
+	private final XQConnection _xqConnection;
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
 	private volatile FileSystem _fileSystem;
 	private volatile Future<?> _future;
@@ -115,6 +117,11 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 				throw exception;
 			}
 		});
+		try {
+			_xqConnection = _xmlProcessorFactory.getConnection();
+		} catch (XQException e) {
+			throw new RuntimeException(e);
+		}
 		if (properties.getProperty(VERSION) != null) {
 			logger.info("ESB0 version " + properties.getProperty(VERSION) + " build time " + properties.getProperty(BUILD_TIME));
 			logDependenciesVersion();
@@ -132,16 +139,10 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		logVersion("JAXB", "javax.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
 		logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.XMLProcessorFactory", "SAX_PARSER_FACTORY");
 		logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.XMLProcessorFactory", "SAX_TRANSFORMER_FACTORY");
-		try {
-			XQConnection connection = _xmlProcessorFactory.getConnection();
-			if (connection != null) {
-				logVersion("XQJ", Package.getPackage("javax.xml.xquery"), connection.getClass());
-				connection.close();
-			} else {
-				logger.warn("XQJ not suppoerted");
-			}
-		} catch (XQException e) {
-			throw new RuntimeException(e);
+		if (_xqConnection != null) {
+			logVersion("XQJ", Package.getPackage("javax.xml.xquery"), _xqConnection.getClass());
+		} else {
+			logger.warn("XQJ not supported");
 		}
 		logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
 		logVersion("JSON", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
@@ -210,6 +211,10 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		return _xmlProcessorFactory;
 	}
 
+	public XQDataFactory getXQDataFactory() {
+		return _xqConnection;
+	}
+
 	public boolean lockFileSystem() {
 		try {
 			return _fileSystemLock.tryLock(DEPLOY_TIMEOUT, TimeUnit.SECONDS);
@@ -271,6 +276,11 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		for (WorkerPool workerPool : getWorkerPools()) {
 			workerPool.close();
 			workerPool.getPoolContext().close();
+		}
+		try {
+			_xqConnection.close();
+		} catch (XQException e) {
+			// Ignore
 		}
 		try {
 			_initialContext.close();

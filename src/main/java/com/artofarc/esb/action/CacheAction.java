@@ -91,7 +91,7 @@ public class CacheAction extends Action {
 						if (ttl > 0) {
 							Object[] values = new Object[_valueNames.size()];
 							for (int i = 0; i < _valueNames.size(); ++i) {
-								values[i] = i != _indexBody ? resolve(message, _valueNames.get(i), true) : message.materializeBody(context, false);
+								values[i] = i != _indexBody ? resolve(message, _valueNames.get(i), true) : message.cloneBody(context, false);
 							}
 							_cache.put(key, values, ttl);
 						}

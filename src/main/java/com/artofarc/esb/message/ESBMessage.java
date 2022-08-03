@@ -806,18 +806,18 @@ public final class ESBMessage implements Cloneable {
 		return (ESBMessage) super.clone();
 	}
 
-	public Object materializeBody(Context context, boolean onetime) throws Exception {
+	public Object cloneBody(Context context, boolean singleUse) throws Exception {
 		final Object newBody;
 		switch (_bodyType) {
 		case INPUT_STREAM:
-			if (onetime && _body instanceof ByteArrayInputStream) {
+			if (singleUse && _body instanceof ByteArrayInputStream) {
 				newBody = ((ByteArrayInputStream) _body).clone();
 			} else {
 				newBody = getBodyAsByteArray(context);
 			}
 			break;
 		case READER:
-			if (onetime && _body instanceof StringBuilderReader) {
+			if (singleUse && _body instanceof StringBuilderReader) {
 				newBody = ((StringBuilderReader) _body).clone();
 			} else {
 				newBody = getBodyAsString(context);
@@ -827,7 +827,8 @@ public final class ESBMessage implements Cloneable {
 			init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument((Source) _body, null), null);
 			// nobreak
 		case XQ_ITEM:
-			newBody = context.getXQDataFactory().createItem((XQItem) _body);
+			// Must outlive current context
+			newBody = context.getGlobalContext().getXQDataFactory().createItem((XQItem) _body);
 			break;
 		default:
 			newBody = _body;
@@ -839,7 +840,7 @@ public final class ESBMessage implements Cloneable {
 	public ESBMessage copy(Context context, boolean withBody, boolean withHeaders, boolean withAttachments) throws Exception {
 		final ESBMessage clone;
 		if (withBody) {
-			Object newBody = materializeBody(context, true);
+			Object newBody = cloneBody(context, true);
 			clone = new ESBMessage(_bodyType, newBody, _charset);
 		} else {
 			clone = new ESBMessage(BodyType.INVALID, null, null);
