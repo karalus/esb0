@@ -237,7 +237,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 					logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey() + " in state " + entry.getValue());
 					jmsConsumer.suspend();
 				} catch (Exception e) {
-					// ignore
+					logger.warn("Suspend failed for " + jmsConsumer.getKey(), e);
 				}
 			}
 			for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
@@ -268,11 +268,11 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 				_future.cancel(false);
 				_future = null;
 			} catch (JMSException e) {
+				logger.error("Reconnect failed for " + _jmsConnectionData, e);
 				if (_connection != null) {
 					shutdown(_connection);
 					_connection = null;
 				}
-				logger.error("Reconnect failed for " + _jmsConnectionData, e);
 			}
 		}
 

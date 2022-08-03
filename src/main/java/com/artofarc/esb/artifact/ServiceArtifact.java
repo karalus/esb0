@@ -62,7 +62,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	// only used during validation
 	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
-	private XMLProcessorFactory _xqConnectionFactory;
+	private XMLProcessorFactory _xmlProcessorFactory;
 
 	public ServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -86,10 +86,10 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	}
 
 	private XMLProcessorFactory getXQConnectionFactory() {
-		if (_xqConnectionFactory == null) {
-			_xqConnectionFactory = XMLProcessorFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this));
+		if (_xmlProcessorFactory == null) {
+			_xmlProcessorFactory = XMLProcessorFactory.newInstance(new XMLProcessingArtifact.ArtifactURIResolver(this));
 		}
-		return _xqConnectionFactory;
+		return _xmlProcessorFactory;
 	}
 
 	private <T> T checkBindingPresent(T binding) throws ValidationException {
@@ -150,7 +150,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			_consumerPort.setEnabled(service.isEnabled());
 		} finally {
 			_actionPipelines.clear();
-			_xqConnectionFactory = null;
+			_xmlProcessorFactory = null;
 		}
 	}
 
