@@ -170,7 +170,7 @@ public class HttpConstants {
 
 	public static boolean isSOAP11(String contentType) {
 		if (contentType != null) {
-			final String type = getValueFromHttpHeader(contentType);
+			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
 			return type.equals(SOAP_1_1_CONTENT_TYPE) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11);
 		}
 		return false;
@@ -178,7 +178,7 @@ public class HttpConstants {
 
 	public static boolean isSOAP12(String contentType) {
 		if (contentType != null) {
-			final String type = getValueFromHttpHeader(contentType);
+			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
 			return type.equals(SOAP_1_2_CONTENT_TYPE) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12);
 		}
 		return false;
@@ -186,7 +186,7 @@ public class HttpConstants {
 
 	public static boolean isNotXML(String contentType) {
 		if (contentType != null) {
-			final String type = getValueFromHttpHeader(contentType);
+			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
 			return !(type.endsWith("/xml") || type.endsWith("+xml") || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
 		}
 		return false;
@@ -194,25 +194,31 @@ public class HttpConstants {
 
 	public static boolean isNotJSON(String contentType) {
 		if (contentType != null) {
-			final String type = getValueFromHttpHeader(contentType);
+			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
 			return !(type.startsWith(MEDIATYPE_APPLICATION) && (type.endsWith("/json") || type.endsWith("+json")));
 		}
 		return false;
 	}
 
 	public static String getCharset(String contentType) {
-		final String charset = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);
-		if (charset == null && contentType != null) {
-			if (isNotJSON(contentType)) {
-				if (contentType.startsWith(MEDIATYPE_TEXT)) {
-					// https://www.ietf.org/rfc/rfc2068.txt (3.7.1)
-					return "ISO-8859-1";
+		if (contentType != null) {
+			contentType = contentType.toLowerCase(Locale.ROOT);
+			final String charset = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);
+			if (charset == null) {
+				final String type = getValueFromHttpHeader(contentType);
+				if (isNotJSON(type)) {
+					// for text/xml we let the XML parser decide the encoding
+					if (!type.equals(SOAP_1_1_CONTENT_TYPE) && type.startsWith(MEDIATYPE_TEXT)) {
+						// https://www.ietf.org/rfc/rfc2068.txt (3.7.1)
+						return "ISO-8859-1";
+					}
+				} else {
+					return "UTF-8";
 				}
-			} else {
-				return "UTF-8";
 			}
+			return charset;
 		}
-		return charset;
+		return null;
 	}
 
 	public static boolean needsCharset(String contentType) {

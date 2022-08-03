@@ -18,6 +18,20 @@ import com.artofarc.util.URLUtils;
 public class EncodingTest extends AbstractESBTest {
 
 	@Test
+	public void testDecodeRequest() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.BYTES,
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<test>Hellö</test>".getBytes(ESBMessage.CHARSET_DEFAULT));
+		message.putHeader(HTTP_HEADER_CONTENT_TYPE, "text/xml");
+		message.setCharset(getCharset("text/xml"));
+		Action action = createAssignAction("result", "test/text()");
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(action);
+		action.setNextAction(new DumpAction());
+		consumerPort.process(context, message);
+		assertEquals("Hellö", message.getVariable("result"));
+	}
+
+	@Test
 	public void testEncodeResponse() throws Exception {
 		String test = "<test>ä</test>\n";
 		ESBMessage message = new ESBMessage(BodyType.STRING, test);
