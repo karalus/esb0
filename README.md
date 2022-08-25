@@ -26,7 +26,7 @@ Features:
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.9.1.
+Current stable version is 1.9.2.
 
 ### Design goals ###
 
