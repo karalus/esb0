@@ -125,7 +125,7 @@ public final class Xml2JsonTransformer {
 			if (type.isSimpleType()) {
 				final XSSimpleType simpleType = type.asSimpleType();
 				final XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
-				if (itemType != null) {
+				if (simpleList = itemType != null) {
 					return XSOMHelper.getJsonType(itemType);
 				} else {
 					return XSOMHelper.getJsonType(simpleType);
@@ -167,12 +167,13 @@ public final class Xml2JsonTransformer {
 				} else {
 					complex = xsomHelper.getComplexType() != null;
 					if (primitiveType == null) {
-						final XSSimpleType simpleType = xsomHelper.getSimpleType();
+						XSSimpleType simpleType = xsomHelper.getSimpleType();
 						if (simpleType != null) {
-							final XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
 							if (simpleType.isUnion()) {
-								throw new SAXException("xs:union and no xsi:type given");
-							} else if (simpleList = itemType != null) {
+								simpleType = XSOMHelper.getDefaultMemberType(simpleType.asUnion());
+							}
+							final XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
+							if (simpleList = itemType != null) {
 								primitiveType = XSOMHelper.getJsonType(itemType);
 							} else {
 								primitiveType = XSOMHelper.getJsonType(simpleType);

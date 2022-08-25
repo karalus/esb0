@@ -435,7 +435,7 @@ public final class XSOMHelper {
 			XSSimpleType itemType = getItemType(simpleType);
 			if (itemType != null) {
 				if (xsdType == null || xsdType.equals(getJsonBaseType(itemType))) {
-					if (simpleType.getName() == null) {
+					if (simpleType.isLocal()) {
 						throw new SAXException("xs:union type must not contain anonymous xs:list type");
 					}
 					return simpleType;
@@ -443,6 +443,16 @@ public final class XSOMHelper {
 			}
 		}
 		throw new SAXException("xs:union type does not contain xs:list type for " + xsdType);
+	}
+
+	public static XSSimpleType getDefaultMemberType(XSUnionSimpleType unionType) {
+		for (int i = 0; i < unionType.getMemberSize(); ++i) {
+			XSSimpleType simpleType = unionType.getMember(i);
+			if (simpleType.isGlobal()) {
+				return simpleType;
+			}
+		}
+		return unionType.getMember(0);
 	}
 
 	public boolean isLastElementAny() {
