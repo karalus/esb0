@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -98,6 +97,9 @@ public abstract class SchemaArtifact extends Artifact {
 		} else {
 			SchemaFactory factory = SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
 			factory.setResourceResolver(getResolver());
+			// https://xerces.apache.org/xerces2-j/javadocs/xerces2/org/apache/xerces/impl/xs/XMLSchemaValidator.html
+			factory.setFeature("http://apache.org/xml/features/namespace-growth", true);
+			factory.setFeature("http://apache.org/xml/features/internal/tolerate-duplicates", true);
 			_schema = factory.newSchema(getSourcesForSchema());
 		}
 	}
@@ -180,7 +182,7 @@ public abstract class SchemaArtifact extends Artifact {
 				if (!cacheXSGrammars) {
 					artifact._namespace.set(namespaceURI);
 				}
-				if (baseURI == null) {
+				if (baseURI == null || !baseURI.startsWith(FILE_SCHEMA)) {
 					baseURI = FILE_SCHEMA + artifact.getURI();
 					systemId = artifact.getName();
 				}

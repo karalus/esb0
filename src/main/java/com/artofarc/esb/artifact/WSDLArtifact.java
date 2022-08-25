@@ -85,12 +85,6 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		latestImportURI = null;
 		Transformer transformer = XMLProcessorFactory.newTransformer();
 		List<Source> sources = new ArrayList<>();
-		for (String referenced : getReferenced()) {
-			Artifact xsd = loadArtifact(referenced);
-			if (xsd instanceof XSDArtifact) {
-				sources.add(((XSDArtifact) xsd).getStreamSource());
-			}
-		}
 		if (WSDL4JUtil.hasSOAP11Binding(_allBindings)) {
 			XSDArtifact soap11 = loadArtifact(XMLCatalog.PATH + "/soap11.xsd");
 			sources.add(soap11.getStreamSource());
