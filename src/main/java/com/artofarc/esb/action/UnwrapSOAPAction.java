@@ -16,6 +16,7 @@
 package com.artofarc.esb.action;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,7 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.servlet.ESBServletContextListener;
 
 import static com.artofarc.esb.message.ESBConstants.*;
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 import static com.artofarc.util.WSDL4JUtil.*;
 
 public class UnwrapSOAPAction extends TransformAction {
@@ -46,7 +47,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	private final Schema _schema;
 
 	private static final List<Assignment> ARG2 = Arrays.asList(new Assignment(SOAP_HEADER, true), new Assignment(SOAP_ELEMENT_NAME, false));
-	private static final List<Assignment> ARG1 = java.util.Collections.singletonList(new Assignment(SOAP_HEADER, true));
+	private static final List<Assignment> ARG1 = Collections.singletonList(new Assignment(SOAP_HEADER, true));
 
 	/**
 	 * @param singlePart whether body cannot contain more than one element.
@@ -74,11 +75,11 @@ public class UnwrapSOAPAction extends TransformAction {
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl) {
-		this(soap12, singlePart, Collections.inverseMap(getMapOperation2SoapActionURI(bindingOperations)), bindingOperations, wsdlUrl, getWsdl, schema);
+		this(soap12, singlePart, DataStructures.inverseMap(getMapOperation2SoapActionURI(bindingOperations)), bindingOperations, wsdlUrl, getWsdl, schema);
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart) {
-		this(soap12, singlePart, java.util.Collections.emptyMap(), null, null, false, null);
+		this(soap12, singlePart, Collections.emptyMap(), null, null, false, null);
 	}
 
 	@Override

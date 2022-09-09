@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2022 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -82,15 +81,15 @@ public final class PrefixBTree<T> {
 					} else {
 						// split
 						Node<T> node = new Node<>(common);
-						node.addByLength(Collections.createEntry(key, value));
+						node.addByLength(DataStructures.createEntry(key, value));
 						char[] prefix = new char[l];
 						System.arraycopy(key, 0, prefix, 0, l);
-						addByLength(Collections.createEntry(prefix, node));
+						addByLength(DataStructures.createEntry(prefix, node));
 						return;
 					}
 				}
 			}
-			addByLength(Collections.createEntry(key, value));
+			addByLength(DataStructures.createEntry(key, value));
 		}
 
 		@SuppressWarnings("unchecked")
@@ -103,7 +102,7 @@ public final class PrefixBTree<T> {
 						Node<T> inner = (Node<T>) entry.getValue();
 						return inner.update(key, keyLen, value);
 					} else if (keyLen == key.length) {
-						iter.set(Collections.createEntry(key, value));
+						iter.set(DataStructures.createEntry(key, value));
 						return (T) entry.getValue();
 					}
 				}
@@ -171,7 +170,7 @@ public final class PrefixBTree<T> {
 				if (entry.getValue() instanceof Node) {
 					@SuppressWarnings("unchecked")
 					Node<T> inner = (Node<T>) entry.getValue();
-					copy._list.add(Collections.createEntry(entry.getKey(), inner.copy()));
+					copy._list.add(DataStructures.createEntry(entry.getKey(), inner.copy()));
 				} else {
 					copy._list.add(entry);
 				}

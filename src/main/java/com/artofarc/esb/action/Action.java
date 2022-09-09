@@ -19,9 +19,11 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Node;
 
 import com.artofarc.esb.artifact.Location;
 import com.artofarc.esb.context.Context;
@@ -74,12 +76,32 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 
 	protected static void logESBMessage(Context context, ESBMessage message) throws Exception {
 		StringBuilderWriter writer = new StringBuilderWriter();
-		writer.write("Headers: ");
-		ESBMessage.dumpKeyValues(context, message.getHeaders(), writer);
+		writer.write("Headers: {");
+		for (Iterator<Map.Entry<String, Object>> iter = message.getHeaders().iterator(); iter.hasNext();) {
+			Map.Entry<String, Object> entry = iter.next();
+			writer.append(entry.getKey()).append('=').write(String.valueOf(entry.getValue()));
+			if (iter.hasNext()) {
+				writer.write(", ");
+			}
+		}
+		writer.write('}');
 		logger.info(writer.toString());
 		writer.reset();
-		writer.write("Variables: ");
-		ESBMessage.dumpKeyValues(context, message.getVariables().entrySet(), writer);
+		writer.write("Variables: {");
+		for (Iterator<Map.Entry<String, Object>> iter = message.getVariables().entrySet().iterator(); iter.hasNext();) {
+			Map.Entry<String, Object> entry = iter.next();
+			if (entry.getKey().startsWith("_")) continue;
+			writer.append(entry.getKey()).write('=');
+			if (entry.getValue() instanceof Node) {
+				context.writeBeautified((Node) entry.getValue(), writer);
+			} else {
+				writer.write(String.valueOf(entry.getValue()));
+			}
+			if (iter.hasNext()) {
+				writer.write(", ");
+			}
+		}
+		writer.write('}');
 		logger.info(writer.toString());
 	}
 

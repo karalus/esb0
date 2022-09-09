@@ -16,6 +16,7 @@
 package com.artofarc.esb.action;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,7 @@ public class AssignAction extends TransformAction {
 	private final boolean _clearHeaders;
 
 	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
-		this(java.util.Collections.singletonList(new Assignment(varName, false, expression, false, null)), false, null, namespaces, bindNames, contextItem, false);
+		this(Collections.singletonList(new Assignment(varName, false, expression, false, null)), false, null, namespaces, bindNames, contextItem, false);
 	}
 
 	public AssignAction(List<Assignment> assignments, boolean doNullCheck, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders) {

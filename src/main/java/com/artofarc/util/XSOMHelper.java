@@ -271,7 +271,7 @@ public final class XSOMHelper {
 		if (_nextGroup != null) {
 			if (_nextGroup != _currentGroup) {
 				saveCurrent();
-				_stack.push(Collections.createEntry(_nextType, new ArrayDeque<>()));
+				_stack.push(DataStructures.createEntry(_nextType, new ArrayDeque<>()));
 				_currentGroup = _nextGroup;
 			}
 			_nextGroup = null;

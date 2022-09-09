@@ -30,7 +30,7 @@ import com.artofarc.esb.context.*;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.URLUtils;
@@ -212,7 +212,7 @@ public class AdminAction extends Action {
 				newFileSystem.writeBackChanges();
 				logger.info("Configuration changed by: " + resolve(message, ESBConstants.RemoteUser, false));
 				logger.info("Number of created/updated services: " + serviceCount);
-				logger.info("Number of deleted services: " + Collections.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).count());
+				logger.info("Number of deleted services: " + DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).count());
 				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
 				message.reset(BodyType.INVALID, null);
 			} catch (ValidationException | RuntimeException e) {

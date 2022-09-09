@@ -26,7 +26,7 @@ import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.IOUtils;
 
 public final class DeployHelper {
@@ -34,7 +34,7 @@ public final class DeployHelper {
 	public static int deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet changeSet) throws ValidationException {
 		List<ServiceArtifact> serviceArtifacts = changeSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
-		Collections.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).forEach(service -> {
+		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).forEach(service -> {
 			switch (service.getProtocol()) {
 			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();
@@ -71,13 +71,13 @@ public final class DeployHelper {
 				break;
 			}
 		});
-		Collections.typeSelect(changeSet.getDeletedArtifacts(), WorkerPoolArtifact.class).forEach(workerPool -> {
+		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), WorkerPoolArtifact.class).forEach(workerPool -> {
 			String name = IOUtils.stripExt(workerPool.getURI());
 			WorkerPool oldWorkerPool = globalContext.getWorkerPool(name);
 			// close later
 			closer.add(oldWorkerPool);
 		});
-		Collections.typeSelect(changeSet.getDeletedArtifacts(), DataSourceArtifact.class).forEach(dataSourceArtifact -> {
+		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), DataSourceArtifact.class).forEach(dataSourceArtifact -> {
 			Object dataSource = globalContext.removeProperty(dataSourceArtifact.getDataSourceName());
 			// close later
 			closer.add((AutoCloseable) dataSource);

@@ -109,7 +109,7 @@ public final class ReflectionUtils {
 		return null;
 	}
 
-	private final static Map<Class<?>, Class<?>[]> primitiveMapper = Collections.createMap(
+	private final static Map<Class<?>, Class<?>[]> primitiveMapper = DataStructures.createMap(
 			double.class, new Class[] { Double.class, Float.class, Long.class, Integer.class, Short.class, Byte.class },
 			float.class, new Class[] { Float.class, Long.class, Integer.class, Short.class, Byte.class },
 			long.class, new Class[] { Long.class, Integer.class, Short.class, Byte.class },
@@ -190,26 +190,26 @@ public final class ReflectionUtils {
 		List<Map.Entry<Class<?>, MethodHandle>> result = new ArrayList<>();
 		for (Constructor<?> constructor : cls.getConstructors()) {
 			if (constructor.getParameterCount() == parameterCount) {
-				addToResult(result, Collections.createEntry(parameterCount > 0 ? constructor.getParameterTypes()[0] : null, MethodHandles.publicLookup().unreflectConstructor(constructor)));
+				addToResult(result, DataStructures.createEntry(parameterCount > 0 ? constructor.getParameterTypes()[0] : null, MethodHandles.publicLookup().unreflectConstructor(constructor)));
 			}
 		}
 		if (result.isEmpty()) {
 			throw new NoSuchMethodException(cls + " has no ctor with parameterCount " + parameterCount);
 		}
-		return Collections.toArray(result);
+		return DataStructures.toArray(result);
 	}
 
 	public static Map.Entry<Class<?>, MethodHandle>[] findStaticMethods(Class<?> cls, String name, int parameterCount) throws ReflectiveOperationException {
 		List<Map.Entry<Class<?>, MethodHandle>> result = new ArrayList<>();
 		for (Method method : cls.getMethods()) {
 			if (method.getParameterCount() == parameterCount && method.getName().equals(name) && (method.getModifiers() & Modifier.STATIC) != 0) {
-				addToResult(result, Collections.createEntry(parameterCount > 0 ? method.getParameterTypes()[0] : null, MethodHandles.publicLookup().unreflect(method)));
+				addToResult(result, DataStructures.createEntry(parameterCount > 0 ? method.getParameterTypes()[0] : null, MethodHandles.publicLookup().unreflect(method)));
 			}
 		}
 		if (result.isEmpty()) {
 			throw new NoSuchMethodException(cls + " has no static method " + name + " with parameterCount " + parameterCount);
 		}
-		return Collections.toArray(result);
+		return DataStructures.toArray(result);
 	}
 
 	private static void addToResult(List<Map.Entry<Class<?>, MethodHandle>> result, Map.Entry<Class<?>, MethodHandle> entry) {

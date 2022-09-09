@@ -19,13 +19,16 @@ import java.lang.reflect.Array;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
-public final class Collections {
+public final class DataStructures {
 
 	public static <K, V> Map.Entry<K, V> createEntry(final K key, final V value) {
 		return new AbstractMap.SimpleImmutableEntry<>(key, value);
@@ -47,7 +50,7 @@ public final class Collections {
 		Map<V, K> result = new HashMap<>();
 		for (Map.Entry<K, V> entry : map.entrySet()) {
 			if (result.put(entry.getValue(), entry.getKey()) != null) {
-				return java.util.Collections.emptyMap();
+				return Collections.emptyMap();
 			}
 		}
 		return result;
@@ -55,7 +58,7 @@ public final class Collections {
 
 	public static <T> List<T> moveToNewList(Collection<T> coll, boolean noop) {
 		if (noop) {
-			return java.util.Collections.emptyList();
+			return Collections.emptyList();
 		}
 		ArrayList<T> list = new ArrayList<>(coll);
 		coll.clear();
@@ -82,6 +85,46 @@ public final class Collections {
 	@SuppressWarnings("unchecked")
 	public static <T> Stream<T> typeSelect(Collection<? super T> coll, Class<T> cls) {
 		return (Stream<T>) coll.stream().filter(cls::isInstance);
+	}
+
+	public static String asXMLString(Throwable e) {
+		Set<Throwable> dejaVu = Collections.newSetFromMap(new IdentityHashMap<Throwable, Boolean>());
+		return "<exception>" + asXMLString(e, dejaVu) + "</exception>";
+	}
+
+	private static String asXMLString(Throwable e, Set<Throwable> dejaVu) {
+		if (dejaVu.add(e)) {
+			String xml = "<message><![CDATA[" + e + "]]></message>";
+			for (Throwable t : e.getSuppressed()) {
+				xml += "<suppressed>" + asXMLString(t, dejaVu) + "</suppressed>";
+			}
+			if (e.getCause() != null) {
+				xml += "<cause>" + asXMLString(e.getCause(), dejaVu) + "</cause>";
+			}
+			return xml;
+		} else {
+			return "<circular/>";
+		}
+	}
+
+	public static String asString(Throwable e) {
+		Set<Throwable> dejaVu = Collections.newSetFromMap(new IdentityHashMap<Throwable, Boolean>());
+		return asString(e, dejaVu);
+	}
+
+	private static String asString(Throwable e, Set<Throwable> dejaVu) {
+		if (dejaVu.add(e)) {
+			String str = e.toString();
+			for (Throwable t : e.getSuppressed()) {
+				str += "\nSuppressed: " + asString(t, dejaVu);
+			}
+			if (e.getCause() != null) {
+				str += "\nCause: " + asString(e.getCause(), dejaVu);
+			}
+			return str;
+		} else {
+			return "\nCircular";
+		}
 	}
 
 }

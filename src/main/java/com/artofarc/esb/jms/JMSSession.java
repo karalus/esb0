@@ -23,7 +23,7 @@ import java.util.Map;
 import javax.jms.*;
 
 import com.artofarc.esb.message.ESBConstants;
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 
 /**
  * Cache producers because it is expensive to create them.
@@ -120,10 +120,10 @@ public final class JMSSession implements AutoCloseable {
 
 	public static Map.Entry<String, String> getDestinationName(Destination destination) throws JMSException {
 		if (destination instanceof Queue) {
-			return Collections.createEntry(ESBConstants.QueueName, ((Queue) destination).getQueueName());
+			return DataStructures.createEntry(ESBConstants.QueueName, ((Queue) destination).getQueueName());
 		} 
 		if (destination instanceof Topic) {
-			return Collections.createEntry(ESBConstants.TopicName, ((Topic) destination).getTopicName());
+			return DataStructures.createEntry(ESBConstants.TopicName, ((Topic) destination).getTopicName());
 		}
 		return null;
 	}

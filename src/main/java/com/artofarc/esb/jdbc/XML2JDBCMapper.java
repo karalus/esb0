@@ -33,7 +33,7 @@ import javax.xml.transform.sax.TransformerHandler;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.PrefixHandler;
 import com.artofarc.util.XMLParserBase;
@@ -105,7 +105,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 			String prefix = XMLParserBase.getPrefixFromQName(qName);
 			if (delegatePrefixHandler.getNamespace(prefix) == null) {
 				startPrefixMapping(prefix, getNamespace(prefix));
-				_prefixPos.push(Collections.createEntry(anyLevel, prefix));
+				_prefixPos.push(DataStructures.createEntry(anyLevel, prefix));
 			}
 			delegate.startElement(uri, localName, qName, atts);
 			++anyLevel;

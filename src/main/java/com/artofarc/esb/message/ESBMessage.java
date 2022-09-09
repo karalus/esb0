@@ -27,7 +27,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -73,7 +72,7 @@ public final class ESBMessage implements Cloneable {
 
 	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
 
-	private static String toLowerCase(String headerName) {
+	private static String normalize(String headerName) {
 		return headerName.toLowerCase(Locale.ROOT).replace('_', '-');
 	}
 
@@ -145,27 +144,27 @@ public final class ESBMessage implements Cloneable {
 
 	@SuppressWarnings("unchecked")
 	public <T> T getHeader(String headerName) {
-		Map.Entry<String, Object> entry = _headers.get(toLowerCase(headerName));
+		Map.Entry<String, Object> entry = _headers.get(normalize(headerName));
 		return entry != null ? (T) entry.getValue() : null;
 	}
 
 	public void putHeader(String headerName, Object value) {
-		_headers.put(toLowerCase(headerName), Collections.createEntry(headerName, value));
+		_headers.put(normalize(headerName), DataStructures.createEntry(headerName, value));
 	}
 
 	public void addHeader(String headerName, Object value) {
-		String key = toLowerCase(headerName);
+		String key = normalize(headerName);
 		Map.Entry<String, Object> entry = _headers.get(key);
 		if (entry != null) {
-			_headers.put(key, Collections.createEntry(entry.getKey(), entry.getValue() + ", " + value));
+			_headers.put(key, DataStructures.createEntry(entry.getKey(), entry.getValue() + ", " + value));
 		} else {
-			_headers.put(key, Collections.createEntry(headerName, value));
+			_headers.put(key, DataStructures.createEntry(headerName, value));
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	public <T> T removeHeader(String headerName) {
-		Map.Entry<String, ?> entry = _headers.remove(toLowerCase(headerName));
+		Map.Entry<String, ?> entry = _headers.remove(normalize(headerName));
 		return entry != null ? (T) entry.getValue() : null;
 	}
 
@@ -400,9 +399,9 @@ public final class ESBMessage implements Cloneable {
 			Exception e = (Exception) _body;
 			String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 			if (contentType == null || isNotXML(contentType)) {
-				str = asString(e);
+				str = DataStructures.asString(e);
 			} else {
-				str = asXMLString(e);
+				str = DataStructures.asXMLString(e);
 			}
 			break;
 		case JSON_VALUE:
@@ -512,29 +511,6 @@ public final class ESBMessage implements Cloneable {
 		} else {
 			throw new IllegalStateException("Sequence prematurely ended. Could not get body");
 		}
-	}
-
-	public static String asXMLString(Throwable e) {
-		String xml = "<exception><message><![CDATA[" + e + "]]></message>";
-		if (e.getCause() != null) {
-			xml += "<cause><![CDATA[" + e.getCause() + "]]></cause>";
-		}
-		for (Throwable t : e.getSuppressed()) {
-			xml += "<suppressed>" + asXMLString(t) + "</suppressed>";
-		}
-		xml += "</exception>";
-		return xml;
-	}
-
-	public static String asString(Throwable e) {
-		String str = e.toString();
-		if (e.getCause() != null) {
-			str += "\nCause: " + e.getCause();
-		}
-		for (Throwable t : e.getSuppressed()) {
-			str += '\n' + asString(t);
-		}
-		return str;
 	}
 
 	public boolean isSink() {
@@ -859,24 +835,6 @@ public final class ESBMessage implements Cloneable {
 			}
 		}
 		return clone;
-	}
-
-	public static void dumpKeyValues(Context context, Collection<Map.Entry<String, Object>> keyValues, Writer logWriter) throws IOException, TransformerException {
-		logWriter.write('{');
-		for (Iterator<Map.Entry<String, Object>> iter = keyValues.iterator(); iter.hasNext();) {
-			Map.Entry<String, Object> entry = iter.next();
-			if (entry.getKey().startsWith("_")) continue;
-			logWriter.write(entry.getKey() + "=");
-			if (entry.getValue() instanceof Node) {
-				context.transform(new SAXSource(context.createNamespaceBeautifier(new DOMSource((Node) entry.getValue())), null), new StreamResult(logWriter), null);
-			} else {
-				logWriter.write(String.valueOf(entry.getValue()));
-			}
-			if (iter.hasNext()) {
-				logWriter.write(", ");
-			}
-		}
-		logWriter.write('}');
 	}
 
 }

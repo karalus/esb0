@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 
 public final class ContextPool implements AutoCloseable {
 
@@ -82,7 +82,7 @@ public final class ContextPool implements AutoCloseable {
 	}
 
 	public void releaseContext(Context context) {
-		_pool.addFirst(Collections.createEntry(context, System.currentTimeMillis()));
+		_pool.addFirst(DataStructures.createEntry(context, System.currentTimeMillis()));
 	}
 
 	public void shrinkPool() {

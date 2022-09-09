@@ -32,7 +32,7 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.WSDL4JUtil;
 import com.artofarc.util.XQuerySource;
 
@@ -257,7 +257,7 @@ public class SOAPTest extends AbstractESBTest {
       xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
       xsdArtifact.validateInternal(getGlobalContext());
       List<Map.Entry<String, String>> result = new ArrayList<>();
-      result.add(Collections.createEntry("v1", "http://aoa.de/ei/foundation/v1"));
+      result.add(DataStructures.createEntry("v1", "http://aoa.de/ei/foundation/v1"));
       action = action.setNextAction(new ValidateAction(xsdArtifact.getSchema(), "v1:messageHeader", result, null));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);

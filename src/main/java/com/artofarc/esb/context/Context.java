@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.context;
 
+import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -29,18 +30,22 @@ import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQDataFactory;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
 
 import org.jvnet.fastinfoset.sax.FastInfosetReader;
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.artofarc.esb.action.Action;
-import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.NamespaceBeautifier;
 import com.artofarc.util.TimeGauge;
+import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.XQuerySource;
 
 public final class Context extends AbstractContext {
@@ -143,6 +148,10 @@ public final class Context extends AbstractContext {
 	public NamespaceBeautifier createNamespaceBeautifier(Source source) throws TransformerException {
 		// If performance need to be improved, we could cache the transformer
 		return new NamespaceBeautifier(source, XMLProcessorFactory.newTransformer());
+	}
+
+	public void writeBeautified(Node node, Writer writer) throws TransformerException {
+		transform(new SAXSource(createNamespaceBeautifier(new DOMSource(node)), null), new StreamResult(writer), null);
 	}
 
 	public XQDataFactory getXQDataFactory() {

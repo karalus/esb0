@@ -1,9 +1,12 @@
 package com.artofarc.esb.action;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.json.JsonReader;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -15,6 +18,8 @@ import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.DataStructures;
+import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.TimeGauge;
 import com.sun.xml.xsom.XSSchemaSet;
 
@@ -130,4 +135,23 @@ public class JsonXmlTest extends AbstractESBTest {
 
 	}
 	
+//	@Test
+//	public void testJsonValue2XML() throws Exception {
+//		XSDArtifact xsd = fileSystem.getArtifact("de.aoa.xsd.demo.v1.xsd");
+//		ESBMessage message;
+//		try (JsonReader jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(new FileInputStream("src/test/resources/RESTRequest.json"))) {
+//			message = new ESBMessage(BodyType.JSON_VALUE, jsonReader.readObject());
+//		}
+//		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "application/json; charset=\"utf-8\"");
+//		urisToPrefixes.clear();
+//		urisToPrefixes.put("http://aoa.de/xsd/demo/v1/", "");
+//		urisToPrefixes.put("http://aoa.de/ei/foundation/v1", "ei1");
+//		urisToPrefixes = Collections.inverseMap(urisToPrefixes.entrySet(), true);
+//		Json2XMLAction action = new Json2XMLAction(xsd.getXSSchemaSet(), "{http://aoa.de/xsd/demo/v1/}demoType", true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", urisToPrefixes, null);
+//		ConsumerPort consumerPort = new ConsumerPort(null);
+//		consumerPort.setStartAction(action);
+//		action.setNextAction(new DumpAction());
+//		consumerPort.process(context, message);
+//	}
+
 }

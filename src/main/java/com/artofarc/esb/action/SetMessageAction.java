@@ -25,7 +25,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWrapper;
 
@@ -108,7 +108,7 @@ public class SetMessageAction extends ForwardAction {
 					}
 					Field _field = cls.getField(field);
 					ReflectionUtils.checkStatic(_field);
-					_methodHandles = Collections.toSingletonArray(Collections.createEntry(null, MethodHandles.publicLookup().unreflectGetter(_field)));
+					_methodHandles = DataStructures.toSingletonArray(DataStructures.createEntry(null, MethodHandles.publicLookup().unreflectGetter(_field)));
 				} else {
 					_methodHandles = ReflectionUtils.findConstructors(cls, _expr.isEmpty() ? 0 : 1);
 				}

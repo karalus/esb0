@@ -33,6 +33,7 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.XQuerySource;
 
 public class TransformAction extends Action {
@@ -121,7 +122,7 @@ public class TransformAction extends Action {
 					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
 					break;
 				case EXCEPTION:
-					xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, ESBMessage.asXMLString(message.getBody()), null, null);
+					xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, DataStructures.asXMLString(message.getBody()), null, null);
 					break;
 				default:
 					if (HttpConstants.isNotXML(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE))) {

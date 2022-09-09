@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.WeakCache;
 
 public class HttpConstants {
@@ -245,13 +245,13 @@ public class HttpConstants {
 				String mediaRange = tokenizer.nextToken().trim();
 				int i = mediaRange.lastIndexOf("q=");
 				if (i < 0) {
-					result.add(Collections.createEntry(mediaRange, BigDecimal.ONE));
+					result.add(DataStructures.createEntry(mediaRange, BigDecimal.ONE));
 				} else {
 					try {
 						// https://www.rfc-editor.org/rfc/rfc9110.html#name-accept
 						BigDecimal quality = new BigDecimal(mediaRange.substring(i + 2));
 						if (quality.scale() < 4 && quality.signum() >= 0 && BigDecimal.ONE.compareTo(quality) >= 0) {
-							result.add(Collections.createEntry(mediaRange.substring(0, mediaRange.lastIndexOf(';', i)), quality.signum() > 0 ? quality : null));
+							result.add(DataStructures.createEntry(mediaRange.substring(0, mediaRange.lastIndexOf(';', i)), quality.signum() > 0 ? quality : null));
 						}
 					} catch (NumberFormatException e) {
 						// ignore

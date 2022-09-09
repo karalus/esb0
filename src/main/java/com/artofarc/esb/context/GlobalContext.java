@@ -45,7 +45,7 @@ import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.ConcurrentResourcePool;
 import com.artofarc.util.XMLProcessorFactory;
 
@@ -288,7 +288,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			// Ignore
 		}
 		// Close HikariDataSource from DataSourceArtifact
-		Collections.typeSelect(_propertyCache.getResources(), AutoCloseable.class).forEach(Closer::closeQuietly);
+		DataStructures.typeSelect(_propertyCache.getResources(), AutoCloseable.class).forEach(Closer::closeQuietly);
 		super.close();
 	}
 

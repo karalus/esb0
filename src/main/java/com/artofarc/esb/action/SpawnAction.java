@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2021 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,7 +30,7 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.Collections;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.ReflectionUtils;
 
@@ -57,7 +56,7 @@ public class SpawnAction extends Action {
 		if (_nextAction == null) {
 			throw new ExecutionException(this, "nextAction not set");
 		}
-		Collection<Action> executionStack = Collections.moveToNewList(context.getExecutionStack(), false);
+		Collection<Action> executionStack = DataStructures.moveToNewList(context.getExecutionStack(), false);
 		if (_usePipe) {
 			PipedOutputStream pos = new PipedOutputStream();
 			ESBMessage clone = message.clone();
@@ -113,8 +112,8 @@ public class SpawnAction extends Action {
 		context.getTimeGauge().startTimeMeasurement();
 		String workerPoolName = message.getVariable(ESBConstants.WorkerPool, _workerPool);
 		final WorkerPool workerPool = context.getGlobalContext().getWorkerPool(workerPoolName);
-		final Collection<Action> stackErrorHandler = Collections.moveToNewList(context.getStackErrorHandler(), _join);
-		final Collection<Integer> stackPos = Collections.moveToNewList(context.getStackPos(), _join);
+		final Collection<Action> stackErrorHandler = DataStructures.moveToNewList(context.getStackErrorHandler(), _join);
+		final Collection<Integer> stackPos = DataStructures.moveToNewList(context.getStackPos(), _join);
 		try {
 			return workerPool.getExecutorService().submit(new Callable<ESBMessage>() {
 		

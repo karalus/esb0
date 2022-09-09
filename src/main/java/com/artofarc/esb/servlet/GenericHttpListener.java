@@ -37,6 +37,8 @@ import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
+import com.artofarc.util.DataStructures;
+
 import static com.artofarc.esb.message.ESBConstants.*;
 
 /**
@@ -157,7 +159,7 @@ public class GenericHttpListener extends HttpServlet {
 		}
 		response.setStatus(sc);
 		response.setContentType(SOAP_1_1_CONTENT_TYPE);
-		response.getWriter().print(ESBMessage.asXMLString(e));
+		response.getWriter().print(DataStructures.asXMLString(e));
 	}
 
 	public static void sendError(HttpServletResponse response, int sc, String message) throws IOException {
