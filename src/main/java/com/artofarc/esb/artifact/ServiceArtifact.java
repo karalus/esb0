@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
+import javax.net.ssl.SSLContext;
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
@@ -197,6 +198,10 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				endpoints.add(new HttpUrl(globalContext.bindProperties(url.getValue()), url.getWeight(), url.isActive()));
 			}
 			Proxy proxy = http.getProxyUrl() != null ? globalContext.getHttpEndpointRegistry().getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl())) : Proxy.NO_PROXY;
+			SSLContext sslContext = null;
+			if (http.getKeyStore() != null && http.getKeyStorePassword() != null) {
+				sslContext = globalContext.getHttpEndpointRegistry().getSSLContext(globalContext.bindProperties(http.getKeyStore()), globalContext.bindProperties(http.getKeyStorePassword()).toCharArray());
+			}
 			HttpCheckAlive httpCheckAlive = null;
 			if (http.getCheckAliveClass() != null) {
 				java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, http.getClassLoader());
@@ -207,7 +212,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				httpCheckAlive = new HttpCheckAlive();
 			}
 			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(),
-					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy);
+					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy, sslContext);
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 			String multipartSubtype = http.getMultipartSubtype() != null ? http.getMultipartSubtype().value() : http.getMultipartRequest() != null ? "related" : null;
 			addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), multipartSubtype, http.getMultipartRequest()), location);

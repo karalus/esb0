@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
+import javax.net.ssl.SSLContext;
+
 public final class HttpEndpoint {
 
 	private final String _name;
@@ -31,8 +33,9 @@ public final class HttpEndpoint {
 	private final HttpCheckAlive _checkAlive;
 	private final long _modificationTime;
 	private final Proxy _proxy;
+	private final SSLContext _sslContext;
 
-	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectionTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy) {
+	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectionTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext) {
 		if (name != null) {
 			_name = name;
 		} else {
@@ -51,6 +54,14 @@ public final class HttpEndpoint {
 		_checkAlive = checkAlive;
 		_modificationTime = modificationTime;
 		_proxy = proxy;
+		if (sslContext != null) {
+			for (HttpUrl httpUrl : endpoints) {
+				if (!"https".equals(httpUrl.getUrl().getProtocol())) {
+					throw new IllegalArgumentException("All endpoints must use https protocol in " + _name);
+				}
+			}
+		}
+		_sslContext = sslContext;
 	}
 
 	public String getName() {
@@ -89,6 +100,10 @@ public final class HttpEndpoint {
 		return _proxy;
 	}
 
+	public SSLContext getSSLContext() {
+		return _sslContext;
+	}
+
 	@Override
 	public int hashCode() {
 		return _name.hashCode();
@@ -114,7 +129,7 @@ public final class HttpEndpoint {
 
 	public boolean hasSameConfig(HttpEndpoint other) {
 		return _endpoints.equals(other._endpoints) && _connectionTimeout == other._connectionTimeout && _retries == other._retries && Objects.equals(_checkAliveInterval, other._checkAliveInterval)
-			&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy) && Objects.equals(_checkAlive, other._checkAlive);
+			&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy) && Objects.equals(_sslContext, other._sslContext) && Objects.equals(_checkAlive, other._checkAlive);
 	}
 
 }

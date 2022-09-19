@@ -18,6 +18,8 @@ package com.artofarc.esb.http;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 
+import javax.net.ssl.HttpsURLConnection;
+
 public class HttpCheckAlive {
 
 	protected Integer _retryAfter; 
@@ -29,9 +31,12 @@ public class HttpCheckAlive {
 
 	public HttpURLConnection connect(HttpEndpoint httpEndpoint, int pos) throws IOException {
 		HttpURLConnection conn = (HttpURLConnection) httpEndpoint.getHttpUrls().get(pos).getUrl().openConnection(httpEndpoint.getProxy());
+		if (httpEndpoint.getSSLContext() != null) {
+			((HttpsURLConnection) conn).setSSLSocketFactory(httpEndpoint.getSSLContext().getSocketFactory());
+		}
 		conn.setConnectTimeout(httpEndpoint.getConnectionTimeout());
 		// SSL Handshake got stuck
-		conn.setReadTimeout(10000);
+		conn.setReadTimeout(httpEndpoint.getConnectionTimeout());
 		conn.setRequestMethod("HEAD");
 		return conn;
 	}

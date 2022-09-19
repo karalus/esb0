@@ -71,6 +71,8 @@
 					<attribute name="join" type="boolean" default="true" />
 					<attribute name="name" type="tns:string1" />
 					<attribute name="proxyUrl" type="tns:string1" />
+					<attribute name="keyStore" type="tns:string1" />
+					<attribute name="keyStorePassword" type="tns:string1" />
 				</extension>
 			</complexContent>
 		</complexType>

@@ -17,7 +17,6 @@ package com.artofarc.esb;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -63,8 +62,7 @@ public abstract class AbstractESBTest {
 
 	protected final void _createContext() {
 		if (context == null) {
-			GlobalContext globalContext = new GlobalContext(getClass().getClassLoader(), null, new Properties());
-			context = new Context(globalContext.getDefaultWorkerPool().getPoolContext());
+			context = new Context(new GlobalContext(getClass().getClassLoader(), null, new Properties()).getDefaultWorkerPool().getPoolContext());
 		}
 	}
 
@@ -116,8 +114,8 @@ public abstract class AbstractESBTest {
 		return IOUtils.readFile(new File(fileName));
 	}
 
-	protected static HttpOutboundAction createHttpOutboundAction(String url) throws MalformedURLException {
-		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY), 60000, null, null, null);
+	protected static HttpOutboundAction createHttpOutboundAction(String url) throws Exception {
+		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
 	}
 
 	protected static AssignAction createAssignAction(String varName, String expression, String... bindNames) {

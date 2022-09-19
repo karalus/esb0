@@ -35,6 +35,7 @@ import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
+import javax.net.ssl.HttpsURLConnection;
 
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.util.IOUtils;
@@ -226,6 +227,9 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	private HttpURLConnection connectTo(HttpUrl httpUrl, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, Long contentLength) throws IOException {
 		URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection(_httpEndpoint.getProxy());
+		if (_httpEndpoint.getSSLContext() != null) {
+			((HttpsURLConnection) conn).setSSLSocketFactory(_httpEndpoint.getSSLContext().getSocketFactory());
+		}
 		conn.setConnectTimeout(_httpEndpoint.getConnectionTimeout());
 		conn.setReadTimeout(timeout);
 		// For "PATCH" refer to https://stackoverflow.com/questions/25163131/httpurlconnection-invalid-http-method-patch

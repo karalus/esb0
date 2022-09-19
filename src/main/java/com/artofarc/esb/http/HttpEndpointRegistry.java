@@ -15,10 +15,17 @@
  */
 package com.artofarc.esb.http;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.Authenticator;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +36,10 @@ public final class HttpEndpointRegistry {
 
 	protected final static Logger logger = LoggerFactory.getLogger(HttpEndpointRegistry.class);
 
-	private final Map<HttpEndpoint, HttpUrlSelector> _map = new HashMap<>(128);
+	private final Map<HttpEndpoint, HttpUrlSelector> _map = new HashMap<>(256);
 	private final Registry _registry;
 	private final ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator();
+	private final Map<String, SSLContext> _keyStores = new HashMap<>();
 
 	public HttpEndpointRegistry(Registry registry) {
 		_registry = registry;
@@ -44,6 +52,22 @@ public final class HttpEndpointRegistry {
 
 	public ProxyAuthenticator getProxyAuthenticator() {
 		return proxyAuthenticator;
+	}
+
+	public synchronized SSLContext getSSLContext(String keyStore, char[] keyStorePassword) throws GeneralSecurityException, IOException {
+		SSLContext sslContext = _keyStores.get(keyStore);
+		if (sslContext == null) {
+			KeyStore ks = KeyStore.getInstance("PKCS12");
+			try (FileInputStream fis = new FileInputStream(keyStore)) {
+				ks.load(fis, keyStorePassword);
+			}
+			KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+			keyFactory.init(ks, keyStorePassword);
+			sslContext = SSLContext.getInstance("TLS");
+			sslContext.init(keyFactory.getKeyManagers(), null, null);
+			_keyStores.put(keyStore, sslContext);
+		}
+		return sslContext;
 	}
 
 	public synchronized HttpEndpoint validate(HttpEndpoint httpEndpoint) {
