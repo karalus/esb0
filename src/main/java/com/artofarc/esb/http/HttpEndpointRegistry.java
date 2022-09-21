@@ -17,12 +17,19 @@ package com.artofarc.esb.http;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.Authenticator;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.HttpCookie;
+import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -32,18 +39,69 @@ import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.Registry;
 
-public final class HttpEndpointRegistry {
+public final class HttpEndpointRegistry implements CookiePolicy {
 
 	protected final static Logger logger = LoggerFactory.getLogger(HttpEndpointRegistry.class);
 
+	private final static CookiePolicy defaultCookiePolicy;
+
+	static {
+		String cookiePolicy = System.getProperty("esb0.http.defaultCookiePolicy");
+		if (cookiePolicy != null) {
+			try {
+				Field field = CookiePolicy.class.getField(cookiePolicy);
+				defaultCookiePolicy = (CookiePolicy) field.get(null);
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			defaultCookiePolicy = null;
+		}
+	}
+
 	private final Map<HttpEndpoint, HttpUrlSelector> _map = new HashMap<>(256);
 	private final Registry _registry;
-	private final ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator();
+	private final ProxyAuthenticator _proxyAuthenticator = new ProxyAuthenticator();
 	private final Map<String, SSLContext> _keyStores = new HashMap<>();
+	private final CookieManager _cookieManager;
+	private final Map<URI, CookiePolicy> _policies;
 
 	public HttpEndpointRegistry(Registry registry) {
 		_registry = registry;
-		Authenticator.setDefault(proxyAuthenticator);
+		Authenticator.setDefault(_proxyAuthenticator);
+		CookieHandler cookieHandler = CookieHandler.getDefault();
+		if (defaultCookiePolicy != null) {
+			if (cookieHandler != null) {
+				logger.warn("System-wide CookieHandler already set");
+			}
+			CookieHandler.setDefault(_cookieManager = new CookieManager(null, this));
+			_policies = new ConcurrentHashMap<>();
+		} else if (cookieHandler instanceof CookieManager){
+			_cookieManager = (CookieManager) cookieHandler;
+			_policies = null;
+		} else {
+			_cookieManager = null;
+			_policies = null;
+		}
+	}
+
+	@Override
+	public boolean shouldAccept(URI uri, HttpCookie cookie) {
+		return _policies.getOrDefault(uri, defaultCookiePolicy).shouldAccept(uri, cookie);
+	}
+
+	public void setCookiePolicy(HttpUrl httpUrl, CookiePolicy cookiePolicy) throws Exception {
+		if (_policies != null) {
+			URI uri = httpUrl.getURI();
+			CookiePolicy oldPolicy = cookiePolicy != null ? _policies.put(uri, cookiePolicy) : _policies.remove(uri);
+			if (oldPolicy != null && oldPolicy != cookiePolicy) {
+				for (HttpCookie httpCookie : _cookieManager.getCookieStore().get(uri)) {
+					if (cookiePolicy == null || !cookiePolicy.shouldAccept(uri, httpCookie)) {
+						_cookieManager.getCookieStore().remove(uri, httpCookie);
+					}
+				}
+			}
+		}
 	}
 
 	public Set<Map.Entry<HttpEndpoint, HttpUrlSelector>> getHttpEndpoints() {
@@ -51,7 +109,11 @@ public final class HttpEndpointRegistry {
 	}
 
 	public ProxyAuthenticator getProxyAuthenticator() {
-		return proxyAuthenticator;
+		return _proxyAuthenticator;
+	}
+
+	public CookieManager getCookieManager() {
+		return _cookieManager;
 	}
 
 	public synchronized SSLContext getSSLContext(String keyStore, char[] keyStorePassword) throws GeneralSecurityException, IOException {

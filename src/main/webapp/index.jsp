@@ -263,6 +263,22 @@ input[type="submit"][value="false"] {
 </table>
 			<%
 			break;
+		case "Cookies":
+			%>
+<br>HttpEndpoints:
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Domain</b></td><td><b>Path</b></td><td><b>Name</b></td><td><b>Value</b></td><td><b>HTTP only</b></td><td><b>Max age</b></td></tr> 
+<%
+		if (globalContext.getHttpEndpointRegistry().getCookieManager() != null) {
+			for (java.net.HttpCookie httpCookie : globalContext.getHttpEndpointRegistry().getCookieManager().getCookieStore().getCookies()) {
+				%>
+				<tr><td><%=httpCookie.getDomain()%></td><td><%=httpCookie.getPath()%></td><td><%=httpCookie.getName()%></td><td><%=httpCookie.getValue()%></td><td><%=httpCookie.isHttpOnly()%></td><td><%=httpCookie.getMaxAge()%></td></tr>
+				<%
+			}
+		}
+%>
+</table>
+			<%
+			break;
 		default:
 			%>
 <table border="1" style="width:960" class="main">
@@ -270,25 +286,21 @@ input[type="submit"][value="false"] {
 		<td><a href="<%=request.getContextPath()%>/admin?HttpServices">HttpServices</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?MappedHttpServices">HttpServices with path mapping</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?JMSServices">JMSServices</a></td>
-		<td></td>
 	</tr>
 	<tr bgcolor="#EEEEEE">
 		<td><a href="<%=request.getContextPath()%>/admin?TimerServices">TimerServices</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?FileWatchEventConsumer">FileWatchEventConsumer</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?KafkaConsumerServices">KafkaConsumerServices</a></td>
-		<td></td>
 	</tr>
 	<tr bgcolor="#EEEEEE">
 		<td><a href="<%=request.getContextPath()%>/admin?InternalServices">InternalServices</a></td>
-		<td></td>
-		<td></td>
-		<td></td>
+		<td><a href="<%=request.getContextPath()%>/admin?WorkerPools">WorkerPools</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?DataSources">DataSources</a></td>
 	</tr>
 	<tr bgcolor="#EEEEEE">
-		<td><a href="<%=request.getContextPath()%>/admin?WorkerPools">WorkerPools</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?HttpEndpoints">HttpEndpoints</a></td>
-		<td><a href="<%=request.getContextPath()%>/admin?DataSources">DataSources</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?Caches">Caches</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?Cookies">Cookies</a></td>
 	</tr>
 </table>
 <br>

@@ -17,6 +17,7 @@ package com.artofarc.esb.http;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.CookieManager;
 import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
 import java.net.URL;
@@ -26,6 +27,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import javax.management.AttributeChangeNotification;
 import javax.management.MBeanNotificationInfo;
@@ -293,6 +295,15 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 
 	public void evict() {
 		_workerPool.getPoolContext().getGlobalContext().getHttpEndpointRegistry().evictHttpUrlSelector(_httpEndpoint);
+	}
+
+	public String getCookies() throws Exception {
+		CookieManager cookieManager = _workerPool.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getCookieManager();
+		if (cookieManager != null) {
+			HttpUrl httpUrl = _httpEndpoint.getHttpUrls().get(0);
+			return cookieManager.getCookieStore().get(httpUrl.getURI()).stream().map(c -> c.toString()).collect(Collectors.joining(", "));
+		}
+		return null;
 	}
 
 }

@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.net.CookiePolicy;
 import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -195,7 +196,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			Http http = (Http) actionElement.getValue();
 			List<HttpUrl> endpoints = new ArrayList<>();
 			for (Http.Url url : http.getUrl()) {
-				endpoints.add(new HttpUrl(globalContext.bindProperties(url.getValue()), url.getWeight(), url.isActive()));
+				HttpUrl httpUrl = new HttpUrl(globalContext.bindProperties(url.getValue()), url.getWeight(), url.isActive());
+				endpoints.add(httpUrl);
+				globalContext.getHttpEndpointRegistry().setCookiePolicy(httpUrl, getCookiePolicy(http));
 			}
 			Proxy proxy = http.getProxyUrl() != null ? globalContext.getHttpEndpointRegistry().getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl())) : Proxy.NO_PROXY;
 			SSLContext sslContext = null;
@@ -588,6 +591,20 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 		}
 		return params;
+	}
+
+	private static CookiePolicy getCookiePolicy(Http http) {
+		if (http.getCookiePolicy() != null) {
+			switch (http.getCookiePolicy()) {
+			case ACCEPT_ALL:
+				return CookiePolicy.ACCEPT_ALL;
+			case ACCEPT_NONE:
+				return CookiePolicy.ACCEPT_NONE;
+			case ACCEPT_ORIGINAL_SERVER:
+				return CookiePolicy.ACCEPT_ORIGINAL_SERVER;
+			}
+		}
+		return null;
 	}
 
 }

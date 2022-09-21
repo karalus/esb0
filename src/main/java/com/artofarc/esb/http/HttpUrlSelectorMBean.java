@@ -34,4 +34,6 @@ public interface HttpUrlSelectorMBean {
 
 	void evict();
 
+	String getCookies() throws Exception;
+
 }

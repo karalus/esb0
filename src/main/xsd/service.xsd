@@ -73,6 +73,7 @@
 					<attribute name="proxyUrl" type="tns:string1" />
 					<attribute name="keyStore" type="tns:string1" />
 					<attribute name="keyStorePassword" type="tns:string1" />
+					<attribute name="cookiePolicy" type="tns:CookiePolicy" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -694,6 +695,13 @@
 			<enumeration value="timer" />
 			<enumeration value="file" />
 			<enumeration value="kafka" />
+		</restriction>
+	</simpleType>
+	<simpleType name="CookiePolicy">
+		<restriction base="string">
+			<enumeration value="acceptAll" />
+			<enumeration value="acceptNone" />
+			<enumeration value="acceptOriginalServer" />
 		</restriction>
 	</simpleType>
 	<element name="actionPipeline">

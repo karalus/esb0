@@ -16,6 +16,8 @@
  */
 package com.artofarc.esb.http;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 public final class HttpUrl {
@@ -74,7 +76,12 @@ public final class HttpUrl {
 
 	@Override
 	public String toString() {
-		return _url.getProtocol() + "://" + _host + ':' + _port;
+		String s = _url.getProtocol() + "://" + _host;
+		return _port == _url.getDefaultPort() ? s : s + ':' + _port;
+	}
+
+	public URI getURI() throws URISyntaxException {
+		return _url.toURI();
 	}
 
 }
