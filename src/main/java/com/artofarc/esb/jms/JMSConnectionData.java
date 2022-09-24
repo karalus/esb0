@@ -28,12 +28,10 @@ public final class JMSConnectionData {
 	private static final ObjectPool<JMSConnectionData> POOL = new ObjectPool<>(new java.util.HashMap<>());
 
 	private final String _jndiConnectionFactory, _userName, _password;
-	private ConnectionFactory _connectionFactory;
 
 	@Deprecated
 	public JMSConnectionData(GlobalContext globalContext, String jndiConnectionFactory, String userName, String password) throws NamingException {
 		this(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password));
-		_connectionFactory = globalContext.lookup(jndiConnectionFactory);
 	}
 
 	private JMSConnectionData(String jndiConnectionFactory, String userName, String password) {
@@ -43,13 +41,7 @@ public final class JMSConnectionData {
 	}
 
 	public static JMSConnectionData create(GlobalContext globalContext, String jndiConnectionFactory, String userName, String password) throws NamingException {
-		synchronized (POOL) {
-			JMSConnectionData instance = POOL.intern(new JMSConnectionData(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password)));
-			if (instance._connectionFactory == null) {
-				instance._connectionFactory = globalContext.lookup(jndiConnectionFactory);
-			}
-			return instance;
-		}
+		return POOL.intern(new JMSConnectionData(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password)));
 	}
 
 	@Override
@@ -85,8 +77,15 @@ public final class JMSConnectionData {
 		return _userName != null ? _userName + '@' + _jndiConnectionFactory : _jndiConnectionFactory;
 	}
 
-	Connection createConnection() throws JMSException {
-		return _userName != null ? _connectionFactory.createConnection(_userName, _password) : _connectionFactory.createConnection();
+	Connection createConnection(GlobalContext globalContext, GlobalContext.PropertyChangeListener listener) throws JMSException {
+		try {
+			ConnectionFactory connectionFactory = (ConnectionFactory) globalContext.getProperty(_jndiConnectionFactory);
+			Connection connection = _userName != null ? connectionFactory.createConnection(_userName, _password) : connectionFactory.createConnection();
+			globalContext.addPropertyChangeListener(_jndiConnectionFactory, listener);
+			return connection;
+		} catch (NamingException e) {
+			throw new JMSException(e.getMessage());
+		}
 	}
 
 }

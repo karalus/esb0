@@ -78,4 +78,8 @@ public final class StringBuilderWriter extends java.io.Writer {
 		builder.setLength(0);
 	}
 
+	public StringBuilder getBuilder() {
+		return builder;
+	}
+
 }

@@ -161,6 +161,9 @@ public abstract class FileSystem {
 		} else if (artifact instanceof WorkerPoolArtifact) {
 			artifact.validate(globalContext);
 			changeSet.getWorkerPoolArtifacts().add((WorkerPoolArtifact) artifact);
+		} else if (artifact instanceof JNDIObjectFactoryArtifact) {
+			artifact.validate(globalContext);
+			changeSet.getJNDIObjectFactoryArtifacts().add((JNDIObjectFactoryArtifact) artifact);
 		} else if (artifact instanceof DataSourceArtifact) {
 			artifact.validate(globalContext);
 			changeSet.getDataSourceArtifacts().add((DataSourceArtifact) artifact);
@@ -195,6 +198,8 @@ public abstract class FileSystem {
 			return new XSLTArtifact(this, parent, name);
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(this, parent, name);
+		case JNDIObjectFactoryArtifact.FILE_EXTENSION:
+			return new JNDIObjectFactoryArtifact(this, parent, name);
 		case DataSourceArtifact.FILE_EXTENSION:
 			return new DataSourceArtifact(this, parent, name);
 		case ClassLoaderArtifact.FILE_EXTENSION:
@@ -298,6 +303,7 @@ public abstract class FileSystem {
 	public final class ChangeSet {
 		private final List<Future<ServiceArtifact>> futures = new ArrayList<>();
 		private final List<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
+		private final List<JNDIObjectFactoryArtifact> jndiObjectFactoryArtifacts = new ArrayList<>();
 		private final List<DataSourceArtifact> dataSourceArtifacts = new ArrayList<>();
 		private final List<Artifact> deletedArtifacts = new ArrayList<>();
 
@@ -334,6 +340,10 @@ public abstract class FileSystem {
 
 		public List<WorkerPoolArtifact> getWorkerPoolArtifacts() {
 			return workerPoolArtifacts;
+		}
+
+		public List<JNDIObjectFactoryArtifact> getJNDIObjectFactoryArtifacts() {
+			return jndiObjectFactoryArtifacts;
 		}
 
 		public List<DataSourceArtifact> getDataSourceArtifacts() {

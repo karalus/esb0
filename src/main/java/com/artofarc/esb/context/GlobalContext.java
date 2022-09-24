@@ -17,6 +17,11 @@ package com.artofarc.esb.context;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -45,8 +50,8 @@ import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
-import com.artofarc.util.DataStructures;
 import com.artofarc.util.ConcurrentResourcePool;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.XMLProcessorFactory;
 
 public final class GlobalContext extends Registry implements Runnable, com.artofarc.esb.mbean.GlobalContextMXBean {
@@ -60,6 +65,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 	private final ClassLoader _classLoader;
 	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache;
+	private final Map<String, List<WeakReference<PropertyChangeListener>>> _propertyChangeListeners = new HashMap<>();
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
 	private final XMLProcessorFactory _xmlProcessorFactory;
@@ -297,11 +303,15 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	}
 
 	public Object putProperty(String key, Object object) {
-		return _propertyCache.putResource(key, object);
+		Object old = _propertyCache.putResource(key, object);
+		notifyPropertyChangeListeners(key, old, object);
+		return old;
 	}
 
 	public Object removeProperty(String key) {
-		return _propertyCache.removeResource(key);
+		Object old = _propertyCache.removeResource(key);
+		notifyPropertyChangeListeners(key, old, null);
+		return old;
 	}
 
 	public void invalidatePropertyCache() throws Exception {
@@ -343,6 +353,31 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			pos = j + 1;
 		}
 		return builder.toString();
+	}
+
+	public interface PropertyChangeListener {
+		void propertyChange(String key, Object oldValue, Object newValue);
+	}
+
+	public synchronized void addPropertyChangeListener(String key, PropertyChangeListener listener) {
+		DataStructures.putInCollection(_propertyChangeListeners, key, new WeakReference<PropertyChangeListener>(listener), ArrayList::new, l -> l.get() == listener);
+	}
+
+	private synchronized void notifyPropertyChangeListeners(String key, Object oldValue, Object newValue) {
+		List<WeakReference<PropertyChangeListener>> listeners = _propertyChangeListeners.get(key);
+		if (listeners != null) {
+			for (Iterator<WeakReference<PropertyChangeListener>> iter = listeners.iterator(); iter.hasNext();) {
+				PropertyChangeListener listener = iter.next().get();
+				if (listener != null) {
+					listener.propertyChange(key, oldValue, newValue);
+				} else {
+					iter.remove();
+				}
+			}
+			if (listeners.isEmpty()) {
+				_propertyChangeListeners.remove(key);
+			}
+		}
 	}
 
 }

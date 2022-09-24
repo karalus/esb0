@@ -543,16 +543,6 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return null;
 	}
 
-	private java.lang.ClassLoader resolveClassLoader(GlobalContext globalContext, String classLoaderURI) throws Exception {
-		if (classLoaderURI != null) {
-			ClassLoaderArtifact classLoaderArtifact = loadArtifact(classLoaderURI + '.' + ClassLoaderArtifact.FILE_EXTENSION);
-			addReference(classLoaderArtifact);
-			classLoaderArtifact.validate(globalContext);
-			return classLoaderArtifact.getFileSystemClassLoader();
-		}
-		return globalContext.getClassLoader();
-	}
-
 	private XSSchemaSet resolveSchemaSet(GlobalContext globalContext, String schemaURI) throws Exception {
 		if (schemaURI != null) {
 			SchemaArtifact schemaArtifact = loadArtifact(schemaURI);

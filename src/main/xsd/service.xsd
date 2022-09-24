@@ -805,12 +805,26 @@
 			<attribute name="allowCoreThreadTimeOut" type="boolean" default="false" />
 		</complexType>
 	</element>
+	<!-- deprecated -->
 	<element name="dataSource">
 		<complexType>
 			<sequence>
 				<element ref="tns:property" maxOccurs="unbounded"/>
 			</sequence>
 			<attribute name="name" type="tns:string1" use="required" />
+		</complexType>
+	</element>
+	<element name="jndiObjectFactory">
+		<complexType>
+			<sequence>
+				<element ref="tns:property" maxOccurs="unbounded"/>
+			</sequence>
+			<attribute name="name" type="tns:string1" use="required" />
+			<attribute name="classLoader" type="anyURI" />
+			<attribute name="factory" type="tns:identifier" use="required" />
+			<attribute name="type" type="tns:identifier" use="required" />
+			<attribute name="deploymentSupportClass" type="tns:identifier" />
+			<attribute name="adminPostAction" type="tns:string1" />
 		</complexType>
 	</element>
 	<element name="classLoader">

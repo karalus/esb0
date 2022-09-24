@@ -77,6 +77,13 @@ public final class DeployHelper {
 			// close later
 			closer.add(oldWorkerPool);
 		});
+		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), JNDIObjectFactoryArtifact.class).forEach(jndiObjectFactoryArtifact -> {
+			Object object = globalContext.removeProperty(jndiObjectFactoryArtifact.getJndiName());
+			if (object instanceof AutoCloseable) {
+				// close later
+				closer.add((AutoCloseable) object);
+			}
+		});
 		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), DataSourceArtifact.class).forEach(dataSourceArtifact -> {
 			Object dataSource = globalContext.removeProperty(dataSourceArtifact.getDataSourceName());
 			// close later
@@ -100,18 +107,39 @@ public final class DeployHelper {
 						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
 			}
 		}
-		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
-			Object oldDataSource = null;
+		for (JNDIObjectFactoryArtifact jndiObjectFactoryArtifact : changeSet.getJNDIObjectFactoryArtifacts()) {
 			try {
-				oldDataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
-			} catch (javax.naming.NamingException e) {
-				// ignore
+				Object newObject = jndiObjectFactoryArtifact.createObject();
+				try {
+					Object oldObject = globalContext.getProperty(jndiObjectFactoryArtifact.getJndiName());
+					if (jndiObjectFactoryArtifact.tryUpdate(oldObject, newObject)) {
+						if (newObject instanceof AutoCloseable) {
+							Closer.closeQuietly((AutoCloseable) newObject);
+						}
+						continue;
+					}
+					if (oldObject instanceof AutoCloseable) {
+						closer.add((AutoCloseable) oldObject);
+					}
+				} catch (javax.naming.NamingException e) {
+					// no oldObject
+				}
+				globalContext.putProperty(jndiObjectFactoryArtifact.getJndiName(), newObject);
+			} catch (Exception e) {
+				throw new ValidationException(jndiObjectFactoryArtifact, e);
 			}
-			if (DataSourceArtifact.isDataSource(oldDataSource)) {
+		}
+		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
+			try {
+				Object oldDataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
 				if (dataSourceArtifact.tryUpdate(oldDataSource)) {
 					continue;
 				}
-				closer.add((AutoCloseable) oldDataSource);
+				if (oldDataSource instanceof AutoCloseable) {
+					closer.add((AutoCloseable) oldDataSource);
+				}
+			} catch (javax.naming.NamingException e) {
+				// ignore
 			}
 			globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
 		}

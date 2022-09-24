@@ -93,6 +93,16 @@ public abstract class AbstractServiceArtifact extends Artifact {
 		return properties;
 	}
 
+	protected final ClassLoader resolveClassLoader(GlobalContext globalContext, String classLoaderURI) throws Exception {
+		if (classLoaderURI != null) {
+			ClassLoaderArtifact classLoaderArtifact = loadArtifact(classLoaderURI + '.' + ClassLoaderArtifact.FILE_EXTENSION);
+			addReference(classLoaderArtifact);
+			classLoaderArtifact.validate(globalContext);
+			return classLoaderArtifact.getFileSystemClassLoader();
+		}
+		return globalContext.getClassLoader();
+	}
+
 	protected final void migrate(GlobalContext globalContext) throws TransformerException {
 		if (migrationXSLT != null) {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();

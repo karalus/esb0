@@ -50,10 +50,10 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 		// double checked locking
 		Templates templates = _templates;
 		if (templates == null) {
-			synchronized(this) {
+			synchronized (this) {
 				templates = _templates;
 				if (templates == null) {
-					_templates = templates = globalContext.getXMLProcessorFactory().newTemplates(new StreamSource(getContentAsStream(), getURI()));
+					templates = _templates = globalContext.getXMLProcessorFactory().newTemplates(new StreamSource(getContentAsStream(), getURI()));
 					clearContent();
 				}
 			}

@@ -61,7 +61,7 @@ public abstract class Artifact {
 		}
 	}
 
-	public final boolean isDifferent(byte[] content, long crc) {
+	protected final boolean isDifferent(byte[] content, long crc) {
 		if (_content != null) {
 			return !Arrays.equals(_content, content);
 		}
@@ -111,7 +111,7 @@ public abstract class Artifact {
 	}
 
 	/**
-	 * Override when content should be kept in memory.
+	 * Override when content should be kept in memory or intermediate objects should be disposed.
 	 */
 	protected void clearContent() {
 		// don't clear artificial artifacts like "Admin.xservice"

@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import javax.json.JsonArrayBuilder;
-import javax.servlet.http.HttpServletResponse;
+import static javax.servlet.http.HttpServletResponse.*;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.*;
@@ -33,6 +33,7 @@ import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.DataStructures;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.JsonFactoryHelper;
+import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.URLUtils;
 
 public class AdminAction extends Action {
@@ -76,8 +77,7 @@ public class AdminAction extends Action {
 			deleteArtifact(context.getGlobalContext(), message, resource);
 			break;
 		default:
-			message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-			throw new ExecutionException(this, verb);
+			throwHttpError(message, SC_METHOD_NOT_ALLOWED, new ExecutionException(this, verb));
 		}
 	}
 
@@ -119,13 +119,11 @@ public class AdminAction extends Action {
 					message.putHeader(HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
 					message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
 				} else {
-					message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
-					throw new ExecutionException(this, headerAccept);
+					throwHttpError(message, SC_UNSUPPORTED_MEDIA_TYPE, new ExecutionException(this, headerAccept));
 				}
 			}
 		} else {
-			message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NOT_FOUND);
-			throw new ExecutionException(this, resource);
+			throwHttpError(message, SC_NOT_FOUND, new ExecutionException(this, resource));
 		}
 	}
 
@@ -138,11 +136,10 @@ public class AdminAction extends Action {
 				globalContext.setFileSystem(newFileSystem);
 				newFileSystem.writeBackChanges();
 				logger.info("Artifact " +  resource + " deleted by " + message.getVariable(ESBConstants.RemoteUser));
-				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
+				message.putVariable(ESBConstants.HttpResponseCode, SC_NO_CONTENT);
 				message.reset(BodyType.INVALID, null);
 			} catch (ValidationException e) {
-				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_BAD_REQUEST);
-				throw e;
+				throwHttpError(message, SC_BAD_REQUEST, e);
 			} finally {
 				globalContext.unlockFileSystem();
 			}
@@ -164,12 +161,10 @@ public class AdminAction extends Action {
 						deployChangeset(globalContext, changeSet, message);
 					}
 				} catch (IOException e) {
-					message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_BAD_REQUEST);
-					throw e;
+					throwHttpError(message, SC_BAD_REQUEST, e);
 				}
 			} else {
-				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
-				throw new ExecutionException(this, contentType);
+				throwHttpError(message, SC_UNSUPPORTED_MEDIA_TYPE, new ExecutionException(this, contentType));
 			}
 		} else {
 			String enable = message.getHeader("enable");
@@ -181,16 +176,27 @@ public class AdminAction extends Action {
 					consumerPort.enable(enable != null ? Boolean.parseBoolean(enable) : !consumerPort.isEnabled());
 				} else {
 					Artifact artifact = globalContext.getFileSystem().getArtifact(resource);
-					if (artifact instanceof DataSourceArtifact) {
+					if (artifact instanceof JNDIObjectFactoryArtifact) {
+						JNDIObjectFactoryArtifact jndiObjectFactoryArtifact = (JNDIObjectFactoryArtifact) artifact;
+						if (jndiObjectFactoryArtifact.getAdminPostAction() != null) {
+							Object object = globalContext.getProperty(jndiObjectFactoryArtifact.getJndiName());
+							try {
+								ReflectionUtils.eval(object, jndiObjectFactoryArtifact.getAdminPostAction());
+							} catch (Exception e) {
+								throwHttpError(message, SC_INTERNAL_SERVER_ERROR, new ExecutionException(this, "Could not eval " + jndiObjectFactoryArtifact.getAdminPostAction(), e));
+							}
+						} else {
+							throwHttpError(message, SC_METHOD_NOT_ALLOWED, new ExecutionException(this, resource));
+						}
+					} else if (artifact instanceof DataSourceArtifact) {
 						DataSourceArtifact dataSourceArtifact = (DataSourceArtifact) artifact;
 						Object dataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
-						DataSourceArtifact.softEvictConnections(dataSource);
+						ReflectionUtils.eval(dataSource, "hikariPoolMXBean.softEvictConnections");
 					} else {
-						message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NOT_FOUND);
-						throw new ExecutionException(this, resource);
+						throwHttpError(message, SC_NOT_FOUND, new ExecutionException(this, resource));
 					}
 				}
-				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
+				message.putVariable(ESBConstants.HttpResponseCode, SC_NO_CONTENT);
 				message.reset(BodyType.INVALID, null);
 			} else {
 				String filename = getFilename(message.getHeader(HTTP_HEADER_CONTENT_DISPOSITION));
@@ -213,19 +219,22 @@ public class AdminAction extends Action {
 				logger.info("Configuration changed by: " + resolve(message, ESBConstants.RemoteUser, false));
 				logger.info("Number of created/updated services: " + serviceCount);
 				logger.info("Number of deleted services: " + DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).count());
-				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_NO_CONTENT);
+				message.putVariable(ESBConstants.HttpResponseCode, SC_NO_CONTENT);
 				message.reset(BodyType.INVALID, null);
 			} catch (ValidationException | RuntimeException e) {
-				message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_BAD_REQUEST);
-				throw e;
+				throwHttpError(message, SC_BAD_REQUEST, e);
 			} finally {
 				globalContext.unlockFileSystem();
 			}
 		} else {
-			message.putVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_GATEWAY_TIMEOUT);
-			throw new ExecutionException(this, "Another update is in progress");
+			throwHttpError(message, SC_GATEWAY_TIMEOUT, new ExecutionException(this, "Another update is in progress"));
 		}
 		
+	}
+
+	private static void throwHttpError(ESBMessage message, int statusCode, Exception e) throws Exception {
+		message.putVariable(ESBConstants.HttpResponseCode, statusCode);
+		throw e;
 	}
 
 }

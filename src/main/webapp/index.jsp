@@ -9,6 +9,7 @@
 <%@page import="com.artofarc.esb.http.HttpUrlSelector"%>
 <%@page import="com.artofarc.esb.resource.LRUCacheWithExpirationFactory"%>
 <%@page import="com.artofarc.esb.artifact.*"%>
+<%@page import="com.artofarc.util.ReflectionUtils"%>
 <html>
 <head>
 <style>
@@ -207,9 +208,14 @@ input[type="submit"][value="false"] {
 		for (String propertyName : globalContext.getCachedProperties()) {
 			Object object = globalContext.getProperty(propertyName);
 			if (object instanceof javax.sql.DataSource) {
-				Integer activeConnections = DataSourceArtifact.getActiveConnections(object);
+				Object activeConnections = "N/A";
+				try {
+					activeConnections = ReflectionUtils.eval(object, "hikariPoolMXBean.activeConnections");
+				} catch (Exception e) {
+					// ignore
+				}
 			   %>
-			   <tr><td><%=propertyName%></td><td><%=object.getClass().getName()%></td><td><%=activeConnections != null ? activeConnections : "N/A"%></td></tr>
+			   <tr><td><%=propertyName%></td><td><%=object.getClass().getName()%></td><td><%=activeConnections%></td></tr>
 			   <%
 			}
 		}
@@ -354,7 +360,7 @@ Upload Service-JAR:
 			   %>
 					   <tr><td>Namespace</td><td><%=((SchemaArtifact) a).getNamespace()%></td></tr>
 			   <%
-			   	} else if (a instanceof DataSourceArtifact) {
+			   	} else if (a instanceof JNDIObjectFactoryArtifact || a instanceof DataSourceArtifact) {
 			   %>
 		   			<tr><td></td><td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>" onsubmit="return confirm('Are you sure to delete \'<%=a.getURI()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td></tr>
 			   <%

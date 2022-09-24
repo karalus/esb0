@@ -386,6 +386,8 @@ public class SOAPTest extends AbstractESBTest {
 //	   org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ embeddedActiveMQ = new org.apache.activemq.artemis.core.server.embedded.EmbeddedActiveMQ();
 //	   embeddedActiveMQ.start();
 	   
+	   // java:/ConnectionFactory
+	   getGlobalContext().putProperty("ConnectionFactory", getGlobalContext().lookup("ConnectionFactory"));
 	   JMSConnectionData jmsConnectionData = JMSConnectionData.create(getGlobalContext(), "ConnectionFactory", null, null);
       JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData, "dynamicQueues/test1", null, null, null, false, false, null, 1, 1, 0L, "milliseconds", null, null, null);
       MarkAction markAction = new MarkAction();

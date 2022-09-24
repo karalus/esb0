@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public final class DataStructures {
@@ -54,6 +56,21 @@ public final class DataStructures {
 			}
 		}
 		return result;
+	}
+
+	public static <K, V, C extends Collection<V>> boolean putInCollection(Map<K, C> map, K key, V value, Supplier<C> collCon, Predicate<V> equals) {
+		C coll = map.get(key);
+		if (coll == null) {
+			coll = collCon.get();
+			map.put(key, coll);
+		} else {
+			for (V v : coll) {
+				if (equals.test(v)) {
+					return false;
+				}
+			}
+		}
+		return coll.add(value);
 	}
 
 	public static <T> List<T> moveToNewList(Collection<T> coll, boolean noop) {

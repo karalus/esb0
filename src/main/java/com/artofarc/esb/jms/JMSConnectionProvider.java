@@ -37,6 +37,7 @@ import javax.management.NotificationBroadcasterSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.esb.resource.ResourceFactory;
@@ -102,7 +103,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		}
 	}
 
-	final class JMSConnectionGuard extends NotificationBroadcasterSupport implements AutoCloseable, ExceptionListener, Runnable, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
+	final class JMSConnectionGuard extends NotificationBroadcasterSupport implements AutoCloseable, ExceptionListener, Runnable, GlobalContext.PropertyChangeListener, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
 
 		private final ReentrantLock _lock = new ReentrantLock();
 		private final Map<JMSConsumer, Boolean> _jmsConsumers = new ConcurrentHashMap<>();
@@ -129,7 +130,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		}
 
 		private Connection createConnection() throws JMSException {
-			Connection connection = _jmsConnectionData.createConnection();
+			Connection connection = _jmsConnectionData.createConnection(_poolContext.getGlobalContext(), this);
 			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Connection state changed", "connected", "boolean", false, true));
 			try {
 				if (_clientID != null) {
@@ -203,6 +204,23 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			reconnect();
 		}
 
+		@Override
+		public void propertyChange(String key, Object oldValue, Object newValue) {
+			if (_connection != null) {
+				_lock.lock();
+				try {
+					Connection connection = _connection;
+					if (connection != null) {
+						_connection = null;
+						shutdown(connection);
+						run();
+					}
+				} finally {
+					_lock.unlock();
+				}
+			}
+		}
+
 		public void reconnect() {
 			if (_connection != null) {
 				_lock.lock();
@@ -265,8 +283,10 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 				}
 				_connection.setExceptionListener(this);
 				logger.info("Reconnected " + _jmsConnectionData);
-				_future.cancel(false);
-				_future = null;
+				if (_future != null) {
+					_future.cancel(false);
+					_future = null;
+				}
 			} catch (JMSException e) {
 				logger.error("Reconnect failed for " + _jmsConnectionData, e);
 				if (_connection != null) {

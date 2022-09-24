@@ -40,26 +40,6 @@ public final class DataSourceArtifact extends AbstractServiceArtifact {
 		return _dataSourceName;
 	}
 
-	public static boolean isDataSource(Object object) {
-		return object instanceof HikariDataSource;
-	}
-
-	public static void softEvictConnections(Object object){
-		if (object instanceof HikariDataSource) {
-			HikariDataSource dataSource = (HikariDataSource) object;
-			dataSource.getHikariPoolMXBean().softEvictConnections();
-		}
-	}
-
-	public static Integer getActiveConnections(Object object){
-		// used from index.jsp also for other datasources, HikariCP maybe not in classpath
-		if (object.getClass().getName().equals("com.zaxxer.hikari.HikariDataSource")) {
-			HikariDataSource dataSource = (HikariDataSource) object;
-			return dataSource.getHikariPoolMXBean().getActiveConnections();
-		}
-		return null;
-	}
-
 	public HikariDataSource createDataSource() {
 		return new HikariDataSource(_hikariConfig);
 	}
@@ -68,7 +48,6 @@ public final class DataSourceArtifact extends AbstractServiceArtifact {
 	protected DataSourceArtifact clone(FileSystem fileSystem, Directory parent) {
 		DataSourceArtifact clone = initClone(new DataSourceArtifact(fileSystem, parent, getName()));
 		clone._dataSourceName = _dataSourceName;
-		clone._hikariConfig = _hikariConfig;
 		return clone;
 	}
 
@@ -81,27 +60,39 @@ public final class DataSourceArtifact extends AbstractServiceArtifact {
 	}
 
 	boolean tryUpdate(Object other) {
-		Object[] EMPTY_OBJECT_ARRAY = new Object[0];
-		outer: for (Method method : HikariConfig.class.getDeclaredMethods()) {
-			String name = method.getName();
-			if (Modifier.isPublic(method.getModifiers()) && (name.startsWith("get") || name.startsWith("is"))) {
-				try {
-					Object newValue = method.invoke(_hikariConfig, EMPTY_OBJECT_ARRAY);
-					if (!Objects.equals(method.invoke(other, EMPTY_OBJECT_ARRAY), newValue)) {
-						for (Method methodMX : HikariConfigMXBean.class.getMethods()) {
-							if (methodMX.getParameterCount() == 1 && methodMX.getName().endsWith(name.substring(2))) {
-								methodMX.invoke(other, newValue);
-								continue outer;
+		return new HikariDeploymentSupport().tryUpdate(other, _hikariConfig);
+	}
+
+	public static class HikariDeploymentSupport implements JNDIObjectFactoryArtifact.DeploymentSupport {
+
+		private final static Object[] EMPTY_OBJECT_ARRAY = new Object[0];
+
+		@Override
+		public boolean tryUpdate(Object oldHikariConfig, Object newHikariConfig) {
+			if (oldHikariConfig instanceof HikariDataSource) {
+				outer: for (Method method : HikariConfig.class.getDeclaredMethods()) {
+					String name = method.getName();
+					if (Modifier.isPublic(method.getModifiers()) && (name.startsWith("get") || name.startsWith("is"))) {
+						try {
+							Object newValue = method.invoke(newHikariConfig, EMPTY_OBJECT_ARRAY);
+							if (!Objects.equals(method.invoke(oldHikariConfig, EMPTY_OBJECT_ARRAY), newValue)) {
+								for (Method methodMX : HikariConfigMXBean.class.getMethods()) {
+									if (methodMX.getParameterCount() == 1 && methodMX.getName().endsWith(name.substring(2))) {
+										methodMX.invoke(oldHikariConfig, newValue);
+										continue outer;
+									}
+								}
+								return false;
 							}
+						} catch (ReflectiveOperationException e) {
+							throw new RuntimeException(e);
 						}
-						return false;
 					}
-				} catch (ReflectiveOperationException e) {
-					throw new RuntimeException(e);
 				}
+				return true;
 			}
+			return false;
 		}
-		return true;
 	}
 
 }
