@@ -79,7 +79,8 @@ public abstract class AbstractServiceArtifact extends Artifact {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected final <S> S unmarshal() throws JAXBException {
+	protected final <S> S unmarshal(GlobalContext globalContext) throws TransformerException, JAXBException {
+		migrate(globalContext);
 		Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
 		unmarshaller.setSchema(schema);
 		return (S) unmarshaller.unmarshal(getContentAsStream());
@@ -103,7 +104,7 @@ public abstract class AbstractServiceArtifact extends Artifact {
 		return globalContext.getClassLoader();
 	}
 
-	protected final void migrate(GlobalContext globalContext) throws TransformerException {
+	private void migrate(GlobalContext globalContext) throws TransformerException {
 		if (migrationXSLT != null) {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			byte[] content1 = transform(XMLProcessorFactory.newTransformer(), bos);

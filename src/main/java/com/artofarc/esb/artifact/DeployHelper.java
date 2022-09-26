@@ -109,25 +109,17 @@ public final class DeployHelper {
 		}
 		for (JNDIObjectFactoryArtifact jndiObjectFactoryArtifact : changeSet.getJNDIObjectFactoryArtifacts()) {
 			try {
-				Object newObject = jndiObjectFactoryArtifact.createObject();
-				try {
-					Object oldObject = globalContext.getProperty(jndiObjectFactoryArtifact.getJndiName());
-					if (jndiObjectFactoryArtifact.tryUpdate(oldObject, newObject)) {
-						if (newObject instanceof AutoCloseable) {
-							Closer.closeQuietly((AutoCloseable) newObject);
-						}
-						continue;
-					}
-					if (oldObject instanceof AutoCloseable) {
-						closer.add((AutoCloseable) oldObject);
-					}
-				} catch (javax.naming.NamingException e) {
-					// no oldObject
+				Object oldObject = globalContext.getProperty(jndiObjectFactoryArtifact.getJndiName());
+				if (jndiObjectFactoryArtifact.tryUpdate(oldObject)) {
+					continue;
 				}
-				globalContext.putProperty(jndiObjectFactoryArtifact.getJndiName(), newObject);
-			} catch (Exception e) {
-				throw new ValidationException(jndiObjectFactoryArtifact, e);
+				if (oldObject instanceof AutoCloseable) {
+					closer.add((AutoCloseable) oldObject);
+				}
+			} catch (javax.naming.NamingException e) {
+				// no oldObject
 			}
+			globalContext.putProperty(jndiObjectFactoryArtifact.getJndiName(), jndiObjectFactoryArtifact.createObject());
 		}
 		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
 			try {

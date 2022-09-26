@@ -28,10 +28,10 @@ public final class JNDIObjectFactoryArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "xjndi";
 
-	private String _jndiName, _adminPostAction;
+	private String _jndiName, _type, _adminPostAction;
 	private ObjectFactory _objectFactory;
-	private Reference _reference;
-	private DeploymentSupport _deploymentSupport;
+	private Factory _factory;
+	private Properties _properties;
 
 	public JNDIObjectFactoryArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -47,27 +47,23 @@ public final class JNDIObjectFactoryArtifact extends AbstractServiceArtifact {
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
-		JndiObjectFactory jndiObjectFactory = unmarshal();
-		_jndiName = jndiObjectFactory.getName();
+		JndiObjectFactory jndiObjectFactory = unmarshal(globalContext);
 		ClassLoader classLoader = resolveClassLoader(globalContext, jndiObjectFactory.getClassLoader());
-		_objectFactory = (ObjectFactory) classLoader.loadClass(jndiObjectFactory.getFactory()).newInstance();
-		Properties properties = createProperties(jndiObjectFactory.getProperty(), globalContext);
-		_reference = new Reference(jndiObjectFactory.getType());
-		for (String key : properties.stringPropertyNames()) {
-			_reference.add(new StringRefAddr(key, (String) properties.get(key)));
+		_type = jndiObjectFactory.getType();
+		if (_type != null) {
+			classLoader.loadClass(_type);
 		}
+		_properties = createProperties(jndiObjectFactory.getProperty(), globalContext);
+		if (jndiObjectFactory.getEsb0Factory() != null) {
+			_factory = (Factory) classLoader.loadClass(jndiObjectFactory.getEsb0Factory()).newInstance();
+			_factory.validate(_type, _properties);
+		} else if (jndiObjectFactory.getFactory() != null) {
+			_objectFactory = (ObjectFactory) classLoader.loadClass(jndiObjectFactory.getFactory()).newInstance();
+		} else {
+			throw new ValidationException(this, "Either objectFactory or esb0Factory must be set");
+		}
+		_jndiName = jndiObjectFactory.getName();
 		_adminPostAction = jndiObjectFactory.getAdminPostAction();
-		if (jndiObjectFactory.getDeploymentSupportClass() != null) {
-			_deploymentSupport = (DeploymentSupport) classLoader.loadClass(jndiObjectFactory.getDeploymentSupportClass()).newInstance();
-		}
-	}
-
-	@Override
-	protected void clearContent() {
-		super.clearContent();
-		_objectFactory = null;
-		_reference = null;
-		_deploymentSupport = null;
 	}
 
 	public String getJndiName() {
@@ -78,16 +74,42 @@ public final class JNDIObjectFactoryArtifact extends AbstractServiceArtifact {
 		return _adminPostAction;
 	}
 
-	public boolean tryUpdate(Object oldObject, Object newObject) {
-		return _deploymentSupport != null ? _deploymentSupport.tryUpdate(oldObject, newObject) : false;
+	public boolean tryUpdate(Object oldObject) {
+		boolean successful = false;
+		if (_factory != null && (successful = _factory.tryUpdate(oldObject))) {
+			_factory = null;
+			_type = null;
+			_properties = null;
+		}
+		return successful;
 	}
 
-	public Object createObject() throws Exception {
-		return _objectFactory.getObjectInstance(_reference, null, null, null);
+	public Object createObject() throws ValidationException {
+		Object object;
+		if (_factory != null) {
+			object = _factory.createObject();
+			_factory = null;
+		} else {
+			Reference reference = new Reference(_type);
+			for (String key : _properties.stringPropertyNames()) {
+				reference.add(new StringRefAddr(key, (String) _properties.get(key)));
+			}
+			try {
+				object = _objectFactory.getObjectInstance(reference, null, null, null);
+			} catch (Exception e) {
+				throw new ValidationException(this, e);
+			}
+			_objectFactory = null;
+		}
+		_type = null;
+		_properties = null;
+		return object;
 	}
 
-	public interface DeploymentSupport {
-		boolean tryUpdate(Object oldObject, Object newObject);
+	public interface Factory {
+		void validate(String type, Properties properties);
+		boolean tryUpdate(Object oldObject);
+		Object createObject();
 	}
 
 }

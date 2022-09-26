@@ -18,6 +18,7 @@ package com.artofarc.esb.artifact;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
+import java.util.Properties;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.service.DataSource;
@@ -30,7 +31,7 @@ public final class DataSourceArtifact extends AbstractServiceArtifact {
 	public final static String FILE_EXTENSION = "dsdef";
 
 	private String _dataSourceName;
-	private HikariConfig _hikariConfig;
+	private HikariDataSourceFactory _hikariDataSourceFactory;
 
 	public DataSourceArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -41,7 +42,7 @@ public final class DataSourceArtifact extends AbstractServiceArtifact {
 	}
 
 	public HikariDataSource createDataSource() {
-		return new HikariDataSource(_hikariConfig);
+		return _hikariDataSourceFactory.createObject();
 	}
 
 	@Override
@@ -53,32 +54,40 @@ public final class DataSourceArtifact extends AbstractServiceArtifact {
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
-		DataSource dataSource = unmarshal();
+		DataSource dataSource = unmarshal(globalContext);
 		_dataSourceName = dataSource.getName();
-		_hikariConfig = new HikariConfig(createProperties(dataSource.getProperty(), globalContext));
-		_hikariConfig.validate();
+		_hikariDataSourceFactory = new HikariDataSourceFactory();
+		_hikariDataSourceFactory.validate(null, createProperties(dataSource.getProperty(), globalContext));
 	}
 
 	boolean tryUpdate(Object other) {
-		return new HikariDeploymentSupport().tryUpdate(other, _hikariConfig);
+		return _hikariDataSourceFactory.tryUpdate(other);
 	}
 
-	public static class HikariDeploymentSupport implements JNDIObjectFactoryArtifact.DeploymentSupport {
+	public static class HikariDataSourceFactory implements JNDIObjectFactoryArtifact.Factory {
 
 		private final static Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
+		private HikariConfig _hikariConfig;
+
 		@Override
-		public boolean tryUpdate(Object oldHikariConfig, Object newHikariConfig) {
-			if (oldHikariConfig instanceof HikariDataSource) {
+		public void validate(String type, Properties properties) {
+			_hikariConfig = new HikariConfig(properties);
+			_hikariConfig.validate();
+		}
+
+		@Override
+		public boolean tryUpdate(Object oldDataSource) {
+			if (oldDataSource instanceof HikariDataSource) {
 				outer: for (Method method : HikariConfig.class.getDeclaredMethods()) {
 					String name = method.getName();
 					if (Modifier.isPublic(method.getModifiers()) && (name.startsWith("get") || name.startsWith("is"))) {
 						try {
-							Object newValue = method.invoke(newHikariConfig, EMPTY_OBJECT_ARRAY);
-							if (!Objects.equals(method.invoke(oldHikariConfig, EMPTY_OBJECT_ARRAY), newValue)) {
+							Object newValue = method.invoke(_hikariConfig, EMPTY_OBJECT_ARRAY);
+							if (!Objects.equals(method.invoke(oldDataSource, EMPTY_OBJECT_ARRAY), newValue)) {
 								for (Method methodMX : HikariConfigMXBean.class.getMethods()) {
 									if (methodMX.getParameterCount() == 1 && methodMX.getName().endsWith(name.substring(2))) {
-										methodMX.invoke(oldHikariConfig, newValue);
+										methodMX.invoke(oldDataSource, newValue);
 										continue outer;
 									}
 								}
@@ -93,6 +102,12 @@ public final class DataSourceArtifact extends AbstractServiceArtifact {
 			}
 			return false;
 		}
+
+		@Override
+		public HikariDataSource createObject() {
+			return new HikariDataSource(_hikariConfig);
+		}
+
 	}
 
 }
