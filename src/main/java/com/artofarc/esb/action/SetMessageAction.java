@@ -19,6 +19,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map.Entry;
 
 import com.artofarc.esb.context.Context;
@@ -31,13 +32,12 @@ import com.artofarc.util.StringWrapper;
 
 public class SetMessageAction extends ForwardAction {
 
-	private final boolean _clearHeaders;
 	private final ClassLoader _classLoader;
 	private final ArrayList<Assignment> _assignments = new ArrayList<>();
 	private final Assignment _body; 
+	private Collection<String> _clearHeadersExcept;
 
-	public SetMessageAction(boolean clearHeaders, ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ReflectiveOperationException {
-		_clearHeaders = clearHeaders;
+	public SetMessageAction(ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ReflectiveOperationException {
 		_classLoader = cl;
 		_body = bodyExpr != null ? new Assignment("body", false, bodyExpr, javaType, method, null) : null;
 		_pipelineStop = bodyExpr != null;
@@ -52,10 +52,14 @@ public class SetMessageAction extends ForwardAction {
 		}
 	}
 
+	public final void setClearHeadersExcept(Collection<String> clearHeadersExcept) {
+		_clearHeadersExcept = clearHeadersExcept;
+	}
+
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		if (_clearHeaders) {
-			message.clearHeaders();
+		if (_clearHeadersExcept != null) {
+			message.clearHeadersExcept(_clearHeadersExcept);
 		}
 		for (Assignment assignment : _assignments) {
 			if (assignment._needsBody) {
@@ -78,7 +82,7 @@ public class SetMessageAction extends ForwardAction {
 		if (_body != null) {
 			message.reset(null, _body.convert(eval(_body._expr.getString(), context, message)));
 			message.setSchema(null);
-			if (!_clearHeaders) {
+			if (_clearHeadersExcept == null) {
 				message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 			}
 		}

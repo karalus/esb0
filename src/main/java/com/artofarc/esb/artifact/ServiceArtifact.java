@@ -20,7 +20,9 @@ import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 
 import javax.net.ssl.SSLContext;
@@ -291,17 +293,27 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				} else {
 					bodyExpr = new StringWrapper(setMessage.getBody().getValue());
 				}
-				setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, bodyExpr, setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
+				setMessageAction = new SetMessageAction(classLoader, bodyExpr, setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
 			} else {
-				setMessageAction = new SetMessageAction(setMessage.isClearAll(), classLoader, null, null, null);
+				setMessageAction = new SetMessageAction(classLoader, null, null, null);
 			}
-			for (JAXBElement<HeaderOrVariable> jaxbElement : setMessage.getHeaderOrVariable()) {
-				HeaderOrVariable hov = jaxbElement.getValue();
+			HashSet<String> retainHeaders = new HashSet<>();
+			for (HeaderOrVariable hov : setMessage.getHeaderOrVariable()) {
+				boolean header = hov instanceof SetMessage.Header;
+				if (header && ((SetMessage.Header) hov).isRetain()) {
+					retainHeaders.add(hov.getName().toLowerCase(Locale.ROOT));
+					if (hov.getValue().isEmpty()) {
+						continue;
+					}
+				}
 				try {
-					setMessageAction.addAssignment(hov.getName(), jaxbElement.getName().getLocalPart().equals("header"), hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
+					setMessageAction.addAssignment(hov.getName(), header, hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
 				} catch (LinkageError e) {
 					throw new ValidationException(this, hov.sourceLocation().getLineNumber(), e.getCause() != null ? e.getCause() : e);
 				}
+			}
+			if (setMessage.isClearAll()) {
+				setMessageAction.setClearHeadersExcept(retainHeaders.isEmpty() ? Collections.emptySet() : retainHeaders);
 			}
 			addAction(list, setMessageAction, location);
 			break;

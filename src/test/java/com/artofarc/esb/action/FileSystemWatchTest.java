@@ -43,7 +43,7 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		File moveDir = new File(dir, "move");
 		moveDir.mkdir();
 		moveDir.deleteOnExit();
-		SetMessageAction setMessageAction = new SetMessageAction(false, getClass().getClassLoader(), new StringWrapper("${filenameOrigin}: ${tstmp}\n"), null, null);
+		SetMessageAction setMessageAction = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("${filenameOrigin}: ${tstmp}\n"), null, null);
 		setMessageAction.addAssignment("filenameOrigin", false, "${filename}", null, null, null);
 		setMessageAction.addAssignment("filename", false, "log.txt", null, null, null);
 		setMessageAction.addAssignment("tstmp", false, "${initialTimestamp}", "java.sql.Date", null, null);

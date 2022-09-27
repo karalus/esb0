@@ -134,6 +134,14 @@ public final class ESBMessage implements Cloneable {
 		_headers.clear();
 	}
 
+	public void clearHeadersExcept(Collection<String> normalizedHeaderNames) {
+		if (normalizedHeaderNames.isEmpty()) {
+			_headers.clear();
+		} else {
+			_headers.keySet().retainAll(normalizedHeaderNames);
+		}
+	}
+
 	public Map<String, Object> getVariables() {
 		return _variables;
 	}

@@ -80,7 +80,9 @@ public abstract class AbstractServiceArtifact extends Artifact {
 
 	@SuppressWarnings("unchecked")
 	protected final <S> S unmarshal(GlobalContext globalContext) throws TransformerException, JAXBException {
-		migrate(globalContext);
+		if (migrationXSLT != null) {
+			migrate(globalContext);
+		}
 		Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
 		unmarshaller.setSchema(schema);
 		return (S) unmarshaller.unmarshal(getContentAsStream());
@@ -105,21 +107,19 @@ public abstract class AbstractServiceArtifact extends Artifact {
 	}
 
 	private void migrate(GlobalContext globalContext) throws TransformerException {
-		if (migrationXSLT != null) {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			byte[] content1 = transform(XMLProcessorFactory.newTransformer(), bos);
-			// content1 could be overwritten when using com.artofarc.util.ByteArrayOutputStream
-			bos.reset();
-			byte[] content2 = transform(migrationXSLT.newTransformer(), bos);
-			if (!Arrays.equals(content1, content2)) {
-				CRC32 crc = new CRC32();
-				crc.update(content2);
-				setContent(content2);
-				setModificationTime(System.currentTimeMillis());
-				setCrc(crc.getValue());
-				noteChange();
-				logger.info("Migrated artifact " + getURI());
-			}
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		byte[] content1 = transform(XMLProcessorFactory.newTransformer(), bos);
+		// content1 could be overwritten when using com.artofarc.util.ByteArrayOutputStream
+		bos.reset();
+		byte[] content2 = transform(migrationXSLT.newTransformer(), bos);
+		if (!Arrays.equals(content1, content2)) {
+			CRC32 crc = new CRC32();
+			crc.update(content2);
+			setContent(content2);
+			setModificationTime(System.currentTimeMillis());
+			setCrc(crc.getValue());
+			noteChange();
+			logger.info("Migrated artifact " + getURI());
 		}
 	}
 

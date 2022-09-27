@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.List;
 
@@ -124,8 +125,12 @@ public class ActionTest extends AbstractESBTest {
 
 	@Test
 	public void testSetMessage() throws Exception {
+		Class<?> forName = Class.forName("long");
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), new StringWrapper("${body}"), "java.lang.String", null);
+		message.putHeader("header1", "header1");
+		message.putHeader("header2", "header2");
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("${body}"), "java.lang.String", null);
+		action.setClearHeadersExcept(Collections.singleton("header1"));
 		action.addAssignment("int", true, "42", "java.lang.Integer", null, null);
 		action.addAssignment("bool", true, "true", "java.lang.Boolean", "parseBoolean", null);
 		action.addAssignment("now", true, "", "java.lang.System", "currentTimeMillis", null);
@@ -153,13 +158,15 @@ public class ActionTest extends AbstractESBTest {
 		assertTrue("Type is: " + calendar.getClass(), calendar instanceof Calendar);
 		Object timeInMillis = message.getVariable("timeInMillis");
 		assertTrue("Type is: " + timeInMillis.getClass(), timeInMillis instanceof Long);
+		assertEquals("header1", message.getHeader("header1"));
+		assertNull(message.getHeader("header2"));
 	}
 
 	@Test
 	public void testSetMessageOverloading() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
 		message.putVariable("cal", new GregorianCalendar());
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
 		action.addAssignment("delay", false, "${cal}", "com.artofarc.esb.SchedulingConsumerPort", "millisUntilNext", null);
 		action.setNextAction(new DumpAction());
 		action.process(context, message);
@@ -168,7 +175,7 @@ public class ActionTest extends AbstractESBTest {
 	@Test
 	public void testSetMessageJodaTime() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
 		action.addAssignment("Content-Type", true, "", "com.artofarc.esb.http.HttpConstants", null, "HTTP_HEADER_CONTENT_TYPE_JSON");
 		action.addAssignment("now", false, "", "java.time.LocalDateTime", "now", null);
 		action.addAssignment("midnight", false, "${now.withHour(0).withMinute(0).withSecond(0).withNano(0).plusDays(1)}", null, null, null);
@@ -181,7 +188,7 @@ public class ActionTest extends AbstractESBTest {
 	@Test
 	public void testCompareTo() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
 		action.addAssignment("LogTimeStamp1", true, "1598427971440", "java.lang.Long", null, null);
 		action.addAssignment("l1209600000", true, "1209600000", "java.lang.Long", null, null);
 		action.addAssignment("_LogTimeStamp", false, "${LogTimeStamp1}", "java.math.BigInteger", "valueOf", null);
@@ -196,7 +203,7 @@ public class ActionTest extends AbstractESBTest {
 	@Test
 	public void testSetMessageOptional() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
 		action.addAssignment("optional", false, "${messageType}", "java.util.Optional", "ofNullable", null);
 		action.addAssignment("keepConnection", false, "${optional.present}", null, null, null);
 		action.addAssignment("messageType", true, "request", null, null, null);
@@ -213,7 +220,7 @@ public class ActionTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
 		message.putVariable("value", "test");
 		message.putVariable("value2", new ArrayList());
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
 		action.addAssignment("array", false, "", "java.util.ArrayList", null, null);
 		action.addAssignment("test", false, "${array.class.isInstance(value2)}", null, null, null);
 		action.addAssignment("_dummy", false, "${array.add(value))}", null, null, null);
@@ -227,7 +234,7 @@ public class ActionTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
 		ProcessJsonAction processJsonAction = new ProcessJsonAction(null);
 		processJsonAction.addVariable("foes", "/foo/0");
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
 		action.addAssignment("_builder", false, "", "javax.json.Json", "createArrayBuilder", null);
 		action.addAssignment("_builder", false, "${_builder.add(foes}", null, null, null);
 		action.addAssignment("test", false, "Str: ${_builder.build.toString}", null, null, null);
@@ -243,7 +250,7 @@ public class ActionTest extends AbstractESBTest {
 	public void testURLEncoding() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
 		message.putVariable("value", "test/file;fn=1.png");
-		SetMessageAction action = new SetMessageAction(false, getClass().getClassLoader(), null, null, null);
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
 		action.addAssignment("encValue", false, "${value}", "java.net.URLEncoder", "encode", null);
 		action.setNextAction(new DumpAction());
 		action.process(context, message);

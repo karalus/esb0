@@ -195,7 +195,7 @@
 					</sequence>
 					<attribute name="generatedKeys">
 						<simpleType>
-						    <list itemType="NMTOKEN" />
+							<list itemType="NMTOKEN" />
 						</simpleType>
 					</attribute>
 				</extension>
@@ -581,7 +581,15 @@
 				<extension base="tns:ActionBase">
 					<sequence>
 						<choice minOccurs="0" maxOccurs="unbounded">
-							<element name="header" type="tns:HeaderOrVariable"/>
+							<element name="header">
+								<complexType>
+									<simpleContent>
+										<extension base="tns:HeaderOrVariable">
+											<attribute name="retain" type="boolean" default="false" />
+										</extension>
+									</simpleContent>
+								</complexType>
+							</element>
 							<element name="variable" type="tns:HeaderOrVariable"/>
 						</choice>
 						<element name="body" minOccurs="0">
