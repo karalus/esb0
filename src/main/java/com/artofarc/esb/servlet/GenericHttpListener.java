@@ -35,6 +35,7 @@ import com.artofarc.esb.Registry;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.util.DataStructures;
@@ -98,7 +99,8 @@ public class GenericHttpListener extends HttpServlet {
 						} catch (Exception e) {
 							if (!response.isCommitted()) {
 								response.reset();
-								sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
+								Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
+								sendError(response, httpResponseCode != null ? httpResponseCode.intValue() : HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
 							}
 							if (asyncContext != null) {
 								asyncContext.complete();
