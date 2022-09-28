@@ -59,8 +59,16 @@ public class Registry extends AbstractContext {
 		registerMBean(this, "");
 	}
 
+	public final MBeanServer getMBeanServer() {
+		return _mbs;
+	}
+
 	public final HttpEndpointRegistry getHttpEndpointRegistry() {
 		return httpEndpointRegistry;
+	}
+
+	public final MBeanServer getPlatformMBeanServer() {
+		return _mbs;
 	}
 
 	public final void registerMBean(Object object, String postfix) {

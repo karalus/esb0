@@ -134,6 +134,15 @@ public final class ReflectionUtils {
 		return arg != null && !parameterType.isInstance(arg);
 	}
 
+	public static Class<?> classForName(String name) throws ClassNotFoundException {
+		for (Class<?> cls : primitiveMapper.keySet()) {
+			if (cls.getName().equals(name)) {
+				return cls;
+			}
+		}
+		return Class.forName(name);
+	}
+
 	private static boolean isMatch(String name, String methodName, int argssize) {
 		switch (argssize) {
 		case 0:

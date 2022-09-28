@@ -38,7 +38,7 @@ public final class DataStructures {
 
 	@SuppressWarnings("unchecked")
 	public static <K, V> Map<V, K> createMap(Object... keyValues) {
-		Map<Object, Object> result = new HashMap<>();
+		Map<Object, Object> result = new HashMap<>(keyValues.length >> 1);
 		for (int i = 0; i < keyValues.length; i += 2) {
 			result.put(keyValues[i], keyValues[i + 1]);
 		}

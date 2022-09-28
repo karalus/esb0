@@ -125,7 +125,6 @@ public class ActionTest extends AbstractESBTest {
 
 	@Test
 	public void testSetMessage() throws Exception {
-		Class<?> forName = Class.forName("long");
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
 		message.putHeader("header1", "header1");
 		message.putHeader("header2", "header2");

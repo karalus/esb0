@@ -133,7 +133,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		if (b != old) {
 			active[pos] = b;
 			if (b) {
-				if (++activeCount == size) {
+				if (++activeCount == size && _future != null) {
 					_future.cancel(true);
 					_future = null;
 				}
