@@ -19,8 +19,8 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +37,8 @@ public abstract class Artifact {
 	private final FileSystem _fileSystem;
 	private final Directory _parent;
 	private final String _name;
-	private final LinkedHashSet<String> _referenced = new LinkedHashSet<>();
-	private final LinkedHashSet<String> _referencedBy = new LinkedHashSet<>();
+	private final HashSet<String> _referenced = new HashSet<>();
+	private final HashSet<String> _referencedBy = new HashSet<>();
 
 	protected byte[] _content;
 	protected int _length;

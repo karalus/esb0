@@ -73,6 +73,12 @@ public final class DataStructures {
 		return coll.add(value);
 	}
 
+	public static <T extends Comparable<? super T>> List<T> asSortedList(Collection<T> coll) {
+		List<T> list = new ArrayList<T>(coll);
+		Collections.sort(list);
+		return list;
+	}
+
 	public static <T> List<T> moveToNewList(Collection<T> coll, boolean noop) {
 		if (noop) {
 			return Collections.emptyList();

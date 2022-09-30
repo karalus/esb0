@@ -36,6 +36,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.json.JsonWriter;
 import javax.json.stream.JsonGenerator;
@@ -454,6 +455,16 @@ public final class ESBMessage implements Cloneable {
 		default:
 			return new StringReader(getBodyAsString(context));
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T extends JsonValue> T getBodyAsJsonValue(Context context) throws Exception {
+		if (_bodyType != BodyType.JSON_VALUE) {
+			try (JsonReader jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(getBodyAsReader(context))) {
+				init(BodyType.JSON_VALUE, jsonReader.readValue(), null);
+			}
+		}
+		return (T) _body;
 	}
 
 	public Source getBodyAsSource(Context context) throws IOException, XQException {

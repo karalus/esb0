@@ -24,9 +24,7 @@ import javax.json.*;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
-import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.URLUtils;
 
 /**
@@ -59,12 +57,7 @@ public class ProcessJsonAction extends Action {
 		if (isNotJSON(contentType)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		if (message.getBodyType() != BodyType.JSON_VALUE) {
-			try (JsonReader jsonReader = JsonFactoryHelper.JSON_READER_FACTORY.createReader(message.getBodyAsReader(context))) {
-				message.reset(BodyType.JSON_VALUE, jsonReader.readValue());
-			}
-		}
-		JsonStructure json = message.getBody();
+		JsonStructure json = message.getBodyAsJsonValue(context);
 		for (Assignment variable : _variables) {
 			Object value = variable.getValueAsObject(json);
 			if (value != null) {
