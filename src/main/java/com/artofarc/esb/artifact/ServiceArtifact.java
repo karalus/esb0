@@ -209,7 +209,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, http.getClassLoader());
 			SSLContext sslContext = null;
 			if (http.getKeyStore() != null && http.getKeyStorePassword() != null) {
-				sslContext = globalContext.getHttpEndpointRegistry().getSSLContext(globalContext.bindProperties(http.getKeyStore()), globalContext.bindProperties(http.getKeyStorePassword()).toCharArray());
+				sslContext = globalContext.getHttpEndpointRegistry().getSSLContext(classLoader, globalContext.bindProperties(http.getKeyStore()), globalContext.bindProperties(http.getKeyStorePassword()).toCharArray());
 			}
 			HttpCheckAlive httpCheckAlive = null;
 			if (http.getCheckAliveClass() != null) {

@@ -17,11 +17,13 @@ package com.artofarc.esb.http;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.net.CookieStore;
 import java.net.HttpCookie;
 import java.net.URI;
 import java.security.GeneralSecurityException;
@@ -112,16 +114,17 @@ public final class HttpEndpointRegistry implements CookiePolicy {
 		return _proxyAuthenticator;
 	}
 
-	public CookieManager getCookieManager() {
-		return _cookieManager;
+	public CookieStore getCookieStore() {
+		return _cookieManager != null ? _cookieManager.getCookieStore() : null;
 	}
 
-	public synchronized SSLContext getSSLContext(String keyStore, char[] keyStorePassword) throws GeneralSecurityException, IOException {
+	public synchronized SSLContext getSSLContext(ClassLoader classLoader, String keyStore, char[] keyStorePassword) throws GeneralSecurityException, IOException {
 		SSLContext sslContext = _keyStores.get(keyStore);
 		if (sslContext == null) {
 			KeyStore ks = KeyStore.getInstance("PKCS12");
-			try (FileInputStream fis = new FileInputStream(keyStore)) {
-				ks.load(fis, keyStorePassword);
+			InputStream ras = classLoader.getResourceAsStream(keyStore);
+			try (InputStream is = ras != null ? ras : new FileInputStream(keyStore)) {
+				ks.load(is, keyStorePassword);
 			}
 			KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 			keyFactory.init(ks, keyStorePassword);

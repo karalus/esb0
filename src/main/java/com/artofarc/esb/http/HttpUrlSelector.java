@@ -17,7 +17,7 @@ package com.artofarc.esb.http;
 
 import java.io.IOException;
 import java.net.ConnectException;
-import java.net.CookieManager;
+import java.net.CookieStore;
 import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
 import java.net.URL;
@@ -298,10 +298,10 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	}
 
 	public String getCookies() throws Exception {
-		CookieManager cookieManager = _workerPool.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getCookieManager();
-		if (cookieManager != null) {
+		CookieStore cookieStore = _workerPool.getPoolContext().getGlobalContext().getHttpEndpointRegistry().getCookieStore();
+		if (cookieStore != null) {
 			HttpUrl httpUrl = _httpEndpoint.getHttpUrls().get(0);
-			return cookieManager.getCookieStore().get(httpUrl.getURI()).stream().map(c -> c.toString()).collect(Collectors.joining(", "));
+			return cookieStore.get(httpUrl.getURI()).stream().map(c -> c.toString()).collect(Collectors.joining(", "));
 		}
 		return null;
 	}
