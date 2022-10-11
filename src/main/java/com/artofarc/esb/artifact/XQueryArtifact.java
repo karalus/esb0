@@ -16,6 +16,7 @@
 package com.artofarc.esb.artifact;
 
 import javax.xml.xquery.XQConnection;
+import javax.xml.xquery.XQException;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.XMLProcessorFactory;
@@ -32,12 +33,14 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		return initClone(new XQueryArtifact(fileSystem, parent, getName()));
 	}
 
-	static void validateXQuerySource(Artifact owner, XMLProcessorFactory factory, XQuerySource xQuerySource) throws Exception {
+	static void validateXQuerySource(Artifact owner, int lineNumber, XMLProcessorFactory factory, XQuerySource xQuerySource) throws Exception {
 		ValidationErrorListener errorListener = new ValidationErrorListener(owner.getURI());
 		factory.setErrorListener(errorListener);
 		XQConnection connection = factory.getConnection();
 		try {
 			xQuerySource.prepareExpression(connection, owner.getURI()).close();
+		} catch (XQException e) {
+			throw errorListener.build(e, lineNumber);
 		} catch (StackOverflowError e) {
 			// StackOverflowError can happen when a XQuery is deeply nested
 			throw new ValidationException(owner, e);
@@ -58,7 +61,7 @@ public class XQueryArtifact extends XMLProcessingArtifact {
 		// Needs an individual XQConnectionFactory to track the use of modules
 		XMLProcessorFactory factory = XMLProcessorFactory.newInstance(new ArtifactURIResolver(this));
 		logger.info("Parsing XQuery in: " + getURI());
-		validateXQuerySource(this, factory, XQuerySource.create(getContentAsBytes()));
+		validateXQuerySource(this, -1, factory, XQuerySource.create(getContentAsBytes()));
 	}
 
 }

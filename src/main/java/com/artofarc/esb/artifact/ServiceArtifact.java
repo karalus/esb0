@@ -171,12 +171,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 
 	private List<Action> transform(GlobalContext globalContext, List<JAXBElement<? extends ActionBase>> actions, String errorHandler) throws ValidationException {
 		List<Action> list = new ArrayList<>();
-		for (JAXBElement<? extends ActionBase> jaxbElement : actions) {
+		for (JAXBElement<? extends ActionBase> actionElement : actions) {
 			try {
-				transform(globalContext, list, jaxbElement);
+				transform(globalContext, list, actionElement);
 			} catch (Exception e) {
-				Locator sourceLocation = jaxbElement.getValue().sourceLocation();
-				throw ReflectionUtils.convert(e, ValidationException.class, this, sourceLocation != null ? sourceLocation.getLineNumber() : 0);
+				throw ReflectionUtils.convert(e, ValidationException.class, this, getLineNumber(actionElement));
 			}
 		}
 		if (errorHandler != null) {
@@ -188,6 +187,11 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			list.get(0).setErrorHandler(errorHandlerPipeline);
 		}
 		return list;
+	}
+
+	private static int getLineNumber(JAXBElement<? extends ActionBase> actionElement) {
+		Locator sourceLocation = actionElement.getValue().sourceLocation();
+		return sourceLocation != null ? sourceLocation.getLineNumber() : -1;
 	}
 
 	private void transform(GlobalContext globalContext, List<Action> list, JAXBElement<? extends ActionBase> actionElement) throws Exception {
@@ -202,13 +206,13 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				globalContext.getHttpEndpointRegistry().setCookiePolicy(httpUrl, getCookiePolicy(http));
 			}
 			Proxy proxy = http.getProxyUrl() != null ? globalContext.getHttpEndpointRegistry().getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl())) : Proxy.NO_PROXY;
+			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, http.getClassLoader());
 			SSLContext sslContext = null;
 			if (http.getKeyStore() != null && http.getKeyStorePassword() != null) {
 				sslContext = globalContext.getHttpEndpointRegistry().getSSLContext(globalContext.bindProperties(http.getKeyStore()), globalContext.bindProperties(http.getKeyStorePassword()).toCharArray());
 			}
 			HttpCheckAlive httpCheckAlive = null;
 			if (http.getCheckAliveClass() != null) {
-				java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, http.getClassLoader());
 				@SuppressWarnings("unchecked")
 				Class<? extends HttpCheckAlive> cls = (Class<? extends HttpCheckAlive>) Class.forName(http.getCheckAliveClass(), true, classLoader);
 				httpCheckAlive = cls.newInstance();
@@ -343,7 +347,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				}
 			}
 			AssignAction assignAction = new AssignAction(assignments, ASSIGN_NULL_CHECK, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearAll());
-			XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), assignAction.getXQuery());
+			XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;
 		}
@@ -368,7 +372,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getURI(), transform.getContextItem()), location);
 			} else if (transform.getXquery() != null) {
 				XQuerySource xquery = XQuerySource.create(transform.getXquery().trim());
-				XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), xquery);
+				XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), xquery);
 				addAction(list, new TransformAction(xquery, getURI(), transform.getContextItem()), location);
 			} else {
 				throw new ValidationException(this, "transform has no XQuery");
@@ -425,7 +429,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			} else {
 				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem());
 				if (!documentElementExpression) {
-					XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), validateAction.getXQuery());
+					XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), validateAction.getXQuery());
 				}
 				addAction(list, validateAction, location);
 			}
@@ -451,7 +455,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			Conditional conditional = (Conditional) actionElement.getValue();
 			ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(),
 				conditional.getBindName(), conditional.getContextItem(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
-			XQueryArtifact.validateXQuerySource(this, getXQConnectionFactory(), conditionalAction.getXQuery());
+			XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), conditionalAction.getXQuery());
 			addAction(list, conditionalAction, location);
 			break;
 		case "cache":

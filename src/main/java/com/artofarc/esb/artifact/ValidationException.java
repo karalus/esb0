@@ -19,36 +19,35 @@ public class ValidationException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 
-	private final Artifact _artifact;
-	private final Integer _lineNumber;
+	private final String _uri;
+	private final int _lineNumber;
 
-	public ValidationException(Artifact artifact, String message) {
-		super(message);
-		_artifact = artifact;
-		_lineNumber = null;
+	ValidationException(Artifact artifact, String message) {
+		this(artifact, -1, message);
 	}
 
-	public ValidationException(Artifact artifact, Throwable cause) {
-		super(cause);
-		_artifact = artifact;
-		_lineNumber = null;
+	ValidationException(Artifact artifact, Throwable cause) {
+		this(artifact, -1, cause);
 	}
 
-	public ValidationException(Artifact artifact, int lineNumber, String message) {
+	ValidationException(Artifact artifact, int lineNumber, String message) {
 		super(message);
-		_artifact = artifact;
+		_uri = artifact.getURI();
 		_lineNumber = lineNumber;
 	}
 
-	public ValidationException(Artifact artifact, int lineNumber, Throwable cause) {
+	ValidationException(Artifact artifact, int lineNumber, Throwable cause) {
+		this(artifact.getURI(), lineNumber, cause);
+	}
+
+	ValidationException(String artifactUri, int lineNumber, Throwable cause) {
 		super(cause);
-		_artifact = artifact;
+		_uri = artifactUri;
 		_lineNumber = lineNumber;
 	}
 
 	private String getArtifactLocation() {
-		String s = _artifact.getURI();
-		return _lineNumber != null ? s + '@' + _lineNumber : s;
+		return _lineNumber < 0 ? _uri : _uri + '@' + _lineNumber ;
 	}
 
 	@Override
@@ -59,19 +58,14 @@ public class ValidationException extends Exception {
 
 	@Override
 	public int hashCode() {
-		return _artifact.hashCode();
+		return _uri.hashCode();
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
+		if (obj == null || getClass() != obj.getClass())
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		ValidationException other = (ValidationException) obj;
-		return _artifact.equals(other._artifact);
+		return _uri.equals(((ValidationException) obj)._uri);
 	}
 
 }

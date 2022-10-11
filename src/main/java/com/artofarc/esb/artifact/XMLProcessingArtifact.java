@@ -17,8 +17,10 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
 import javax.xml.transform.ErrorListener;
+import javax.xml.transform.SourceLocator;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.stream.StreamSource;
@@ -122,6 +124,7 @@ public class XMLProcessingArtifact extends Artifact {
 	static final class ValidationErrorListener implements ErrorListener {
 
 		private final String _uri;
+		private final ArrayList<TransformerException> exceptions = new ArrayList<>();
 
 		ValidationErrorListener(String uri) {
 			_uri = uri;
@@ -134,13 +137,23 @@ public class XMLProcessingArtifact extends Artifact {
 
 		@Override
 		public void error(TransformerException exception) {
-			logger.error(_uri, exception);
+			exceptions.add(exception);
 		}
 
 		@Override
-		public void fatalError(TransformerException exception) throws TransformerException {
-			logger.error(_uri, exception);
-			throw exception;
+		public void fatalError(TransformerException exception) {
+			exceptions.add(exception);
+		}
+
+		ValidationException build(Exception exception, int lineNumber) {
+			for (TransformerException e : exceptions) {
+				SourceLocator locator = e.getLocator();
+				if (locator != null && lineNumber < 0) {
+					lineNumber = locator.getLineNumber();
+				}
+				exception.addSuppressed(e);
+			}
+			return new ValidationException(_uri, lineNumber, exception);
 		}
 	}
 
