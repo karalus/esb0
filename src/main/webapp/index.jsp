@@ -5,7 +5,6 @@
 <%@page import="com.artofarc.esb.servlet.HttpConsumer"%>
 <%@page import="com.artofarc.esb.jms.JMSConsumer"%>
 <%@page import="com.artofarc.esb.context.WorkerPool"%>
-<%@page import="com.artofarc.esb.http.HttpEndpoint"%>
 <%@page import="com.artofarc.esb.http.HttpUrlSelector"%>
 <%@page import="com.artofarc.esb.resource.LRUCacheWithExpirationFactory"%>
 <%@page import="com.artofarc.esb.artifact.*"%>
@@ -238,10 +237,10 @@ input[type="submit"][value="false"] {
 <br>HttpEndpoints:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Addresses</b></td><td><b>Active</b></td><td><b>Total in use</b></td><td><b>Total connections</b></td></tr>
 <%
-			for (Map.Entry<HttpEndpoint, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
+			for (Map.Entry<String, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
 				HttpUrlSelector httpUrl = entry.getValue();
 				%>
-				<tr><td><%=entry.getKey().getName()%></td><td><%=entry.getKey().getHttpUrls()%></td><td><%=httpUrl != null ? httpUrl.getActiveCount() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getInUseTotal() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getTotalConnectionsCount() : "N/A"%></td></tr>
+				<tr><td><%=entry.getKey()%></td><td><%=httpUrl != null ? httpUrl.getHttpEndpoint().getHttpUrls() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getActiveCount() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getInUseTotal() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getTotalConnectionsCount() : "N/A"%></td></tr>
 				<%
 			}
 %>
@@ -270,8 +269,8 @@ input[type="submit"][value="false"] {
 <br>Cookies:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Domain</b></td><td><b>Path</b></td><td><b>Name</b></td><td><b>Value</b></td><td><b>HTTP only</b></td><td><b>Max age</b></td></tr>
 <%
-			if (globalContext.getHttpEndpointRegistry().getCookieStore() != null) {
-				for (java.net.HttpCookie httpCookie : globalContext.getHttpEndpointRegistry().getCookieStore().getCookies()) {
+			if (globalContext.getHttpGlobalContext().getCookieStore() != null) {
+				for (java.net.HttpCookie httpCookie : globalContext.getHttpGlobalContext().getCookieStore().getCookies()) {
 					%>
 					<tr><td><%=httpCookie.getDomain()%></td><td><%=httpCookie.getPath()%></td><td><%=httpCookie.getName()%></td><td><%=httpCookie.getValue()%></td><td><%=httpCookie.isHttpOnly()%></td><td><%=httpCookie.getMaxAge()%></td></tr>
 					<%

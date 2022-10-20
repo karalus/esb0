@@ -203,13 +203,13 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			for (Http.Url url : http.getUrl()) {
 				HttpUrl httpUrl = new HttpUrl(globalContext.bindProperties(url.getValue()), url.getWeight(), url.isActive());
 				endpoints.add(httpUrl);
-				globalContext.getHttpEndpointRegistry().setCookiePolicy(httpUrl, getCookiePolicy(http));
+				globalContext.getHttpGlobalContext().setCookiePolicy(httpUrl, getCookiePolicy(http));
 			}
-			Proxy proxy = http.getProxyUrl() != null ? globalContext.getHttpEndpointRegistry().getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl())) : Proxy.NO_PROXY;
+			Proxy proxy = http.getProxyUrl() != null ? globalContext.getHttpGlobalContext().getProxyAuthenticator().registerProxy(globalContext.bindProperties(http.getProxyUrl())) : Proxy.NO_PROXY;
 			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, http.getClassLoader());
 			SSLContext sslContext = null;
 			if (http.getKeyStore() != null && http.getKeyStorePassword() != null) {
-				sslContext = globalContext.getHttpEndpointRegistry().getSSLContext(classLoader, globalContext.bindProperties(http.getKeyStore()), globalContext.bindProperties(http.getKeyStorePassword()).toCharArray());
+				sslContext = globalContext.getHttpGlobalContext().getSSLContext(classLoader, globalContext.bindProperties(http.getKeyStore()), globalContext.bindProperties(http.getKeyStorePassword()).toCharArray());
 			}
 			HttpCheckAlive httpCheckAlive = null;
 			if (http.getCheckAliveClass() != null) {

@@ -32,6 +32,7 @@ import javax.management.ObjectName;
 import com.artofarc.esb.context.AbstractContext;
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.http.HttpEndpointRegistry;
+import com.artofarc.esb.http.HttpGlobalContext;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.PrefixBTree;
@@ -49,7 +50,8 @@ public class Registry extends AbstractContext {
 	private final Map<Path, FileWatchEventConsumer> _fileWatchEventServices = new ConcurrentHashMap<>();
 	private final Map<String, KafkaConsumerPort> _kafkaConsumer = new ConcurrentHashMap<>();
 	private final Map<String, WorkerPool> _workerPoolMap = new ConcurrentHashMap<>();
-	private final HttpEndpointRegistry httpEndpointRegistry = new HttpEndpointRegistry(this);
+	private final HttpEndpointRegistry _httpEndpointRegistry = new HttpEndpointRegistry(this);
+	private final HttpGlobalContext _httpGlobalContext = new HttpGlobalContext();
 	private final MBeanServer _mbs;
 	private final String OBJECT_NAME = "com.artofarc.esb:type=" + getClass().getSimpleName();
 	private final Map<String, ObjectName> _registered = new ConcurrentHashMap<>(DEFAULT_NO_SERVICES);
@@ -64,7 +66,11 @@ public class Registry extends AbstractContext {
 	}
 
 	public final HttpEndpointRegistry getHttpEndpointRegistry() {
-		return httpEndpointRegistry;
+		return _httpEndpointRegistry;
+	}
+
+	public final HttpGlobalContext getHttpGlobalContext() {
+		return _httpGlobalContext;
 	}
 
 	public final MBeanServer getPlatformMBeanServer() {

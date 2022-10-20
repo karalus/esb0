@@ -279,6 +279,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			_future.cancel(false);
 		}
 		getHttpEndpointRegistry().close();
+		getHttpGlobalContext().close();
 		for (WorkerPool workerPool : getWorkerPools()) {
 			workerPool.close();
 			workerPool.getPoolContext().close();
