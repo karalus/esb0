@@ -61,24 +61,34 @@ public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCach
 	public final class Cache implements AutoCloseable {
 
 		private final String _name;
-		private final int _maxSize;
-		private final Map<K, Expiration<K>> _expirationKeys = new ConcurrentHashMap<>();
-		private final Map<K, V> _cache = Collections.synchronizedMap(new LinkedHashMap<K, V>() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-				boolean remove = size() > _maxSize;
-				if (remove) {
-					Expiration<K> expiration = _expirationKeys.remove(eldest.getKey());
-					expiries.remove(expiration);
-				}
-				return remove;
-			}
-		});
+		private volatile int _maxSize;
+		private final Map<K, Expiration<K>> _expirationKeys;
+		private final Map<K, V> _cache;
 
 		Cache(String name, int maxSize) {
 			_name = name;
+			_maxSize = maxSize;
+			_expirationKeys = new ConcurrentHashMap<>(maxSize);
+			_cache = Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize) {
+				private static final long serialVersionUID = 1L;
+
+				@Override
+				protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+					boolean remove = size() > _maxSize;
+					if (remove) {
+						Expiration<K> expiration = _expirationKeys.remove(eldest.getKey());
+						expiries.remove(expiration);
+					}
+					return remove;
+				}
+			});
+		}
+
+		public int getMaxSize() {
+			return _maxSize;
+		}
+
+		public void setMaxSize(int maxSize) {
 			_maxSize = maxSize;
 		}
 

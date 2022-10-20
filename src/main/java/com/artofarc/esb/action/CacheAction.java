@@ -47,6 +47,10 @@ public class CacheAction extends Action {
 		@SuppressWarnings("unchecked")
 		LRUCacheWithExpirationFactory<Object, Object[]> factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);
 		_cache = factory.getResource(cacheName, maxSize);
+		if (_cache.getMaxSize() != maxSize) {
+			logger.info("Set new size for cache " + cacheName + " to " + maxSize);
+			_cache.setMaxSize(maxSize);
+		}
 		_ttl = ttl;
 	}
 
