@@ -22,7 +22,10 @@ import java.net.CookieStore;
 import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -47,19 +50,19 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 
 	public final class HttpUrlConnectionWrapper {
 
-		private final HttpUrl _httpUrl;
+		private final HttpEndpoint _httpEndpoint;
 		private final int _pos;
 		private final HttpURLConnection _httpURLConnection;
 
-		private HttpUrlConnectionWrapper(HttpUrl httpUrl, int pos, HttpURLConnection httpURLConnection) {
-			_httpUrl = httpUrl;
+		private HttpUrlConnectionWrapper(HttpEndpoint httpEndpoint, int pos, HttpURLConnection httpURLConnection) {
+			_httpEndpoint = httpEndpoint;
 			_pos = pos;
 			_httpURLConnection = httpURLConnection;
 			inUse.incrementAndGet(pos);
 		}
 
 		public HttpUrl getHttpUrl() {
-			return _httpUrl;
+			return _httpEndpoint.getHttpUrls().get(_pos);
 		}
 
 		public HttpURLConnection getHttpURLConnection() {
@@ -68,16 +71,16 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 
 		public int getResponseCode() throws IOException {
 			int responseCode = _httpURLConnection.getResponseCode();
-			HttpCheckAlive httpCheckAlive = _httpEndpoint.get().getHttpCheckAlive();
+			HttpCheckAlive httpCheckAlive = _httpEndpoint.getHttpCheckAlive();
 			if (httpCheckAlive != null && !httpCheckAlive.isAlive(_httpURLConnection, responseCode)) {
-				if (_httpEndpoint.get().getCheckAliveInterval() != null) {
+				if (_httpEndpoint.getCheckAliveInterval() != null) {
 					setActive(_pos, false);
 				}
 				if (_httpURLConnection.getErrorStream() != null) {
 					// Consume error message
 					IOUtils.toByteArray(_httpURLConnection.getErrorStream());
 				}
-				throw new HttpCheckAlive.ConnectException(_httpUrl.getUrlStr() + " is not alive. Response code " + responseCode);
+				throw new HttpCheckAlive.ConnectException(getHttpUrl().getUrlStr() + " is not alive. Response code " + responseCode);
 			}
 			return responseCode;
 		}
@@ -87,7 +90,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	private WeakReference<HttpEndpoint> _httpEndpoint;
+	private final List<WeakReference<HttpEndpoint>> _httpEndpoints = new ArrayList<>();
 	private final WorkerPool _workerPool;
 	private final int size;
 	private final int[] weight;
@@ -103,7 +106,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		super(workerPool.getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
 				AttributeChangeNotification.class.getName(), "An endpoint of " + httpEndpoint.getName() + " changes its state"));
 
-		_httpEndpoint = new WeakReference<>(httpEndpoint);
+		_httpEndpoints.add(new WeakReference<>(httpEndpoint));
 		_workerPool = workerPool;
 		size = httpEndpoint.getHttpUrls().size();
 		weight = new int[size];
@@ -117,12 +120,41 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	public synchronized HttpEndpoint getHttpEndpoint() {
-		return _httpEndpoint.get();
+	public boolean missesHttpEndpoint(HttpEndpoint httpEndpoint) {
+		synchronized (_httpEndpoints) {
+			for (WeakReference<HttpEndpoint> ref : _httpEndpoints) {
+				if (ref.get() == httpEndpoint) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
-	public synchronized void setHttpEndpoint(HttpEndpoint httpEndpoint) {
-		_httpEndpoint = new WeakReference<>(httpEndpoint);
+	public HttpEndpoint getHttpEndpoint() {
+		synchronized (_httpEndpoints) {
+			for (Iterator<WeakReference<HttpEndpoint>> iter = _httpEndpoints.iterator(); iter.hasNext();) {
+				HttpEndpoint httpEndpoint = iter.next().get();
+				if (httpEndpoint != null) {
+					return httpEndpoint;
+				} else {
+					iter.remove();
+				}
+			}
+		}
+		return null;
+	}
+
+	public void addHttpEndpoint(HttpEndpoint httpEndpoint) {
+		synchronized (_httpEndpoints) {
+			HttpEndpoint pivot = getHttpEndpoint();
+			if (pivot != null && pivot.getModificationTime() < httpEndpoint.getModificationTime()) {
+				// take non diversifying parameters from most recent version
+				_httpEndpoints.add(0, new WeakReference<>(httpEndpoint));
+			} else {
+				_httpEndpoints.add(new WeakReference<>(httpEndpoint));
+			}
+		}
 	}
 
 	public synchronized boolean isActive(int pos) {
@@ -149,7 +181,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	}
 
 	private void scheduleHealthCheck() {
-		HttpEndpoint httpEndpoint = _httpEndpoint.get();
+		HttpEndpoint httpEndpoint = getHttpEndpoint();
 		if (httpEndpoint != null && httpEndpoint.getCheckAliveInterval() != null) {
 			Integer retryAfter = httpEndpoint.getHttpCheckAlive().consumeRetryAfter();
 			int nextCheckAlive = retryAfter != null ? retryAfter : httpEndpoint.getCheckAliveInterval();
@@ -166,8 +198,8 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 
 	@Override
 	public void run() {
+		HttpEndpoint httpEndpoint = getHttpEndpoint();
 		for (int i = 0; i < size; ++i) {
-			HttpEndpoint httpEndpoint = _httpEndpoint.get();
 			if (httpEndpoint != null && !isActive(i)) {
 				try {
 					HttpURLConnection conn = httpEndpoint.getHttpCheckAlive().connect(httpEndpoint, i);
@@ -222,7 +254,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				}
 				conn.connect();
 				_totalConnectionsCount.incrementAndGet();
-				return new HttpUrlConnectionWrapper(httpUrl, pos, conn);
+				return new HttpUrlConnectionWrapper(httpEndpoint, pos, conn);
 			} catch (ConnectException | NoRouteToHostException e) {
 				if (httpEndpoint.getCheckAliveInterval() != null) {
 					setActive(pos, false);
@@ -265,7 +297,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 
 		CompositeDataSupport[] result = new CompositeDataSupport[size];
 		for (int i = 0; i < size; ++i) {
-			Object[] itemValues = { _httpEndpoint.get().getHttpUrls().get(i).toString(), weight[i], isActive(i), inUse.get(i) };
+			Object[] itemValues = { getHttpEndpoint().getHttpUrls().get(i).toString(), weight[i], isActive(i), inUse.get(i) };
 			result[i] = new CompositeDataSupport(rowType, itemNames, itemValues);
 		}
 		return result;
@@ -291,14 +323,31 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		return activeCount;
 	}
 
+	public List<String> getAllUrls() {
+		List<String> result = new ArrayList<>();
+		synchronized (_httpEndpoints) {
+			for (Iterator<WeakReference<HttpEndpoint>> iter = _httpEndpoints.iterator(); iter.hasNext();) {
+				HttpEndpoint httpEndpoint = iter.next().get();
+				if (httpEndpoint != null) {
+					for (HttpUrl httpUrl : httpEndpoint.getHttpUrls()) {
+						result.add(httpUrl.getUrlStr());
+					}
+				} else {
+					iter.remove();
+				}
+			}
+		}
+		return result;
+	}
+
 	public void evict() {
-		_workerPool.getPoolContext().getGlobalContext().getHttpEndpointRegistry().evictHttpUrlSelector(_httpEndpoint.get());
+		_workerPool.getPoolContext().getGlobalContext().getHttpEndpointRegistry().evictHttpUrlSelector(getHttpEndpoint());
 	}
 
 	public String getCookies() throws Exception {
 		CookieStore cookieStore = _workerPool.getPoolContext().getGlobalContext().getHttpGlobalContext().getCookieStore();
 		if (cookieStore != null) {
-			HttpUrl httpUrl = _httpEndpoint.get().getHttpUrls().get(0);
+			HttpUrl httpUrl = getHttpEndpoint().getHttpUrls().get(0);
 			return cookieStore.get(httpUrl.getURI()).stream().map(c -> c.toString()).collect(Collectors.joining(", "));
 		}
 		return null;

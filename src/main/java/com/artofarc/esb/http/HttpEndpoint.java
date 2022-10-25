@@ -104,18 +104,6 @@ public final class HttpEndpoint {
 		return _sslContext;
 	}
 
-	@Override
-	public int hashCode() {
-		return _name.hashCode();
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) return true;
-		if (!(obj instanceof HttpEndpoint)) return false;
-		return _name.equals(((HttpEndpoint) obj)._name);
-	}
-
 	public boolean isCompatible(HttpEndpoint other) {
 		ListIterator<HttpUrl> i1 = _endpoints.listIterator();
 		ListIterator<HttpUrl> i2 = other._endpoints.listIterator();

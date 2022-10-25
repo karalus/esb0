@@ -15,11 +15,13 @@
  */
 package com.artofarc.esb.http;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.WeakHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,66 +32,76 @@ public final class HttpEndpointRegistry {
 
 	protected final static Logger logger = LoggerFactory.getLogger(HttpEndpointRegistry.class);
 
-	private final Map<HttpEndpoint, HttpUrlSelector> _map = new WeakHashMap<>(256);
-	private final Map<String, HttpUrlSelector> _treeMap = new TreeMap<>();
+	private final ArrayList<WeakReference<HttpEndpoint>> _httpEndpoints = new ArrayList<>(256);
+	private final Map<String, HttpUrlSelector> _map = new HashMap<>(256);
 	private final Registry _registry;
 
 	public HttpEndpointRegistry(Registry registry) {
 		_registry = registry;
 	}
 
-	public synchronized Collection<Map.Entry<String, HttpUrlSelector>> getHttpEndpoints() {
-		expungeStaleEntries();
-		return _treeMap.entrySet();
-	}
-
-	public synchronized HttpEndpoint validate(HttpEndpoint httpEndpoint) {
-		for (Map.Entry<HttpEndpoint, HttpUrlSelector> entry : _map.entrySet()) {
-			if (entry.getKey().equals(httpEndpoint)) {
-				if (httpEndpoint.isCompatible(entry.getKey())) {
-					if (httpEndpoint.hasSameConfig(entry.getKey())) {
-						return entry.getKey();
-					}
+	public Collection<Map.Entry<String, HttpUrlSelector>> getHttpEndpoints() {
+		Map<String, HttpUrlSelector> treeMap = new TreeMap<>();
+		synchronized (_httpEndpoints) {
+			for (Iterator<WeakReference<HttpEndpoint>> iter = _httpEndpoints.iterator(); iter.hasNext();) {
+				HttpEndpoint httpEndpoint = iter.next().get();
+				if (httpEndpoint != null) {
+					treeMap.put(httpEndpoint.getName(), null);
 				} else {
-					logger.warn("Incompatible HttpEndpoint " + httpEndpoint.getName() + ". All services using it should be redeployed.");
+					iter.remove();
 				}
-				return httpEndpoint;
 			}
 		}
-		// precache
-		_map.put(httpEndpoint, null);
-		_treeMap.put(httpEndpoint.getName(), null);
+		synchronized (this) {
+			expungeStaleEntries();
+			treeMap.putAll(_map);
+		}
+		return treeMap.entrySet();
+	}
+
+	public HttpEndpoint validate(HttpEndpoint httpEndpoint) {
+		synchronized (_httpEndpoints) {
+			for (Iterator<WeakReference<HttpEndpoint>> iter = _httpEndpoints.iterator(); iter.hasNext();) {
+				HttpEndpoint pivot = iter.next().get();
+				if (pivot != null) {
+					if (httpEndpoint.getName().equals(pivot.getName()) && httpEndpoint.hasSameConfig(pivot)) {
+						return pivot;
+					}
+				} else {
+					iter.remove();
+				}
+			}
+			_httpEndpoints.add(new WeakReference<>(httpEndpoint));
+		}
 		return httpEndpoint;
 	}
 
 	public synchronized HttpUrlSelector getHttpUrlSelector(HttpEndpoint httpEndpoint) {
-		HttpUrlSelector state = _map.get(httpEndpoint);
-		if (state != null) {
-			HttpEndpoint oldHttpEndpoint = state.getHttpEndpoint();
-			if (oldHttpEndpoint != httpEndpoint && !oldHttpEndpoint.isCompatible(httpEndpoint)) {
-				logger.info("Removing state for HttpEndpoint " + httpEndpoint.getName() + ": " + oldHttpEndpoint.getHttpUrls());
+		HttpUrlSelector state = _map.get(httpEndpoint.getName());
+		if (state != null && state.missesHttpEndpoint(httpEndpoint)) {
+			HttpEndpoint pivot = state.getHttpEndpoint();
+			if (pivot == null || pivot.isCompatible(httpEndpoint)) {
+				state.addHttpEndpoint(httpEndpoint);
+			} else {
+				logger.warn("Incompatible HttpEndpoint " + httpEndpoint.getName() + ". All services using it should be redeployed.");
+				logger.info("Removing state for HttpEndpoint " + httpEndpoint.getName() + ": " + pivot.getHttpUrls());
 				removeHttpUrlSelector(httpEndpoint.getName(), state);
 				state = null;
-			} else if (oldHttpEndpoint.getModificationTime() < httpEndpoint.getModificationTime()) {
-				logger.info("Take non diversifying parameters from most recent version for HttpEndpoint " + httpEndpoint.getName());
-				state.setHttpEndpoint(httpEndpoint);
-				_map.put(httpEndpoint, state);
 			}
 		}
 		if (state == null) {
 			expungeStaleEntries();
 			state = new HttpUrlSelector(httpEndpoint, _registry.getDefaultWorkerPool());
 			_registry.registerMBean(state, ",group=HttpEndpointState,name=" + httpEndpoint.getName());
-			_map.put(httpEndpoint, state);
-			_treeMap.put(httpEndpoint.getName(), state);
+			_map.put(httpEndpoint.getName(), state);
 		}
 		return state;
 	}
 
 	private void expungeStaleEntries() {
-		for (Iterator<Map.Entry<String, HttpUrlSelector>> iter = _treeMap.entrySet().iterator(); iter.hasNext();) {
+		for (Iterator<Map.Entry<String, HttpUrlSelector>> iter = _map.entrySet().iterator(); iter.hasNext();) {
 			Map.Entry<String, HttpUrlSelector> entry = iter.next();
-			if (entry.getValue() != null && entry.getValue().getHttpEndpoint() == null) {
+			if (entry.getValue().getHttpEndpoint() == null) {
 				removeHttpUrlSelector(entry.getKey(), entry.getValue());
 				iter.remove();
 			}
@@ -103,18 +115,15 @@ public final class HttpEndpointRegistry {
 
 	public synchronized void evictHttpUrlSelector(HttpEndpoint httpEndpoint) {
 		if (httpEndpoint != null) {
-			_map.remove(httpEndpoint);
-			removeHttpUrlSelector(httpEndpoint.getName(), _treeMap.remove(httpEndpoint.getName()));
+			removeHttpUrlSelector(httpEndpoint.getName(), _map.remove(httpEndpoint.getName()));
 		} else {
 			expungeStaleEntries();
 		}
 	}
 
 	public synchronized void close() {
-		for (Map.Entry<String, HttpUrlSelector> entry : _treeMap.entrySet()) {
-			if (entry.getValue() != null) {
-				removeHttpUrlSelector(entry.getKey(), entry.getValue());
-			}
+		for (Map.Entry<String, HttpUrlSelector> entry : _map.entrySet()) {
+			removeHttpUrlSelector(entry.getKey(), entry.getValue());
 		}
 	}
 

@@ -15,6 +15,8 @@
  */
 package com.artofarc.esb.http;
 
+import java.util.List;
+
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.OpenDataException;
 
@@ -31,6 +33,8 @@ public interface HttpUrlSelectorMBean {
 	int getInUseTotal();
 
 	long getTotalConnectionsCount();
+
+	List<String> getAllUrls();
 
 	void evict();
 
