@@ -17,6 +17,7 @@ package com.artofarc.esb.action;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Properties;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Templates;
@@ -36,6 +37,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.Attachments2SAX;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.XMLProcessorFactory;
@@ -68,7 +70,14 @@ public class XSLTAction extends SAXAction {
 				}
 			}
 		}
-		String mediaType = transformer.getOutputProperty(OutputKeys.MEDIA_TYPE);
+		Properties outputProperties = transformer.getOutputProperties();
+		Properties props = message.getVariable(ESBConstants.serializationParameters);
+		if (props != null) {
+			props.putAll(outputProperties);
+		} else {
+			message.putVariable(ESBConstants.serializationParameters, outputProperties);
+		}
+		String mediaType = outputProperties.getProperty(OutputKeys.MEDIA_TYPE);
 		if (mediaType != null) {
 			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, mediaType);
 		}

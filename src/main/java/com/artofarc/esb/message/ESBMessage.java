@@ -250,13 +250,20 @@ public final class ESBMessage implements Cloneable {
 		return _sinkEncoding != null && _sinkEncoding != getCharset();
 	}
 
-	public Properties getSinkProperties() {
+	private Properties getSinkProperties() {
 		Properties props = getVariable(ESBConstants.serializationParameters);
-		if (props == null) {
+		String encoding = null;
+		if (props != null) {
+			encoding = props.getProperty(OutputKeys.ENCODING);
+		} else {
 			props = new Properties();
 		}
-		props.setProperty(OutputKeys.ENCODING, getSinkEncoding());
-		props.setProperty(OutputKeys.INDENT, Context.XML_OUTPUT_INDENT);
+		if (encoding != null) {
+			setSinkEncoding(encoding);
+		} else {
+			props.setProperty(OutputKeys.ENCODING, getSinkEncoding());
+		}
+		props.putIfAbsent(OutputKeys.INDENT, Context.XML_OUTPUT_INDENT);
 		return props;
 	}
 
