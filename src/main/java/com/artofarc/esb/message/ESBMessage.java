@@ -581,22 +581,19 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public Long getByteLength() {
-		if (isSinkEncodingdifferent() || isOutputCompressed() || isFI()) {
-			return null;
+	public Long getByteLength() throws IOException {
+		final long length;
+		if (_bodyType == BodyType.BYTES) {
+			length = ((byte[]) _body).length;
+		} else if (_bodyType == BodyType.INPUT_STREAM && _body instanceof IOUtils.PredictableInputStream) {
+			length = ((IOUtils.PredictableInputStream) _body).length();
 		} else {
-			switch (_bodyType) {
-			case BYTES:
-				return Long.valueOf(((byte[]) _body).length);
-			case INPUT_STREAM:
-				if (_body instanceof IOUtils.PredictableInputStream) {
-					return ((IOUtils.PredictableInputStream) _body).length();
-				}
-				// nobreak
-			default:
-				return null;
-			}
+			return isEmpty() ? 0L : null;
 		}
+		if (length > 0 && (isSinkEncodingdifferent() || isFI()) || isOutputCompressed()) {
+			return null;
+		}
+		return length;
 	}
 
 	public boolean isFI() {

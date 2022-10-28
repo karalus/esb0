@@ -16,11 +16,13 @@
 package com.artofarc.esb.http;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.ConnectException;
 import java.net.CookieStore;
 import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,11 +55,14 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		private final HttpEndpoint _httpEndpoint;
 		private final int _pos;
 		private final HttpURLConnection _httpURLConnection;
+		private final OutputStream _outputStream;
+		private int _responseCode = -1;
 
-		private HttpUrlConnectionWrapper(HttpEndpoint httpEndpoint, int pos, HttpURLConnection httpURLConnection) {
+		HttpUrlConnectionWrapper(HttpEndpoint httpEndpoint, int pos, HttpURLConnection httpURLConnection, OutputStream outputStream) {
 			_httpEndpoint = httpEndpoint;
 			_pos = pos;
 			_httpURLConnection = httpURLConnection;
+			_outputStream = outputStream;
 			inUse.incrementAndGet(pos);
 		}
 
@@ -69,20 +74,26 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			return _httpURLConnection;
 		}
 
+		public OutputStream getOutputStream() throws IOException {
+			return _outputStream != null ? _outputStream : _httpURLConnection.getOutputStream();
+		}
+
 		public int getResponseCode() throws IOException {
-			int responseCode = _httpURLConnection.getResponseCode();
-			HttpCheckAlive httpCheckAlive = _httpEndpoint.getHttpCheckAlive();
-			if (httpCheckAlive != null && !httpCheckAlive.isAlive(_httpURLConnection, responseCode)) {
-				if (_httpEndpoint.getCheckAliveInterval() != null) {
-					setActive(_pos, false);
+			if (_responseCode < 0) {
+				_responseCode = _httpURLConnection.getResponseCode();
+				HttpCheckAlive httpCheckAlive = _httpEndpoint.getHttpCheckAlive();
+				if (httpCheckAlive != null && !httpCheckAlive.isAlive(_httpURLConnection, _responseCode)) {
+					if (_httpEndpoint.getCheckAliveInterval() != null) {
+						setActive(_pos, false);
+					}
+					if (_httpURLConnection.getErrorStream() != null) {
+						// Consume error message
+						IOUtils.toByteArray(_httpURLConnection.getErrorStream());
+					}
+					throw new HttpCheckAlive.ConnectException(getHttpUrl().getUrlStr() + " is not alive. Response code " + _responseCode);
 				}
-				if (_httpURLConnection.getErrorStream() != null) {
-					// Consume error message
-					IOUtils.toByteArray(_httpURLConnection.getErrorStream());
-				}
-				throw new HttpCheckAlive.ConnectException(getHttpUrl().getUrlStr() + " is not alive. Response code " + responseCode);
 			}
-			return responseCode;
+			return _responseCode;
 		}
 
 		public void close() {
@@ -226,6 +237,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			}
 			HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(pos);
 			URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
+			HttpUrlConnectionWrapper wrapper = null;
 			try {
 				HttpURLConnection conn = (HttpURLConnection) url.openConnection(httpEndpoint.getProxy());
 				if (httpEndpoint.getSSLContext() != null) {
@@ -240,22 +252,42 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				} else {
 					conn.setRequestMethod(method);
 				}
-				conn.setDoOutput(true);
-				conn.setInstanceFollowRedirects(false);
-				if (chunkLength != null) {
-					conn.setChunkedStreamingMode(chunkLength);
-				} else if (contentLength != null) {
-					conn.setFixedLengthStreamingMode(contentLength);
+				if (contentLength == null || contentLength > 0) {
+					conn.setDoOutput(true);
+					if (chunkLength != null) {
+						conn.setChunkedStreamingMode(chunkLength);
+					} else if (contentLength != null) {
+						conn.setFixedLengthStreamingMode(contentLength);
+					}
 				}
+				conn.setInstanceFollowRedirects(false);
 				for (Entry<String, Object> entry : headers) {
 					if (entry.getValue() != null) {
 						conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
 					}
 				}
-				conn.connect();
+				// check whether server is willing to respond (before sending data)
+				boolean checkServer = retryCount > 0;
+				if (checkServer && conn.getDoOutput()) {
+					conn.setRequestProperty("Expect", "100-Continue");
+					if (chunkLength == null && contentLength == null) {
+						conn.setChunkedStreamingMode(0);
+					}
+					wrapper = new HttpUrlConnectionWrapper(httpEndpoint, pos, conn, conn.getOutputStream());
+				} else {
+					wrapper = new HttpUrlConnectionWrapper(httpEndpoint, pos, conn, null);
+					if (checkServer && !conn.getDoOutput()) {
+						wrapper.getResponseCode();
+					} else {
+						conn.connect();
+					}
+				}
 				_totalConnectionsCount.incrementAndGet();
-				return new HttpUrlConnectionWrapper(httpEndpoint, pos, conn);
-			} catch (ConnectException | NoRouteToHostException e) {
+				return wrapper;
+			} catch (ConnectException | NoRouteToHostException | ProtocolException | HttpCheckAlive.ConnectException e) {
+				if (wrapper != null) {
+					wrapper.close();
+				}
 				if (httpEndpoint.getCheckAliveInterval() != null) {
 					setActive(pos, false);
 				}
@@ -294,7 +326,6 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		String[] itemNames = { "URL", "weight", "active", "inUse" };
 		OpenType<?>[] itemTypes = { SimpleType.STRING, SimpleType.INTEGER, SimpleType.BOOLEAN, SimpleType.INTEGER };
 		CompositeType rowType = new CompositeType("HttpEndpointState", "State of HttpEndpoint", itemNames, itemNames, itemTypes);
-
 		CompositeDataSupport[] result = new CompositeDataSupport[size];
 		for (int i = 0; i < size; ++i) {
 			Object[] itemValues = { getHttpEndpoint().getHttpUrls().get(i).toString(), weight[i], isActive(i), inUse.get(i) };
