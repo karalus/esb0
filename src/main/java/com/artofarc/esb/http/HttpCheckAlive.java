@@ -41,15 +41,18 @@ public class HttpCheckAlive {
 		return conn;
 	}
 
-	public boolean isAlive(HttpURLConnection conn, int responseCode) {
+	protected boolean isAlive(HttpURLConnection conn, int responseCode) {
 		if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
-			_retryAfter = conn.getHeaderFieldInt(HttpConstants.HTTP_HEADER_RETRY_AFTER, -1);
-			if (_retryAfter < 0) {
-				long retryAfter = conn.getHeaderFieldDate(HttpConstants.HTTP_HEADER_RETRY_AFTER, 0) - System.currentTimeMillis();
-				if (retryAfter > 0) {
-					_retryAfter = ((int) retryAfter + 999) / 1000;
-				} else {
-					_retryAfter = null;
+			_retryAfter = null;
+			String retryAfter = conn.getHeaderField(HttpConstants.HTTP_HEADER_RETRY_AFTER);
+			if (retryAfter != null) {
+				try {
+					_retryAfter = Integer.valueOf(retryAfter);
+				} catch (NumberFormatException e) {
+					long date = conn.getHeaderFieldDate(HttpConstants.HTTP_HEADER_RETRY_AFTER, 0);
+					if (date > 0) {
+						_retryAfter = (int) (date - System.currentTimeMillis() + 999) / 1000;
+					}
 				}
 			}
 			return false;
@@ -57,7 +60,7 @@ public class HttpCheckAlive {
 		return true;
 	}
 
-	public final Integer consumeRetryAfter() {
+	final Integer consumeRetryAfter() {
 		Integer retryAfter = _retryAfter;
 		_retryAfter = null;
 		return retryAfter;

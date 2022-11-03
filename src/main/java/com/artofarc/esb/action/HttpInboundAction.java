@@ -16,14 +16,13 @@
 package com.artofarc.esb.action;
 
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.Map.Entry;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
-import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnectionWrapper;
+import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnection;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.ByteArrayOutputStream;
@@ -34,19 +33,18 @@ public class HttpInboundAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		HttpUrlConnectionWrapper wrapper = message.removeVariable(ESBConstants.HttpURLConnection);
+		HttpUrlConnection httpUrlConnection = message.removeVariable(ESBConstants.HttpURLConnection);
 		try {
-			message.getVariables().put(ESBConstants.HttpResponseCode, wrapper.getResponseCode());
-			HttpURLConnection conn = wrapper.getHttpURLConnection();
+			message.getVariables().put(ESBConstants.HttpResponseCode, httpUrlConnection.getResponseCode());
 			message.clearHeaders();
-			for (Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
+			for (Entry<String, List<String>> entry : httpUrlConnection.getHeaders().entrySet()) {
 				if (entry.getKey() != null) {
 					message.putHeader(entry.getKey(), entry.getValue().get(0));
 				}
 			}
 			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 			message.setCharset(HttpConstants.getCharset(contentType));
-			InputStream inputStream = conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST ? conn.getInputStream() : conn.getErrorStream();
+			InputStream inputStream = httpUrlConnection.getInputStream();
 			if (inputStream == null) {
 				inputStream = EMPTY_INPUT_STREAM;
 			} 
@@ -55,9 +53,9 @@ public class HttpInboundAction extends Action {
 				inputStream.close();
 				inputStream = message.getBody();
 			}
-			return new ExecutionContext(inputStream, wrapper);
+			return new ExecutionContext(inputStream, httpUrlConnection);
 		} catch (Exception e) {
-			wrapper.close();
+			httpUrlConnection.close();
 			throw e;
 		}
 	}
@@ -82,7 +80,7 @@ public class HttpInboundAction extends Action {
 		try {
 			execContext.<InputStream> getResource().close();
 		} finally {
-			execContext.<HttpUrlConnectionWrapper> getResource2().close();
+			execContext.<HttpUrlConnection> getResource2().close();
 		}
 	}
 

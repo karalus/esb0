@@ -16,6 +16,7 @@
 package com.artofarc.esb.http;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.ConnectException;
@@ -28,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -50,7 +51,7 @@ import com.artofarc.util.IOUtils;
 
 public final class HttpUrlSelector extends NotificationBroadcasterSupport implements Runnable, HttpUrlSelectorMBean {
 
-	public final class HttpUrlConnectionWrapper {
+	public final class HttpUrlConnection {
 
 		private final HttpEndpoint _httpEndpoint;
 		private final int _pos;
@@ -58,7 +59,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		private final OutputStream _outputStream;
 		private int _responseCode = -1;
 
-		HttpUrlConnectionWrapper(HttpEndpoint httpEndpoint, int pos, HttpURLConnection httpURLConnection, OutputStream outputStream) {
+		HttpUrlConnection(HttpEndpoint httpEndpoint, int pos, HttpURLConnection httpURLConnection, OutputStream outputStream) {
 			_httpEndpoint = httpEndpoint;
 			_pos = pos;
 			_httpURLConnection = httpURLConnection;
@@ -68,10 +69,6 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 
 		public HttpUrl getHttpUrl() {
 			return _httpEndpoint.getHttpUrls().get(_pos);
-		}
-
-		public HttpURLConnection getHttpURLConnection() {
-			return _httpURLConnection;
 		}
 
 		public OutputStream getOutputStream() throws IOException {
@@ -94,6 +91,14 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				}
 			}
 			return _responseCode;
+		}
+
+		public Map<String, List<String>> getHeaders() {
+			return _httpURLConnection.getHeaderFields();
+		}
+
+		public InputStream getInputStream() throws IOException {
+			return getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST ? _httpURLConnection.getInputStream() : _httpURLConnection.getErrorStream();
 		}
 
 		public void close() {
@@ -229,7 +234,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	public HttpUrlConnectionWrapper connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Entry<String, Object>> headers, Integer chunkLength, Long contentLength) throws IOException {
+	public HttpUrlConnection connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Map.Entry<String, Object>> headers, Integer chunkLength, Long contentLength) throws IOException {
 		for (int retryCount = httpEndpoint.getRetries();;) {
 			int pos = computeNextPos(httpEndpoint);
 			if (pos < 0) {
@@ -237,7 +242,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			}
 			HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(pos);
 			URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
-			HttpUrlConnectionWrapper wrapper = null;
+			HttpUrlConnection httpUrlConnection = null;
 			try {
 				HttpURLConnection conn = (HttpURLConnection) url.openConnection(httpEndpoint.getProxy());
 				if (httpEndpoint.getSSLContext() != null) {
@@ -261,32 +266,32 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 					}
 				}
 				conn.setInstanceFollowRedirects(false);
-				for (Entry<String, Object> entry : headers) {
+				for (Map.Entry<String, Object> entry : headers) {
 					if (entry.getValue() != null) {
 						conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
 					}
 				}
 				// check whether server is willing to respond (before sending data)
-				boolean checkServer = retryCount > 0;
+				boolean checkServer = retryCount > size - activeCount;
 				if (checkServer && conn.getDoOutput()) {
 					conn.setRequestProperty("Expect", "100-Continue");
 					if (chunkLength == null && contentLength == null) {
 						conn.setChunkedStreamingMode(0);
 					}
-					wrapper = new HttpUrlConnectionWrapper(httpEndpoint, pos, conn, conn.getOutputStream());
+					httpUrlConnection = new HttpUrlConnection(httpEndpoint, pos, conn, conn.getOutputStream());
 				} else {
-					wrapper = new HttpUrlConnectionWrapper(httpEndpoint, pos, conn, null);
+					httpUrlConnection = new HttpUrlConnection(httpEndpoint, pos, conn, null);
 					if (checkServer && !conn.getDoOutput()) {
-						wrapper.getResponseCode();
+						httpUrlConnection.getResponseCode();
 					} else {
 						conn.connect();
 					}
 				}
 				_totalConnectionsCount.incrementAndGet();
-				return wrapper;
+				return httpUrlConnection;
 			} catch (ConnectException | NoRouteToHostException | ProtocolException | HttpCheckAlive.ConnectException e) {
-				if (wrapper != null) {
-					wrapper.close();
+				if (httpUrlConnection != null) {
+					httpUrlConnection.close();
 				}
 				if (httpEndpoint.getCheckAliveInterval() != null) {
 					setActive(pos, false);
