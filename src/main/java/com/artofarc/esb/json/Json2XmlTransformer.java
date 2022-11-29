@@ -292,6 +292,10 @@ public final class Json2XmlTransformer {
 						} else {
 							if (keyName != null) {
 								XSTerm term = xsomHelper.matchElement(uri, keyName);
+								if (term.isElementDecl()) {
+									// potentially a wrapped array
+									keyName = term.apply(XSOMHelper.GetName);
+								}
 								uri = term.apply(XSOMHelper.GetNamespace);
 							} else {
 								keyName = _rootName;
@@ -586,7 +590,7 @@ public final class Json2XmlTransformer {
 					} else {
 						uri = null;
 						keyName = term.apply(XSOMHelper.GetName);
-						final JsonValue jsonValue = removeJsonValue(jsonMap, keyName);
+						JsonValue jsonValue = removeJsonValue(jsonMap, keyName);
 						if (jsonValue != null) {
 							if (uri == null) {
 								uri = term.apply(XSOMHelper.GetNamespace);
@@ -594,7 +598,17 @@ public final class Json2XmlTransformer {
 							parse(new Element(uri, keyName, createQName(uri, keyName)), jsonValue);
 						} else {
 							if (xsomHelper.isLastElementRequired()) {
-								throw new SAXException("Missing required element: " + new QName(uri, keyName));
+								XSTerm wrappedElement = xsomHelper.getWrappedElement();
+								if (wrappedElement != null) {
+									jsonValue = removeJsonValue(jsonMap, wrappedElement.apply(XSOMHelper.GetName));
+									if (jsonValue != null) {
+										uri = term.apply(XSOMHelper.GetNamespace);
+										parse(new Element(uri, keyName, createQName(uri, keyName)), jsonValue);
+									}
+								}
+								if (jsonValue == null) {
+									throw new SAXException("Missing required element: " + new QName(uri, keyName));
+								}
 							}
 							if (xsomHelper.getComplexType() != null) {
 								xsomHelper.endComplex();

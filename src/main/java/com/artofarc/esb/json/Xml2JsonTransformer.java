@@ -135,6 +135,11 @@ public final class Xml2JsonTransformer {
 			}
 		}
 
+		private boolean isWrapped() {
+			final Integer ignore = ignoreLevel.peek();
+			return ignore != null && level == ignore;
+		}
+
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
 			_builder.setLength(0);
@@ -194,7 +199,9 @@ public final class Xml2JsonTransformer {
 				xsomHelper.endArray();
 			}
 			if (anyLevel < 0 && xsomHelper.isStartArray()) {
-				jsonGenerator.writeStartArray(openKey != null ? openKey : key);
+				if (!isWrapped()) {
+					jsonGenerator.writeStartArray(openKey != null ? openKey : key);
+				}
 				openKey = null;
 			} else {
 				if (openKey != null) {
@@ -214,6 +221,8 @@ public final class Xml2JsonTransformer {
 			if (attsLength > 0 || complex && anyLevel < 0) {
 				if (openKey != null) {
 					if (_wrapperAsArrayName && xsomHelper.getWrappedElement() != null) {
+						jsonGenerator.writeStartArray(openKey);
+						openKey = null;
 						ignoreLevel.push(level);
 					} else {
 						jsonGenerator.writeStartObject(openKey);
@@ -268,6 +277,8 @@ public final class Xml2JsonTransformer {
 					if (xsomHelper.isInArray()) {
 						jsonGenerator.writeEnd();
 						xsomHelper.endArray();
+					} else if (isWrapped()) {
+						jsonGenerator.writeEnd();
 					}
 				}
 				if (_builder.length() > 0) {
@@ -289,8 +300,7 @@ public final class Xml2JsonTransformer {
 				}
 			}
 			if (complex || primitiveType == null) {
-				final Integer ignore = ignoreLevel.peek();
-				if (ignore != null && level == ignore) {
+				if (isWrapped()) {
 					ignoreLevel.pop();
 				} else {
 					jsonGenerator.writeEnd();

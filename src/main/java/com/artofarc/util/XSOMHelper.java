@@ -294,6 +294,13 @@ public final class XSOMHelper {
 						return element;
 					}
 					if (_required && !(_currentGroup.all || _currentGroup.choice || _currentGroup.middleArray)) {
+						// assume wrapped element
+						foundParticle();
+						processElement(element);
+						XSTerm wrappedElement = getWrappedElement();
+						if (wrappedElement != null && wrappedElement.isElementDecl() && wrappedElement.asElementDecl().getName().equals(localName) &&  wrappedElement.asElementDecl().getTargetNamespace().equals(uri)) {
+							return element;
+						}
 						throw new SAXException("Missing required element: " + new QName(element.getTargetNamespace(), element.getName()));
 					}
 					final boolean endArray = isEndArray();
