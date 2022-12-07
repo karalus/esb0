@@ -109,6 +109,9 @@ public class HttpConstants {
 		while (i < s.length()) {
 			while (Character.isWhitespace(s.charAt(i))) ++i;
 			final int j = findNextDelim(s, i);
+			if (j < 0) {
+				return null;
+			}
 			int k = j + 1;
 			boolean quoted = false, escaped = false;
 			while (k < s.length()) {
