@@ -147,13 +147,17 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 				for (int i = 0; i < atts.getLength(); ++i) {
 					typeInfo = validatorHandler.getTypeInfoProvider().getAttributeTypeInfo(i);
 					final String value = atts.getValue(i);
-					if (value.length() > 2 && isXSType("decimal")) {
-						eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value, false, RestrictedAlphabet.NUMERIC_CHARACTERS);
-					} else if (value.length() > 9 && value.indexOf('+', 10) < 0 && isXSType("date")) {
-						eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value, false, RestrictedAlphabet.DATE_TIME_CHARACTERS);
-					} else if (value.length() > 2 && isXSType("boolean")) {
-						Object booleans = BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm.convertFromCharacters(value.toCharArray(), 0, value.length());
-						eatts.addAttributeWithBuiltInAlgorithmData(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), EncodingAlgorithmIndexes.BOOLEAN, booleans);
+					if (typeInfo != null) {
+						if (value.length() > 2 && isXSType("decimal")) {
+							eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value, false, RestrictedAlphabet.NUMERIC_CHARACTERS);
+						} else if (value.length() > 9 && value.indexOf('+', 10) < 0 && isXSType("date")) {
+							eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value, false, RestrictedAlphabet.DATE_TIME_CHARACTERS);
+						} else if (value.length() > 2 && isXSType("boolean")) {
+							Object booleans = BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm.convertFromCharacters(value.toCharArray(), 0, value.length());
+							eatts.addAttributeWithBuiltInAlgorithmData(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), EncodingAlgorithmIndexes.BOOLEAN, booleans);
+						} else {
+							eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value);
+						}
 					} else {
 						eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value);
 					}
