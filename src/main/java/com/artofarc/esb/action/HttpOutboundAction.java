@@ -111,7 +111,7 @@ public class HttpOutboundAction extends Action {
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			ByteArrayOutputStream bos = execContext != null ? execContext.getResource() : null;
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
-			message.putHeader(HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));
 			HttpUrlConnection httpUrlConnection = createHttpURLConnection(context, message, null);
 			mmp.writeTo(httpUrlConnection.getOutputStream());
 		}

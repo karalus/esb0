@@ -156,7 +156,7 @@ public class HttpServletResponseAction extends Action {
 			ByteArrayOutputStream bos = execContext.getResource2();
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
 			HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
-			response.setContentType(mmp.getContentType());
+			response.setContentType(unfoldHttpHeader(mmp.getContentType()));
 			mmp.writeTo(response.getOutputStream());
 		}
 		asyncContext.complete();

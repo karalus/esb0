@@ -145,7 +145,7 @@ public class JMSAction extends Action {
 					}
 					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipart, message.getBodyAsByteArray(context), false, true);
 					mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
-					message.putHeader(HTTP_HEADER_CONTENT_TYPE, mmp.getContentType());
+					message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));
 				} else {
 					// raw or not?
 					message.writeTo(new BytesMessageOutputStream(bytesMessage), context);

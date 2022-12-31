@@ -145,6 +145,11 @@ public class HttpConstants {
 		return httpHeader != null ? parseValueFromHttpHeader(httpHeader, key, key.length() - 1) : null;
 	}
 
+	public static String unfoldHttpHeader(String httpHeader) {
+		// https://datatracker.ietf.org/doc/html/rfc2616
+		return httpHeader.replace("\r\n\t", " ");
+	}
+
 	public static String parseContentType(String contentType) {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE);

@@ -120,7 +120,7 @@ public final class MimeHelper {
 							headers.setHeader(entry.getKey(), entry.getValue().toString());
 						}
 					}
-					part = new MimeBodyPart(headers, value.toString().getBytes(ESBMessage.CHARSET_DEFAULT));
+					part = new MimeBodyPart(headers, value instanceof byte[] ? (byte[]) value : value.toString().getBytes(ESBMessage.CHARSET_DEFAULT));
 					setDisposition(part, "form-data", name);
 				}
 				mmp.addBodyPart(part);
