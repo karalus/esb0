@@ -58,11 +58,13 @@ public abstract class Evaluator<E extends Exception> {
 							return param.substring(1, param.length() - 1);
 						} else if (Character.isDigit(firstChar) || firstChar == '-') {
 							return Integer.valueOf(param);
+						} else if ("null".equals(param)) {
+							return null;
 						}
 						return Evaluator.this.resolve(message, param, true);
 					}
 				};
-				value = ReflectionUtils.eval(value, path.substring(k), paramResolver);
+				value = ReflectionUtils.eval(value, path, k + 1, paramResolver);
 			}
 			if (standalone) {
 				return value;

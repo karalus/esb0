@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2023 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,6 +26,7 @@ import com.artofarc.esb.jdbc.JDBCConnection;
 import com.artofarc.esb.jdbc.JDBCParameter;
 import com.artofarc.esb.jdbc.JDBCResult;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ReflectionUtils;
 
 public class JDBCSQLAction extends JDBCAction {
 
@@ -37,9 +37,9 @@ public class JDBCSQLAction extends JDBCAction {
 		_generatedKeys = generatedKeys.isEmpty() ? null : generatedKeys.toArray(new String[generatedKeys.size()]);
 		if (sql != null) {
 			int count = 0;
-			for (int i = sql.length(); i > 0;) {
-				// Not handling escape \?
-				if (sql.charAt(--i) == '?') ++count;
+			for (int i = 0;; ++i, ++count) {
+				i = ReflectionUtils.findNextDelim(sql, i, "?");
+				if (i < 0) break;
 			}
 			if (params.size() != count) {
 				throw new IllegalArgumentException("Number of ? is not matching parameter count");

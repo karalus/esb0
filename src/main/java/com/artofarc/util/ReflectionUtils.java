@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 public final class ReflectionUtils {
 
@@ -41,20 +40,49 @@ public final class ReflectionUtils {
 				return params[argPos];
 			}
 		};
-		return eval(root, path, paramResolver);
+		return eval(root, path, 0, paramResolver);
+	}
+
+	public static int findNextDelim(CharSequence s, int i, CharSequence delim) {
+		for (boolean quoted = false; i < s.length(); ++i) {
+			final char c = s.charAt(i);
+			if (c == '\'') {
+				quoted = !quoted;
+			} else if (!quoted) {
+				for (int j = delim.length(); j > 0;) {
+					if (c == delim.charAt(--j)) {
+						return i;
+					}
+				}
+			}
+		}
+		return -1;
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T, E extends Exception> T eval(Object root, String path, ParamResolver<E> paramResolver) throws ReflectiveOperationException, E {
-		StringTokenizer tokenizerChain = new StringTokenizer(path, ".");
-		outer: while (tokenizerChain.hasMoreTokens()) {
-			String part = tokenizerChain.nextToken();
-			StringTokenizer tokenizerMethod = new StringTokenizer(part, "(,)");
-			String methodName = tokenizerMethod.nextToken();
-			List<Object> args = new ArrayList<>();
-			while (tokenizerMethod.hasMoreTokens()) {
-				String argName = tokenizerMethod.nextToken();
-				args.add(paramResolver.resolve(argName));
+	public static <T, E extends Exception> T eval(Object root, String path, int pos, ParamResolver<E> paramResolver) throws ReflectiveOperationException, E {
+		outer: for (List<Object> args = new ArrayList<>(); pos < path.length(); args.clear()) {
+			String methodName;
+			int i = findNextDelim(path, pos, "(.");
+			if (i < 0) {
+				methodName = path.substring(pos);
+				pos = path.length();
+			} else {
+				methodName = path.substring(pos, i);
+				pos = i + 1;
+				if (path.charAt(i) == '(') {
+					do {
+						i = findNextDelim(path, pos, ",)");
+						if (i > pos) {
+							String param = path.substring(pos, i);
+							args.add(paramResolver.resolve(param));
+							pos = i;
+						} else if (i < 0) {
+							throw new IllegalArgumentException("Missing ')' or ','");
+						}
+					} while (path.charAt(pos++) != ')');
+					++pos;
+				}
 			}
 			Method method = findMethod(root.getClass().getMethods(), methodName, args);
 			if (method != null) {

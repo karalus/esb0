@@ -19,6 +19,7 @@ import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWrapper;
 import com.artofarc.esb.message.ESBConstants;
 
@@ -235,7 +236,7 @@ public class ActionTest extends AbstractESBTest {
 		processJsonAction.addVariable("foes", "/foo/0");
 		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
 		action.addAssignment("_builder", false, "", "javax.json.Json", "createArrayBuilder", null);
-		action.addAssignment("_builder", false, "${_builder.add(foes}", null, null, null);
+		action.addAssignment("_builder", false, "${_builder.add(foes)}", null, null, null);
 		action.addAssignment("test", false, "Str: ${_builder.build.toString}", null, null, null);
 	      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("foes", null, null);
 	      branchOnVariableAction.addBranchRegEx("<.*", action);
@@ -253,6 +254,27 @@ public class ActionTest extends AbstractESBTest {
 		action.addAssignment("encValue", false, "${value}", "java.net.URLEncoder", "encode", null);
 		action.setNextAction(new DumpAction());
 		action.process(context, message);
+	}
+
+	@Test
+	public void testfindDelim() throws Exception {
+		String s = "INSERT INTO LOGPOINT (LOGTIMESTAMP, DESCRIPTION, LOGPOINTNO, MESSAGEID, RELATESTOMESSAGEID, SENDERFQN, PROCESSINSTANCEID, PARENTPROCESSINSTANCEID, SENDERTIMESTAMP, ENVIRONMENT, ORIGINATOR, OPERATION, SERVICE, MEP) VALUES (?,?,?,?,?,?,?,?,?,'?','O''Neal',?,?,?)";
+		int count = 0;
+		for (int i = 0;; ++count, ++i) {
+			i = ReflectionUtils.findNextDelim(s, i, "?");
+			if (i < 0) break;
+		}
+		assertEquals(12, count);
+	}
+	
+	@Test
+	public void testInvokeMethod() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>../../Hello</test>");
+		StringWrapper bodyExpr = new StringWrapper("${body.toString.replace('../../','../').substring(0).toString().replace('e','i')}");
+		SetMessageAction action = new SetMessageAction(null, bodyExpr , null, null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+		assertEquals("<tist>../Hillo</tist>", message.getBodyAsString(context));
 	}
 
    @Test
