@@ -73,4 +73,10 @@ public class EncodingTest extends AbstractESBTest {
 		System.out.println(getBestQualityValue("iso-8859-5; q=0.5, unicode-1-1"));
 	}
 
+	@Test
+	public void testMalformedContentType() {
+		// Before bugfix this resulted in an infinite loop
+		getCharset("application/json; UTF-8");
+	}
+
 }

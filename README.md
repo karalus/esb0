@@ -26,7 +26,7 @@ Features:
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.9.2.
+Current stable version is 1.9.3.
 
 ### Design goals ###
 
@@ -137,9 +137,10 @@ Optional
 
 ### Roadmap ###
 
-__1.10__ (summer 2022):
+__1.10__ (Q1 2023):
 - Bugfix: DumpAction may corrupt message exchange (e.g. when using FastInfoSet)
+- Feature: JMS loadbalancer supporting HA
 - Feature: https://github.com/karalus/esb0/issues/5
 
-__1.11__ (winter 2022):
+__1.11__ (Q2 2023):
 - Optimized for Java 11 and later (deprecate support for Java 8)
