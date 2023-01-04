@@ -41,7 +41,7 @@ public class HttpCheckAlive {
 		return conn;
 	}
 
-	protected boolean isAlive(HttpURLConnection conn, int responseCode) {
+	public boolean isAlive(HttpURLConnection conn, int responseCode) {
 		if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
 			_retryAfter = null;
 			String retryAfter = conn.getHeaderField(HttpConstants.HTTP_HEADER_RETRY_AFTER);
@@ -70,7 +70,7 @@ public class HttpCheckAlive {
 
 		private static final long serialVersionUID = 1L;
 
-		ConnectException(String message) {
+		public ConnectException(String message) {
 			super(message);
 		}
 

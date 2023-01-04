@@ -16,7 +16,6 @@
 package com.artofarc.util;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +48,6 @@ public final class WSDL4JUtil {
 	 * The namespace identifier for the SOAP 1.2 envelope.
 	 */
 	public static final String URI_NS_SOAP_1_2_ENVELOPE = "http://www.w3.org/2003/05/soap-envelope";
-
 
 	private static final WSDLFactory wsdlFactory;
 
@@ -139,7 +137,7 @@ public final class WSDL4JUtil {
 	}
 
 	public static Map<String, String> getMapOperation2SoapActionURI(List<BindingOperation> bindingOperations) {
-		final Map<String, String> result = new HashMap<>();
+		final Map<String, String> result = DataStructures.createHashMap(bindingOperations.size());
 		for (BindingOperation bindingOperation : bindingOperations) {
 			String soapActionURI = WSDL4JUtil.getSOAPActionURI(bindingOperation);
 			if (soapActionURI != null) {

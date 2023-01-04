@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.net.ssl.SSLContext;
@@ -48,6 +49,7 @@ import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWrapper;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.WSDL4JUtil;
 import com.artofarc.util.XMLProcessorFactory;
@@ -568,8 +570,8 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return null;
 	}
 
-	private static HashMap<String, String> createNsDecls(List<NsDecl> nsDecls) {
-		HashMap<String, String> result = new HashMap<>();
+	private static Map<String, String> createNsDecls(List<NsDecl> nsDecls) {
+		Map<String, String> result = DataStructures.createHashMap(nsDecls.size());
 		for (NsDecl nsDecl : nsDecls) {
 			String prefix = nsDecl.getPrefix();
 			result.put(prefix != null ? prefix : "", nsDecl.getNamespace());

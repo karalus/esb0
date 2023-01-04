@@ -17,7 +17,6 @@ package com.artofarc.esb.http;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -27,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.Registry;
+import com.artofarc.util.DataStructures;
 
 public final class HttpEndpointRegistry {
 
@@ -40,36 +40,38 @@ public final class HttpEndpointRegistry {
 		_registry = registry;
 	}
 
-	public Collection<Map.Entry<String, HttpUrlSelector>> getHttpEndpoints() {
-		Map<String, HttpUrlSelector> treeMap = new TreeMap<>();
+	public Map<String, HttpEndpoint> getHttpEndpoints() {
 		synchronized (_httpEndpoints) {
+			Map<String, HttpEndpoint> map = DataStructures.createHashMap(_httpEndpoints.size());
 			for (Iterator<WeakReference<HttpEndpoint>> iter = _httpEndpoints.iterator(); iter.hasNext();) {
 				HttpEndpoint httpEndpoint = iter.next().get();
 				if (httpEndpoint != null) {
-					treeMap.put(httpEndpoint.getName(), null);
+					map.put(httpEndpoint.getName(), httpEndpoint);
 				} else {
 					iter.remove();
 				}
 			}
+			return map;
+		}
+	}
+
+	public Map<String, HttpUrlSelector> getHttpUrlSelectors() {
+		Map<String, HttpUrlSelector> treeMap = new TreeMap<>();
+		for (String httpEndpointName : getHttpEndpoints().keySet()) {
+			treeMap.put(httpEndpointName, null);
 		}
 		synchronized (this) {
 			expungeStaleEntries();
 			treeMap.putAll(_map);
 		}
-		return treeMap.entrySet();
+		return treeMap;
 	}
 
 	public HttpEndpoint validate(HttpEndpoint httpEndpoint) {
 		synchronized (_httpEndpoints) {
-			for (Iterator<WeakReference<HttpEndpoint>> iter = _httpEndpoints.iterator(); iter.hasNext();) {
-				HttpEndpoint pivot = iter.next().get();
-				if (pivot != null) {
-					if (httpEndpoint.getName().equals(pivot.getName()) && httpEndpoint.hasSameConfig(pivot)) {
-						return pivot;
-					}
-				} else {
-					iter.remove();
-				}
+			HttpEndpoint pivot = getHttpEndpoints().get(httpEndpoint.getName());
+			if (pivot != null && httpEndpoint.hasSameConfig(pivot)) {
+				return pivot;
 			}
 			_httpEndpoints.add(new WeakReference<>(httpEndpoint));
 		}

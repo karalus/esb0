@@ -17,7 +17,6 @@ package com.artofarc.esb.action;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -62,7 +61,7 @@ public class UnwrapSOAPAction extends TransformAction {
 		_soap12 = soap12;
 		_mapAction2Operation = mapAction2Operation;
 		if (singlePart && bindingOperations != null) {
-			_operations = new HashMap<>();
+			_operations = DataStructures.createHashMap(bindingOperations.size());
 			for (BindingOperation bindingOperation : bindingOperations) {
 				_operations.put(bindingOperation.getName(), getInputElementQName(bindingOperation, soap12));
 			}

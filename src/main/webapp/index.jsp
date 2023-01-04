@@ -237,7 +237,7 @@ input[type="submit"][value="false"] {
 <br>HttpEndpoints:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Addresses</b></td><td><b>Active</b></td><td><b>Total in use</b></td><td><b>Total connections</b></td></tr>
 <%
-			for (Map.Entry<String, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpEndpoints()) {
+			for (Map.Entry<String, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpUrlSelectors().entrySet()) {
 				HttpUrlSelector httpUrl = entry.getValue();
 				%>
 				<tr><td><%=entry.getKey()%></td><td><%=httpUrl != null ? httpUrl.getHttpEndpoint().getHttpUrls() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getActiveCount() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getInUseTotal() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getTotalConnectionsCount() : "N/A"%></td></tr>
@@ -320,7 +320,7 @@ Upload Service-JAR:
 		if (a instanceof Directory) {
 			List<String> artifacts = DataStructures.asSortedList(((Directory) a).getArtifacts().keySet());
 %>
-<br>Filesystem directory "<%=a.getURI()%>" (<%=artifacts.size()%> artifacts)
+<br>Filesystem directory ("<%=System.getProperty("esb0.root")%>")"<%=a.getURI()%>" (<%=artifacts.size()%> artifacts)
 <%
 			if (!a.getURI().isEmpty()) {
 %>

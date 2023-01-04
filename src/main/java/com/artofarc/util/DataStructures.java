@@ -36,20 +36,24 @@ public final class DataStructures {
 		return new AbstractMap.SimpleImmutableEntry<>(key, value);
 	}
 
+	public static <K, V> Map<K, V> createHashMap(int size) {
+		return size == 0 ? Collections.emptyMap() : size > 12 ? new HashMap<K, V>(size * 4 / 3) : new HashMap<>();
+	}
+
 	@SuppressWarnings("unchecked")
-	public static <K, V> Map<V, K> createMap(Object... keyValues) {
-		Map<Object, Object> result = new HashMap<>(keyValues.length >> 1);
+	public static <K, V> Map<K, V> createMap(Object... keyValues) {
+		Map<Object, Object> result = createHashMap(keyValues.length);
 		for (int i = 0; i < keyValues.length; i += 2) {
 			result.put(keyValues[i], keyValues[i + 1]);
 		}
-		return (Map<V, K>) result;
+		return (Map<K, V>) result;
 	}
 
 	/**
 	 * In case of a collision return empty map.
 	 */
 	public static <K, V> Map<V, K> inverseMap(Map<K, V> map) {
-		Map<V, K> result = new HashMap<>();
+		Map<V, K> result = createHashMap(map.size());
 		for (Map.Entry<K, V> entry : map.entrySet()) {
 			if (result.put(entry.getValue(), entry.getKey()) != null) {
 				return Collections.emptyMap();
