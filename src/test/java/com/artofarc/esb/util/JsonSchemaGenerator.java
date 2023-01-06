@@ -244,7 +244,8 @@ public final class JsonSchemaGenerator {
 			case "boolean":
 				break;
 			default:
-				throw new IllegalArgumentException("No mapping defined for " + jsonType);
+				jsonType = "string";
+				break;
 			}
 			if (nillable) {
 				jsonGenerator.writeStartArray("type").write(jsonType).write("null").writeEnd();

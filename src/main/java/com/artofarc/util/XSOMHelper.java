@@ -441,7 +441,7 @@ public final class XSOMHelper {
 			XSSimpleType simpleType = unionType.getMember(--i);
 			XSSimpleType itemType = getItemType(simpleType);
 			if (itemType != null) {
-				if (xsdType == null || xsdType.equals(getJsonBaseType(itemType))) {
+				if (xsdType == null || xsdType.equals(getPrimitiveBaseType(itemType, "integer"))) {
 					if (simpleType.isLocal()) {
 						throw new SAXException("xs:union type must not contain anonymous xs:list type");
 					}
@@ -570,20 +570,18 @@ public final class XSOMHelper {
 	}
 
 	public static String getJsonType(XSSimpleType simpleType) {
-		while (!simpleType.isPrimitive()) {
-			if (simpleType.getTargetNamespace().equals(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-					&& (simpleType.getName().equals("int") || simpleType.getName().equals("long") || simpleType.getName().equals("integer"))) {
-				break;
-			}
-			simpleType = simpleType.getBaseType().asSimpleType();
-		}
-		return simpleType.getName();
+		return getPrimitiveBaseType(simpleType, "int", "long", "integer");
 	}
 
-	public static String getJsonBaseType(XSSimpleType simpleType) {
+	private static String getPrimitiveBaseType(XSSimpleType simpleType, String... derivedTypes) {
 		while (!simpleType.isPrimitive()) {
-			if (simpleType.getTargetNamespace().equals(XMLConstants.W3C_XML_SCHEMA_NS_URI) && simpleType.getName().equals("integer")) {
-				break;
+			if (simpleType.getTargetNamespace().equals(XMLConstants.W3C_XML_SCHEMA_NS_URI)) {
+				String name = simpleType.getName();
+				for (String derivedType : derivedTypes) {
+					if (name.equals(derivedType)) {
+						return name;
+					}
+				}
 			}
 			simpleType = simpleType.getBaseType().asSimpleType();
 		}

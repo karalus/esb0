@@ -87,7 +87,7 @@ public final class DataStructures {
 		if (noop) {
 			return Collections.emptyList();
 		}
-		ArrayList<T> list = new ArrayList<>(coll);
+		List<T> list = new ArrayList<>(coll);
 		coll.clear();
 		return list;
 	}
