@@ -37,12 +37,12 @@ public final class DataStructures {
 	}
 
 	public static <K, V> Map<K, V> createHashMap(int size) {
-		return size == 0 ? Collections.emptyMap() : size > 12 ? new HashMap<K, V>(size * 4 / 3) : new HashMap<>();
+		return size == 0 ? Collections.emptyMap() : size > 12 ? new HashMap<>(size * 4 / 3) : new HashMap<>();
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <K, V> Map<K, V> createMap(Object... keyValues) {
-		Map<Object, Object> result = createHashMap(keyValues.length);
+		Map<Object, Object> result = createHashMap(keyValues.length / 2);
 		for (int i = 0; i < keyValues.length; i += 2) {
 			result.put(keyValues[i], keyValues[i + 1]);
 		}
