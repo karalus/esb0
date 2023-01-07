@@ -113,11 +113,9 @@ Test if the admin UI is accessible (For access use a user which has the role "es
 
 ### Working with the sources ###
 
-The GIT repository contains Eclipse project files for working with Eclipse from version 3.7.2 till recent.
-
-Any other IDE will also do since there is nothing special about it:
+Modern IDEs typically recognize maven projects and create a project based on the pom.xml:
 1) Either you use a maven project import wizard
-2) Or create something like a "Dynamic Web Project"
+2) Or create something like a "Dynamic Web Project" as the result should be a WAR
 
 ### On which projects/technology does ESB Zero depend on? ###
 There are only very few dependencies:
