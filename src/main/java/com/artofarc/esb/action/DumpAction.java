@@ -20,6 +20,7 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
@@ -75,7 +76,7 @@ public class DumpAction extends TerminalAction {
 						fileOutputStream.write(message.getBodyAsByteArray(context));
 					}
 					logger.info("Body dumped into " + dumpFile);
-				} else if (_binary || message.isFI()) {
+				} else if (_binary || HttpConstants.isFastInfoset(message.getContentType())) {
 					ByteArrayInputStream bis = new ByteArrayInputStream(message.getBodyAsByteArray(context));
 					logger.info("Body length: " + bis.length());
 					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(bis));

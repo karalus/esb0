@@ -59,7 +59,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testUnwrapSOAP11() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.setContentType("text/xml; charset=\"utf-8\"");
       Action action = createUnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -230,7 +230,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testValidate() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.setContentType("text/xml; charset=\"utf-8\"");
       Action action = createUnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -249,7 +249,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testValidateDirect() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.setContentType("text/xml; charset=\"utf-8\"");
       Action action = createUnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -266,7 +266,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testTransform() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.setContentType("text/xml; charset=\"utf-8\"");
       Action action = createUnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -284,7 +284,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testTransformWithStaticData() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.setContentType("text/xml; charset=\"utf-8\"");
       Action action = createUnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -310,7 +310,7 @@ public class SOAPTest extends AbstractESBTest {
    public void testTransformWithModule() throws Exception {
       GlobalContext globalContext = getGlobalContext();
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.setContentType("text/xml; charset=\"utf-8\"");
       Action action = createUnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -338,7 +338,7 @@ public class SOAPTest extends AbstractESBTest {
    public void testTransformWithModuleFromRoot() throws Exception {
       GlobalContext globalContext = getGlobalContext();
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.setContentType("text/xml; charset=\"utf-8\"");
       Action action = createUnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
@@ -421,7 +421,7 @@ public class SOAPTest extends AbstractESBTest {
       WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");
 
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.setContentType("text/xml; charset=\"utf-8\"");
       message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
       
       @SuppressWarnings("unchecked")
@@ -464,7 +464,7 @@ public class SOAPTest extends AbstractESBTest {
    @Test
    public void testInsertReplyContext() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
-      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+      message.setContentType("text/xml; charset=\"utf-8\"");
       Action action = createUnwrapSOAPAction(false, true);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);

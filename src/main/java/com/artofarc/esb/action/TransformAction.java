@@ -125,7 +125,7 @@ public class TransformAction extends Action {
 					xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, DataStructures.asXMLString(message.getBody()), null, null);
 					break;
 				default:
-					if (HttpConstants.isNotXML(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE))) {
+					if (HttpConstants.isNotXML(message.getContentType())) {
 						xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
 					} else {
 						xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);

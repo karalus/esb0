@@ -78,17 +78,11 @@ public class FileAction extends TerminalAction {
 
 	@Override
 	protected void execute(Context context, ESBMessage message) throws Exception {
-		String contentType = HttpConstants.parseContentType(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
 		String filename = (String) eval(_filename, context, message);
-		String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(contentType) : "";
-		boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
-		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
-		if (_mkdirs) {
-			mkdirs(file.getCanonicalFile().getParentFile());
-		}
 		String verb = (String) eval(_verb, context, message);
 		if (verb == null) {
 			message.clearHeaders();
+			File file = new File(_destDir, filename);
 			if (file.isDirectory()) {
 				JsonArrayBuilder builder = JsonFactoryHelper.JSON_BUILDER_FACTORY.createArrayBuilder();
 				for (File f : file.listFiles()) {
@@ -106,6 +100,16 @@ public class FileAction extends TerminalAction {
 				message.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFileInputStream(file));
 			}
 		} else {
+			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+			if (contentType == null) {
+				contentType= message.getContentType();
+			}
+			String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(HttpConstants.parseContentType(contentType)) : "";
+			boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
+			File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
+			if (_mkdirs) {
+				mkdirs(file.getCanonicalFile().getParentFile());
+			}
 			boolean append = false;
 			switch (verb) {
 			case "ENTRY_MODIFY":

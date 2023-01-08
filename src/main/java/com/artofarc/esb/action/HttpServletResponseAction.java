@@ -89,7 +89,7 @@ public class HttpServletResponseAction extends Action {
 				if (inPipeline) {
 					message.reset(BodyType.OUTPUT_STREAM, new IOUtils.PreventFlushOutputStream(response.getOutputStream()));
 				} else if (message.getBodyType() != BodyType.INVALID) {
-					Long contentLength = message.getByteLength();
+					Long contentLength = message.getOutputLength();
 					if (contentLength != null) {
 						response.setContentLengthLong(contentLength);
 						message.writeTo(response.getOutputStream(), context);
@@ -107,6 +107,10 @@ public class HttpServletResponseAction extends Action {
 
 	private static boolean checkContentType(ESBMessage message, HttpServletResponse response) throws Exception {
 		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType == null) {
+			contentType = message.getContentType();
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
+		}
 		if (contentType != null) {
 			String accept = message.getVariable(HTTP_HEADER_ACCEPT);
 			if (accept != null && !isAcceptable(accept, contentType)) {

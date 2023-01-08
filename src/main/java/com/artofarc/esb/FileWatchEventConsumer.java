@@ -133,6 +133,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 				}
 			}
 		} else {
+			msg.setContentType(MimeHelper.guessContentTypeFromName(filename));
 			msg.reset(BodyType.INPUT_STREAM, inputStream);
 		}
 	}

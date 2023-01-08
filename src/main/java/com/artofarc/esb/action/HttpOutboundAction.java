@@ -76,19 +76,16 @@ public class HttpOutboundAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (needsCharset(contentType)) {
-			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
-		}
+		message.determineSinkContentType();
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			if (inPipeline) {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				message.reset(BodyType.OUTPUT_STREAM, bos);
-				return new ExecutionContext(bos); 
+				return new ExecutionContext(bos);
 			}
 			return null;
 		} else {
-			Long contentLength = inPipeline ? null : message.getByteLength();
+			Long contentLength = inPipeline ? null : message.getOutputLength();
 			HttpUrlConnection httpUrlConnection = createHttpURLConnection(context, message, contentLength);
 			try {
 				if (inPipeline) {

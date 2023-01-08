@@ -53,7 +53,7 @@ public class ProcessJsonAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		String contentType = message.getContentType();
 		if (isNotJSON(contentType)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}

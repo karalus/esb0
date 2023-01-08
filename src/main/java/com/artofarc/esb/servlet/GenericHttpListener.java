@@ -37,7 +37,6 @@ import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.util.DataStructures;
 
 import static com.artofarc.esb.message.ESBConstants.*;
@@ -129,7 +128,6 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(appendHttpUrlPath, pathInfo.substring(httpConsumer.getBindPath().length()));
 		}
 		message.putVariableIfNotNull(QueryString, request.getQueryString());
-		message.setCharset(getCharset(request.getContentType()));
 		for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 			String headerName = headerNames.nextElement();
 			message.putHeader(headerName, request.getHeader(headerName));
@@ -142,9 +140,7 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(ClientCertificate, certs[0]);
 		}
 		if (bodyPresent) {
-			message.setContentEncoding(message.removeHeader(HTTP_HEADER_CONTENT_ENCODING));
-			MimeHelper.parseMultipart(message, request.getContentType());
-			message.setContentType(message.getHeader(HTTP_HEADER_CONTENT_TYPE));
+			message.prepareContent();
 		}
 		// copy into variable for HttpServletResponseAction
 		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));

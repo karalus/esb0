@@ -139,10 +139,7 @@ public class JMSAction extends Action {
 			} else if (_isBytesMessage) {
 				BytesMessage bytesMessage = session.createBytesMessage();
 				if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
-					String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-					if (needsCharset(contentType)) {
-						message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
-					}
+					message.determineSinkContentType();
 					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipart, message.getBodyAsByteArray(context), false, true);
 					mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
 					message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));

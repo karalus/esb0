@@ -32,11 +32,9 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import com.artofarc.esb.SchedulingConsumerPort;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
 import com.artofarc.util.ConcurrentResourcePool;
@@ -407,12 +405,19 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws Exception {
+		for (@SuppressWarnings("unchecked")
+		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
+			String propertyName = propertyNames.nextElement();
+			esbMessage.putHeader(propertyName, message.getObjectProperty(propertyName));
+		}
 		if (message instanceof BytesMessage) {
 			esbMessage.reset(BodyType.INPUT_STREAM, new BytesMessageInputStream((BytesMessage) message), message.getStringProperty(ESBConstants.Charset));
+			esbMessage.prepareContent();
 		} else if (message instanceof TextMessage) {
 			TextMessage textMessage = (TextMessage) message;
 			esbMessage.reset(BodyType.STRING, textMessage.getText());
 			message.clearBody();
+			esbMessage.prepareContent();
 		}
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
 		esbMessage.putVariable(ESBConstants.JMSTimestamp, message.getJMSTimestamp());
@@ -424,12 +429,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		if (destinationName != null) {
 			esbMessage.putVariable(destinationName.getKey(), destinationName.getValue());
 		}
-		for (@SuppressWarnings("unchecked")
-		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
-			String propertyName = propertyNames.nextElement();
-			esbMessage.putHeader(propertyName, message.getObjectProperty(propertyName));
-		}
-		MimeHelper.parseMultipart(esbMessage, esbMessage.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
 	}
 
 	class JMSWorker implements MessageListener {

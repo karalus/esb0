@@ -164,7 +164,7 @@ public abstract class JDBCAction extends Action {
 				if (result.hasComplexContent()) {
 					message.clearHeaders();
 					if (message.isSink()) {
-						try (JsonGenerator jsonGenerator = message.getBodyAsJsonGenerator()) {
+						try (JsonGenerator jsonGenerator = message.createJsonGeneratorFromBodyAsSink()) {
 							result.writeJson(jsonGenerator);
 						}
 					} else {
@@ -245,7 +245,7 @@ public abstract class JDBCAction extends Action {
 						if (message.getBodyType() == BodyType.INVALID) {
 							ps.setNull(param.getPos(), BLOB);
 						} else {
-							Long length = message.getByteLength();
+							Long length = message.getOutputLength();
 							if (param.getTruncate() == null || length != null && length <= param.getTruncate()) {
 								ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
 							} else {
