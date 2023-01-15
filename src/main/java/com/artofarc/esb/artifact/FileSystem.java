@@ -164,9 +164,6 @@ public abstract class FileSystem {
 		} else if (artifact instanceof JNDIObjectFactoryArtifact) {
 			artifact.validate(globalContext);
 			changeSet.getJNDIObjectFactoryArtifacts().add((JNDIObjectFactoryArtifact) artifact);
-		} else if (artifact instanceof DataSourceArtifact) {
-			artifact.validate(globalContext);
-			changeSet.getDataSourceArtifacts().add((DataSourceArtifact) artifact);
 		}
 	}
 
@@ -199,9 +196,8 @@ public abstract class FileSystem {
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(this, parent, name);
 		case JNDIObjectFactoryArtifact.FILE_EXTENSION:
+		case "dsdef":
 			return new JNDIObjectFactoryArtifact(this, parent, name);
-		case DataSourceArtifact.FILE_EXTENSION:
-			return new DataSourceArtifact(this, parent, name);
 		case ClassLoaderArtifact.FILE_EXTENSION:
 			return new ClassLoaderArtifact(this, parent, name);
 		case "jar":
@@ -245,7 +241,7 @@ public abstract class FileSystem {
 				if (!XMLCatalog.isXMLCatalog(child)) {
 					detachOrphans(child, visited);
 				}
-			} else if (!(artifact instanceof DataSourceArtifact || visited.contains(artifact.getURI()))) {
+			} else if (!(artifact instanceof JNDIObjectFactoryArtifact || visited.contains(artifact.getURI()))) {
 				artifact.detachFromReferenced();
 			}
 		}
@@ -261,7 +257,7 @@ public abstract class FileSystem {
 					iterator.remove();
 					noteChange(artifact.getURI(), ChangeType.DELETE);
 				}
-			} else if (!(artifact instanceof DataSourceArtifact || visited.contains(artifact.getURI()))) {
+			} else if (!(artifact instanceof JNDIObjectFactoryArtifact || visited.contains(artifact.getURI()))) {
 				logger.info("Remove: " + artifact);
 				iterator.remove();
 				noteChange(artifact.getURI(), ChangeType.DELETE);
@@ -304,7 +300,6 @@ public abstract class FileSystem {
 		private final List<Future<ServiceArtifact>> futures = new ArrayList<>();
 		private final List<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
 		private final List<JNDIObjectFactoryArtifact> jndiObjectFactoryArtifacts = new ArrayList<>();
-		private final List<DataSourceArtifact> dataSourceArtifacts = new ArrayList<>();
 		private final List<Artifact> deletedArtifacts = new ArrayList<>();
 
 		public FileSystem getFileSystem() {
@@ -344,10 +339,6 @@ public abstract class FileSystem {
 
 		public List<JNDIObjectFactoryArtifact> getJNDIObjectFactoryArtifacts() {
 			return jndiObjectFactoryArtifacts;
-		}
-
-		public List<DataSourceArtifact> getDataSourceArtifacts() {
-			return dataSourceArtifacts;
 		}
 
 		public List<Artifact> getDeletedArtifacts() {

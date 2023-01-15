@@ -756,10 +756,6 @@
 							<attribute name="pollInterval" type="int" default="0" />
 							<attribute name="at" type="time" />
 							<attribute name="timeUnit" type="string" default="milliseconds" />
-							<!-- deprecated -->
-							<attribute name="maximumRetries" type="int" />
-							<!-- deprecated -->
-							<attribute name="redeliveryDelay" type="unsignedInt" />
 						</complexType>
 					</element>
 					<element name="timerBinding">
@@ -813,15 +809,6 @@
 			<attribute name="allowCoreThreadTimeOut" type="boolean" default="false" />
 		</complexType>
 	</element>
-	<!-- deprecated -->
-	<element name="dataSource">
-		<complexType>
-			<sequence>
-				<element ref="tns:property" maxOccurs="unbounded"/>
-			</sequence>
-			<attribute name="name" type="tns:string1" use="required" />
-		</complexType>
-	</element>
 	<element name="jndiObjectFactory">
 		<complexType>
 			<sequence>
@@ -829,8 +816,8 @@
 			</sequence>
 			<attribute name="name" type="tns:string1" use="required" />
 			<attribute name="classLoader" type="anyURI" />
+			<attribute name="type" type="tns:identifier" use="required" />
 			<attribute name="factory" type="tns:identifier" />
-			<attribute name="type" type="tns:identifier" />
 			<attribute name="esb0Factory" type="tns:identifier" />
 			<attribute name="adminPostAction" type="tns:string1" />
 		</complexType>

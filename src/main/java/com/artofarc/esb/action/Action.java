@@ -271,13 +271,6 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		return startAction;
 	}
 
-	/**
-	 * @deprecated Use {@link #eval(String,Context,ESBMessage)} instead
-	 */
-	public final Object bindVariable(String exp, Context context, final ESBMessage message) throws Exception {
-		return eval(exp, context, message);
-	}
-
 	protected final void checkAtomic(Object value, String exp) throws ExecutionException {
 		if (!(value instanceof String || value instanceof Number || value instanceof Boolean)) {
 			throw new ExecutionException(this, "Value for " + exp + " is not an atomic type: " + value.getClass());

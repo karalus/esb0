@@ -15,15 +15,12 @@
  */
 package com.artofarc.esb.jms;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.*;
 import javax.naming.NamingException;
@@ -37,104 +34,9 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
-import com.artofarc.util.ConcurrentResourcePool;
-import com.artofarc.util.IOUtils;
 import com.artofarc.util.ReflectionUtils;
 
 public final class JMSConsumer extends SchedulingConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
-
-	static class BytesMessageInputStream extends InputStream implements IOUtils.PredictableInputStream{
-		final BytesMessage _bytesMessage;
-		final long length; 
-		long available, markpos = -1;
-
-		BytesMessageInputStream(BytesMessage bytesMessage) throws JMSException {
-			_bytesMessage = bytesMessage;
-			available = length = bytesMessage.getBodyLength();
-		}
-
-		@Override
-		public long length() {
-			return available;
-		}
-
-		@Override
-		public int available() {
-			return available > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) available;
-		}
-
- 		@Override
-		public boolean markSupported() {
-			return true;
-		}
-
-		public void mark(int readlimit) {
-			markpos = length - available;
-		}
-
-		@Override
-		public void reset() throws IOException {
-			if (markpos < 0)
-				throw new IOException("Resetting to invalid mark");
-			try {
-				_bytesMessage.reset();
-			} catch (JMSException e) {
-				throw new IOException(e);
-			}
-			available = length;
-			if (skip(markpos) != markpos) {
-				throw new IOException("Resetting to mark did not work");
-			}
-		}
-
-		@Override
-		public int read() throws IOException {
-			if (available == 0L) {
-				return -1;
-			}
-			try {
-				final int c = _bytesMessage.readUnsignedByte();
-				--available;
-				return c;
-			} catch (JMSException e) {
-				throw new IOException(e);
-			}
-		}
-
-		@Override
-		public int read(byte[] b, int off, int len) throws IOException {
-			if (available == 0L) {
-				return -1;
-			}
-			try {
-				if (off == 0) {
-					len = _bytesMessage.readBytes(b, len);
-				} else {
-					final byte[] ba = new byte[len];
-					len = _bytesMessage.readBytes(ba, len);
-					if (len > 0) {
-						System.arraycopy(ba, 0, b, off, len);
-					}
-				}
-				if (len > 0 && (available -= len) == 0L && markpos < 0L) {
-					_bytesMessage.clearBody();
-				}
-				return len;
-			} catch (JMSException e) {
-				throw new IOException(e);
-			}
-		}
-
-		@Override
-		public void close() throws IOException {
-			available = 0;
-			try {
-				_bytesMessage.clearBody();
-			} catch (JMSException e) {
-				throw new IOException(e);
-			}
-		}
-	}
 
 	private final JMSConnectionData _jmsConnectionData;
 	private Destination _destination;
@@ -145,9 +47,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private final boolean _shared;
 	private final String _messageSelector;
 	private final JMSWorker[] _jmsWorker;
-	private final Integer _maximumRetries;
-	private final ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException> _retries;
-	private final Long _redeliveryDelay;
 	private final long _rampUpThreshold = 1000L;
 	private final long _rampUpDelay = 2000L;
 	private final long _rampDownThreshold = 100L;
@@ -162,7 +61,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private Future<?> _control;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, String subscription,
-			boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, long pollInterval, String timeUnit, XMLGregorianCalendar at, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
+			boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, long pollInterval, String timeUnit, XMLGregorianCalendar at) throws NamingException, JMSException {
 
 		super(uri, workerPool, at, timeUnit, pollInterval, false);
 		_jmsConnectionData = jmsConnectionData;
@@ -189,19 +88,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		_noLocal = noLocal;
 		_shared = shared;
 		_jmsWorker = new JMSWorker[workerCount];
-		_maximumRetries = maximumRetries;
-		if (maximumRetries != null) {
-			_retries = new ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException>() {
-				
-				@Override
-				protected AtomicInteger createResource(String descriptor, Void param) {
-					return new AtomicInteger();
-				}
-			};
-		} else {
-			_retries = null;
-		}
-		_redeliveryDelay = redeliveryDelay;
 		_minWorkerCount = minWorkerCount;
 	}
 
@@ -237,10 +123,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 	public long getCurrentSentReceiveDelay() {
 		return _currentSentReceiveDelay;
-	}
-
-	public int getRetries() {
-		return _retries != null ? _retries.getResourceDescriptors().size() : -1;
 	}
 
 	@Override
@@ -300,13 +182,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	void resume() throws JMSException {
-		if (_retries != null) {
-			try {
-				_retries.reset(true);
-			} catch (Exception e) {
-				// ignore
-			}
-		}
 		for (int i = 0; i < _workerCount;) {
 			JMSWorker jmsWorker = _jmsWorker[i++];
 			jmsWorker.open();
@@ -512,32 +387,13 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 				fillESBMessage(esbMessage, message);
 				processInternal(_context, esbMessage);
 				_session.commit();
-				if (message.getJMSRedelivered() ) {
-					if (_retries != null) {
-						_retries.removeResource(message.getJMSMessageID());
-					}
-				} else {
-					long receiveTimestamp = esbMessage.getVariable(ESBConstants.initialTimestamp);
-					long sentReceiveDelay = (_currentSentReceiveDelay * _significance + receiveTimestamp - message.getJMSTimestamp()) / (_significance + 1);
-					controlJMSWorkerPool(_currentSentReceiveDelay = sentReceiveDelay, receiveTimestamp);
-				}
+				long receiveTimestamp = esbMessage.getVariable(ESBConstants.initialTimestamp);
+				long sentReceiveDelay = (_currentSentReceiveDelay * _significance + receiveTimestamp - message.getJMSTimestamp()) / (_significance + 1);
+				controlJMSWorkerPool(_currentSentReceiveDelay = sentReceiveDelay, receiveTimestamp);
 				return true;
 			} catch (Exception e) {
-				if (_redeliveryDelay != null) {
-					Thread.sleep(_redeliveryDelay);
-				}
 				logger.info("Rolling back for " + getKey(), e);
 				_session.rollback();
-				if (_retries != null) {
-					AtomicInteger retries = _retries.getResource(message.getJMSMessageID());
-					if (retries.incrementAndGet() > _maximumRetries) {
-						try {
-							enable(false);
-						} catch (JMSException je) {
-							logger.error("Failed to disable after reaching maximumRetries: " + getKey(), je);
-						}
-					}
-				}
 				return false;
 			}
 		}

@@ -95,7 +95,7 @@ input[type="submit"][value="false"] {
 		case "JMSServices":
 			%>
 <br>JMSServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>WorkerCount</b></td><td><b>Completed tasks</b></td><td><b>Current SentReceiveDelay</b></td><td><b>Current retries</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>WorkerCount</b></td><td><b>Completed tasks</b></td><td><b>Current SentReceiveDelay</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 			for (JMSConsumer jmsConsumer : DataStructures.asSortedList(globalContext.getJMSConsumers())) {
 				%>
@@ -105,7 +105,6 @@ input[type="submit"][value="false"] {
 					<td><%=jmsConsumer.getWorkerCount()%></td>
 					<td><%=jmsConsumer.getCompletedTaskCount()%></td>
 					<td><%=jmsConsumer.getCurrentSentReceiveDelay()%></td>
-					<td><%=jmsConsumer.getRetries()%></td>
 					<td><%=jmsConsumer.getLastChangeOfState()%></td>
 					<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=jmsConsumer.getUri()%>?JMSServices"><input type="submit" value="<%=jmsConsumer.isEnabled()%>"/></form></td>
 					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=jmsConsumer.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=jmsConsumer.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="JMSServices"/></form></td>
@@ -355,7 +354,7 @@ Upload Service-JAR:
 				%>
 				<tr><td>Namespace</td><td><%=((SchemaArtifact) a).getNamespace()%></td></tr>
 				<%
-			} else if (a instanceof JNDIObjectFactoryArtifact || a instanceof DataSourceArtifact) {
+			} else if (a instanceof JNDIObjectFactoryArtifact) {
 				%>
 				<tr><td></td><td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>" onsubmit="return confirm('Are you sure to delete \'<%=a.getURI()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td></tr>
 				<%

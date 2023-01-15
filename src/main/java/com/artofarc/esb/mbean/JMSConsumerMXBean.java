@@ -27,8 +27,6 @@ public interface JMSConsumerMXBean extends ConsumerPortMXBean {
 
 	long getCurrentSentReceiveDelay();
 
-	int getRetries();
-
 	Boolean unsubscribe();
 
 }

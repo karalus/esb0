@@ -84,11 +84,6 @@ public final class DeployHelper {
 				closer.add((AutoCloseable) object);
 			}
 		});
-		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), DataSourceArtifact.class).forEach(dataSourceArtifact -> {
-			Object dataSource = globalContext.removeProperty(dataSourceArtifact.getDataSourceName());
-			// close later
-			closer.add((AutoCloseable) dataSource);
-		});
 		for (WorkerPoolArtifact workerPoolArtifact : changeSet.getWorkerPoolArtifacts()) {
 			String name = IOUtils.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
@@ -120,20 +115,6 @@ public final class DeployHelper {
 				// no oldObject
 			}
 			globalContext.putProperty(jndiObjectFactoryArtifact.getJndiName(), jndiObjectFactoryArtifact.createObject());
-		}
-		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
-			try {
-				Object oldDataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
-				if (dataSourceArtifact.tryUpdate(oldDataSource)) {
-					continue;
-				}
-				if (oldDataSource instanceof AutoCloseable) {
-					closer.add((AutoCloseable) oldDataSource);
-				}
-			} catch (javax.naming.NamingException e) {
-				// ignore
-			}
-			globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
 		}
 		for (ServiceArtifact service : serviceArtifacts) {
 			ConsumerPort oldConsumerPort;

@@ -188,10 +188,6 @@ public class AdminAction extends Action {
 						} else {
 							throwHttpError(message, SC_METHOD_NOT_ALLOWED, new ExecutionException(this, resource));
 						}
-					} else if (artifact instanceof DataSourceArtifact) {
-						DataSourceArtifact dataSourceArtifact = (DataSourceArtifact) artifact;
-						Object dataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
-						ReflectionUtils.eval(dataSource, "hikariPoolMXBean.softEvictConnections");
 					} else {
 						throwHttpError(message, SC_NOT_FOUND, new ExecutionException(this, resource));
 					}

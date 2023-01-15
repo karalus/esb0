@@ -17,7 +17,6 @@ package com.artofarc.esb.action;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringTokenizer;
 
 import javax.json.*;
 
@@ -25,7 +24,6 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.URLUtils;
 
 /**
  * Extract data from message using JSON Pointer.
@@ -79,50 +77,15 @@ public class ProcessJsonAction extends Action {
 
 	protected final static class Assignment {
 		private final String _name;
-		private final ArrayList<String> _pointer = new ArrayList<>();
-		//private final javax.json.JsonPointer _jsonPointer;
+		private final JsonPointer _jsonPointer;
 
 		public Assignment(String name, String jsonPointer) {
 			_name = name;
-			StringTokenizer st = new StringTokenizer(jsonPointer, "/");
-			while (st.hasMoreTokens()) {
-				_pointer.add(URLUtils.decode(st.nextToken().replace("~1","/").replace("~0", "~")));
-			}
-			// needs javax.json v1.1 (JSR 374)
-			//_jsonPointer = Json.createPointer(jsonPointer);
+			_jsonPointer = Json.createPointer(jsonPointer);
 		}
 
-//		private JsonValue getValue(JsonStructure json) {
-//			return _jsonPointer.getValue(json);
-//		}
-
 		private JsonValue getValue(JsonStructure json) {
-			JsonValue result = json;
-			for (int i = 0; result != null && i < _pointer.size(); ++i) {
-				String fragment = _pointer.get(i);
-				switch (result.getValueType()) {
-				case OBJECT:
-					JsonObject jsonObject = (JsonObject) result;
-					result = jsonObject.get(fragment);
-					break;
-				case ARRAY:
-					JsonArray jsonArray = (JsonArray) result;
-					try {
-						int index = Integer.parseInt(fragment);
-						result = jsonArray.size() > index ? jsonArray.get(index) : null;
-					} catch (NumberFormatException e) {
-						result = null;
-					}
-					break;
-				default:
-					result = null;
-					break;
-				}
-			}
-			if (result == null) {
-				throw new JsonException("result is null");
-			}
-			return result;
+			return _jsonPointer.getValue(json);
 		}
 
 		public Object getValueAsObject(JsonStructure json) {
@@ -147,7 +110,6 @@ public class ProcessJsonAction extends Action {
 				return null;
 			}
 		}
-
 	}
 
 }
