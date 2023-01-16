@@ -11,9 +11,19 @@
 		</xsl:attribute>
 	</xsl:template>
 	<xsl:template match="ns:setMessage2">
-		<alterMessage>
+		<update>
 			<xsl:apply-templates select="@*|node()" />
-		</alterMessage>
+		</update>
+	</xsl:template>
+	<xsl:template match="ns:executeJava2">
+		<executeAction>
+			<xsl:apply-templates select="@*|node()" />
+		</executeAction>
+	</xsl:template>
+	<xsl:template match="ns:jdbcParameter2">
+		<parameter>
+			<xsl:apply-templates select="@*|node()" />
+		</parameter>
 	</xsl:template>
 	<xsl:template match="ns:dataSource">
 		<jndiObjectFactory name="{@name}" classLoader="/esb0-utils/esb0-utils" type="javax.sql.DataSource" esb0Factory="com.artofarc.esb.utils.artifact.HikariDataSourceFactory" adminPostAction="hikariPoolMXBean.softEvictConnections" xmlns="http://www.artofarc.com/esb/service">

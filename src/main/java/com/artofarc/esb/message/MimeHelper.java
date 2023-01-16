@@ -99,7 +99,8 @@ public final class MimeHelper {
 				}
 				String name = pair.substring(0, i);
 				String exp = pair.substring(i + 1);
-				Object value = evaluator.eval(exp, context, message);
+				boolean isBody = "${body}".equals(exp);
+				Object value = isBody ? message.getBodyAsByteArray(context) : evaluator.eval(exp, context, message);
 				if (value instanceof MimeBodyPart) {
 					part = (MimeBodyPart) value;
 					part.setContentID(null);
@@ -114,13 +115,13 @@ public final class MimeHelper {
 					}
 				} else {
 					InternetHeaders headers = new InternetHeaders();
-					if (exp.startsWith("${body")) {
+					if (isBody) {
 						headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 						for (Entry<String, Object> entry : message.getHeaders()) {
 							headers.setHeader(entry.getKey(), entry.getValue().toString());
 						}
 					}
-					part = new MimeBodyPart(headers, value instanceof byte[] ? (byte[]) value : value.toString().getBytes(ESBMessage.CHARSET_DEFAULT));
+					part = new MimeBodyPart(headers, value instanceof byte[] ? (byte[]) value : value != null ? value.toString().getBytes(ESBMessage.CHARSET_DEFAULT) : null);
 					setDisposition(part, "form-data", name);
 				}
 				mmp.addBodyPart(part);

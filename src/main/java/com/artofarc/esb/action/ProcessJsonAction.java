@@ -55,15 +55,15 @@ public class ProcessJsonAction extends Action {
 		if (isNotJSON(contentType)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		JsonStructure json = message.getBodyAsJsonValue(context);
+		JsonValue json = message.getBodyAsJsonValue(context);
 		for (Assignment variable : _variables) {
-			Object value = variable.getValueAsObject(json);
+			Object value = variable.getValueAsObject((JsonStructure) json);
 			if (value != null) {
 				message.getVariables().put(variable._name, value);
 			}
 		}
 		for (Assignment header : _headers) {
-			Object value = header.getValueAsObject(json);
+			Object value = header.getValueAsObject((JsonStructure) json);
 			if (value != null) {
 				message.putHeader(header._name, value);
 			}
@@ -84,31 +84,31 @@ public class ProcessJsonAction extends Action {
 			_jsonPointer = Json.createPointer(jsonPointer);
 		}
 
-		private JsonValue getValue(JsonStructure json) {
-			return _jsonPointer.getValue(json);
-		}
-
 		public Object getValueAsObject(JsonStructure json) {
 			try {
-				JsonValue value = getValue(json);
-				switch (value.getValueType()) {
-				case NULL:
-					return null;
-				case TRUE:
-					return Boolean.TRUE;
-				case FALSE:
-					return Boolean.FALSE;
-				case STRING:
-					return ((JsonString) value).getString();
-				case NUMBER:
-					JsonNumber jsonNumber = (JsonNumber) value;
-					return jsonNumber.isIntegral() ? jsonNumber.longValueExact() : jsonNumber.bigDecimalValue();
-				default:
-					return value;
-				}
+				return toObject(_jsonPointer.getValue(json));
 			} catch (JsonException e) {
 				return null;
 			}
+		}
+	}
+
+	public static Object toObject(JsonValue value) {
+		switch (value.getValueType()) {
+		case NULL:
+			return null;
+		case TRUE:
+			return Boolean.TRUE;
+		case FALSE:
+			return Boolean.FALSE;
+		case STRING:
+			return ((JsonString) value).getString();
+		case NUMBER:
+			JsonNumber jsonNumber = (JsonNumber) value;
+			// ArithmeticException if scale is 0 but number does not fit into long!
+			return jsonNumber.isIntegral() ? jsonNumber.longValueExact() : jsonNumber.bigDecimalValue();
+		default:
+			return value;
 		}
 	}
 

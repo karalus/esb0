@@ -76,7 +76,7 @@ public class DumpAction extends TerminalAction {
 						fileOutputStream.write(message.getBodyAsByteArray(context));
 					}
 					logger.info("Body dumped into " + dumpFile);
-				} else if (_binary || HttpConstants.isFastInfoset(message.getContentType())) {
+				} else if (_binary || HttpConstants.isBinary(message.getContentType())) {
 					ByteArrayInputStream bis = new ByteArrayInputStream(message.getBodyAsByteArray(context));
 					logger.info("Body length: " + bis.length());
 					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(bis));

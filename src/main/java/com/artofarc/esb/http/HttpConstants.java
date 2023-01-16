@@ -208,6 +208,14 @@ public class HttpConstants {
 		return false;
 	}
 
+	public static boolean isBinary(String contentType) {
+		if (contentType != null) {
+			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
+			return !(type.startsWith(MEDIATYPE_TEXT) || type.startsWith(MEDIATYPE_APPLICATION) && (type.endsWith("/xml") || type.endsWith("+xml") || type.endsWith("/json") || type.endsWith("+json")));
+		}
+		return false;
+	}
+
 	public static String getCharset(String contentType) {
 		if (contentType != null) {
 			contentType = contentType.toLowerCase(Locale.ROOT);

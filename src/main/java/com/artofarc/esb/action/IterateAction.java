@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -24,14 +25,16 @@ import com.artofarc.esb.message.ESBMessage;
 
 public class IterateAction extends Action {
 
-	private final String _iterExp, _varName, _iterName;
+	private final String _iterExp, _varName, _iterName, _collectorName, _collectVar;
 	private final boolean _remove;
 	private final Action _action;
 
-	public IterateAction(String iterExp, String iterName, boolean remove, String varName, Action action) {
+	public IterateAction(String iterExp, String iterName, boolean remove, String varName, String collectorName, String collectVar, Action action) {
 		_pipelineStop = true;
 		_iterExp = iterExp;
 		_iterName = iterName;
+		_collectorName = collectorName;
+		_collectVar = collectVar;
 		_remove = remove;
 		_varName = varName;
 		_action = action;
@@ -50,6 +53,12 @@ public class IterateAction extends Action {
 				throw new ExecutionException(this, _iterExp + " is not an Iterable, but " + iterable.getClass());
 			}
 			message.putVariable(_iterName, iterator);
+			if (_collectorName != null) {
+				message.putVariable(_collectorName, new ArrayList<>());
+			}
+		} else if (_collectorName != null) {
+			List<Object> collector = message.getVariable(_collectorName);
+			collector.add("body".equals(_collectVar) ? message.cloneBody(context, false) : message.getVariable(_collectVar));
 		}
 		return new ExecutionContext(iterator);
 	}

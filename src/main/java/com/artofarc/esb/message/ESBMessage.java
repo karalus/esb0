@@ -373,6 +373,9 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	private InputStreamReader getInputStreamReader(InputStream inputStream) throws IOException {
+		if (isBinary(_contentType)) {
+			throw new IllegalStateException("Message is binary: " + _contentType);
+		}
 		return new InputStreamReader(getUncompressedInputStream(inputStream), getCharset());
 	}
 
@@ -430,6 +433,9 @@ public final class ESBMessage implements Cloneable {
 			getBodyAsByteArray(context);
 			// nobreak
 		case BYTES:
+			if (isBinary(_contentType)) {
+				throw new IllegalStateException("Message is binary: " + _contentType);
+			}
 			str = new String((byte[]) _body, getCharset());
 			break;
 		case XQ_ITEM:
@@ -859,6 +865,10 @@ public final class ESBMessage implements Cloneable {
 			// Must outlive current context
 			newBody = context.getGlobalContext().getXQDataFactory().createItem((XQItem) _body);
 			break;
+		case RESULT:
+		case OUTPUT_STREAM:
+		case WRITER:
+			throw new IllegalStateException("Cannot clone a sink");
 		default:
 			newBody = _body;
 			break;
