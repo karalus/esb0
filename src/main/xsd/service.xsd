@@ -133,7 +133,7 @@
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="executeJava" substitutionGroup="tns:action">
+	<element name="executeAction" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
@@ -162,7 +162,7 @@
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="jdbcParameter">
+	<element name="parameter">
 		<complexType>
 			<attribute name="pos" type="int" />
 			<attribute name="body" type="boolean" default="false" />
@@ -191,7 +191,7 @@
 			<complexContent>
 				<extension base="tns:JDBCBase">
 					<sequence>
-						<element ref="tns:jdbcParameter" minOccurs="0" maxOccurs="unbounded" />
+						<element ref="tns:parameter" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="generatedKeys">
 						<simpleType>
@@ -210,7 +210,7 @@
 						<element name="in">
 							<complexType>
 								<sequence>
-									<element ref="tns:jdbcParameter" minOccurs="0"
+									<element ref="tns:parameter" minOccurs="0"
 										maxOccurs="unbounded" />
 								</sequence>
 							</complexType>
@@ -218,7 +218,7 @@
 						<element name="out">
 							<complexType>
 								<sequence>
-									<element ref="tns:jdbcParameter" minOccurs="0"
+									<element ref="tns:parameter" minOccurs="0"
 										maxOccurs="unbounded" />
 								</sequence>
 							</complexType>
@@ -265,7 +265,7 @@
 						</element>
 						<element name="body" type="tns:string1" minOccurs="0"/>
 					</sequence>
-					<attribute name="clearAll" type="boolean" default="false" />
+					<attribute name="clearHeaders" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -577,7 +577,7 @@
 			</extension>
 		</simpleContent>
 	</complexType>
-	<element name="setMessage" substitutionGroup="tns:action">
+	<element name="update" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
@@ -606,7 +606,7 @@
 							</complexType>
 						</element>
 					</sequence>
-					<attribute name="clearAll" type="boolean" default="false" />
+					<attribute name="clearHeaders" type="boolean" default="false" />
 					<attribute name="classLoader" type="anyURI" />
 				</extension>
 			</complexContent>

@@ -252,14 +252,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					sendMail.getReplyTo(), sendMail.getSubject(), sendMail.getText(), sendMail.getType(), globalContext.bindProperties(sendMail.getUserName()), globalContext.bindProperties(sendMail.getPassword())), location);
 			break;
 		}
-		case "executeJava": {
-			ExecuteJava executeJava = (ExecuteJava) actionElement.getValue();
-			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, executeJava.getClassLoader());
+		case "executeAction": {
+			ExecuteAction executeAction = (ExecuteAction) actionElement.getValue();
+			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, executeAction.getClassLoader());
 			@SuppressWarnings("unchecked")
-			Class<? extends Action> cls = (Class<? extends Action>) Class.forName(executeJava.getJavaType(), true, classLoader);
+			Class<? extends Action> cls = (Class<? extends Action>) Class.forName(executeAction.getJavaType(), true, classLoader);
 			Action action; 
 			try {
-				action = cls.getConstructor(java.lang.ClassLoader.class, Properties.class).newInstance(classLoader, createProperties(executeJava.getProperty(), globalContext));
+				action = cls.getConstructor(java.lang.ClassLoader.class, Properties.class).newInstance(classLoader, createProperties(executeAction.getProperty(), globalContext));
 			} catch (NoSuchMethodException e) {
 				action = cls.newInstance();
 			}
@@ -273,55 +273,55 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "jdbcProcedure": {
 			JdbcProcedure jdbcProcedure = (JdbcProcedure) actionElement.getValue();
-			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getJdbcParameter().size() + jdbcProcedure.getOut().getJdbcParameter().size()];
-			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getJdbcParameter(), posUsed), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter(), posUsed),
+			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getParameter().size() + jdbcProcedure.getOut().getParameter().size()];
+			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getParameter(), posUsed), createJDBCParameters(jdbcProcedure.getOut().getParameter(), posUsed),
 					jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.getKeepConnection(), resolveSchemaSet(globalContext, jdbcProcedure.getSchemaURI())), location);
 			break;
 		}
 		case "jdbc": {
 			Jdbc jdbc = (Jdbc) actionElement.getValue();
-			boolean[] posUsed = new boolean[jdbc.getJdbcParameter().size()];
-			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter(), posUsed),
+			boolean[] posUsed = new boolean[jdbc.getParameter().size()];
+			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getParameter(), posUsed),
 					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.getKeepConnection()), location);
 			break;
 		}
-		case "setMessage": {
-			SetMessage setMessage = (SetMessage) actionElement.getValue();
-			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, setMessage.getClassLoader());
-			SetMessageAction setMessageAction;
-			if (setMessage.getBody() != null) {
+		case "update": {
+			Update update = (Update) actionElement.getValue();
+			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, update.getClassLoader());
+			SetMessageAction action;
+			if (update.getBody() != null) {
 				StringWrapper bodyExpr;
-				if (setMessage.getBody().getFileURI() != null) {
-					Artifact artifact = loadArtifact(setMessage.getBody().getFileURI());
+				if (update.getBody().getFileURI() != null) {
+					Artifact artifact = loadArtifact(update.getBody().getFileURI());
 					artifact.validate(globalContext);
 					addReference(artifact);
 					bodyExpr = new StringWrapper(artifact.getContentAsBytes());
 				} else {
-					bodyExpr = new StringWrapper(setMessage.getBody().getValue());
+					bodyExpr = new StringWrapper(update.getBody().getValue());
 				}
-				setMessageAction = new SetMessageAction(classLoader, bodyExpr, setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
+				action = new SetMessageAction(classLoader, bodyExpr, update.getBody().getJavaType(), update.getBody().getMethod());
 			} else {
-				setMessageAction = new SetMessageAction(classLoader, null, null, null);
+				action = new SetMessageAction(classLoader, null, null, null);
 			}
 			HashSet<String> retainHeaders = new HashSet<>();
-			for (HeaderOrVariable hov : setMessage.getHeaderOrVariable()) {
-				boolean header = hov instanceof SetMessage.Header;
-				if (header && ((SetMessage.Header) hov).isRetain()) {
+			for (HeaderOrVariable hov : update.getHeaderOrVariable()) {
+				boolean header = hov instanceof Update.Header;
+				if (header && ((Update.Header) hov).isRetain()) {
 					retainHeaders.add(hov.getName().toLowerCase(Locale.ROOT));
 					if (hov.getValue().isEmpty()) {
 						continue;
 					}
 				}
 				try {
-					setMessageAction.addAssignment(hov.getName(), header, hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
+					action.addAssignment(hov.getName(), header, hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
 				} catch (LinkageError e) {
 					throw new ValidationException(this, hov.sourceLocation().getLineNumber(), e.getCause() != null ? e.getCause() : e);
 				}
 			}
-			if (setMessage.isClearAll()) {
-				setMessageAction.setClearHeadersExcept(retainHeaders.isEmpty() ? Collections.emptySet() : retainHeaders);
+			if (update.isClearHeaders()) {
+				action.setClearHeadersExcept(retainHeaders.isEmpty() ? Collections.emptySet() : retainHeaders);
 			}
-			addAction(list, setMessageAction, location);
+			addAction(list, action, location);
 			break;
 		}
 		case "processJson": {
@@ -348,7 +348,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either variable or header");
 				}
 			}
-			AssignAction assignAction = new AssignAction(assignments, ASSIGN_NULL_CHECK, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearAll());
+			AssignAction assignAction = new AssignAction(assignments, ASSIGN_NULL_CHECK, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearHeaders());
 			XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;
@@ -579,9 +579,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return result;
 	}
 
-	private static List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters, boolean[] posUsed) {
+	private static List<JDBCParameter> createJDBCParameters(List<Parameter> jdbcParameters, boolean[] posUsed) {
 		List<JDBCParameter> params = new ArrayList<>(jdbcParameters.size());
-		for (JdbcParameter jdbcParameter : jdbcParameters) {
+		for (Parameter jdbcParameter : jdbcParameters) {
 			if (jdbcParameter.getPos() != null) {
 				params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
 						jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
@@ -589,7 +589,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 		}
 		int pos = 0;
-		for (JdbcParameter jdbcParameter : jdbcParameters) {
+		for (Parameter jdbcParameter : jdbcParameters) {
 			if (jdbcParameter.getPos() == null) {
 				while (posUsed[pos]) ++pos;
 				posUsed[pos] = true;
