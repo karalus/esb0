@@ -281,6 +281,18 @@ public class SOAPTest extends AbstractESBTest {
       consumerPort.process(context, message);
    }
    
+	@Test
+	public void testTransformEmpty() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		String xquery = "<dummy/>";
+		TransformAction action = new TransformAction(xquery);
+		action.setNextAction(new DumpAction());
+		consumerPort.setStartAction(action);
+		consumerPort.process(context, message);
+		assertTrue(message.getBodyAsString(context).startsWith(xquery));
+	}
+   
    @Test
    public void testTransformWithStaticData() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));

@@ -27,6 +27,7 @@ import javax.naming.NamingException;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import com.artofarc.esb.SchedulingConsumerPort;
+import com.artofarc.esb.Trend;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.BodyType;
@@ -52,11 +53,10 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private final long _rampDownThreshold = 100L;
 	private final long _rampDownDelay = 10000L;
 	private final int _minWorkerCount;
-	private final int _significance = 10;
 	private long _lastControlChange;
 	private volatile boolean _operating;
 	private volatile int _workerCount;
-	private volatile long _currentSentReceiveDelay;
+	private final Trend _sentReceiveDelay = new Trend(10L);
 	private volatile long _lastChangeOfState;
 	private Future<?> _control;
 
@@ -122,7 +122,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	public long getCurrentSentReceiveDelay() {
-		return _currentSentReceiveDelay;
+		return _sentReceiveDelay.getCurrent();
 	}
 
 	@Override
@@ -388,8 +388,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 				processInternal(_context, esbMessage);
 				_session.commit();
 				long receiveTimestamp = esbMessage.getVariable(ESBConstants.initialTimestamp);
-				long sentReceiveDelay = (_currentSentReceiveDelay * _significance + receiveTimestamp - message.getJMSTimestamp()) / (_significance + 1);
-				controlJMSWorkerPool(_currentSentReceiveDelay = sentReceiveDelay, receiveTimestamp);
+				controlJMSWorkerPool(_sentReceiveDelay.accumulateAndGet(receiveTimestamp - message.getJMSTimestamp()), receiveTimestamp);
 				return true;
 			} catch (Exception e) {
 				logger.info("Rolling back for " + getKey(), e);

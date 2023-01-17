@@ -37,6 +37,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	protected Action _startAction;
 	private volatile boolean _enabled = true;
 	protected final AtomicLong _completedTaskCount = new AtomicLong();
+	private final Trend _timeConsumed = new Trend(10L);
 
 	public ConsumerPort(String uri) {
 		_uri = uri;
@@ -48,6 +49,10 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 
 	public final long getCompletedTaskCount() {
 		return _completedTaskCount.get();
+	}
+
+	public final long getExecutionTime() {
+		return _timeConsumed.getCurrent();
 	}
 
 	public final String getMBeanPostfix() {
@@ -80,16 +85,18 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	}
 
 	public final long processInternal(Context context, ESBMessage message) throws Exception {
+		context.getTimeGauge().startTimeMeasurement();
+		if (_startAction.getLocation() != null) {
+			message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
+		}
 		try {
-			if (_startAction.getLocation() != null) {
-				message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
-			}
 			_startAction.process(context, message);
 		} catch (Exception e) {
 			JDBCAction.closeKeptConnections(message, false);
 			throw e;
 		} finally {
 			JDBCAction.closeKeptConnections(message, true);
+			_timeConsumed.accumulateAndGet(context.getTimeGauge().stopTimeMeasurement());
 			context.getTimeGauge().clear();
 		}
 		if (context.getExecutionStack().size() > 0) {

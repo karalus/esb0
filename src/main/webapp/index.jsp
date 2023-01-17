@@ -53,7 +53,7 @@ input[type="submit"][value="false"] {
 		case "HttpServices":
 			%>
 <br>HttpServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Path</b></td><td><b>Uri</b></td><td><b>PoolSize</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Path</b></td><td><b>Uri</b></td><td><b>PoolSize</b></td><td><b>Completed tasks</b></td><td><b>Execution time</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 			for (String path : DataStructures.asSortedList(globalContext.getHttpServicePaths())) {
 				HttpConsumer consumerPort = globalContext.getHttpService(path);
@@ -62,6 +62,7 @@ input[type="submit"][value="false"] {
 					<td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 					<td><%=consumerPort.getPoolSize()%></td>
 					<td><%=consumerPort.getCompletedTaskCount()%></td>
+					<td><%=consumerPort.getExecutionTime()%></td>
 					<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?HttpServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
 					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="HttpServices"/></form></td>
 				</tr>
