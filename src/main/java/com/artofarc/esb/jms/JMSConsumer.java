@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import javax.jms.*;
+import javax.management.ObjectName;
 import javax.naming.NamingException;
 import javax.xml.datatype.XMLGregorianCalendar;
 
@@ -95,10 +96,10 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		return _queueName != null ? _queueName : _topicName;
 	}
 
-	private Destination getDestination(Session session) throws JMSException {
+	private Destination getDestination(JMSSession session) throws JMSException {
 		if (_destination == null) {
 			// All popular MOMs have no session related data in the Destination object, so we dare to cache it
-			_destination = _queueName != null ? session.createQueue(_queueName) : session.createTopic(_topicName);
+			_destination = _queueName != null ? session.getSession().createQueue(_queueName) : session.getSession().createTopic(_topicName);
 		}
 		return _destination;
 	}
@@ -111,6 +112,11 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			key += '@' + _workerPoolName;
 		}
 		return key;
+	}
+
+	@Override
+	public String getMBeanPostfix() {
+		return ",consumerType=" + getClass().getSimpleName() + ",key=" + ObjectName.quote(getKey());
 	}
 
 	public int getWorkerCount() {
@@ -266,11 +272,11 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	public Boolean unsubscribe() {
-		Session session = _jmsWorker[0]._session;
+		JMSSession session = _jmsWorker[0]._session;
 		if (_subscription != null && session != null) {
 			try {
 				enable(false);
-				session.unsubscribe(_subscription);
+				session.getSession().unsubscribe(_subscription);
 				return true;
 			} catch (JMSException e) {
 				logger.error("unsubscribe " + _subscription, e);
@@ -308,24 +314,25 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 	class JMSWorker implements MessageListener {
 		final Context _context = new Context(_workerPool.getPoolContext());
-		volatile Session _session;
+		volatile JMSSession _session;
 		volatile MessageConsumer _messageConsumer;
 
 		final void open() throws JMSException {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
-			_session = jmsSessionFactory.getResource(_jmsConnectionData, true).getSession();
+			_session = jmsSessionFactory.getResource(_jmsConnectionData, true);
+			_context.putResource(ESBConstants.JMSSession, _session);
 		}
 
 		final void initMessageConsumer() throws JMSException {
 			if (_messageConsumer == null && _session != null) {
 				if (_subscription != null) {
 					if (_shared) {
-						_messageConsumer = _session.createSharedDurableConsumer((Topic) getDestination(_session), _subscription, _messageSelector);
+						_messageConsumer = _session.getSession().createSharedDurableConsumer((Topic) getDestination(_session), _subscription, _messageSelector);
 					} else {
-						_messageConsumer = _session.createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, _noLocal);
+						_messageConsumer = _session.getSession().createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, _noLocal);
 					}
 				} else {
-					_messageConsumer = _session.createConsumer(getDestination(_session), _messageSelector, _noLocal);
+					_messageConsumer = _session.getSession().createConsumer(getDestination(_session), _messageSelector, _noLocal);
 				}
 			}
 		}
@@ -382,17 +389,18 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 		final boolean processMessage(Message message) throws JMSException, InterruptedException {
 			ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
+			esbMessage.putVariable("JMSConnectionData", _jmsConnectionData.toString());
 			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
 			try {
 				fillESBMessage(esbMessage, message);
 				processInternal(_context, esbMessage);
-				_session.commit();
+				_session.getSession().commit();
 				long receiveTimestamp = esbMessage.getVariable(ESBConstants.initialTimestamp);
 				controlJMSWorkerPool(_sentReceiveDelay.accumulateAndGet(receiveTimestamp - message.getJMSTimestamp()), receiveTimestamp);
 				return true;
 			} catch (Exception e) {
 				logger.info("Rolling back for " + getKey(), e);
-				_session.rollback();
+				_session.getSession().rollback();
 				return false;
 			}
 		}

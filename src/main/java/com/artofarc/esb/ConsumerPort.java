@@ -55,7 +55,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		return _timeConsumed.getCurrent();
 	}
 
-	public final String getMBeanPostfix() {
+	public String getMBeanPostfix() {
 		return ",consumerType=" + getClass().getSimpleName() + ",uri=" + ObjectName.quote(getUri());
 	}
 

@@ -17,7 +17,9 @@ package com.artofarc.esb.action;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.*;
 import javax.mail.internet.MimeMultipart;
@@ -62,7 +64,7 @@ public class JMSAction extends Action {
 		}
 	}
 
-	private final JMSConnectionData _jmsConnectionData;
+	private final List<JMSConnectionData> _jmsConnectionDataList;
 	private Destination _destination;
 	private final String _queueName;
 	private final String _topicName;
@@ -73,8 +75,9 @@ public class JMSAction extends Action {
 	private final String _deliveryDelay, _expiryQueue;
 	private final boolean _receiveFromTempQueue;
 	private final String _multipartSubtype, _multipart;
+	private final AtomicInteger _pos;
 
-	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
+	public JMSAction(GlobalContext globalContext, List<JMSConnectionData> jmsConnectionDataList, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
 			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String multipartSubtype, String multipart) throws NamingException {
 		_pipelineStop = true;
 		_queueName = globalContext.bindProperties(queueName);
@@ -82,7 +85,8 @@ public class JMSAction extends Action {
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}
-		_jmsConnectionData = jmsConnectionData;
+		_jmsConnectionDataList = jmsConnectionDataList;
+		_pos = jmsConnectionDataList.size() > 1 ? new AtomicInteger() : null;
 		_isBytesMessage = isBytesMessage;
 		_deliveryMode = deliveryMode;
 		_priority = priority;
@@ -94,15 +98,40 @@ public class JMSAction extends Action {
 		_multipart = multipart;
 	}
 
+	private JMSSession getJMSSession(Context context, JMSSession oldSession) throws JMSException {
+		JMSSession jmsSession = context.getResource(ESBConstants.JMSSession);
+		if (jmsSession != null && _jmsConnectionDataList.contains(jmsSession.getJMSConnectionData())) {
+			return jmsSession;
+		}
+		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
+		if (_pos != null) {
+			int currentPos = _pos.getAndUpdate(old -> (old + 1) % _jmsConnectionDataList.size());
+			int pos = currentPos;
+			do {
+				try {
+					jmsSession = jmsSessionFactory.getResource(_jmsConnectionDataList.get(pos), false);
+					if (jmsSession != oldSession && jmsSession.isConnected()) {
+						return jmsSession;
+					}
+				} catch (JMSException e) {
+					// try next pos
+				}
+				pos = (pos + 1) % _jmsConnectionDataList.size();
+			} while (pos != currentPos);
+			throw new JMSException("No connected JMSSession");
+		} else {
+			return jmsSessionFactory.getResource(_jmsConnectionDataList.get(0), false);
+		}
+	}
+
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if (inPipeline) {
 			if (_isBytesMessage && _multipart == null) {
-				JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
-				JMSSession jmsSession = jmsSessionFactory.getResource(_jmsConnectionData, false);
+				JMSSession jmsSession = getJMSSession(context, null);
 				BytesMessage bytesMessage = jmsSession.getSession().createBytesMessage();
 				message.reset(BodyType.OUTPUT_STREAM, new BytesMessageOutputStream(bytesMessage));
-				return new ExecutionContext(bytesMessage);
+				return new ExecutionContext(bytesMessage, jmsSession);
 			} else {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -114,8 +143,11 @@ public class JMSAction extends Action {
 
 	@Override
 	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
-		JMSSession jmsSession = jmsSessionFactory.getResource(_jmsConnectionData, false);
+		context.getTimeGauge().startTimeMeasurement();
+		JMSSession jmsSession = execContext != null ? execContext.getResource2() : null;
+		if (jmsSession == null) {
+			jmsSession = getJMSSession(context, null);
+		}
 		final Session session = jmsSession.getSession();
 		if (_destination == null) {
 			if (_queueName != null) {
@@ -124,7 +156,7 @@ public class JMSAction extends Action {
 				_destination = session.createTopic(_topicName);
 			}
 		}
-		context.getTimeGauge().startTimeMeasurement();
+		context.getTimeGauge().stopTimeMeasurement("JMS getSession", true);
 		Message jmsMessage;
 		if (execContext != null && execContext.getResource() instanceof Message) {
 			jmsMessage = execContext.getResource();
@@ -174,6 +206,20 @@ public class JMSAction extends Action {
 		context.getTimeGauge().stopTimeMeasurement("JMS createMessage", true);
 		message.clearHeaders();
 		message.reset(BodyType.INVALID, null);
+		try {
+			send(context, message, jmsSession, jmsMessage);
+		} catch (JMSException e) {
+			if (_pos != null && !session.getTransacted()) {
+				// retry once
+				jmsSession = getJMSSession(context, jmsSession);
+				send(context, message, jmsSession, jmsMessage);
+			} else {
+				throw e;
+			}
+		}
+	}
+
+	private void send(Context context, ESBMessage message, JMSSession jmsSession, Message jmsMessage) throws Exception {
 		long timeToLive;
 		Number ttl = message.getTimeleft(_timeToLive);
 		if (ttl != null) {

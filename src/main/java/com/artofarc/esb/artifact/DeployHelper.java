@@ -42,13 +42,15 @@ public final class DeployHelper {
 				closer.closeAsync(httpConsumer);
 				break;
 			case JMS:
-				JMSConsumer jmsConsumer = service.getConsumerPort();
-				globalContext.unbindJmsConsumer(jmsConsumer);
-				jmsConsumer.unsubscribe();
-				try {
-					jmsConsumer.close();
-				} catch (Exception e) {
-					// ignore
+				for (ConsumerPort consumer : service.getConsumerPorts()) {
+					JMSConsumer jmsConsumer = (JMSConsumer) consumer;
+					globalContext.unbindJmsConsumer(jmsConsumer);
+					jmsConsumer.unsubscribe();
+					try {
+						jmsConsumer.close();
+					} catch (Exception e) {
+						// ignore
+					}
 				}
 				break;
 			case FILE:
@@ -128,20 +130,22 @@ public final class DeployHelper {
 				}
 				break;
 			case JMS:
-				JMSConsumer jmsConsumer = service.getConsumerPort();
-				oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumer);
-				if (oldConsumerPort != null) {
-					try {
-						oldConsumerPort.close();
-					} catch (Exception e) {
-						// ignore
+				for (ConsumerPort consumer : service.getConsumerPorts()) {
+					JMSConsumer jmsConsumer = (JMSConsumer) consumer;
+					oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumer);
+					if (oldConsumerPort != null) {
+						try {
+							oldConsumerPort.close();
+						} catch (Exception e) {
+							// ignore
+						}
 					}
-				}
-				try {
-					jmsConsumer.init(globalContext);
-				} catch (Exception e) {
-					Artifact.logger.info("Could not init JMSConsumer " + jmsConsumer.getKey(), e);
-					// ignore, if JMS is down we reconnect later
+					try {
+						jmsConsumer.init(globalContext);
+					} catch (Exception e) {
+						Artifact.logger.info("Could not init JMSConsumer " + jmsConsumer.getKey(), e);
+						// ignore, if JMS is down we reconnect later
+					}
 				}
 				break;
 			case FILE:

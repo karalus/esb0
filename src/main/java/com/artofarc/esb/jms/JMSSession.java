@@ -45,6 +45,14 @@ public final class JMSSession implements AutoCloseable {
 		_session = session;
 	}
 
+	public JMSConnectionData getJMSConnectionData() {
+		return _jmsConnectionData;
+	}
+
+	public boolean isConnected() {
+		return _jmsConnectionProvider.isConnected(_jmsConnectionData);
+	}
+
 	public Session getSession() {
 		return _session;
 	}
@@ -74,8 +82,8 @@ public final class JMSSession implements AutoCloseable {
 	}
 
 	public MessageProducer createProducer(Destination destination) throws JMSException {
-		if (checkConnection) {
-			_jmsConnectionProvider.checkConnection(_jmsConnectionData);
+		if (checkConnection && !isConnected()) {
+			throw new JMSException("Currently reconnecting " + _jmsConnectionData);
 		}
 		MessageProducer producer = _producers.get(destination);
 		if (producer == null) {

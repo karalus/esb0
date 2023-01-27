@@ -56,7 +56,7 @@ import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.XQuerySource;
 import com.sun.xml.xsom.XSSchemaSet;
 
-public class ServiceArtifact extends AbstractServiceArtifact {
+public final class ServiceArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "xservice";
 
@@ -64,7 +64,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	private static final boolean ASSIGN_NULL_CHECK = Boolean.parseBoolean(System.getProperty("esb0.assignNullCheck"));
 
 	private Protocol _protocol;
-	private ConsumerPort _consumerPort;
+	private List<ConsumerPort> _consumerPorts = new ArrayList<>();
 
 	// only used during validation
 	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
@@ -78,16 +78,20 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return _protocol;
 	}
 
+	public final List<ConsumerPort> getConsumerPorts() {
+		return _consumerPorts;
+	}
+
 	@SuppressWarnings("unchecked")
 	public final <C extends ConsumerPort> C getConsumerPort() {
-		return (C) _consumerPort;
+		return (C) _consumerPorts.get(0);
 	}
 
 	@Override
 	protected ServiceArtifact clone(FileSystem fileSystem, Directory parent) {
 		ServiceArtifact clone = initClone(new ServiceArtifact(fileSystem, parent, getName()));
 		clone._protocol = _protocol;
-		clone._consumerPort = _consumerPort;
+		clone._consumerPorts.addAll(_consumerPorts);
 		return clone;
 	}
 
@@ -113,13 +117,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				_actionPipelines.put(actionPipeline.getName(), transform(globalContext, actionPipeline.getAction(), actionPipeline.getErrorHandler()));
 			}
 			List<Action> list = transform(globalContext, service.getAction(), service.getErrorHandler());
+			_consumerPorts.clear();
 			switch (_protocol = service.getProtocol()) {
 			case HTTP:
 				Service.HttpBindURI httpBinding = checkBindingPresent(service.getHttpBindURI());
 				String multipartSubtype = httpBinding.getMultipartSubtype() != null ? httpBinding.getMultipartSubtype().value() : httpBinding.getMultipartResponse() != null ? "related" : null;
-				_consumerPort = new HttpConsumer(getURI(), httpBinding.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
-						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), multipartSubtype, httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
-				globalContext.checkBindHttpService((HttpConsumer) _consumerPort);
+				_consumerPorts.add(new HttpConsumer(getURI(), httpBinding.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
+						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), multipartSubtype, httpBinding.getMultipartResponse(), httpBinding.getBufferSize()));
+				globalContext.checkBindHttpService(getConsumerPort());
 				break;
 			case JMS:
 				Service.JmsBinding jmsBinding = checkBindingPresent(service.getJmsBinding());
@@ -127,32 +132,36 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					throw new ValidationException(this, "With at only one worker is allowed");
 				}
 				int minWorkerCount = jmsBinding.getMinWorkerCount() != null ? jmsBinding.getMinWorkerCount() : jmsBinding.getWorkerCount();
-				JMSConnectionData jmsConnectionData = JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
-				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(), jmsBinding.getTopicName(),
-						jmsBinding.getSubscription(), jmsBinding.isNoLocal(), jmsBinding.isShared(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt());
-				globalContext.checkBindJmsConsumer((JMSConsumer) _consumerPort);
+				for (JMSConnectionData jmsConnectionData : JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword())) {
+					JMSConsumer consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(), jmsBinding.getTopicName(),
+							jmsBinding.getSubscription(), jmsBinding.isNoLocal(), jmsBinding.isShared(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt());
+					globalContext.checkBindJmsConsumer(consumerPort);
+					_consumerPorts.add(consumerPort);
+				}
 				break;
 			case TIMER:
 				Service.TimerBinding timerBinding = checkBindingPresent(service.getTimerBinding());
-				_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getAt(), timerBinding.getTimeUnit(), timerBinding.getPeriod(),
-						timerBinding.getInitialDelay(), timerBinding.isFixedDelay());
+				_consumerPorts.add(new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getAt(), timerBinding.getTimeUnit(), timerBinding.getPeriod(),
+						timerBinding.getInitialDelay(), timerBinding.isFixedDelay()));
 				break;
 			case FILE:
 				Service.FileWatchBinding fileWatchBinding = checkBindingPresent(service.getFileWatchBinding());
-				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), resolveWorkerPool(fileWatchBinding.getWorkerPool()), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
-				globalContext.checkBindFileWatchEventService((FileWatchEventConsumer) _consumerPort);
+				_consumerPorts.add(new FileWatchEventConsumer(globalContext, getURI(), resolveWorkerPool(fileWatchBinding.getWorkerPool()), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError()));
+				globalContext.checkBindFileWatchEventService(getConsumerPort());
 				break;
 			case KAFKA:
 				Service.KafkaBinding kafkaBinding = checkBindingPresent(service.getKafkaBinding());
-				_consumerPort = new KafkaConsumerPort(getURI(), resolveWorkerPool(kafkaBinding.getWorkerPool()), kafkaBinding.getPollInterval(), createProperties(kafkaBinding.getProperty(), globalContext), kafkaBinding.getTopic(), kafkaBinding.getTimeout());
-				globalContext.checkBindKafkaConsumer((KafkaConsumerPort) _consumerPort);
+				_consumerPorts.add(new KafkaConsumerPort(getURI(), resolveWorkerPool(kafkaBinding.getWorkerPool()), kafkaBinding.getPollInterval(), createProperties(kafkaBinding.getProperty(), globalContext), kafkaBinding.getTopic(), kafkaBinding.getTimeout()));
+				globalContext.checkBindKafkaConsumer(getConsumerPort());
 				break;
 			default:
-				_consumerPort = new ConsumerPort(getURI());
+				_consumerPorts.add(new ConsumerPort(getURI()));
 				break;
 			}
-			_consumerPort.setServiceFlow(list);
-			_consumerPort.setEnabled(service.isEnabled());
+			for (ConsumerPort consumerPort : _consumerPorts) {
+				consumerPort.setServiceFlow(list);
+				consumerPort.setEnabled(service.isEnabled());
+			}
 		} finally {
 			_actionPipelines.clear();
 			_xmlProcessorFactory = null;
@@ -234,7 +243,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "jms": {
 			Jms jms = (Jms) actionElement.getValue();
-			JMSConnectionData jmsConnectionData = JMSConnectionData.create(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
+			List<JMSConnectionData> jmsConnectionData = JMSConnectionData.create(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
 			String multipartSubtype = jms.getMultipartSubtype() != null ? jms.getMultipartSubtype().value() : jms.getMultipart() != null ? "related" : null;
 			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms.isBytesMessage(), jms.getDeliveryMode(),
 					jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.getExpiryQueue(), jms.isReceiveFromTempQueue(), multipartSubtype, jms.getMultipart()), location);

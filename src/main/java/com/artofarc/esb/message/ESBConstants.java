@@ -72,6 +72,8 @@ public interface ESBConstants {
 	String SOAP_HEADER = "header";
 
 	// JMS concepts
+	String JMSSession = "JMSSession";
+
 	String JMSMessageID = "JMSMessageID";
 
 	String JMSCorrelationID = "JMSCorrelationID";

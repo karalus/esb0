@@ -60,6 +60,7 @@ public final class Context extends AbstractContext {
 	private final Deque<Action> _executionStack = new ArrayDeque<>();
 	private final Deque<Action> _stackErrorHandler = new ArrayDeque<>();
 	private final Deque<Integer> _stackPos = new ArrayDeque<>();
+	private final Map<String, Object> _resources = new HashMap<>();
 
 	private SAXParser _saxParser;
 	private FastInfosetReader _fastInfosetDeserializer;
@@ -166,6 +167,15 @@ public final class Context extends AbstractContext {
 			_poolContext.addCachedXQuery(xquery);
 		}
 		return preparedExpression;
+	}
+
+	public void putResource(String key, Object resource) {
+		_resources.put(key, resource);
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T> T getResource(String key) {
+		return (T) _resources.get(key);
 	}
 
 	@Override

@@ -88,10 +88,8 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		return new JMSSession(this, jmsConnectionData, connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE));
 	}
 
-	public void checkConnection(JMSConnectionData jmsConnectionData) throws JMSException {
-		if (!getResource(jmsConnectionData).isConnected()) {
-			throw new JMSException("Currently reconnecting " + jmsConnectionData);
-		}
+	public boolean isConnected(JMSConnectionData jmsConnectionData) {
+		return getResource(jmsConnectionData).isConnected();
 	}
 
 	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws JMSException {

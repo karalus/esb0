@@ -15,6 +15,10 @@
  */
 package com.artofarc.esb.jms;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
+
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
@@ -25,7 +29,7 @@ import com.artofarc.util.ObjectPool;
 
 public final class JMSConnectionData {
 
-	private static final ObjectPool<JMSConnectionData> POOL = new ObjectPool<>(new java.util.HashMap<>());
+	private static final ObjectPool<List<JMSConnectionData>> POOL = new ObjectPool<>(new java.util.HashMap<>());
 
 	private final String _jndiConnectionFactory, _userName, _password;
 
@@ -40,8 +44,21 @@ public final class JMSConnectionData {
 		_password = password;
 	}
 
-	public static JMSConnectionData create(GlobalContext globalContext, String jndiConnectionFactory, String userName, String password) throws NamingException {
-		return POOL.intern(new JMSConnectionData(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password)));
+	public static List<JMSConnectionData> create(GlobalContext globalContext, String jndiConnectionFactories, String userName, String password) throws NamingException {
+		List<JMSConnectionData> result = new ArrayList<>();
+		StringTokenizer tokenizer = new StringTokenizer(jndiConnectionFactories, ",");
+		while (tokenizer.hasMoreTokens()) {
+			String jndiConnectionFactory = tokenizer.nextToken();
+			JMSConnectionData jmsConnectionData = new JMSConnectionData(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password));
+			if (result.contains(jmsConnectionData)) {
+				throw new IllegalArgumentException("jndiConnectionFactories must not contain duplicates");
+			}
+			result.add(jmsConnectionData);
+		}
+		if (result.isEmpty()) {
+			throw new IllegalArgumentException("jndiConnectionFactories must not be empty");
+		}
+		return POOL.intern(result);
 	}
 
 	@Override
