@@ -20,20 +20,20 @@ public class EncodingTest extends AbstractESBTest {
 	@Test
 	public void testDecodeRequest() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES,
-				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<test>Hellö</test>".getBytes(ESBMessage.CHARSET_DEFAULT));
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<test>Hellï¿½</test>".getBytes(ESBMessage.CHARSET_DEFAULT));
 		message.putHeader(HTTP_HEADER_CONTENT_TYPE, "text/xml");
-		message.setCharset(getCharset("text/xml"));
+		message.setCharset(determineCharset("text/xml"));
 		Action action = createAssignAction("result", "test/text()");
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
-		assertEquals("Hellö", message.getVariable("result"));
+		assertEquals("Hellï¿½", message.getVariable("result"));
 	}
 
 	@Test
 	public void testEncodeResponse() throws Exception {
-		String test = "<test>ä</test>\n";
+		String test = "<test>ï¿½</test>\n";
 		ESBMessage message = new ESBMessage(BodyType.STRING, test);
 		message.setSinkEncoding("utf-16");
 		Action action = createAssignAction("request", ".");
@@ -76,7 +76,7 @@ public class EncodingTest extends AbstractESBTest {
 	@Test
 	public void testMalformedContentType() {
 		// Before bugfix this resulted in an infinite loop
-		getCharset("application/json; UTF-8");
+		determineCharset("application/json; UTF-8");
 	}
 
 }
