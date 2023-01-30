@@ -253,15 +253,10 @@ public final class ESBMessage implements Cloneable {
 
 	public boolean prepareContent() throws Exception {
 		setContentEncoding(removeHeader(HTTP_HEADER_CONTENT_ENCODING));
-		boolean replacedBody = false; 
 		String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (MimeHelper.parseMultipart(this, contentType)) {
-			replacedBody = true;
-			contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		}
-		setContentType(contentType);
-		setCharset(com.artofarc.esb.http.HttpConstants.getCharset(contentType));
-		return replacedBody;
+		_contentType = MimeHelper.parseContentType(this, contentType);
+		setCharset(determineCharset(_contentType));
+		return contentType != _contentType;
 	}
 
 	public void determineSinkContentType() {
@@ -859,7 +854,10 @@ public final class ESBMessage implements Cloneable {
 			}
 			break;
 		case SOURCE:
-			init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument((Source) _body, null), null);
+			newBody = init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument((Source) _body, null), null);
+			break;
+		case XQ_SEQUENCE:
+			extractItemFromSequence();
 			// nobreak
 		case XQ_ITEM:
 			// Must outlive current context

@@ -60,6 +60,8 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_TEXT = "text/plain";
 
+	public static final String HTTP_HEADER_CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
+
 	public static final String HTTP_HEADER_CONTENT_TYPE_JSON = "application/json";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 = "application/fastinfoset";
@@ -211,12 +213,12 @@ public class HttpConstants {
 	public static boolean isBinary(String contentType) {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
-			return !(type.startsWith(MEDIATYPE_TEXT) || type.startsWith(MEDIATYPE_APPLICATION) && (type.endsWith("/xml") || type.endsWith("+xml") || type.endsWith("/json") || type.endsWith("+json")));
+			return !(type.startsWith(MEDIATYPE_TEXT) || type.startsWith(MEDIATYPE_APPLICATION) && (type.endsWith("/xml") || type.endsWith("+xml") || type.endsWith("/json") || type.endsWith("+json") || type.equals(HTTP_HEADER_CONTENT_TYPE_FORM_URLENCODED)));
 		}
 		return false;
 	}
 
-	public static String getCharset(String contentType) {
+	public static String determineCharset(String contentType) {
 		if (contentType != null) {
 			contentType = contentType.toLowerCase(Locale.ROOT);
 			final String charset = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);

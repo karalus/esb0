@@ -33,6 +33,7 @@ import javax.mail.internet.MimeMultipart;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.URLUtils;
 
 public final class MimeHelper {
 
@@ -171,9 +172,8 @@ public final class MimeHelper {
 		return mmp;
 	}
 
-	public static boolean parseMultipart(ESBMessage message, String contentType) throws Exception {
-		final boolean isMultipart = contentType != null && contentType.startsWith("multipart/");
-		if (isMultipart) {
+	static String parseContentType(ESBMessage message, String contentType) throws Exception {
+		if (contentType != null && contentType.startsWith("multipart/")) {
 			InputStream inputStream = message.getBodyAsInputStream(null);
 			MimeMultipart mmp = new MimeMultipart(new DataSource() {
 
@@ -202,6 +202,7 @@ public final class MimeHelper {
 			if (soapAction != null) {
 				message.putHeader(HTTP_HEADER_SOAP_ACTION, soapAction);
 			}
+			String newContentType = null;
 			for (int i = 0; i < mmp.getCount(); i++) {
 				MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
 				String cid = bodyPart.getContentID();
@@ -210,7 +211,8 @@ public final class MimeHelper {
 						Header header = allHeaders.nextElement();
 						message.putHeader(header.getName(), header.getValue());
 					}
-					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream(), getCharset(bodyPart.getContentType()));
+					newContentType = bodyPart.getContentType();
+					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream(), determineCharset(newContentType));
 				} else if (cid != null) {
 					// remove angle brackets (https://tools.ietf.org/html/rfc2392)
 					message.addAttachment(cid.substring(1, cid.length() - 1), bodyPart);
@@ -226,8 +228,13 @@ public final class MimeHelper {
 					}
 				}
 			}
+			return newContentType;
+		} else if (HTTP_HEADER_CONTENT_TYPE_FORM_URLENCODED.equals(contentType)) {
+			URLUtils.parseURLEncodedString(message.getBodyAsString(null), message.getVariables(), null);
+			message.reset(BodyType.INVALID, null);
+			return null;
 		}
-		return isMultipart;
+		return contentType;
 	}
 
 	public static String guessContentTypeFromName(String filename) {

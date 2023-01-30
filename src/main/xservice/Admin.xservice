@@ -50,9 +50,9 @@
 										<variable name="redirect">${ContextPath}/admin${appendHttpUrlPath}</variable>
 									</setMessage>
 								</branch>
-								<default>
+								<defaultOrNull>
 									<actionPipelineRef ref="createUpdateDelete" />
-								</default>
+								</defaultOrNull>
 							</branchOnVariable>
 						</default>
 					</branchOnVariable>

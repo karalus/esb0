@@ -167,9 +167,8 @@ public class AdminAction extends Action {
 				throwHttpError(message, SC_UNSUPPORTED_MEDIA_TYPE, new ExecutionException(this, contentType));
 			}
 		} else {
-			String enable = message.getHeader("enable");
-			byte[] content = message.getBodyAsByteArray(context);
-			if (enable != null || content.length == 0) {
+			String enable = resolve(message, "enable", true);
+			if (enable != null || message.isEmpty()) {
 				ConsumerPort consumerPort = globalContext.getInternalService(resource);
 				if (consumerPort != null) {
 					// if header is missing just toggle state
@@ -199,7 +198,7 @@ public class AdminAction extends Action {
 				if (filename != null) {
 					resource += '/' + filename;
 				}
-				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, content);
+				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, message.getBodyAsByteArray(context));
 				deployChangeset(globalContext, changeSet, message);
 			}
 		}

@@ -28,10 +28,10 @@ import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnection;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.URLUtils;
 
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.HttpQueryHelper;
 
 public class HttpOutboundAction extends Action {
 
@@ -54,7 +54,15 @@ public class HttpOutboundAction extends Action {
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
 		String appendHttpUrl = message.getVariable(appendHttpUrlPath);
-		String queryString = HttpQueryHelper.getQueryString(message);
+		String queryString = message.getVariable(QueryString);
+		if (queryString == null || queryString.isEmpty()) {
+			String httpQueryParameter = message.getVariable(HttpQueryParameter);
+			if (httpQueryParameter != null) {
+				queryString = URLUtils.createURLEncodedString(message.getVariables(), httpQueryParameter, ",");
+			} else {
+				queryString = null;
+			}
+		}
 		if (queryString != null) {
 			appendHttpUrl += "?" + queryString;
 		}
