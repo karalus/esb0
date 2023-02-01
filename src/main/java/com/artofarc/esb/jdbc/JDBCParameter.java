@@ -17,11 +17,14 @@ package com.artofarc.esb.jdbc;
 
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Date;
 import java.sql.JDBCType;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Timestamp;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -32,11 +35,15 @@ import org.w3c.dom.Node;
 
 public final class JDBCParameter {
 
-	final static TimeZone TIME_ZONE;
+	private final static TimeZone TIME_ZONE;
 
-	static{
+	static {
 		String timezone = System.getProperty("esb0.jdbc.mapper.timezone");
 		TIME_ZONE = timezone != null ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault();
+	}
+
+	static Calendar getCalendarInstance() {
+		return new GregorianCalendar(TIME_ZONE);// Faster than Calendar.getInstance(TIME_ZONE);
 	}
 
 	private final int _pos;
@@ -85,43 +92,58 @@ public final class JDBCParameter {
 		return _xmlElement;
 	}
 
-	public Object alignValue(Object value, JDBCConnection conn) throws SQLException {
-		switch (_type) {
-		case TIMESTAMP:
-			if (value instanceof XMLGregorianCalendar) {
-				XMLGregorianCalendar calendar = (XMLGregorianCalendar) value;
-				return new Timestamp(calendar.toGregorianCalendar(TIME_ZONE, null, null).getTimeInMillis());
+	public void setParameter(PreparedStatement ps, Object value, JDBCConnection conn) throws SQLException {
+		if (value != null) {
+			Calendar calendar = null;
+			switch (_type) {
+			case TIMESTAMP_WITH_TIMEZONE:
+				calendar = Calendar.getInstance(TIME_ZONE);
+				// no break
+			case DATE:
+			case TIMESTAMP:
+				if (value instanceof XMLGregorianCalendar) {
+					calendar = ((XMLGregorianCalendar) value).toGregorianCalendar();
+					value = new Timestamp(calendar.getTimeInMillis());
+				} else if (value instanceof Calendar) {
+					calendar = (Calendar) value;
+					value = new Timestamp(calendar.getTimeInMillis());
+				} else if (value instanceof Long) {
+					value = new Timestamp((Long) value);
+				}
+				if (value instanceof Timestamp) {
+					ps.setTimestamp(_pos, (Timestamp) value, calendar);
+				} else if (value instanceof Date) {
+					ps.setDate(_pos, (Date) value, calendar);
+				} else {
+					throw new IllegalArgumentException("Not a date/timestamp type " + value.getClass().getName());
+				}
+				break;
+			case CHAR:
+			case VARCHAR:
+				ps.setString(_pos, _truncate != null ? truncate((String) value) : (String) value);
+				break;
+			case CLOB:
+				Clob clob = conn.createClob();
+				clob.setString(1, (String) value);
+				ps.setClob(_pos, clob);
+				break;
+			case BLOB:
+				Blob blob = conn.createBlob();
+				blob.setBytes(1, (byte[]) value);
+				ps.setBlob(_pos, blob);
+				break;
+			case SQLXML:
+				SQLXML sqlxml = conn.createSQLXML();
+				sqlxml.setResult(DOMResult.class).setNode((Node) value);
+				ps.setSQLXML(_pos, sqlxml);
+				break;
+			default:
+				ps.setObject(_pos, value, _type.getVendorTypeNumber());
+				break;
 			}
-			if (value instanceof Calendar) {
-				Calendar calendar = (Calendar) value;
-				return new Timestamp(calendar.getTimeInMillis());
-			}
-			if (value instanceof Long) {
-				return new Timestamp((Long) value);
-			}
-			break;
-		case CHAR:
-		case VARCHAR:
-			if (_truncate != null) {
-				return truncate((String) value);
-			}
-			break;
-		case CLOB:
-			Clob clob = conn.createClob();
-			clob.setString(1, (String) value);
-			return clob;
-		case BLOB:
-			Blob blob = conn.createBlob();
-			blob.setBytes(1, (byte[]) value);
-			return blob;
-		case SQLXML:
-			SQLXML sqlxml = conn.createSQLXML();
-			sqlxml.setResult(DOMResult.class).setNode((Node) value);
-			return sqlxml;
-		default:
-			break;
+		} else {
+			ps.setNull(_pos, _type.getVendorTypeNumber());
 		}
-		return value;
 	}
 
 	public String truncate(String s) {

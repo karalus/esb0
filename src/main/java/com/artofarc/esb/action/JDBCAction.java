@@ -268,12 +268,7 @@ public abstract class JDBCAction extends Action {
 					ps.setObject(param.getPos(), jdbcAttachments.createAttachments(message, conn));
 				}
 			} else {
-				Object value = resolve(message, param.getBindName(), false);
-				if (value != null) {
-					ps.setObject(param.getPos(), param.alignValue(value, conn), param.getType().getVendorTypeNumber());
-				} else {
-					ps.setNull(param.getPos(), param.getType().getVendorTypeNumber());
-				}
+				param.setParameter(ps, resolve(message, param.getBindName(), false), conn);
 			}
 		}
 		int ceil = (message.getTimeleft(_timeout).intValue() + 999) / 1000;

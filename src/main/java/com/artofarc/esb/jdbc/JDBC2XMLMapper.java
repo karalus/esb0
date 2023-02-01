@@ -21,8 +21,8 @@ import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Struct;
+import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
@@ -73,7 +73,7 @@ public final class JDBC2XMLMapper {
 		final Context _context;
 		final XSOMHelper _xsomHelper = new XSOMHelper(_element);
 		final AttributesImpl _atts = new AttributesImpl();
-		final GregorianCalendar calendar = new GregorianCalendar(JDBCParameter.TIME_ZONE);
+		final Calendar calendar = JDBCParameter.getCalendarInstance();
 
 		Parser(Context context, JDBCConnection conn, Struct struct) {
 			super(true, null);
