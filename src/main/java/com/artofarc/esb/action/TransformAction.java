@@ -25,6 +25,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.xquery.*;
 
+import org.w3c.dom.Node;
 import org.w3c.dom.Text;
 
 import com.artofarc.esb.context.Context;
@@ -175,34 +176,30 @@ public class TransformAction extends Action {
 
 	private void bind(Context context, XQPreparedExpression xqExpression, QName qName, XQItemType type, Object value) throws ExecutionException {
 		try {
-			if (value != null) {
-				if (type != null && type.getItemKind() == XQItemType.XQITEMKIND_DOCUMENT) {
-					xqExpression.bindDocument(qName, (Source) value, type);
-				} else if (value instanceof Iterable) {
-					XQSequence xqSequence = context.getXQDataFactory().createSequence(((Iterable<?>) value).iterator());
-					xqExpression.bindSequence(qName, xqSequence);
-				} else {
-					if (type != null) {
-						switch (type.getItemKind()) {
-						case XQItemType.XQITEMKIND_ELEMENT:
-							QName nodeName = type.getNodeName();
-							if (nodeName != null) {
-								// For Saxon a named ElementType must be cloned
-								type = context.getXQDataFactory().createElementType(nodeName, type.getBaseType());
-							}
-							break;
-						default:
-							break;
-						}
-					}
-					xqExpression.bindObject(qName, value, type);
+			if (value instanceof XQItem) {
+				xqExpression.bindItem(qName, (XQItem) value);
+			} else if (value instanceof Iterable) {
+				XQSequence xqSequence = context.getXQDataFactory().createSequence(((Iterable<?>) value).iterator());
+				xqExpression.bindSequence(qName, xqSequence);
+			} else if (value instanceof Exception) {
+				xqExpression.bindDocument(qName, DataStructures.asXMLString((Exception) value), null, type);
+			} else if (type != null && type.getItemKind() == XQItemType.XQITEMKIND_DOCUMENT) {
+				xqExpression.bindDocument(qName, (Source) value, type);
+			} else if (type != null && type.getItemKind() == XQItemType.XQITEMKIND_ELEMENT) {
+				QName nodeName = type.getNodeName();
+				if (nodeName != null) {
+					// For Saxon a named ElementType must be cloned
+					type = context.getXQDataFactory().createElementType(nodeName, type.getBaseType());
 				}
+				xqExpression.bindNode(qName, (Node) value, type);
+			} else if (value != null) {
+				xqExpression.bindObject(qName, value, type);
 			} else {
 				// Workaround: XQuery has no NULL value
 				xqExpression.bindString(qName, "", null);
 			}
 		} catch (XQException e) {
-			throw new ExecutionException(this, "binding " + qName + " to " + type + " failed", e);
+			throw new ExecutionException(this, "binding " + qName + (type != null ? " to " + type : "") + " failed", e);
 		}
 	}
 

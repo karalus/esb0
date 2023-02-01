@@ -16,7 +16,6 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.TimeGauge;
-import com.artofarc.util.XQuerySource;
 
 public class TransformerTest extends AbstractESBTest {
 
@@ -211,9 +210,35 @@ public class TransformerTest extends AbstractESBTest {
 	public void testTransformRegEx() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<nr>8001</nr>");
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(new TransformAction(XQuerySource.create("declare function local:substring-after-match( $arg as xs:string?, $regex as xs:string) as xs:string? {replace($arg,concat('^.*?',$regex),'')}; local:substring-after-match(*/text(), '[0]+')"), null, null), new DumpAction());
+		consumerPort.setStartAction(new TransformAction("declare function local:substring-after-match( $arg as xs:string?, $regex as xs:string) as xs:string? {replace($arg,concat('^.*?',$regex),'')}; local:substring-after-match(*/text(), '[0]+')"), new DumpAction());
 		consumerPort.process(context, message);
 		Assert.assertEquals("1", message.getBodyAsString(context));
+	}
+
+	@Test
+	public void testTransformException() throws Exception {
+		Exception exc = new Exception(new Exception("inner"));
+		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+		message.putVariable("exception", exc);
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(new TransformAction("declare namespace soapenv='http://schemas.xmlsoap.org/soap/envelope/'; declare variable $exception as document-node() external; "
+				+ "<soapenv:Body><soapenv:Fault><faultcode>soapenv:Server</faultcode><faultstring>{$exception/exception/message/text()}</faultstring><detail>{$exception/exception/cause}</detail></soapenv:Fault></soapenv:Body>"), new DumpAction());
+		consumerPort.process(context, message);
+	}
+
+	@Test
+	public void testTransformElement() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+		message.setContentType("text/xml");
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
+		action.addAssignment("messageHeader", false, "${rawBody}", null, null, null);
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), 
+				new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"),
+				action,
+				new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; declare variable $messageHeader as element(v1:messageHeader) external; <neu>{$messageHeader}</neu>"),
+				new DumpAction());
+		consumerPort.process(context, message);
 	}
 
 }
