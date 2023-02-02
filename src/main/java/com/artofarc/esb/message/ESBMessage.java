@@ -115,7 +115,9 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void reset(BodyType bodyType, Object body) {
-		if (bodyType == null) {
+		if (body == null) {
+			bodyType = BodyType.INVALID;
+		} else if (bodyType == null) {
 			bodyType = BodyType.detect(body);
 		}
 		if (bodyType.hasCharset()) {

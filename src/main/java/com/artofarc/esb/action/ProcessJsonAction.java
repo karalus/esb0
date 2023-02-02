@@ -23,6 +23,7 @@ import javax.json.*;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
+import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 
 /**
@@ -70,7 +71,7 @@ public class ProcessJsonAction extends Action {
 		}
 		if (_bodyExpr != null) {
 			Object body = eval(_bodyExpr, context, message);
-			message.reset(null, body != null ? body.toString() : null);
+			message.reset(BodyType.STRING, body != null ? body.toString() : null);
 			message.removeHeader(HTTP_HEADER_CONTENT_LENGTH);
 		}
 	}
