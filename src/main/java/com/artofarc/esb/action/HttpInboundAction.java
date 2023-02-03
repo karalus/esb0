@@ -29,7 +29,7 @@ public class HttpInboundAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		HttpUrlConnection httpUrlConnection = message.removeVariable(ESBConstants.HttpURLConnection);
+		HttpUrlConnection httpUrlConnection = context.removeResource(ESBConstants.HttpURLConnection);
 		try {
 			message.getVariables().put(ESBConstants.HttpResponseCode, httpUrlConnection.getResponseCode());
 			message.clearHeaders();
@@ -67,7 +67,7 @@ public class HttpInboundAction extends Action {
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
+	protected void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
 		InputStream inputStream = execContext.getResource();
 		try {
 			if (inputStream != null) {

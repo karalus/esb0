@@ -58,11 +58,11 @@ public abstract class ForwardAction extends Action {
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
+	protected void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
 		if (execContext != null) {
 			Action nextAction = execContext.getResource();
 			ExecutionContext nextContext = execContext.getResource2();
-			nextAction.close(nextContext, message, exception);
+			nextAction.close(context, nextContext, exception);
 		}
 	}
 

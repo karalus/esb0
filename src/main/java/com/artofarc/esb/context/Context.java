@@ -178,6 +178,11 @@ public final class Context extends AbstractContext {
 		return (T) _resources.get(key);
 	}
 
+	@SuppressWarnings("unchecked")
+	public <T> T removeResource(String key) {
+		return (T) _resources.remove(key);
+	}
+
 	@Override
 	public void close() {
 		try {

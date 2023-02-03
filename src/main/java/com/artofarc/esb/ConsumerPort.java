@@ -92,10 +92,10 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		try {
 			_startAction.process(context, message);
 		} catch (Exception e) {
-			JDBCAction.closeKeptConnections(message, false);
+			JDBCAction.closeKeptConnections(context, false);
 			throw e;
 		} finally {
-			JDBCAction.closeKeptConnections(message, true);
+			JDBCAction.closeKeptConnections(context, true);
 			_timeConsumed.accumulateAndGet(context.getTimeGauge().stopTimeMeasurement());
 			context.getTimeGauge().clear();
 		}

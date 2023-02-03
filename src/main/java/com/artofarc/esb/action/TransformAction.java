@@ -274,7 +274,7 @@ public class TransformAction extends Action {
 	}
 
 	@Override
-	protected final void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
+	protected final void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
 		if (execContext != null) {
 			XQResultSequence resultSequence = execContext.getResource();
 			if (resultSequence.next() && _contextItem == null) {

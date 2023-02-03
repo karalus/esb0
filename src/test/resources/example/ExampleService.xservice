@@ -1,9 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<service protocol="http" xmlns="http://www.artofarc.com/esb/service">
+<service xmlns="http://www.artofarc.com/esb/service" protocol="http">
   <httpBindURI>/exampleUsingport</httpBindURI>
   <actionPipeline name="soapErrorhandler">
 	 <transform>
-		<xquery><![CDATA[declare namespace soapenv="http://schemas.xmlsoap.org/soap/envelope/"; <soapenv:Body><soapenv:Fault><faultcode>soapenv:Server</faultcode><faultstring>{exception/message/text()}</faultstring><detail>{exception/cause}</detail></soapenv:Fault></soapenv:Body>]]></xquery>
+		<xquery>declare namespace soapenv="http://schemas.xmlsoap.org/soap/envelope/"; &lt;soapenv:Body&gt;&lt;soapenv:Fault&gt;&lt;faultcode&gt;soapenv:Server&lt;/faultcode&gt;&lt;faultstring&gt;{exception/message/text()}&lt;/faultstring&gt;&lt;detail&gt;{exception/cause}&lt;/detail&gt;&lt;/soapenv:Fault&gt;&lt;/soapenv:Body&gt;</xquery>
 	 </transform>
 	 <assign>	 
 		<assignment variable="HttpResponseCode">500</assignment>
@@ -13,14 +12,14 @@
   <actionPipeline name="validate" errorHandler="soapErrorhandler">
 	<validate schemaURI="example.wsdl" expression="*[1]"/>
   </actionPipeline>
-  <executeJava javaType="com.artofarc.esb.action.FileSystemTest$DynamicAction" />
+  <executeAction javaType="com.artofarc.esb.action.FileSystemTest$DynamicAction"/>
   <unwrapSOAP wsdlURI="example.wsdl"/>
   <assign>
 	<assignment variable="messageHeader">*[1]/*[1]</assignment>
   </assign>
   <fork copyMessage="true" workerPool="LMS">
 	<transform>
-		<xquery><![CDATA[declare variable $messageHeader external; <logEvent xmlns="http://aoa.de/ei/lms/v1"><logPointNr>2</logPointNr><logMessage>ESB Eingang</logMessage><logTimestamp>{current-dateTime()}</logTimestamp>{$messageHeader}<message>{serialize(*[1])}</message></logEvent>]]></xquery>
+		<xquery>declare variable $messageHeader external; &lt;logEvent xmlns="http://aoa.de/ei/lms/v1"&gt;&lt;logPointNr&gt;2&lt;/logPointNr&gt;&lt;logMessage&gt;ESB Eingang&lt;/logMessage&gt;&lt;logTimestamp&gt;{current-dateTime()}&lt;/logTimestamp&gt;{$messageHeader}&lt;message&gt;{serialize(*[1])}&lt;/message&gt;&lt;/logEvent&gt;</xquery>
 	</transform>
 	<xml2json schemaURI="de.aoa.ei.lms.v1.xsd"/>
 	<dump/>
@@ -28,7 +27,7 @@
   <actionPipelineRef ref="validate"/>
   <fork copyMessage="false" workerPool="LMS">
 	<transform>
-		<xquery><![CDATA[declare variable $messageHeader external; <logEvent xmlns="http://aoa.de/ei/lms/v1"><logPointNr>5</logPointNr><logMessage>Validierung gegen example.wsdl</logMessage><logTimestamp>{current-dateTime()}</logTimestamp>{$messageHeader}</logEvent>]]></xquery>
+		<xquery>declare variable $messageHeader external; &lt;logEvent xmlns="http://aoa.de/ei/lms/v1"&gt;&lt;logPointNr&gt;5&lt;/logPointNr&gt;&lt;logMessage&gt;Validierung gegen example.wsdl&lt;/logMessage&gt;&lt;logTimestamp&gt;{current-dateTime()}&lt;/logTimestamp&gt;{$messageHeader}&lt;/logEvent&gt;</xquery>
 	</transform>
 	<xml2json schemaURI="de.aoa.ei.lms.v1.xsd"/>
 	<dump/>
@@ -36,7 +35,7 @@
   <conditional expression="*[1]/v1:messageHeader[1]/v1:senderFQN[1]/text() != 'usingPort1'">
 	 <nsDecl namespace="http://aoa.de/ei/foundation/v1" prefix="v1"/>
 	 <transform>
-		<xquery><![CDATA[declare namespace soapenv="http://schemas.xmlsoap.org/soap/envelope/"; declare namespace v1="http://aoa.de/ei/foundation/v1"; declare variable $messageHeader external; <soapenv:Body><soapenv:Fault><faultcode>soapenv:Server</faultcode><faultstring>Routing not allowed for {$messageHeader/v1:senderFQN[1]/text()}</faultstring></soapenv:Fault></soapenv:Body>]]></xquery>
+		<xquery>declare namespace soapenv="http://schemas.xmlsoap.org/soap/envelope/"; declare namespace v1="http://aoa.de/ei/foundation/v1"; declare variable $messageHeader external; &lt;soapenv:Body&gt;&lt;soapenv:Fault&gt;&lt;faultcode&gt;soapenv:Server&lt;/faultcode&gt;&lt;faultstring&gt;Routing not allowed for {$messageHeader/v1:senderFQN[1]/text()}&lt;/faultstring&gt;&lt;/soapenv:Fault&gt;&lt;/soapenv:Body&gt;</xquery>
 	 </transform>
 	 <assign>	 
 		<assignment variable="HttpResponseCode">500</assignment>
@@ -45,7 +44,7 @@
   </conditional>
   <fork copyMessage="false" workerPool="LMS">
 	<transform>
-		<xquery><![CDATA[declare variable $messageHeader external; <logEvent xmlns="http://aoa.de/ei/lms/v1"><logPointNr>8</logPointNr><logMessage>Routing zu http://localhost:8091/mockDemoPortType1Binding</logMessage><logTimestamp>{current-dateTime()}</logTimestamp>{$messageHeader}</logEvent>]]></xquery>
+		<xquery>declare variable $messageHeader external; &lt;logEvent xmlns="http://aoa.de/ei/lms/v1"&gt;&lt;logPointNr&gt;8&lt;/logPointNr&gt;&lt;logMessage&gt;Routing zu http://localhost:8091/mockDemoPortType1Binding&lt;/logMessage&gt;&lt;logTimestamp&gt;{current-dateTime()}&lt;/logTimestamp&gt;{$messageHeader}&lt;/logEvent&gt;</xquery>
 	</transform>
 	<xml2json schemaURI="de.aoa.ei.lms.v1.xsd"/>
 	<dump/>
@@ -57,7 +56,7 @@
   <postSOAPHttp/>
   <fork copyMessage="true" workerPool="LMS">
 	<transform>
-		<xquery><![CDATA[declare variable $messageHeader external; <logEvent xmlns="http://aoa.de/ei/lms/v1"><logPointNr>11</logPointNr><logMessage>Antwort vom Provider</logMessage><logTimestamp>{current-dateTime()}</logTimestamp>{$messageHeader}<message>{serialize(*[1])}</message></logEvent>]]></xquery>
+		<xquery>declare variable $messageHeader external; &lt;logEvent xmlns="http://aoa.de/ei/lms/v1"&gt;&lt;logPointNr&gt;11&lt;/logPointNr&gt;&lt;logMessage&gt;Antwort vom Provider&lt;/logMessage&gt;&lt;logTimestamp&gt;{current-dateTime()}&lt;/logTimestamp&gt;{$messageHeader}&lt;message&gt;{serialize(*[1])}&lt;/message&gt;&lt;/logEvent&gt;</xquery>
 	</transform>
 	<xml2json schemaURI="de.aoa.ei.lms.v1.xsd"/>
 	<dump/>
@@ -65,14 +64,14 @@
   <actionPipelineRef ref="validate"/>
   <fork copyMessage="false" workerPool="LMS">
 	<transform>
-		<xquery><![CDATA[declare variable $messageHeader external; <logEvent xmlns="http://aoa.de/ei/lms/v1"><logPointNr>14</logPointNr><logMessage>Validiere Response gegen example.wsdl</logMessage><logTimestamp>{current-dateTime()}</logTimestamp>{$messageHeader}</logEvent>]]></xquery>
+		<xquery>declare variable $messageHeader external; &lt;logEvent xmlns="http://aoa.de/ei/lms/v1"&gt;&lt;logPointNr&gt;14&lt;/logPointNr&gt;&lt;logMessage&gt;Validiere Response gegen example.wsdl&lt;/logMessage&gt;&lt;logTimestamp&gt;{current-dateTime()}&lt;/logTimestamp&gt;{$messageHeader}&lt;/logEvent&gt;</xquery>
 	</transform>
 	<xml2json schemaURI="de.aoa.ei.lms.v1.xsd"/>
 	<dump/>
   </fork>
   <fork copyMessage="false" workerPool="LMS">
 	<transform>
-		<xquery><![CDATA[declare variable $messageHeader external; <logEvent xmlns="http://aoa.de/ei/lms/v1"><logPointNr>17</logPointNr><logMessage>Response zum Service Consumer</logMessage><logTimestamp>{current-dateTime()}</logTimestamp>{$messageHeader}</logEvent>]]></xquery>
+		<xquery>declare variable $messageHeader external; &lt;logEvent xmlns="http://aoa.de/ei/lms/v1"&gt;&lt;logPointNr&gt;17&lt;/logPointNr&gt;&lt;logMessage&gt;Response zum Service Consumer&lt;/logMessage&gt;&lt;logTimestamp&gt;{current-dateTime()}&lt;/logTimestamp&gt;{$messageHeader}&lt;/logEvent&gt;</xquery>
 	</transform>
 	<xml2json schemaURI="de.aoa.ei.lms.v1.xsd"/>
 	<dump/>

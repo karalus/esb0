@@ -77,7 +77,7 @@ public class HttpOutboundAction extends Action {
 		}
 		int timeout = message.getTimeleft(_readTimeout).intValue();
 		HttpUrlConnection httpUrlConnection = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders(), _chunkLength, contentLength);
-		message.getVariables().put(HttpURLConnection, httpUrlConnection);
+		context.putResource(HttpURLConnection, httpUrlConnection);
 		message.getVariables().put(HttpURLOutbound, httpUrlConnection.getHttpUrl().getUrlStr());
 		return httpUrlConnection;
 	}
@@ -103,7 +103,7 @@ public class HttpOutboundAction extends Action {
 				}
 			} catch (Exception e) {
 				httpUrlConnection.close();
-				message.removeVariable(HttpURLConnection);
+				context.removeResource(HttpURLConnection);
 				throw e;
 			}
 			return new ExecutionContext(httpUrlConnection); 
@@ -123,9 +123,9 @@ public class HttpOutboundAction extends Action {
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) {
+	protected void close(Context context, ExecutionContext execContext, boolean exception) {
 		if (exception) {
-			HttpUrlConnection httpUrlConnection = message.removeVariable(HttpURLConnection);
+			HttpUrlConnection httpUrlConnection = context.removeResource(HttpURLConnection);
 			httpUrlConnection.close();
 		}
 	}
