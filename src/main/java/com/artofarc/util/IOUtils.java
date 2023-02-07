@@ -168,6 +168,10 @@ public final class IOUtils {
 		}
 	}
 
+	public static String convertToHexDump(byte[] ba) throws IOException {
+		return convertToHexDump(new ByteArrayInputStream(ba));
+	}
+
 	public static String convertToHexDump(InputStream is) throws IOException {
 		int pos = 0;
 		int c;

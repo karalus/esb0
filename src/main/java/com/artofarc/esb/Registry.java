@@ -153,7 +153,7 @@ public class Registry extends AbstractContext {
 	}
 
 	public final ConsumerPort bindInternalService(ConsumerPort consumerPort) {
-		ConsumerPort oldConsumerPort = rebindService(consumerPort, null); 
+		ConsumerPort oldConsumerPort = _services.put(consumerPort.getUri(), consumerPort); 
 		unbindService(oldConsumerPort);
 		return oldConsumerPort;
 	}

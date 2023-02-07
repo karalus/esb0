@@ -24,7 +24,6 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.StringBuilderWriter;
 
@@ -77,9 +76,9 @@ public class DumpAction extends TerminalAction {
 					}
 					logger.info("Body dumped into " + dumpFile);
 				} else if (_binary || HttpConstants.isBinary(message.getContentType())) {
-					ByteArrayInputStream bis = new ByteArrayInputStream(message.getBodyAsByteArray(context));
-					logger.info("Body length: " + bis.length());
-					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(bis));
+					byte[] ba = message.getBodyAsByteArray(context);
+					logger.info("Body length: " + ba.length);
+					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(ba));
 				} else {
 					logger.info("Body:\n" + message.getBodyAsString(context));
 				}
