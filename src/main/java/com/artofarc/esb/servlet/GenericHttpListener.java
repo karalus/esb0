@@ -158,13 +158,13 @@ public class GenericHttpListener extends HttpServlet {
 			sc = HttpServletResponse.SC_NOT_FOUND;
 		}
 		response.setStatus(sc);
-		response.setContentType(SOAP_1_1_CONTENT_TYPE);
+		response.setContentType(HTTP_HEADER_CONTENT_TYPE_XML);
 		response.getWriter().print(DataStructures.asXMLString(e));
 	}
 
 	public static void sendError(HttpServletResponse response, int sc, String message) throws IOException {
 		response.setStatus(sc);
-		response.setContentType(SOAP_1_1_CONTENT_TYPE);
+		response.setContentType(HTTP_HEADER_CONTENT_TYPE_XML);
 		response.getWriter().print("<message>" + message + "</message>");
 	}
 

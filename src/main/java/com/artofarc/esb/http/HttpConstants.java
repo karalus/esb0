@@ -62,6 +62,8 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
 
+	public static final String HTTP_HEADER_CONTENT_TYPE_XML = "application/xml";
+
 	public static final String HTTP_HEADER_CONTENT_TYPE_JSON = "application/json";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 = "application/fastinfoset";
