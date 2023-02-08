@@ -25,7 +25,6 @@ import java.util.StringTokenizer;
 import javax.activation.DataSource;
 import javax.mail.Header;
 import javax.mail.MessagingException;
-import javax.mail.internet.ContentDisposition;
 import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
@@ -56,13 +55,17 @@ public final class MimeHelper {
 			part.setContentID('<' + cid + '>');
 		}
 		if (name != null) {
-			setDisposition(part, MimeBodyPart.ATTACHMENT, name);
+			setDisposition(part, MimeBodyPart.ATTACHMENT, name, null);
 		}
 		return part;
 	}
 
-	private static void setDisposition(MimeBodyPart bodyPart, String type, String name) throws MessagingException {
-		bodyPart.setDisposition(type + "; " + HTTP_HEADER_CONTENT_PARAMETER_NAME + '"' + name + '"');
+	private static void setDisposition(MimeBodyPart bodyPart, String type, String name, String filename) throws MessagingException {
+		String disposition = type + "; " + HTTP_HEADER_CONTENT_PARAMETER_NAME + '"' + name + '"';
+		if (filename != null) {
+			disposition += "; " + HTTP_HEADER_CONTENT_PARAMETER_FILENAME + '"' + filename + '"';
+		}
+		bodyPart.setHeader(HTTP_HEADER_CONTENT_DISPOSITION, disposition);
 	}
 
 	public static String getDispositionName(MimeBodyPart bodyPart) throws MessagingException {
@@ -102,16 +105,13 @@ public final class MimeHelper {
 				Object value = evaluator.eval(exp, context, message);
 				if (value instanceof MimeBodyPart) {
 					part = (MimeBodyPart) value;
+					String cid = part.getContentID();
 					part.setContentID(null);
-					String disposition = part.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null);
-					if (disposition != null) {
-						ContentDisposition cd = new ContentDisposition(disposition);
-						cd.setDisposition("form-data");
-						cd.setParameter("name", name);
-						part.setHeader(HTTP_HEADER_CONTENT_DISPOSITION, cd.toString());
-					} else {
-						setDisposition(part, "form-data", name);
+					String filename = getFilename(part.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null));
+					if (filename == null && cid != null) {
+						filename = cid.substring(1, cid.length() - 1);
 					}
+					setDisposition(part, "form-data", name, filename != null ? filename : name);
 				} else {
 					InternetHeaders headers = new InternetHeaders();
 					if (exp.startsWith("${body")) {
@@ -120,8 +120,9 @@ public final class MimeHelper {
 							headers.setHeader(entry.getKey(), entry.getValue().toString());
 						}
 					}
-					part = new MimeBodyPart(headers, value instanceof byte[] ? (byte[]) value : value.toString().getBytes(ESBMessage.CHARSET_DEFAULT));
-					setDisposition(part, "form-data", name);
+					boolean binary = value instanceof byte[];
+					part = new MimeBodyPart(headers, binary ? (byte[]) value : value != null ? value.toString().getBytes(ESBMessage.CHARSET_DEFAULT) : null);
+					setDisposition(part, "form-data", name, binary ? name : null);
 				}
 				mmp.addBodyPart(part);
 			}
