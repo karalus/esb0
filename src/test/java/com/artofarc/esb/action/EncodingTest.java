@@ -50,7 +50,7 @@ public class EncodingTest extends AbstractESBTest {
 		assertEquals("utf-8", getValueFromHttpHeader("utf-8, iso-8859-1;q=0.5"));
 		assertEquals("UTF-8", getValueFromHttpHeader("application/soap+xml;action=\"urn:listShipments\";charset=UTF-8", HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 		assertEquals("utf-8", getValueFromHttpHeader("text/xml; charset=\"utf-8\"", HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
-		assertEquals(SOAP_1_1_CONTENT_TYPE, parseContentType("text/xml; charset=\"utf-8\""));
+		assertEquals(HTTP_HEADER_CONTENT_TYPE_SOAP11, parseContentType("text/xml; charset=\"utf-8\""));
 		assertEquals("urn:listShipments", getValueFromHttpHeader("application/soap+xml;charset=UTF-8;action=\"urn:listShipments\"", HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION));
 	}
 

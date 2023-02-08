@@ -54,7 +54,7 @@ public class FileSystemTest extends AbstractESBTest {
          // Call
          ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
          message.getVariables().put(ESBConstants.HttpMethod, "POST");
-         message.setContentType(HttpConstants.SOAP_1_1_CONTENT_TYPE);
+         message.setContentType(HttpConstants.HTTP_HEADER_CONTENT_TYPE_SOAP11);
          message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
          message.getVariables().put("hasFault", false);
          try {

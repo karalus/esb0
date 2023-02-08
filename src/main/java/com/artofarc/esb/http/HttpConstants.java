@@ -28,16 +28,6 @@ import com.artofarc.util.WeakCache;
 
 public class HttpConstants {
 
-	/**
-	 * The media type of the <code>Content-Type</code> MIME header in SOAP 1.1.
-	 */
-	public static final String SOAP_1_1_CONTENT_TYPE = "text/xml";
-
-	/**
-	 * The media type of the <code>Content-Type</code> MIME header in SOAP 1.2.
-	 */
-	public static final String SOAP_1_2_CONTENT_TYPE = "application/soap+xml";
-
 	public static final String HTTP_HEADER_ACCEPT = "Accept";
 
 	public static final String HTTP_HEADER_ACCEPT_CHARSET = "Accept-Charset";
@@ -65,6 +55,10 @@ public class HttpConstants {
 	public static final String HTTP_HEADER_CONTENT_TYPE_XML = "application/xml";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_JSON = "application/json";
+
+	public static final String HTTP_HEADER_CONTENT_TYPE_SOAP11 = "text/xml";
+
+	public static final String HTTP_HEADER_CONTENT_TYPE_SOAP12 = "application/soap+xml";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 = "application/fastinfoset";
 
@@ -185,7 +179,7 @@ public class HttpConstants {
 	public static boolean isSOAP11(String contentType) {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
-			return type.equals(SOAP_1_1_CONTENT_TYPE) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11);
+			return type.equals(HTTP_HEADER_CONTENT_TYPE_SOAP11) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11);
 		}
 		return false;
 	}
@@ -193,7 +187,7 @@ public class HttpConstants {
 	public static boolean isSOAP12(String contentType) {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
-			return type.equals(SOAP_1_2_CONTENT_TYPE) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12);
+			return type.equals(HTTP_HEADER_CONTENT_TYPE_SOAP12) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12);
 		}
 		return false;
 	}
@@ -230,7 +224,7 @@ public class HttpConstants {
 				final String type = getValueFromHttpHeader(contentType);
 				if (isNotJSON(type)) {
 					// for text/xml we let the XML parser decide the encoding
-					if (!type.equals(SOAP_1_1_CONTENT_TYPE) && type.startsWith(MEDIATYPE_TEXT)) {
+					if (!type.equals(HTTP_HEADER_CONTENT_TYPE_SOAP11) && type.startsWith(MEDIATYPE_TEXT)) {
 						// https://www.ietf.org/rfc/rfc2068.txt (3.7.1)
 						return "ISO-8859-1";
 					}

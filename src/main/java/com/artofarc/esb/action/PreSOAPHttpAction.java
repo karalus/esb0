@@ -49,10 +49,10 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 			if (soapAction != null && soapAction.length() > 0) {
 				message.setContentType(message.getContentType() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + '"' + soapAction + '"');
 			}
-			message.putHeader(HTTP_HEADER_ACCEPT, SOAP_1_2_CONTENT_TYPE);
+			message.putHeader(HTTP_HEADER_ACCEPT, HTTP_HEADER_CONTENT_TYPE_SOAP12);
 		} else {
 			message.putHeader(HTTP_HEADER_SOAP_ACTION, soapAction != null ? '"' + soapAction + '"' : "\"\"");
-			message.putHeader(HTTP_HEADER_ACCEPT, SOAP_1_1_CONTENT_TYPE);
+			message.putHeader(HTTP_HEADER_ACCEPT, HTTP_HEADER_CONTENT_TYPE_SOAP11);
 		}
 		message.getVariables().put(ESBConstants.HttpMethod, "POST");
 		message.setSchema(_schema);

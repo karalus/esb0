@@ -527,7 +527,7 @@ public final class ESBMessage implements Cloneable {
 			default:
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
-			putHeader(HTTP_HEADER_CONTENT_TYPE, _contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? SOAP_1_1_CONTENT_TYPE : SOAP_1_2_CONTENT_TYPE);
+			putHeader(HTTP_HEADER_CONTENT_TYPE, _contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? HTTP_HEADER_CONTENT_TYPE_SOAP11 : HTTP_HEADER_CONTENT_TYPE_SOAP12);
 			return new SAXSource(context.getFastInfosetDeserializer(), is);
 		}
 		return getBodyAsSourceInternal();
