@@ -80,6 +80,8 @@ public class HttpConstants {
 
 	public static final String HTTP_HEADER_CONTENT_PARAMETER_NAME = "name=";
 
+	public static final String HTTP_HEADER_CONTENT_PARAMETER_FILENAME = "filename=";
+
 	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
 
 	public static final String HTTP_HEADER_RETRY_AFTER = "Retry-After";
@@ -170,7 +172,7 @@ public class HttpConstants {
 			i = filename.indexOf('\'', i + 1);
 			return URLDecoder.decode(filename.substring(i + 1), enc);
 		} else {
-			return getValueFromHttpHeader(contentDisposition, "filename=");
+			return getValueFromHttpHeader(contentDisposition, HTTP_HEADER_CONTENT_PARAMETER_FILENAME);
 		}
 	}
 
