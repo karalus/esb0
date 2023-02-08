@@ -34,8 +34,13 @@ public final class Trend {
 	public long accumulateAndGet(long value) {
 		final long nanoTime = System.nanoTime();
 		// Two updates are not atomic, but it's only statistic so that it does not really matter 
-		final long significance = _significance / (nanoTime - _lastUpdate.getAndSet(nanoTime));
-		return _current.accumulateAndGet(value, (prev, x) -> (prev * significance + x) / (significance + 1));
+		final long timeDiff = nanoTime - _lastUpdate.getAndSet(nanoTime);
+		if (timeDiff > 0) {
+			final long significance = _significance / timeDiff;
+			return _current.accumulateAndGet(value, (prev, x) -> (prev * significance + x) / (significance + 1));
+		} else {
+			return _current.get();
+		}
 	}
 
 }
