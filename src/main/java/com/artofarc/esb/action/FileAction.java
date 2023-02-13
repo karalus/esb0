@@ -80,9 +80,9 @@ public class FileAction extends TerminalAction {
 	protected void execute(Context context, ESBMessage message) throws Exception {
 		String contentType = HttpConstants.parseContentType(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
 		String filename = (String) eval(_filename, context, message);
-		String fileExtension = contentType != null ? '.' + MimeHelper.getFileExtension(contentType) : "";
+		String fileExtension = contentType != null ? MimeHelper.getFileExtension(contentType) : null;
 		boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
-		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
+		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension != null ? '.' + fileExtension : ""));
 		if (_mkdirs) {
 			mkdirs(file.getCanonicalFile().getParentFile());
 		}
@@ -141,6 +141,7 @@ public class FileAction extends TerminalAction {
 			default:
 				throw new ExecutionException(this, "Verb not supported: " + verb);
 			}
+			message.getVariables().put(ESBConstants.filename, file.getPath());
 		}
 	}
 
