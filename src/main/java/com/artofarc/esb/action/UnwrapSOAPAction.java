@@ -124,16 +124,16 @@ public class UnwrapSOAPAction extends TransformAction {
 		if (_operations != null) {
 			QName inputElementName = message.getVariable(SOAP_ELEMENT_NAME);
 			if (_operations.containsKey(inputElementName.getLocalPart())) {
+				// document literal wrapped style
 				return inputElementName.getLocalPart();
-			} else {
-				if (_operations.size() == 1) {
-					return _operations.keySet().iterator().next();
-				} else {
-					for (Map.Entry<String, QName> entry : _operations.entrySet()) {
-						if (inputElementName.equals(entry.getValue())) {
-							return entry.getKey();
-						}
-					}
+			}
+			if (_operations.size() == 1) {
+				// TOREVIEW: Fast but not validating if it really matches
+				return _operations.keySet().iterator().next();
+			}
+			for (Map.Entry<String, QName> entry : _operations.entrySet()) {
+				if (inputElementName.equals(entry.getValue())) {
+					return entry.getKey();
 				}
 			}
 			throw new ExecutionException(this, "Operation not found in WSDL. Input element: " + inputElementName);
