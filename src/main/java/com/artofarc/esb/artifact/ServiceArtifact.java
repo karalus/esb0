@@ -264,13 +264,17 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		case "executeAction": {
 			ExecuteAction executeAction = (ExecuteAction) actionElement.getValue();
 			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, executeAction.getClassLoader());
-			@SuppressWarnings("unchecked")
-			Class<? extends Action> cls = (Class<? extends Action>) Class.forName(executeAction.getJavaType(), true, classLoader);
 			Action action; 
 			try {
-				action = cls.getConstructor(java.lang.ClassLoader.class, Properties.class).newInstance(classLoader, createProperties(executeAction.getProperty(), globalContext));
-			} catch (NoSuchMethodException e) {
-				action = cls.newInstance();
+				@SuppressWarnings("unchecked")
+				Class<? extends Action> cls = (Class<? extends Action>) Class.forName(executeAction.getJavaType(), true, classLoader);
+				try {
+					action = cls.getConstructor(java.lang.ClassLoader.class, Properties.class).newInstance(classLoader, createProperties(executeAction.getProperty(), globalContext));
+				} catch (NoSuchMethodException e) {
+					action = cls.newInstance();
+				}
+			} catch (LinkageError e) {
+				throw new ValidationException(this, executeAction.sourceLocation().getLineNumber(), e.getCause() != null ? e.getCause() : e);
 			}
 			addAction(list, action, location);
 			break;
