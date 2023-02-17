@@ -281,7 +281,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "file": {
 			File file = (File) actionElement.getValue();
-			addAction(list, new FileAction(globalContext.bindProperties(file.getDir()), file.getVerb(), file.getFilename(), file.isMkdirs(), file.getAppend(), file.getZip(), file.isReadable(), file.isWritable()), location);
+			addAction(list, new FileAction(globalContext.bindProperties(file.getDir()), file.getAction(), file.getFilename(), file.isMkdirs(), file.getAppend(), file.getZip(), file.isReadable(), file.isWritable()), location);
 			break;
 		}
 		case "jdbcProcedure": {

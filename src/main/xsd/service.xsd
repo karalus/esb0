@@ -151,7 +151,7 @@
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<attribute name="dir" type="anyURI" use="required" />
-					<attribute name="verb" type="tns:string1" default="${FileEventKind}" />
+					<attribute name="action" type="tns:string1" default="${FileEventKind}" />
 					<attribute name="filename" type="tns:string1" default="${filename}" />
 					<attribute name="mkdirs" type="boolean" default="false" />
 					<attribute name="append" type="tns:string1" default="${append}" />
@@ -170,7 +170,7 @@
 			<attribute name="variable" type="tns:identifier" />
 			<attribute name="type" type="Name" use="required" />
 			<attribute name="truncate" type="int" />
-			<attribute name="xmlElement" type="tns:string1" />			
+			<attribute name="xmlElement" type="tns:string1" />
 		</complexType>
 	</element>
 	<complexType name="JDBCBase" abstract="true">
@@ -347,8 +347,8 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:SOAPAction">
-                    <attribute name="header" type="boolean" default="false" />
-                </extension>
+					<attribute name="header" type="boolean" default="false" />
+				</extension>
 			</complexContent>
 		</complexType>
 	</element>
@@ -356,7 +356,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:SOAPAction">
-                    <attribute name="header" type="boolean" default="false" />
+					<attribute name="header" type="boolean" default="false" />
 					<attribute name="wsdlURI" type="anyURI" use="required" />
 					<attribute name="binding" type="tns:string1" />
 					<attribute name="transport" type="anyURI" />
@@ -471,7 +471,7 @@
 								</sequence>
 								<attribute name="value">
 									<simpleType>
-									    <list itemType="string" />
+										<list itemType="string" />
 									</simpleType>
 								</attribute>
 								<attribute name="regEx" type="tns:string1" />

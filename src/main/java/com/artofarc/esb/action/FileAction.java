@@ -35,11 +35,11 @@ import com.artofarc.util.JsonFactoryHelper;
 public class FileAction extends TerminalAction {
 
 	private final File _destDir;
-	private final String _verb, _filename, _append, _zip;
+	private final String _action, _filename, _append, _zip;
 	private final boolean _mkdirs;
 	private final Boolean _readable, _writable;
 
-	public FileAction(String destDir, String verb, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable) throws FileNotFoundException {
+	public FileAction(String destDir, String action, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable) throws FileNotFoundException {
 		_destDir = new File(destDir);
 		if (!_destDir.exists()) {
 			throw new FileNotFoundException(destDir);
@@ -47,7 +47,7 @@ public class FileAction extends TerminalAction {
 		if (!_destDir.isDirectory()) {
 			throw new IllegalStateException("Is not a directory " + destDir);
 		}
-		_verb = verb;
+		_action = action;
 		_filename = filename;
 		_mkdirs = mkdirs;
 		_append = append;
@@ -79,8 +79,8 @@ public class FileAction extends TerminalAction {
 	@Override
 	protected void execute(Context context, ESBMessage message) throws Exception {
 		String filename = (String) eval(_filename, context, message);
-		String verb = (String) eval(_verb, context, message);
-		if (verb == null) {
+		String action = (String) eval(_action, context, message);
+		if (action == null) {
 			message.clearHeaders();
 			File file = new File(_destDir, filename);
 			if (file.isDirectory()) {
@@ -111,7 +111,7 @@ public class FileAction extends TerminalAction {
 				mkdirs(file.getCanonicalFile().getParentFile());
 			}
 			boolean append = false;
-			switch (verb) {
+			switch (action) {
 			case "ENTRY_MODIFY":
 				append = Boolean.parseBoolean(String.valueOf(eval(_append, context, message)));
 			case "ENTRY_CREATE":
@@ -144,7 +144,7 @@ public class FileAction extends TerminalAction {
 				message.getVariables().put("deleted", file.delete());
 				break;
 			default:
-				throw new ExecutionException(this, "Verb not supported: " + verb);
+				throw new ExecutionException(this, "Verb not supported: " + action);
 			}
 			message.getVariables().put(ESBConstants.filename, file.getPath());
 		}

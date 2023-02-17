@@ -43,9 +43,8 @@ public final class StringWrapper {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		byte[] ba = out.toByteArray();
-		if (ba.length < content.length) {
-			compressedContent = ba;
+		if (out.size() < content.length) {
+			compressedContent = out.toByteArray();
 			smallString = null;
 		} else {
 			compressedContent = null;
