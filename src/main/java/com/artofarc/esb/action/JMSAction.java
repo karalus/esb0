@@ -72,7 +72,7 @@ public class JMSAction extends Action {
 	private final boolean _isBytesMessage;
 	private final int _deliveryMode;
 	private final int _priority;
-	private final Long _timeToLive;
+	private final long _timeToLive;
 	private final String _deliveryDelay, _expiryQueue;
 	private final String _workerPool;
 	private final boolean _receiveFromTempQueue;
@@ -80,7 +80,7 @@ public class JMSAction extends Action {
 	private final AtomicInteger _pos;
 
 	public JMSAction(GlobalContext globalContext, List<JMSConnectionData> jmsConnectionDataList, String jndiDestination, String queueName, String topicName, String workerPool, boolean isBytesMessage,
-			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String multipartSubtype, String multipart) throws NamingException {
+			int deliveryMode, int priority, long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String multipartSubtype, String multipart) throws NamingException {
 		_pipelineStop = true;
 		_queueName = globalContext.bindProperties(queueName);
 		_topicName = globalContext.bindProperties(topicName);
@@ -226,19 +226,13 @@ public class JMSAction extends Action {
 	}
 
 	private void send(Context context, ESBMessage message, JMSSession jmsSession, Message jmsMessage) throws Exception {
-		long timeToLive;
-		Number ttl = message.getTimeleft(_timeToLive);
-		if (ttl != null) {
-			timeToLive = ttl.longValue();
-		} else {
-			Long jmsExpiration = message.getVariable(ESBConstants.JMSExpiration);
-			if (jmsExpiration != null && jmsExpiration > 0) {
-				timeToLive = jmsExpiration - System.currentTimeMillis();
-				if (timeToLive <= 0) {
-					throw new ExecutionException(this, "Incoming message has expired or system clocks differ too much");
-				}
-			} else {
-				timeToLive = Message.DEFAULT_TIME_TO_LIVE;
+		long timeLeft = message.getTimeleft(60000L).longValue();
+		long timeToLive = _timeToLive;
+		Long jmsExpiration = message.getVariable(ESBConstants.JMSExpiration);
+		if (jmsExpiration != null && jmsExpiration > 0) {
+			timeToLive = jmsExpiration - System.currentTimeMillis();
+			if (timeToLive <= 0) {
+				throw new ExecutionException(this, "Incoming message has expired or system clocks differ too much");
 			}
 		}
 		Destination destination = _destination != null ? _destination : getDestination(message, jmsSession);
@@ -246,7 +240,7 @@ public class JMSAction extends Action {
 			jmsMessage.setJMSReplyTo(jmsSession.getTemporaryQueue());
 			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
 			context.getTimeGauge().stopTimeMeasurement("JMS send", true);
-			Message replyMessage = jmsSession.getConsumerForTemporaryQueue().receive(timeToLive > 0L ? timeToLive : 60000L);
+			Message replyMessage = jmsSession.getConsumerForTemporaryQueue().receive(timeLeft);
 			context.getTimeGauge().stopTimeMeasurement("JMS receive", false);
 			if (replyMessage == null) {
 				throw new ExecutionException(this, "No reply message received within given timeout");
@@ -284,7 +278,7 @@ public class JMSAction extends Action {
 					}
 					JMSCompletionListener completionListener = new JMSCompletionListener(workerPool);
 					asyncProcessingPool.saveContext(completionListener, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()),
-							new ArrayList<>(context.getStackErrorHandler()), message.getVariables(), System.currentTimeMillis() + 60000L);
+							new ArrayList<>(context.getStackErrorHandler()), message.getVariables(), System.currentTimeMillis() + timeLeft);
 					producer.send(jmsMessage, _deliveryMode, _priority, timeToLive, completionListener);
 				} else {
 					producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
