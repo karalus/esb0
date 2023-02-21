@@ -83,10 +83,7 @@ public final class DataStructures {
 		return list;
 	}
 
-	public static <T> List<T> moveToNewList(Collection<T> coll, boolean noop) {
-		if (noop) {
-			return Collections.emptyList();
-		}
+	public static <T> List<T> moveToNewList(Collection<T> coll) {
 		List<T> list = new ArrayList<>(coll);
 		coll.clear();
 		return list;

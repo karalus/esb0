@@ -17,6 +17,7 @@ package com.artofarc.esb.action;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,16 +26,16 @@ import javax.jms.*;
 import javax.mail.internet.MimeMultipart;
 import javax.naming.NamingException;
 
-import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.context.*;
 import static com.artofarc.esb.http.HttpConstants.*;
+import com.artofarc.esb.jms.JMSCompletionListener;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSSession;
 import com.artofarc.esb.message.*;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.DataStructures;
 
 public class JMSAction extends Action {
 
@@ -73,11 +74,12 @@ public class JMSAction extends Action {
 	private final int _priority;
 	private final Long _timeToLive;
 	private final String _deliveryDelay, _expiryQueue;
+	private final String _workerPool;
 	private final boolean _receiveFromTempQueue;
 	private final String _multipartSubtype, _multipart;
 	private final AtomicInteger _pos;
 
-	public JMSAction(GlobalContext globalContext, List<JMSConnectionData> jmsConnectionDataList, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
+	public JMSAction(GlobalContext globalContext, List<JMSConnectionData> jmsConnectionDataList, String jndiDestination, String queueName, String topicName, String workerPool, boolean isBytesMessage,
 			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String multipartSubtype, String multipart) throws NamingException {
 		_pipelineStop = true;
 		_queueName = globalContext.bindProperties(queueName);
@@ -85,6 +87,7 @@ public class JMSAction extends Action {
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}
+		_workerPool = workerPool;
 		_jmsConnectionDataList = jmsConnectionDataList;
 		_pos = jmsConnectionDataList.size() > 1 ? new AtomicInteger() : null;
 		_isBytesMessage = isBytesMessage;
@@ -149,6 +152,9 @@ public class JMSAction extends Action {
 			jmsSession = getJMSSession(context, null);
 		}
 		final Session session = jmsSession.getSession();
+		if (_workerPool != null && session.getTransacted()) {
+			throw new ExecutionException(this, "Cannot send asynchronous within a transacted session");
+		}
 		if (_destination == null) {
 			if (_queueName != null) {
 				_destination = session.createQueue(_queueName);
@@ -251,6 +257,7 @@ public class JMSAction extends Action {
 			if (replyTo != null) {
 				MessageProducer producer = jmsSession.createProducer(null);
 				producer.send(replyTo, jmsMessage, _deliveryMode, _priority, timeToLive);
+				message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
 			} else if (destination != null) {
 				MessageProducer producer = jmsSession.createProducer(destination);
 				if (_deliveryDelay != null) {
@@ -269,13 +276,30 @@ public class JMSAction extends Action {
 						throw new ExecutionException(this, "Message is about to expire");
 					}
 				}
-				producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
+				if (_workerPool != null) {
+					WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
+					AsyncProcessingPool asyncProcessingPool = workerPool.getAsyncProcessingPool();
+					if (asyncProcessingPool == null) {
+						throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + workerPool.getName());
+					}
+					JMSCompletionListener completionListener = new JMSCompletionListener(workerPool);
+					asyncProcessingPool.saveContext(completionListener, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()),
+							new ArrayList<>(context.getStackErrorHandler()), message.getVariables(), System.currentTimeMillis() + 60000L);
+					producer.send(jmsMessage, _deliveryMode, _priority, timeToLive, completionListener);
+				} else {
+					producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
+					message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
+				}
 			} else {
 				throw new ExecutionException(this, "Could not determine destination");
 			}
 			context.getTimeGauge().stopTimeMeasurement("JMS send", false);
-			message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
 		}
+	}
+
+	@Override
+	protected Action nextAction(ExecutionContext execContext) {
+		return _workerPool == null ? super.nextAction(execContext) : null;
 	}
 
 	private static Destination getDestination(ESBMessage message, JMSSession jmsSession) throws JMSException {

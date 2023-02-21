@@ -112,6 +112,9 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		List<Action> pipeline = new ArrayList<>();
 		List<ExecutionContext> resources = new ArrayList<>();
 		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
+		if (getErrorHandler() != null) {
+			stackErrorHandler.push(getErrorHandler());
+		}
 		context.pushStackPos();
 		TimeGauge timeGauge = new TimeGauge(loggerTimeGauge, timeGaugeThreshold, false);
 		timeGauge.startTimeMeasurement();
@@ -157,24 +160,8 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
 				context.unwindStack();
-				nextAction = stackErrorHandler.poll();
-				if (nextAction != null) {
-					nextAction.process(context, message);
-					nextAction = null;
-				} else {
-					if (getErrorHandler() != null) {
-						nextAction = getErrorHandler();
-					} else {
-						nextAction = context.getExecutionStack().poll();
-					}
-					if (nextAction != null) {
-						nextAction.process(context, message);
-						context.pushStackPos();
-						break;
-					} else {
-						throw e;
-					}
-				}
+				processException(context, message);
+				break;
 			} finally {
 				for (int i = pipeline.size(); i > 0;) {
 					action = pipeline.get(--i);
@@ -196,7 +183,26 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 			resources.clear();
 		}
 		context.getStackPos().poll();
+		if (getErrorHandler() != null) {
+			stackErrorHandler.pop();
+		}
 		timeGauge.stopTimeMeasurement("Finished process: %s", false, _location != null ? _location.getServiceArtifactURI() : getClass().getSimpleName());
+	}
+
+	public static void processException(Context context, ESBMessage message) throws Exception {
+		Action nextAction = context.getStackErrorHandler().poll();
+		if (nextAction != null) {
+			nextAction.process(context, message);
+			nextAction = null;
+		} else {
+			nextAction = context.getExecutionStack().poll();
+			if (nextAction != null) {
+				nextAction.process(context, message);
+				context.pushStackPos();
+			} else {
+				throw message.<Exception> getBody();
+			}
+		}
 	}
 
 	// pipelining

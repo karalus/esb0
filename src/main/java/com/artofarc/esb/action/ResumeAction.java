@@ -41,13 +41,11 @@ public class ResumeAction extends Action {
 		if (asyncProcessingPool == null) {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + _workerPool);
 		}
-		AsyncProcessingPool.AsyncContext asyncContext = asyncProcessingPool.removeAsyncContext(correlationID);
-		if (asyncContext == null) {
+		Action action = asyncProcessingPool.restoreContext(correlationID, context, message);
+		if (action == null) {
 			throw new ExecutionException(this, "No AsyncContext found for " + correlationID);
 		}
-		context.getExecutionStack().addAll(asyncContext.executionStack);
-		message.getVariables().putAll(asyncContext.variables);
-		return new ExecutionContext(asyncContext.nextAction);		
+		return new ExecutionContext(action);		
 	}
 
 	@Override

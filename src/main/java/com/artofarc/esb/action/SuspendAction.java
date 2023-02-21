@@ -20,8 +20,10 @@ import java.util.ArrayList;
 import com.artofarc.esb.context.AsyncProcessingPool;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.DataStructures;
 
 public class SuspendAction extends Action {
 
@@ -41,18 +43,19 @@ public class SuspendAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
-		ExecutionContext execContext = new ExecutionContext(new ArrayList<>(context.getExecutionStack()));
-		context.getExecutionStack().clear();
-		return execContext;
+		return new ExecutionContext(DataStructures.moveToNewList(context.getExecutionStack()));
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		Object correlationID = eval(_correlationID, context, message);
-		AsyncProcessingPool asyncProcessingPool = context.getPoolContext().getWorkerPool().getAsyncProcessingPool();
-		AsyncProcessingPool.AsyncContext asyncContext = new AsyncProcessingPool.AsyncContext(_nextAction, execContext.getResource(), message.getVariables(),
-				message.<Long> getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue());
-		asyncProcessingPool.putAsyncContext(correlationID, asyncContext);
+		WorkerPool workerPool = context.getPoolContext().getWorkerPool();
+		AsyncProcessingPool asyncProcessingPool = workerPool.getAsyncProcessingPool();
+		if (asyncProcessingPool == null) {
+			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + workerPool.getName());
+		}
+		asyncProcessingPool.saveContext(correlationID, _nextAction, execContext.getResource(), new ArrayList<>(context.getStackErrorHandler()),
+				message.getVariables(), message.<Long>getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue());
 	}
 
 }
