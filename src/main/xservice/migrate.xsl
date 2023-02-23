@@ -5,6 +5,16 @@
 			<xsl:apply-templates select="@*|node()" />
 		</xsl:copy>
 	</xsl:template>
+	<xsl:template match="@minPool">
+		<xsl:attribute name="minPoolSize">
+			<xsl:value-of select="." />
+		</xsl:attribute>
+	</xsl:template>
+	<xsl:template match="@maxPool">
+		<xsl:attribute name="maxPoolSize">
+			<xsl:value-of select="." />
+		</xsl:attribute>
+	</xsl:template>
 	<xsl:template match="@clearAll">
 		<xsl:attribute name="clearHeaders">
 			<xsl:value-of select="." />

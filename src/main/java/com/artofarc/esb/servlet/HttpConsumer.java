@@ -18,6 +18,7 @@ package com.artofarc.esb.servlet;
 import java.util.Date;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.action.HttpServletResponseAction;
@@ -35,20 +36,22 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	private final boolean _pathMapping;
 	private final String _bindPath;
 	private final String _requiredRole;
-	private final int _minPool, _maxPool;
+	private final int _minPoolSize, _maxPoolSize;
 	private final long _keepAlive;
 	private final int _resourceLimit;
 	private final HttpServletResponseAction _terminalAction;
 	private ContextPool _contextPool;
 	private volatile ScheduledFuture<?> _scheduledFuture;
+	private volatile long _lastPoolLimitExceeded;
+	private final AtomicLong _poolLimitExceededCount = new AtomicLong();
 
-	public HttpConsumer(String uri, int resourceLimit, String bindPath, String requiredRole, int minPool, int maxPool, long keepAlive, boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
+	public HttpConsumer(String uri, int resourceLimit, String bindPath, String requiredRole, int minPoolSize, int maxPoolSize, long keepAlive, boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
 		super(uri);
 		_pathMapping = bindPath.charAt(bindPath.length() - 1) == '*';
 		_bindPath = _pathMapping ? bindPath.substring(0, bindPath.length() - 1) : bindPath;
 		_requiredRole = requiredRole;
-		_minPool = minPool;
-		_maxPool = maxPool;
+		_minPoolSize = minPoolSize;
+		_maxPoolSize = maxPoolSize;
 		_keepAlive = keepAlive;
 		_resourceLimit = resourceLimit;
 		_terminalAction = new HttpServletResponseAction(supportCompression, multipartSubtype, multipartOption, bufferSize);
@@ -66,13 +69,27 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 		return _requiredRole;
 	}
 
-	public ContextPool getContextPool() {
-		return _contextPool;
+	public Context acquireContext() {
+		Context context = _contextPool.getContext();
+		if (context == null) {
+			_lastPoolLimitExceeded = System.currentTimeMillis();
+			_poolLimitExceededCount.incrementAndGet();
+			logger.info("Max pool size exceeded for " + getUri());
+		}
+		return context;
+	}
+
+	public void releaseContext(Context context) {
+		_contextPool.releaseContext(context);
+	}
+
+	public void shrinkPool() {
+		_contextPool.shrinkPool();
 	}
 
 	public void init(GlobalContext globalContext) {
 		PoolContext poolContext = globalContext.getDefaultWorkerPool().getPoolContext();
-		_contextPool = new ContextPool(poolContext, _minPool, _maxPool, _keepAlive);
+		_contextPool = new ContextPool(poolContext, _minPoolSize, _maxPoolSize, _keepAlive);
 	}
 
 	@Override
@@ -126,15 +143,24 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	}
 
 	public int getMinPoolSize() {
-		return _minPool;
+		return _minPoolSize;
 	}
 
 	public int getMaxPoolSize() {
-		return _maxPool;
+		return _maxPoolSize;
 	}
 
 	public long getKeepAliveMillis() {
 		return _keepAlive;
+	}
+
+	public Date getLastPoolLimitExceeded() {
+		long lastPoolLimitExceeded = _lastPoolLimitExceeded;
+		return lastPoolLimitExceeded > 0 ? new Date(lastPoolLimitExceeded) : null;
+	}
+
+	public long getPoolLimitExceededCount() {
+		return _poolLimitExceededCount.get();
 	}
 
 }

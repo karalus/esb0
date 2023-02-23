@@ -122,8 +122,8 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			case HTTP:
 				Service.HttpBindURI httpBinding = checkBindingPresent(service.getHttpBindURI());
 				String multipartSubtype = httpBinding.getMultipartSubtype() != null ? httpBinding.getMultipartSubtype().value() : httpBinding.getMultipartResponse() != null ? "related" : null;
-				_consumerPorts.add(new HttpConsumer(getURI(), httpBinding.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
-						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), multipartSubtype, httpBinding.getMultipartResponse(), httpBinding.getBufferSize()));
+				_consumerPorts.add(new HttpConsumer(getURI(), httpBinding.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPoolSize(),
+						httpBinding.getMaxPoolSize(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), multipartSubtype, httpBinding.getMultipartResponse(), httpBinding.getBufferSize()));
 				globalContext.checkBindHttpService(getConsumerPort());
 				break;
 			case JMS:

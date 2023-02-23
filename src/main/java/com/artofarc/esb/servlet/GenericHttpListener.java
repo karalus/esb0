@@ -84,13 +84,13 @@ public class GenericHttpListener extends HttpServlet {
 						ESBMessage message = createESBMessage(request, pathInfo, consumerPort);
 						AsyncContext asyncContext = null;
 						try {
-							Context context = consumerPort.getContextPool().getContext();
+							Context context = consumerPort.acquireContext();
 							if (context != null) {
 								message.getVariables().put(AsyncContext, asyncContext = request.startAsync());
 								try {
 									consumerPort.process(context, message);
 								} finally {
-									consumerPort.getContextPool().releaseContext(context);
+									consumerPort.releaseContext(context);
 								}
 							} else {
 								sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
