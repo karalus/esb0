@@ -17,10 +17,10 @@ package com.artofarc.esb.http;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +33,7 @@ public final class HttpEndpointRegistry {
 	protected final static Logger logger = LoggerFactory.getLogger(HttpEndpointRegistry.class);
 
 	private final ArrayList<WeakReference<HttpEndpoint>> _httpEndpoints = new ArrayList<>(256);
-	private final Map<String, HttpUrlSelector> _map = new HashMap<>(256);
+	private final Map<String, HttpUrlSelector> _map = new ConcurrentHashMap<>(256);
 	private final Registry _registry;
 
 	public HttpEndpointRegistry(Registry registry) {
@@ -60,10 +60,8 @@ public final class HttpEndpointRegistry {
 		for (String httpEndpointName : getHttpEndpoints().keySet()) {
 			treeMap.put(httpEndpointName, null);
 		}
-		synchronized (this) {
-			expungeStaleEntries();
-			treeMap.putAll(_map);
-		}
+		expungeStaleEntries();
+		treeMap.putAll(_map);
 		return treeMap;
 	}
 
@@ -78,26 +76,30 @@ public final class HttpEndpointRegistry {
 		return httpEndpoint;
 	}
 
-	public synchronized HttpUrlSelector getHttpUrlSelector(HttpEndpoint httpEndpoint) {
-		HttpUrlSelector state = _map.get(httpEndpoint.getName());
-		if (state != null && state.missesHttpEndpoint(httpEndpoint)) {
-			HttpEndpoint pivot = state.getHttpEndpoint();
-			if (pivot == null || pivot.isCompatible(httpEndpoint)) {
-				state.addHttpEndpoint(httpEndpoint);
-			} else {
-				logger.warn("Incompatible HttpEndpoint " + httpEndpoint.getName() + ". All services using it should be redeployed.");
-				logger.info("Removing state for HttpEndpoint " + httpEndpoint.getName() + ": " + pivot.getHttpUrls());
-				removeHttpUrlSelector(httpEndpoint.getName(), state);
-				state = null;
-			}
-		}
-		if (state == null) {
+	public HttpUrlSelector getHttpUrlSelector(HttpEndpoint httpEndpoint) {
+		HttpUrlSelector httpUrlSelector = _map.get(httpEndpoint.getName());
+		if (httpUrlSelector == null || httpUrlSelector.missesHttpEndpoint(httpEndpoint)) {
 			expungeStaleEntries();
-			state = new HttpUrlSelector(httpEndpoint, _registry.getDefaultWorkerPool());
-			_registry.registerMBean(state, ",group=HttpEndpointState,name=" + httpEndpoint.getName());
-			_map.put(httpEndpoint.getName(), state);
+			httpUrlSelector = _map.compute(httpEndpoint.getName(), (name, state) -> {
+				if (state != null && state.missesHttpEndpoint(httpEndpoint)) {
+					HttpEndpoint pivot = state.getHttpEndpoint();
+					if (pivot == null || pivot.isCompatible(httpEndpoint)) {
+						state.addHttpEndpoint(httpEndpoint);
+					} else {
+						logger.warn("Incompatible HttpEndpoint " + name + ". All services using it should be redeployed.");
+						logger.info("Removing state for HttpEndpoint " + name + ": " + pivot.getHttpUrls());
+						removeHttpUrlSelector(name, state);
+						state = null;
+					}
+				}
+				if (state == null) {
+					state = new HttpUrlSelector(httpEndpoint, _registry.getDefaultWorkerPool());
+					_registry.registerMBean(state, ",group=HttpEndpointState,name=" + name);
+				}
+				return state;
+			});
 		}
-		return state;
+		return httpUrlSelector;
 	}
 
 	private void expungeStaleEntries() {
@@ -115,7 +117,7 @@ public final class HttpEndpointRegistry {
 		_registry.unregisterMBean(",group=HttpEndpointState,name=" + name);
 	}
 
-	public synchronized void evictHttpUrlSelector(HttpEndpoint httpEndpoint) {
+	public void evictHttpUrlSelector(HttpEndpoint httpEndpoint) {
 		if (httpEndpoint != null) {
 			removeHttpUrlSelector(httpEndpoint.getName(), _map.remove(httpEndpoint.getName()));
 		} else {
@@ -123,7 +125,7 @@ public final class HttpEndpointRegistry {
 		}
 	}
 
-	public synchronized void close() {
+	public void close() {
 		for (Map.Entry<String, HttpUrlSelector> entry : _map.entrySet()) {
 			removeHttpUrlSelector(entry.getKey(), entry.getValue());
 		}
