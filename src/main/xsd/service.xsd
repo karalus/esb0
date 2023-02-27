@@ -68,7 +68,6 @@
 					<attribute name="readTimeout" type="int" default="60000" />
 					<attribute name="chunkLength" type="int" />
 					<attribute name="workerPool" type="anyURI" />
-					<attribute name="join" type="boolean" default="true" />
 					<attribute name="name" type="tns:string1" />
 					<attribute name="proxyUrl" type="tns:string1" />
 					<attribute name="keyStore" type="tns:string1" />
