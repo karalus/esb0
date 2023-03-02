@@ -184,7 +184,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		}
 		context.getStackPos().poll();
 		if (getErrorHandler() != null) {
-			stackErrorHandler.pop();
+			stackErrorHandler.poll();
 		}
 		timeGauge.stopTimeMeasurement("Finished process: %s", false, _location != null ? _location.getServiceArtifactURI() : getClass().getSimpleName());
 	}

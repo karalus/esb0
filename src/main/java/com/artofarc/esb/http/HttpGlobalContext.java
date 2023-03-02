@@ -75,6 +75,10 @@ public final class HttpGlobalContext implements CookiePolicy {
 		}
 	}
 
+	public CookieManager getCookieManager() {
+		return _cookieManager;
+	}
+
 	public ProxyAuthenticator getProxyAuthenticator() {
 		return _proxyAuthenticator;
 	}

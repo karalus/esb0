@@ -118,6 +118,10 @@ public abstract class AbstractESBTest {
 		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
 	}
 
+	protected static HttpAction createHttpAction(String url) throws Exception {
+		return new HttpAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
+	}
+
 	protected static AssignAction createAssignAction(String varName, String expression, String... bindNames) {
 		List<XQDecl> decls = new ArrayList<>();
 		for (String bindName : bindNames) {

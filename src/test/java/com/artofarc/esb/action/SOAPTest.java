@@ -42,7 +42,7 @@ public class SOAPTest extends AbstractESBTest {
    @SOAPBinding(style=SOAPBinding.Style.DOCUMENT)
    public static class Echo {
       public String checkAlive(String text) throws Exception {
-         Thread.sleep(500L);
+         Thread.sleep(1500L);
          return text;
       }
    }   
@@ -75,7 +75,38 @@ public class SOAPTest extends AbstractESBTest {
       //context.transform(new DOMSource(node), new StreamResult(System.out));
       System.out.println();
    }
-   
+
+   @Test
+   public void testHTTPAsync() throws Exception {
+      String url = "http://localhost:1212/echo";
+      Endpoint endpoint = Endpoint.publish(url, new Echo());
+      System.out.println("Service started @ " + url);
+      //
+      Action action = createAssignAction("request", ".");
+      MarkAction errorHandler = new MarkAction();
+      action.setErrorHandler(errorHandler);
+      @SuppressWarnings("resource")
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      //action = action.setNextAction(new DumpAction(true, null));
+      //action = action.setNextAction(createHttpAction(url));
+      action = action.setNextAction(createHttpAction("http://localhost:1213/echo"));
+      MarkAction markAction = new MarkAction();
+      action = action.setNextAction(markAction);
+      //
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
+      message.getVariables().put(ESBConstants.HttpMethod, "POST");
+      message.getVariables().put(ESBConstants.AsyncContext, true);
+      message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
+      //message.putHeader(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
+      consumerPort.process(context, message);
+      context.getTimeGauge().startTimeMeasurement();
+      markAction.isExecuted(5000);
+      context.getTimeGauge().stopTimeMeasurement("Receiving async answer", false);
+      assertFalse(errorHandler.isExecuted());
+      endpoint.stop();
+   }
+
    @Test
    public void testHTTP() throws Exception {
       String url = "http://localhost:1212/echo";
