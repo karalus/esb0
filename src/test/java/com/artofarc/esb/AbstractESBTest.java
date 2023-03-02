@@ -32,6 +32,8 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.action.*;
 import com.artofarc.esb.artifact.*;
@@ -45,6 +47,8 @@ import com.artofarc.util.IOUtils;
 import com.artofarc.util.XQuerySource;
 
 public abstract class AbstractESBTest {
+
+	protected final static Logger logger = LoggerFactory.getLogger("com.artofarc.esb.junit");
 
 	protected static boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
 
@@ -60,6 +64,7 @@ public abstract class AbstractESBTest {
 
 	protected Context context;
 
+	@SuppressWarnings("resource")
 	protected final void _createContext() {
 		if (context == null) {
 			context = new Context(new GlobalContext(getClass().getClassLoader(), null, new Properties()).getDefaultWorkerPool().getPoolContext());

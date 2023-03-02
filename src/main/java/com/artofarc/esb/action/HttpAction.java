@@ -38,6 +38,7 @@ import javax.xml.bind.DatatypeConverter;
 import com.artofarc.esb.context.AsyncProcessingPool;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.http.HttpEndpoint;
@@ -59,12 +60,12 @@ public class HttpAction extends Action {
 	private final String _multipartSubtype, _multipartOption;
 	private final String _workerPool;
 
-	public HttpAction(HttpEndpoint httpEndpoint, int readTimeout, Integer chunkLength, String multipartSubtype, String multipartOption) {
+	public HttpAction(HttpEndpoint httpEndpoint, int readTimeout, String workerPool, String multipartSubtype, String multipartOption) {
 		_httpEndpoint = httpEndpoint;
 		_readTimeout = readTimeout;
 		_multipartSubtype = multipartSubtype;
 		_multipartOption = multipartOption;
-		_workerPool = null;
+		_workerPool = workerPool;
 		_pipelineStop = true;
 	}
 
@@ -81,9 +82,9 @@ public class HttpAction extends Action {
 		}
 	}
 
-	private HttpClient getHttpClient(Context context) {
+	private HttpClient getHttpClient(GlobalContext globalContext) {
 		HttpClient.Builder builder = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(_httpEndpoint.getConnectionTimeout()));
-		CookieManager cookieManager = context.getGlobalContext().getHttpGlobalContext().getCookieManager();
+		CookieManager cookieManager = globalContext.getHttpGlobalContext().getCookieManager();
 		if (cookieManager != null) {
 			builder.cookieHandler(cookieManager);
 		}
@@ -124,19 +125,13 @@ public class HttpAction extends Action {
 		return builder.build();
 	}
 
-	private HttpResponse<InputStream> send(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher) throws Exception {
-		int timeout = message.getTimeleft(_readTimeout).intValue();
-		HttpRequest httpRequest = createHttpRequest(context, message, bodyPublisher, timeout);
-		return getHttpClient(context).send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
-	}
-
 	private CompletableFuture<Void> createAsyncHandler(CompletableFuture<HttpResponse<InputStream>> completableFuture, int timeout, Context context, ESBMessage message, WorkerPool workerPool) throws Exception {
 		AsyncProcessingPool asyncProcessingPool = workerPool.getAsyncProcessingPool();
 		if (asyncProcessingPool == null) {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + workerPool.getName());
 		}
 		asyncProcessingPool.saveContext(completableFuture, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()), new ArrayList<>(context.getStackErrorHandler()),
-				message.getVariables(), System.currentTimeMillis() + timeout);
+				message.getVariables(), System.currentTimeMillis() + _httpEndpoint.getConnectionTimeout() + timeout);
 
 		return completableFuture.handleAsync((httpResponse, exception) -> {
 			ESBMessage esbMessage = exception != null ? new ESBMessage(BodyType.EXCEPTION, exception.getCause()) : new ESBMessage(BodyType.INVALID, null);
@@ -158,12 +153,14 @@ public class HttpAction extends Action {
 		}, workerPool.getExecutorService());
 	}
 
-	private CompletableFuture<HttpResponse<InputStream>> sendAsync(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, WorkerPool workerPool) throws Exception {
-		int timeout = message.getTimeleft(_readTimeout).intValue();
+	private CompletableFuture<HttpResponse<InputStream>> sendAsync(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
 		HttpRequest httpRequest = createHttpRequest(context, message, bodyPublisher, timeout);
-		CompletableFuture<HttpResponse<InputStream>> completableFuture = getHttpClient(context).sendAsync(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
-		createAsyncHandler(completableFuture, timeout, context, message, workerPool);
-		return completableFuture;
+		return getHttpClient(context.getGlobalContext()).sendAsync(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
+	}
+
+	private HttpResponse<InputStream> send(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
+		HttpRequest httpRequest = createHttpRequest(context, message, bodyPublisher, timeout);
+		return getHttpClient(context.getGlobalContext()).send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
 	}
 
 	@Override
@@ -180,26 +177,28 @@ public class HttpAction extends Action {
 		} else {
 			ExecutionContext executionContext = new ExecutionContext(async);;
 			Long contentLength = inPipeline ? null : message.getOutputLength();
+			int timeout = message.getTimeleft(_readTimeout).intValue();
 			WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
 			// check, if we need a pipe
 			boolean usePipe = inPipeline || (contentLength == null && message.getBodyType() != BodyType.INPUT_STREAM);
 			if (usePipe) {
 				PipedOutputStream pos = new PipedOutputStream();
 				PipedInputStream pis = new PipedInputStream(pos, IOUtils.MTU);
-				Future<HttpResponse<InputStream>> future;
 				if (async) {
 					CountDownLatch countDownLatch = new CountDownLatch(1);
-					future = sendAsync(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
+					CompletableFuture<HttpResponse<InputStream>> completableFuture = sendAsync(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
 						countDownLatch.countDown();
 						return pis;
-					}), workerPool);
+					}), timeout);
 					if (!countDownLatch.await(_httpEndpoint.getConnectionTimeout(), TimeUnit.MILLISECONDS)) {
+						pos.close();
 						// The future should now deliver an ConnectException
-						executionContext.setResource2(future);
+						executionContext.setResource2(completableFuture);
 						return executionContext;
 					}
+					createAsyncHandler(completableFuture, timeout, context, message, workerPool);
 				} else {
-					future = workerPool.getExecutorService().submit(() -> send(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> pis)));
+					Future<HttpResponse<InputStream>> future = workerPool.getExecutorService().submit(() -> send(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> pis), timeout));
 					executionContext.setResource2(future);
 				}
 				if (inPipeline) {
@@ -218,9 +217,9 @@ public class HttpAction extends Action {
 					bodyPublisher = HttpRequest.BodyPublishers.ofByteArray(message.getBodyAsByteArray(context));
 				}
 				if (async) {
-					sendAsync(context, message, bodyPublisher, workerPool);
+					sendAsync(context, message, bodyPublisher, timeout);
 				} else {
-					HttpResponse<InputStream> response = send(context, message, bodyPublisher);
+					HttpResponse<InputStream> response = send(context, message, bodyPublisher, timeout);
 					executionContext.setResource3(response);
 				}
 			}
@@ -234,6 +233,7 @@ public class HttpAction extends Action {
 		Boolean async = execContext.getResource();
 		Future<HttpResponse<InputStream>> future;
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+			int timeout = message.getTimeleft(_readTimeout).intValue();
 			ByteArrayOutputStream bos = execContext.getResource2();
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));
@@ -242,17 +242,20 @@ public class HttpAction extends Action {
 			PipedInputStream pis = new PipedInputStream(pos, IOUtils.MTU);
 			if (async) {
 				CountDownLatch countDownLatch = new CountDownLatch(1);
-				future = sendAsync(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
+				CompletableFuture<HttpResponse<InputStream>> completableFuture = sendAsync(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
 					countDownLatch.countDown();
 					return pis;
-				}), workerPool);
+				}), timeout);
 				if (countDownLatch.await(_httpEndpoint.getConnectionTimeout(), TimeUnit.MILLISECONDS)) {
-					future = null;
+					createAsyncHandler(completableFuture, timeout, context, message, workerPool);
 					mmp.writeTo(pos);
+					future = null;
+				} else {
+					pos.close();
+					future = completableFuture;
 				}
-				workerPool.getExecutorService().submit(() -> sendAsync(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> pis), workerPool));
 			} else {
-				future = workerPool.getExecutorService().submit(() -> send(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> pis)));
+				future = workerPool.getExecutorService().submit(() -> send(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> pis), timeout));
 				mmp.writeTo(pos);
 			}
 		} else {

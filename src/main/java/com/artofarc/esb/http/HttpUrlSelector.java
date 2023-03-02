@@ -20,7 +20,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.ConnectException;
-import java.net.CookieStore;
+import java.net.CookieManager;
 import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
 import java.net.ProtocolException;
@@ -381,10 +381,10 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	}
 
 	public String getCookies() throws Exception {
-		CookieStore cookieStore = _workerPool.getPoolContext().getGlobalContext().getHttpGlobalContext().getCookieStore();
-		if (cookieStore != null) {
+		CookieManager cookieManager = _workerPool.getPoolContext().getGlobalContext().getHttpGlobalContext().getCookieManager();
+		if (cookieManager != null) {
 			HttpUrl httpUrl = getHttpEndpoint().getHttpUrls().get(0);
-			return cookieStore.get(httpUrl.getURI()).stream().map(c -> c.toString()).collect(Collectors.joining(", "));
+			return cookieManager.getCookieStore().get(httpUrl.getURI()).stream().map(c -> c.toString()).collect(Collectors.joining(", "));
 		}
 		return null;
 	}

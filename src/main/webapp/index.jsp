@@ -274,8 +274,8 @@ input[type="submit"][value="false"] {
 <br>Cookies:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Domain</b></td><td><b>Path</b></td><td><b>Name</b></td><td><b>Value</b></td><td><b>HTTP only</b></td><td><b>Max age</b></td></tr>
 <%
-			if (globalContext.getHttpGlobalContext().getCookieStore() != null) {
-				for (java.net.HttpCookie httpCookie : globalContext.getHttpGlobalContext().getCookieStore().getCookies()) {
+			if (globalContext.getHttpGlobalContext().getCookieManager() != null) {
+				for (java.net.HttpCookie httpCookie : globalContext.getHttpGlobalContext().getCookieManager().getCookieStore().getCookies()) {
 					%>
 					<tr><td><%=httpCookie.getDomain()%></td><td><%=httpCookie.getPath()%></td><td><%=httpCookie.getName()%></td><td><%=httpCookie.getValue()%></td><td><%=httpCookie.isHttpOnly()%></td><td><%=httpCookie.getMaxAge()%></td></tr>
 					<%

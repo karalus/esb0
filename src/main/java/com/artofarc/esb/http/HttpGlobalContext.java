@@ -23,7 +23,6 @@ import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
-import java.net.CookieStore;
 import java.net.HttpCookie;
 import java.net.URI;
 import java.security.GeneralSecurityException;
@@ -81,10 +80,6 @@ public final class HttpGlobalContext implements CookiePolicy {
 
 	public ProxyAuthenticator getProxyAuthenticator() {
 		return _proxyAuthenticator;
-	}
-
-	public CookieStore getCookieStore() {
-		return _cookieManager != null ? _cookieManager.getCookieStore() : null;
 	}
 
 	@Override
