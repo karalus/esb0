@@ -19,7 +19,7 @@ import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.net.CookieManager;
-import java.net.URL;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -83,7 +83,7 @@ public class HttpAction extends Action {
 	}
 
 	private HttpClient getHttpClient(GlobalContext globalContext) {
-		HttpClient.Builder builder = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(_httpEndpoint.getConnectionTimeout()));
+		HttpClient.Builder builder = HttpClient.newBuilder().proxy(globalContext.getHttpGlobalContext()).connectTimeout(Duration.ofMillis(_httpEndpoint.getConnectionTimeout()));
 		CookieManager cookieManager = globalContext.getHttpGlobalContext().getCookieManager();
 		if (cookieManager != null) {
 			builder.cookieHandler(cookieManager);
@@ -97,7 +97,7 @@ public class HttpAction extends Action {
 	private HttpRequest createHttpRequest(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
 		HttpUrl httpUrl = _httpEndpoint.getHttpUrls().get(0);
 		// for REST append to URL
-		String appendHttpUrl = message.getVariable(appendHttpUrlPath);
+		String appendHttpUrl = message.getVariable(appendHttpUrlPath, "");
 		String queryString = message.getVariable(QueryString);
 		if (queryString == null || queryString.isEmpty()) {
 			String httpQueryParameter = message.getVariable(HttpQueryParameter);
@@ -110,8 +110,8 @@ public class HttpAction extends Action {
 		if (queryString != null) {
 			appendHttpUrl += "?" + queryString;
 		}
-		URL url = appendHttpUrl != null && appendHttpUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendHttpUrl) : httpUrl.getUrl();
-		HttpRequest.Builder builder = HttpRequest.newBuilder().uri(url.toURI()).method(message.getVariable(HttpMethod), bodyPublisher).timeout(Duration.ofMillis(timeout));
+		URI uri = new URI(httpUrl.getUrlStr() + appendHttpUrl);
+		HttpRequest.Builder builder = HttpRequest.newBuilder().uri(uri).method(message.getVariable(HttpMethod), bodyPublisher).timeout(Duration.ofMillis(timeout));
 		for (Map.Entry<String, Object> entry : message.getHeaders()) {
 			if (entry.getValue() != null) {
 				builder.header(entry.getKey(), entry.getValue().toString());

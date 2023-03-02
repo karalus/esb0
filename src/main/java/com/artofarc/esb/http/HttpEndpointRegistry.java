@@ -94,6 +94,7 @@ public final class HttpEndpointRegistry {
 				}
 				if (state == null) {
 					state = new HttpUrlSelector(httpEndpoint, _registry.getDefaultWorkerPool());
+					_registry.getHttpGlobalContext().registerProxy(httpEndpoint);
 					_registry.registerMBean(state, ",group=HttpEndpointState,name=" + name);
 				}
 				return state;
