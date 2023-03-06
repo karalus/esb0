@@ -75,13 +75,14 @@ public final class AsyncProcessingPool implements Runnable {
 		}
 	}
 
-	public void saveContext(Object correlationID, Action nextAction, Collection<Action> executionStack, Collection<Action> stackErrorHandler, Map<String, Object> variables, long expiry) {
+	public Object saveContext(Object correlationID, Action nextAction, Collection<Action> executionStack, Collection<Action> stackErrorHandler, Map<String, Object> variables, long expiry) {
 		AsyncContext asyncContext = new AsyncContext(nextAction, executionStack, stackErrorHandler, variables, expiry);
-		if (_asyncContexts.putIfAbsent(correlationID, asyncContext) != null) {
+		if (_asyncContexts.putIfAbsent(correlationID != null ? correlationID : asyncContext, asyncContext) != null) {
 			throw new IllegalArgumentException("correlationID already used: " + correlationID);
 		}
 		Context.logger.debug("AsyncContext put with correlationID " + correlationID + " expires " + new Date(asyncContext.expiry));
 		start();
+		return asyncContext;
 	}
 
 	public Action restoreContext(Object correlationID, Context context, ESBMessage message) {

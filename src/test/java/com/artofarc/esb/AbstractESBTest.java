@@ -17,12 +17,15 @@ package com.artofarc.esb;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -123,8 +126,15 @@ public abstract class AbstractESBTest {
 		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
 	}
 
-	protected static HttpAction createHttpAction(String url) throws Exception {
-		return new HttpAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
+	protected static HttpAction createHttpAction(String... urls) throws Exception {
+		List<HttpUrl> list = Arrays.stream(urls).map((url) -> {
+			try {
+				return new HttpUrl(url, 1, true);
+			} catch (MalformedURLException e) {
+				throw new RuntimeException(e);
+			}
+		}).collect(Collectors.toList());
+		return new HttpAction(new HttpEndpoint(null, list, null, null, 1000, list.size() - 1, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
 	}
 
 	protected static AssignAction createAssignAction(String varName, String expression, String... bindNames) {

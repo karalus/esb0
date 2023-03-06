@@ -17,10 +17,25 @@ package com.artofarc.esb.http;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
 
 public class HttpCheckAlive {
+
+	@SuppressWarnings("deprecation")
+	protected static long convertDateString(String dateString) {
+		try {
+			if (dateString.indexOf("GMT") < 0) {
+				dateString = dateString + " GMT";
+			}
+			return Date.parse(dateString);
+		} catch (Exception e) {
+			return -1;
+		}
+	}
 
 	protected Integer _retryAfter; 
 
@@ -41,6 +56,25 @@ public class HttpCheckAlive {
 		return conn;
 	}
 
+	public boolean isAlive(Map<String, List<String>> headers, int responseCode) {
+		if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
+			_retryAfter = null;
+			List<String> retryAfter = headers.get(HttpConstants.HTTP_HEADER_RETRY_AFTER);
+			if (retryAfter != null) {
+				try {
+					_retryAfter = Integer.valueOf(retryAfter.get(0));
+				} catch (NumberFormatException e) {
+					long date = convertDateString(retryAfter.get(0));
+					if (date > 0) {
+						_retryAfter = (int) (date - System.currentTimeMillis() + 999) / 1000;
+					}
+				}
+			}
+			return false;
+		}
+		return true;
+	}
+
 	public boolean isAlive(HttpURLConnection conn, int responseCode) {
 		if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
 			_retryAfter = null;
@@ -49,7 +83,7 @@ public class HttpCheckAlive {
 				try {
 					_retryAfter = Integer.valueOf(retryAfter);
 				} catch (NumberFormatException e) {
-					long date = conn.getHeaderFieldDate(HttpConstants.HTTP_HEADER_RETRY_AFTER, 0);
+					long date = convertDateString(retryAfter);
 					if (date > 0) {
 						_retryAfter = (int) (date - System.currentTimeMillis() + 999) / 1000;
 					}
