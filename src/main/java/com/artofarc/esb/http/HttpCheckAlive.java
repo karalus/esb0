@@ -19,8 +19,6 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.function.Function;
 
-import javax.servlet.http.HttpServletResponse;
-
 public class HttpCheckAlive {
 
 	@SuppressWarnings("deprecation")
@@ -47,7 +45,7 @@ public class HttpCheckAlive {
 	}
 
 	public boolean isAlive(int statusCode, Function<String, String> getHeader) {
-		if (statusCode == HttpServletResponse.SC_SERVICE_UNAVAILABLE) {
+		if (statusCode == 503) {
 			_retryAfter = null;
 			String retryAfter = getHeader.apply(HttpConstants.HTTP_HEADER_RETRY_AFTER);
 			if (retryAfter != null) {
