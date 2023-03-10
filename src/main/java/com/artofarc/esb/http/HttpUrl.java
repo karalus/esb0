@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.http;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -29,7 +30,7 @@ public final class HttpUrl {
 	private final int _weight;
 	private final boolean _active;
 
-	public HttpUrl(String url, int weight, boolean active) throws java.net.MalformedURLException {
+	public HttpUrl(String url, int weight, boolean active) throws MalformedURLException {
 		_url = new URL(_urlStr = url);
 		_host = _url.getHost();
 		_port = _url.getPort() < 0 ? _url.getDefaultPort() : _url.getPort();

@@ -20,7 +20,6 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.ConnectException;
 import java.net.CookieManager;
-import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -168,18 +167,19 @@ public final class Http2UrlSelector extends NotificationBroadcasterSupport imple
 		}
 	}
 
-	@Override
 	public void run() {
 		HttpEndpoint httpEndpoint = getHttpEndpoint();
 		for (int i = 0; i < size; ++i) {
 			if (httpEndpoint != null && !isActive(i)) {
+				HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(i);
 				try {
-					HttpURLConnection conn = httpEndpoint.getHttpCheckAlive().connect(httpEndpoint, i);
-					if (httpEndpoint.getHttpCheckAlive().isAlive(conn, conn.getResponseCode())) {
+					if (checkAlive(httpEndpoint, httpUrl)) {
 						setActive(i, true);
 					}
 				} catch (IOException e) {
 					// ignore
+				} catch (Exception e) {
+					HttpEndpointRegistry.logger.error("Unexpected exception for " + httpUrl, e);
 				}
 			}
 		}
@@ -188,6 +188,15 @@ public final class Http2UrlSelector extends NotificationBroadcasterSupport imple
 				scheduleHealthCheck();
 			}
 		}
+	}
+
+	public boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl) throws Exception {
+		URI uri = new URI(httpUrl.getUrlStr());
+		HttpRequest request = HttpRequest.newBuilder(uri).method(httpEndpoint.getHttpCheckAlive().getCheckAliveMethod(), HttpRequest.BodyPublishers.noBody())
+				// Real life experience: SSL Handshake got stuck
+				.timeout(Duration.ofMillis(httpEndpoint.getConnectionTimeout())).build();
+		HttpResponse<String> httpResponse = _httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+		return httpEndpoint.getHttpCheckAlive().isAlive(httpResponse.statusCode(), (name) -> httpResponse.headers().firstValue(name).orElse(null));
 	}
 
 	private synchronized int computeNextPos(HttpEndpoint httpEndpoint) {
@@ -227,7 +236,7 @@ public final class Http2UrlSelector extends NotificationBroadcasterSupport imple
 			inUse.incrementAndGet(pos);
 			try {
 				HttpResponse<InputStream> httpResponse = _httpClient.send(requestBuilder.uri(uri).build(), bodyHandler);
-				if (httpCheckAlive != null && !httpCheckAlive.isAlive(httpResponse.headers().map(), httpResponse.statusCode())) {
+				if (httpCheckAlive != null && !httpCheckAlive.isAlive(httpResponse.statusCode(), (name) -> httpResponse.headers().firstValue(name).orElse(null))) {
 					if (retryCount > 0 && streamConsumed != null && streamConsumed.getCount() == 0) {
 						// body was streamed, data is gone, cannot retry
 						retryCount = 0;
@@ -250,47 +259,49 @@ public final class Http2UrlSelector extends NotificationBroadcasterSupport imple
 	}
 
 	public void sendAsync(HttpEndpoint httpEndpoint, HttpRequest.Builder requestBuilder, String appendUrl, boolean doOutput, CountDownLatch streamConsumed,
-			BiFunction<HttpResponse<InputStream>, Throwable, Void> fn, WorkerPool workerPool) throws URISyntaxException, IOException {
+			BiFunction<HttpResponse<InputStream>, Throwable, Void> fn, WorkerPool workerPool) {
 
-		sendAsync(httpEndpoint, requestBuilder, appendUrl, doOutput, streamConsumed, fn, workerPool, httpEndpoint.getRetries());
+		sendAsync(httpEndpoint, requestBuilder, appendUrl, doOutput, streamConsumed, fn, workerPool, HttpResponse.BodyHandlers.ofInputStream(), httpEndpoint.getRetries());
 	}
 
 	private void sendAsync(HttpEndpoint httpEndpoint, HttpRequest.Builder requestBuilder, String appendUrl, boolean doOutput, CountDownLatch streamConsumed,
-			BiFunction<HttpResponse<InputStream>, Throwable, Void> fn, WorkerPool workerPool, int retryCount) throws URISyntaxException, IOException {
+			BiFunction<HttpResponse<InputStream>, Throwable, Void> fn, WorkerPool workerPool, HttpResponse.BodyHandler<InputStream> bodyHandler, int retryCount) {
 
-		HttpResponse.BodyHandler<InputStream> bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
-		HttpCheckAlive httpCheckAlive = httpEndpoint.getHttpCheckAlive();
 		int pos = computeNextPos(httpEndpoint);
 		if (pos < 0) {
-			throw new ConnectException("No active url");
+			fn.apply(null, new ConnectException("No active url"));
+			return;
 		}
 		String urlStr = httpEndpoint.getHttpUrls().get(pos).getUrlStr();
-		URI uri = new URI(urlStr + appendUrl);
+		URI uri;
+		try {
+			uri = new URI(urlStr + appendUrl);
+		} catch (URISyntaxException e) {
+			fn.apply(null, e);
+			return;
+		}
 		// check whether server is willing to respond (before sending data)
 		boolean checkServer = retryCount > size - activeCount;
 		HttpRequest request = requestBuilder.expectContinue(checkServer && doOutput).uri(uri).build();
 		inUse.incrementAndGet(pos);
 		_httpClient.sendAsync(request, bodyHandler).handleAsync((httpResponse, completionException) -> {
 			inUse.decrementAndGet(pos);
-			boolean retryable;
+			boolean retry;
 			Throwable exc;
 			if (httpResponse != null) {
-				retryable = httpCheckAlive != null && !httpCheckAlive.isAlive(httpResponse.headers().map(), httpResponse.statusCode());
-				exc = retryable ? new HttpCheckAlive.ConnectException(urlStr + " is not alive. Response code " + httpResponse.statusCode()) : null;
+				HttpCheckAlive httpCheckAlive = httpEndpoint.getHttpCheckAlive();
+				retry = httpCheckAlive != null && !httpCheckAlive.isAlive(httpResponse.statusCode(), (name) -> httpResponse.headers().firstValue(name).orElse(null));
+				exc = retry ? new HttpCheckAlive.ConnectException(urlStr + " is not alive. Response code " + httpResponse.statusCode()) : null;
 			} else {
 				exc = completionException.getCause();
-				retryable = exc instanceof ConnectException || exc instanceof NoRouteToHostException;
+				retry = exc instanceof ConnectException || exc instanceof NoRouteToHostException;
 			}
-			if (retryable) {
+			if (retry) {
 				if (httpEndpoint.getCheckAliveInterval() != null) {
 					setActive(pos, false);
 				}
 				if (retryCount > 0 && (streamConsumed == null || streamConsumed.getCount() > 0)) {
-					try {
-						sendAsync(httpEndpoint, requestBuilder, appendUrl, doOutput, streamConsumed, fn, workerPool, retryCount - 1);
-					} catch (URISyntaxException | IOException e) {
-						fn.apply(null, e);
-					}
+					sendAsync(httpEndpoint, requestBuilder, appendUrl, doOutput, streamConsumed, fn, workerPool, bodyHandler, retryCount - 1);
 				} else {
 					fn.apply(null, exc);
 				}

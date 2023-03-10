@@ -112,8 +112,7 @@ public class HttpAction extends Action {
 		return builder;
 	}
 
-	private HttpRequest createHttpRequest(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
-		HttpUrl httpUrl = _httpEndpoint.getHttpUrls().get(0);
+	private static String createAppendHttpUrl(ESBMessage message) {
 		// for REST append to URL
 		String appendHttpUrl = message.getVariable(appendHttpUrlPath, "");
 		String queryString = message.getVariable(QueryString);
@@ -128,7 +127,12 @@ public class HttpAction extends Action {
 		if (queryString != null) {
 			appendHttpUrl += "?" + queryString;
 		}
-		URI uri = new URI(httpUrl.getUrlStr() + appendHttpUrl);
+		return appendHttpUrl;
+	}
+
+	private HttpRequest createHttpRequest(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
+		HttpUrl httpUrl = _httpEndpoint.getHttpUrls().get(0);
+		URI uri = new URI(httpUrl.getUrlStr() + createAppendHttpUrl(message));
 		return createHttpRequestBuilder(context, message, bodyPublisher, timeout).uri(uri).build();
 	}
 
@@ -202,7 +206,7 @@ public class HttpAction extends Action {
 						countDownLatch.countDown();
 						return pis;
 					}), timeout);
-					if (!countDownLatch.await(_httpEndpoint.getConnectionTimeout(), TimeUnit.MILLISECONDS)) {
+					if (!countDownLatch.await((_httpEndpoint.getRetries() + 1) * _httpEndpoint.getConnectionTimeout(), TimeUnit.MILLISECONDS)) {
 						pos.close();
 						// The future should now deliver an ConnectException
 						executionContext.setResource2(completableFuture);
@@ -231,14 +235,14 @@ public class HttpAction extends Action {
 				if (async) {
 					HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, bodyPublisher, timeout);
 					Http2UrlSelector http2UrlSelector = new Http2UrlSelector(_httpEndpoint, workerPool);
-					http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, "", doOutput, null, createAsyncHandler(timeout, context, message, workerPool), workerPool);
+					http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, null, createAsyncHandler(timeout, context, message, workerPool), workerPool);
 
 //					CompletableFuture<HttpResponse<InputStream>> completableFuture = sendAsync(context, message, bodyPublisher, timeout);
 //					attachAsyncHandler(completableFuture, timeout, context, message, workerPool);
 				} else {
 					HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, bodyPublisher, timeout);
 					Http2UrlSelector http2UrlSelector = new Http2UrlSelector(_httpEndpoint, workerPool);
-					HttpResponse<InputStream> response = http2UrlSelector.send(_httpEndpoint, requestBuilder, "", doOutput, null);
+					HttpResponse<InputStream> response = http2UrlSelector.send(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, null);
 					
 //					HttpResponse<InputStream> response = send(context, message, bodyPublisher, timeout);
 					executionContext.setResource3(response);

@@ -16,12 +16,10 @@
 package com.artofarc.esb.http;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.function.Function;
 
-import javax.net.ssl.HttpsURLConnection;
+import javax.servlet.http.HttpServletResponse;
 
 public class HttpCheckAlive {
 
@@ -29,7 +27,7 @@ public class HttpCheckAlive {
 	protected static long convertDateString(String dateString) {
 		try {
 			if (dateString.indexOf("GMT") < 0) {
-				dateString = dateString + " GMT";
+				dateString += " GMT";
 			}
 			return Date.parse(dateString);
 		} catch (Exception e) {
@@ -44,41 +42,14 @@ public class HttpCheckAlive {
 		return obj != null && getClass() == obj.getClass();
 	}
 
-	public HttpURLConnection connect(HttpEndpoint httpEndpoint, int pos) throws IOException {
-		HttpURLConnection conn = (HttpURLConnection) httpEndpoint.getHttpUrls().get(pos).getUrl().openConnection(httpEndpoint.getProxy());
-		if (httpEndpoint.getSSLContext() != null) {
-			((HttpsURLConnection) conn).setSSLSocketFactory(httpEndpoint.getSSLContext().getSocketFactory());
-		}
-		conn.setConnectTimeout(httpEndpoint.getConnectionTimeout());
-		// SSL Handshake got stuck
-		conn.setReadTimeout(httpEndpoint.getConnectionTimeout());
-		conn.setRequestMethod("HEAD");
-		return conn;
+	public String getCheckAliveMethod() {
+		return "HEAD";
 	}
 
-	public boolean isAlive(Map<String, List<String>> headers, int responseCode) {
-		if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
+	public boolean isAlive(int statusCode, Function<String, String> getHeader) {
+		if (statusCode == HttpServletResponse.SC_SERVICE_UNAVAILABLE) {
 			_retryAfter = null;
-			List<String> retryAfter = headers.get(HttpConstants.HTTP_HEADER_RETRY_AFTER);
-			if (retryAfter != null) {
-				try {
-					_retryAfter = Integer.valueOf(retryAfter.get(0));
-				} catch (NumberFormatException e) {
-					long date = convertDateString(retryAfter.get(0));
-					if (date > 0) {
-						_retryAfter = (int) (date - System.currentTimeMillis() + 999) / 1000;
-					}
-				}
-			}
-			return false;
-		}
-		return true;
-	}
-
-	public boolean isAlive(HttpURLConnection conn, int responseCode) {
-		if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
-			_retryAfter = null;
-			String retryAfter = conn.getHeaderField(HttpConstants.HTTP_HEADER_RETRY_AFTER);
+			String retryAfter = getHeader.apply(HttpConstants.HTTP_HEADER_RETRY_AFTER);
 			if (retryAfter != null) {
 				try {
 					_retryAfter = Integer.valueOf(retryAfter);
@@ -100,14 +71,13 @@ public class HttpCheckAlive {
 		return retryAfter;
 	}
 
-	public static class ConnectException extends IOException {
+	public static final class ConnectException extends IOException {
 
 		private static final long serialVersionUID = 1L;
 
 		public ConnectException(String message) {
 			super(message);
 		}
-
 	}
 
 }
