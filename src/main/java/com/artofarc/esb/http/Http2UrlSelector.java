@@ -17,7 +17,6 @@ package com.artofarc.esb.http;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.ref.WeakReference;
 import java.net.ConnectException;
 import java.net.CookieManager;
 import java.net.NoRouteToHostException;
@@ -27,198 +26,37 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicIntegerArray;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 
-import javax.management.AttributeChangeNotification;
-import javax.management.MBeanNotificationInfo;
-import javax.management.NotificationBroadcasterSupport;
-
-import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
 
-public final class Http2UrlSelector extends NotificationBroadcasterSupport implements Runnable {
+public final class Http2UrlSelector extends HttpUrlSelector {
 
 	private final HttpClient _httpClient; 
 
-	private final List<WeakReference<HttpEndpoint>> _httpEndpoints = new ArrayList<>();
-	private final WorkerPool _workerPool;
-	private final int size;
-	private final int[] weight;
-	private final boolean[] active;
-	private final AtomicIntegerArray inUse;
-	private int pos;
-	private int activeCount;
-	private long _sequenceNumber;
-	private ScheduledFuture<?> _future;
-	private final AtomicLong _totalConnectionsCount = new AtomicLong();
-
 	public Http2UrlSelector(HttpEndpoint httpEndpoint, WorkerPool workerPool) {
-		super(workerPool.getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
-				AttributeChangeNotification.class.getName(), "An endpoint of " + httpEndpoint.getName() + " changes its state"));
-
-		_httpEndpoints.add(new WeakReference<>(httpEndpoint));
-		_workerPool = workerPool;
-		size = httpEndpoint.getHttpUrls().size();
-		weight = new int[size];
-		active = new boolean[size];
-		inUse = new AtomicIntegerArray(size);
-		for (int i = 0; i < size; ++i) {
-			weight[i] = httpEndpoint.getHttpUrls().get(i).getWeight();
-			boolean isActive = httpEndpoint.getHttpUrls().get(i).isActive();
-			active[i] = isActive;
-			if (isActive) ++activeCount;
-		}
-		_httpClient = getHttpClient(workerPool.getPoolContext().getGlobalContext(), httpEndpoint);
-	}
-
-	private HttpClient getHttpClient(GlobalContext globalContext, HttpEndpoint _httpEndpoint) {
-		HttpClient.Builder builder = HttpClient.newBuilder().proxy(globalContext.getHttpGlobalContext()).connectTimeout(Duration.ofMillis(_httpEndpoint.getConnectionTimeout()));
-		CookieManager cookieManager = globalContext.getHttpGlobalContext().getCookieManager();
+		super(httpEndpoint, workerPool);
+		HttpGlobalContext httpGlobalContext = workerPool.getPoolContext().getGlobalContext().getHttpGlobalContext();
+		HttpClient.Builder builder = HttpClient.newBuilder().proxy(httpGlobalContext).connectTimeout(Duration.ofMillis(httpEndpoint.getConnectionTimeout()));
+		CookieManager cookieManager = httpGlobalContext.getCookieManager();
 		if (cookieManager != null) {
 			builder.cookieHandler(cookieManager);
 		}
-		if (_httpEndpoint.getSSLContext() != null) {
-			builder.sslContext(_httpEndpoint.getSSLContext());
+		if (httpEndpoint.getSSLContext() != null) {
+			builder.sslContext(httpEndpoint.getSSLContext());
 		}
-		return builder.build();
+		_httpClient = builder.build();
 	}
 
-	public boolean missesHttpEndpoint(HttpEndpoint httpEndpoint) {
-		synchronized (_httpEndpoints) {
-			for (WeakReference<HttpEndpoint> ref : _httpEndpoints) {
-				if (ref.get() == httpEndpoint) {
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-
-	public HttpEndpoint getHttpEndpoint() {
-		synchronized (_httpEndpoints) {
-			for (Iterator<WeakReference<HttpEndpoint>> iter = _httpEndpoints.iterator(); iter.hasNext();) {
-				HttpEndpoint httpEndpoint = iter.next().get();
-				if (httpEndpoint != null) {
-					return httpEndpoint;
-				} else {
-					iter.remove();
-				}
-			}
-		}
-		return null;
-	}
-
-	public void addHttpEndpoint(HttpEndpoint httpEndpoint) {
-		synchronized (_httpEndpoints) {
-			HttpEndpoint pivot = getHttpEndpoint();
-			if (pivot != null && pivot.getModificationTime() < httpEndpoint.getModificationTime()) {
-				// take non diversifying parameters from most recent version
-				_httpEndpoints.add(0, new WeakReference<>(httpEndpoint));
-			} else {
-				_httpEndpoints.add(new WeakReference<>(httpEndpoint));
-			}
-		}
-	}
-
-	public synchronized boolean isActive(int pos) {
-		return active[pos];
-	}
-
-	public synchronized void setActive(int pos, boolean b) {
-		boolean old = active[pos];
-		if (b != old) {
-			active[pos] = b;
-			if (b) {
-				if (++activeCount == size && _future != null) {
-					_future.cancel(true);
-					_future = null;
-				}
-			} else {
-				--activeCount;
-				if (_future == null) {
-					scheduleHealthCheck();
-				}
-			}
-			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Endpoint state changed", "active[" + pos + "]", "boolean", old, b));
-		}
-	}
-
-	private void scheduleHealthCheck() {
-		HttpEndpoint httpEndpoint = getHttpEndpoint();
-		if (httpEndpoint != null && httpEndpoint.getCheckAliveInterval() != null) {
-			Integer retryAfter = httpEndpoint.getHttpCheckAlive().consumeRetryAfter();
-			int nextCheckAlive = retryAfter != null ? retryAfter : httpEndpoint.getCheckAliveInterval();
-			_future = _workerPool.getScheduledExecutorService().schedule(this, nextCheckAlive, TimeUnit.SECONDS);
-		}
-	}
-
-	public synchronized void stop() {
-		if (_future != null) {
-			_future.cancel(true);
-			_future = null;
-		}
-	}
-
-	public void run() {
-		HttpEndpoint httpEndpoint = getHttpEndpoint();
-		for (int i = 0; i < size; ++i) {
-			if (httpEndpoint != null && !isActive(i)) {
-				HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(i);
-				try {
-					if (checkAlive(httpEndpoint, httpUrl)) {
-						setActive(i, true);
-					}
-				} catch (IOException e) {
-					// ignore
-				} catch (Exception e) {
-					HttpEndpointRegistry.logger.error("Unexpected exception for " + httpUrl, e);
-				}
-			}
-		}
-		synchronized (this) {
-			if (activeCount < size) {
-				scheduleHealthCheck();
-			}
-		}
-	}
-
-	public boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl) throws Exception {
+	@Override
+	protected boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl) throws Exception {
 		URI uri = new URI(httpUrl.getUrlStr());
 		HttpRequest request = HttpRequest.newBuilder(uri).method(httpEndpoint.getHttpCheckAlive().getCheckAliveMethod(), HttpRequest.BodyPublishers.noBody())
-				// Real life experience: SSL Handshake got stuck
+				// Real life experience: SSL Handshake got stuck forever without timeout
 				.timeout(Duration.ofMillis(httpEndpoint.getConnectionTimeout())).build();
 		HttpResponse<String> httpResponse = _httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 		return httpEndpoint.getHttpCheckAlive().isAlive(httpResponse.statusCode(), (name) -> httpResponse.headers().firstValue(name).orElse(null));
-	}
-
-	private synchronized int computeNextPos(HttpEndpoint httpEndpoint) {
-		for (;; ++pos) {
-			if (pos == size) {
-				pos = 0;
-			}
-			switch (activeCount) {
-			case 0:
-				return -1;
-			case 1:
-				return pos;
-			default:
-				if (active[pos]) {
-					if (--weight[pos] == 0) {
-						weight[pos] = httpEndpoint.getHttpUrls().get(pos).getWeight();
-						return pos++;
-					}
-				}
-				break;
-			}
-		}
 	}
 
 	public HttpResponse<InputStream> send(HttpEndpoint httpEndpoint, HttpRequest.Builder requestBuilder, String appendUrl, boolean doOutput, CountDownLatch streamConsumed) throws URISyntaxException, IOException, InterruptedException {

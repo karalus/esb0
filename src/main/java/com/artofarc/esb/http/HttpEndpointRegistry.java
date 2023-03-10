@@ -76,13 +76,14 @@ public final class HttpEndpointRegistry {
 		return httpEndpoint;
 	}
 
-	public HttpUrlSelector getHttpUrlSelector(HttpEndpoint httpEndpoint) {
+	@SuppressWarnings("unchecked")
+	public <T extends HttpUrlSelector> T getHttpUrlSelector(HttpEndpoint httpEndpoint) {
 		HttpUrlSelector httpUrlSelector = _map.get(httpEndpoint.getName());
 		if (httpUrlSelector == null || httpUrlSelector.missesHttpEndpoint(httpEndpoint)) {
 			expungeStaleEntries();
 			httpUrlSelector = _map.compute(httpEndpoint.getName(), (name, state) -> {
 				if (state != null && state.missesHttpEndpoint(httpEndpoint)) {
-					HttpEndpoint pivot = state.getHttpEndpoint();
+					HttpEndpoint pivot = state.getFirstHttpEndpoint();
 					if (pivot == null || pivot.isCompatible(httpEndpoint)) {
 						state.addHttpEndpoint(httpEndpoint);
 					} else {
@@ -93,20 +94,20 @@ public final class HttpEndpointRegistry {
 					}
 				}
 				if (state == null) {
-					state = new HttpUrlSelector(httpEndpoint, _registry.getDefaultWorkerPool());
+					state = new Http1UrlSelector(httpEndpoint, _registry.getDefaultWorkerPool());
 					_registry.getHttpGlobalContext().registerProxy(httpEndpoint);
 					_registry.registerMBean(state, ",group=HttpEndpointState,name=" + name);
 				}
 				return state;
 			});
 		}
-		return httpUrlSelector;
+		return (T) httpUrlSelector;
 	}
 
 	private void expungeStaleEntries() {
 		for (Iterator<Map.Entry<String, HttpUrlSelector>> iter = _map.entrySet().iterator(); iter.hasNext();) {
 			Map.Entry<String, HttpUrlSelector> entry = iter.next();
-			if (entry.getValue().getHttpEndpoint() == null) {
+			if (entry.getValue().getFirstHttpEndpoint() == null) {
 				removeHttpUrlSelector(entry.getKey(), entry.getValue());
 				iter.remove();
 			}

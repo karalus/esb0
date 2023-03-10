@@ -21,7 +21,7 @@ import java.util.Map.Entry;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnection;
+import com.artofarc.esb.http.Http1UrlSelector.HttpUrlConnection;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.ByteArrayOutputStream;
 

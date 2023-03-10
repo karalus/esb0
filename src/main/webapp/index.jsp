@@ -245,7 +245,7 @@ input[type="submit"][value="false"] {
 			for (Map.Entry<String, HttpUrlSelector> entry : globalContext.getHttpEndpointRegistry().getHttpUrlSelectors().entrySet()) {
 				HttpUrlSelector httpUrl = entry.getValue();
 				%>
-				<tr><td><%=entry.getKey()%></td><td><%=httpUrl != null ? httpUrl.getHttpEndpoint().getHttpUrls() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getActiveCount() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getInUseTotal() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getTotalConnectionsCount() : "N/A"%></td></tr>
+				<tr><td><%=entry.getKey()%></td><td><%=httpUrl != null ? httpUrl.getFirstHttpEndpoint().getHttpUrls() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getActiveCount() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getInUseTotal() : "N/A"%></td><td><%=httpUrl != null ? httpUrl.getTotalConnectionsCount() : "N/A"%></td></tr>
 				<%
 			}
 %>
