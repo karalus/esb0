@@ -86,7 +86,7 @@ public class HttpAction extends Action {
 	}
 
 	private HttpClient getHttpClient(GlobalContext globalContext) {
-		HttpClient.Builder builder = HttpClient.newBuilder().proxy(globalContext.getHttpGlobalContext()).connectTimeout(Duration.ofMillis(_httpEndpoint.getConnectionTimeout()));
+		HttpClient.Builder builder = HttpClient.newBuilder().proxy(globalContext.getHttpGlobalContext()).connectTimeout(Duration.ofMillis(_httpEndpoint.getConnectTimeout()));
 		CookieManager cookieManager = globalContext.getHttpGlobalContext().getCookieManager();
 		if (cookieManager != null) {
 			builder.cookieHandler(cookieManager);
@@ -142,7 +142,7 @@ public class HttpAction extends Action {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + workerPool.getName());
 		}
 		Object correlationID = asyncProcessingPool.saveContext(null, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()), new ArrayList<>(context.getStackErrorHandler()),
-				message.getVariables(), System.currentTimeMillis() + _httpEndpoint.getConnectionTimeout() + timeout);
+				message.getVariables(), System.currentTimeMillis() + _httpEndpoint.getConnectTimeout() + timeout);
 
 		return (httpResponse, exception) -> {
 			ESBMessage esbMessage = exception != null ? new ESBMessage(BodyType.EXCEPTION, exception.getCause()) : new ESBMessage(BodyType.INVALID, null);
@@ -206,7 +206,7 @@ public class HttpAction extends Action {
 						countDownLatch.countDown();
 						return pis;
 					}), timeout);
-					if (!countDownLatch.await((_httpEndpoint.getRetries() + 1) * _httpEndpoint.getConnectionTimeout(), TimeUnit.MILLISECONDS)) {
+					if (!countDownLatch.await((_httpEndpoint.getRetries() + 1) * _httpEndpoint.getConnectTimeout(), TimeUnit.MILLISECONDS)) {
 						pos.close();
 						// The future should now deliver an ConnectException
 						executionContext.setResource2(completableFuture);
@@ -271,7 +271,7 @@ public class HttpAction extends Action {
 					countDownLatch.countDown();
 					return pis;
 				}), timeout);
-				if (countDownLatch.await(_httpEndpoint.getConnectionTimeout(), TimeUnit.MILLISECONDS)) {
+				if (countDownLatch.await(_httpEndpoint.getConnectTimeout(), TimeUnit.MILLISECONDS)) {
 					attachAsyncHandler(completableFuture, timeout, context, message, workerPool);
 					mmp.writeTo(pos);
 					future = null;

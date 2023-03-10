@@ -101,7 +101,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 	public static boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl, HttpCheckAlive httpCheckAlive) throws IOException {
 		HttpURLConnection conn = createHttpURLConnection(httpEndpoint, httpUrl.getUrl());
 		// Real life experience: SSL Handshake got stuck forever without timeout
-		conn.setReadTimeout(httpEndpoint.getConnectionTimeout());
+		conn.setReadTimeout(httpEndpoint.getConnectTimeout());
 		conn.setRequestMethod(httpCheckAlive.getCheckAliveMethod());
 		return httpCheckAlive.isAlive(conn.getResponseCode(), (name) -> conn.getHeaderField(name));
 	}
@@ -111,7 +111,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 		if (httpEndpoint.getSSLContext() != null) {
 			((HttpsURLConnection) conn).setSSLSocketFactory(httpEndpoint.getSSLContext().getSocketFactory());
 		}
-		conn.setConnectTimeout(httpEndpoint.getConnectionTimeout());
+		conn.setConnectTimeout(httpEndpoint.getConnectTimeout());
 		return conn;
 	}
 

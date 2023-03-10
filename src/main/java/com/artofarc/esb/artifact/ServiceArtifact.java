@@ -230,7 +230,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			} else if (http.getCheckAliveInterval() != null) {
 				httpCheckAlive = new HttpCheckAlive();
 			}
-			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(),
+			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectTimeout(),
 					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy, sslContext);
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 			String multipartSubtype = http.getMultipartSubtype() != null ? http.getMultipartSubtype().value() : http.getMultipartRequest() != null ? "related" : null;

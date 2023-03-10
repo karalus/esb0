@@ -27,7 +27,7 @@ public final class HttpEndpoint {
 	private final String _name;
 	private final List<HttpUrl> _endpoints;
 	private final String _basicAuthCredential;
-	private final int _connectionTimeout;
+	private final int _connectTimeout;
 	private final int _retries;
 	private final Integer _checkAliveInterval;
 	private final HttpCheckAlive _checkAlive;
@@ -35,7 +35,7 @@ public final class HttpEndpoint {
 	private final Proxy _proxy;
 	private final SSLContext _sslContext;
 
-	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectionTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext) {
+	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext) {
 		if (name != null) {
 			_name = name;
 		} else {
@@ -48,7 +48,7 @@ public final class HttpEndpoint {
 		}
 		_endpoints = endpoints;
 		_basicAuthCredential = username != null && password != null ? username + ':' + password : null;
-		_connectionTimeout = connectionTimeout;
+		_connectTimeout = connectTimeout;
 		_retries = retries;
 		_checkAliveInterval = checkAliveInterval;
 		_checkAlive = checkAlive;
@@ -76,8 +76,8 @@ public final class HttpEndpoint {
 		return _basicAuthCredential;
 	}
 
-	public int getConnectionTimeout() {
-		return _connectionTimeout;
+	public int getConnectTimeout() {
+		return _connectTimeout;
 	}
 
 	public int getRetries() {
@@ -116,7 +116,7 @@ public final class HttpEndpoint {
 	}
 
 	public boolean hasSameConfig(HttpEndpoint other) {
-		return _endpoints.equals(other._endpoints) && _connectionTimeout == other._connectionTimeout && _retries == other._retries && Objects.equals(_checkAliveInterval, other._checkAliveInterval)
+		return _endpoints.equals(other._endpoints) && _connectTimeout == other._connectTimeout && _retries == other._retries && Objects.equals(_checkAliveInterval, other._checkAliveInterval)
 			&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy) && Objects.equals(_sslContext, other._sslContext) && Objects.equals(_checkAlive, other._checkAlive);
 	}
 

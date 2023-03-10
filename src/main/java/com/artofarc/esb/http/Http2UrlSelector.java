@@ -38,7 +38,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 	public Http2UrlSelector(HttpEndpoint httpEndpoint, WorkerPool workerPool) {
 		super(httpEndpoint, workerPool);
 		HttpGlobalContext httpGlobalContext = workerPool.getPoolContext().getGlobalContext().getHttpGlobalContext();
-		HttpClient.Builder builder = HttpClient.newBuilder().proxy(httpGlobalContext).connectTimeout(Duration.ofMillis(httpEndpoint.getConnectionTimeout()));
+		HttpClient.Builder builder = HttpClient.newBuilder().proxy(httpGlobalContext).connectTimeout(Duration.ofMillis(httpEndpoint.getConnectTimeout()));
 		CookieManager cookieManager = httpGlobalContext.getCookieManager();
 		if (cookieManager != null) {
 			builder.cookieHandler(cookieManager);
@@ -54,7 +54,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 		URI uri = new URI(httpUrl.getUrlStr());
 		HttpRequest request = HttpRequest.newBuilder(uri).method(httpEndpoint.getHttpCheckAlive().getCheckAliveMethod(), HttpRequest.BodyPublishers.noBody())
 				// Real life experience: SSL Handshake got stuck forever without timeout
-				.timeout(Duration.ofMillis(httpEndpoint.getConnectionTimeout())).build();
+				.timeout(Duration.ofMillis(httpEndpoint.getConnectTimeout())).build();
 		HttpResponse<String> httpResponse = _httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 		return httpEndpoint.getHttpCheckAlive().isAlive(httpResponse.statusCode(), (name) -> httpResponse.headers().firstValue(name).orElse(null));
 	}
