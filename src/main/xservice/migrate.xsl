@@ -25,6 +25,7 @@
 			<xsl:value-of select="." />
 		</xsl:attribute>
 	</xsl:template>
+	<xsl:template match="ns:http/@join"/>
 	<xsl:template match="ns:setMessage">
 		<update>
 			<xsl:apply-templates select="@*|node()" />
