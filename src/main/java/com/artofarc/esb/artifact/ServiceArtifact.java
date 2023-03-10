@@ -236,7 +236,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			String multipartSubtype = http.getMultipartSubtype() != null ? http.getMultipartSubtype().value() : http.getMultipartRequest() != null ? "related" : null;
 			addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), multipartSubtype, http.getMultipartRequest()), location);
 			if (http.getWorkerPool() != null) {
-				addAction(list, new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, http.isJoin()), location);
+				addAction(list, new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, false), location);
 			}
 			addAction(list, new HttpInboundAction(), location);
 			break;
