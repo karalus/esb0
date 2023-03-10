@@ -241,15 +241,20 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	}
 
 	public static boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl, HttpCheckAlive httpCheckAlive) throws IOException {
-		HttpURLConnection conn = (HttpURLConnection) httpUrl.getUrl().openConnection(httpEndpoint.getProxy());
+		HttpURLConnection conn = createHttpURLConnection(httpEndpoint, httpUrl.getUrl());
+		// SSL Handshake got stuck
+		conn.setReadTimeout(httpEndpoint.getConnectTimeout());
+		conn.setRequestMethod(httpCheckAlive.getCheckAliveMethod());
+		return httpCheckAlive.isAlive(conn.getResponseCode(), (name) -> conn.getHeaderField(name));
+	}
+
+	private static HttpURLConnection createHttpURLConnection(HttpEndpoint httpEndpoint, URL url) throws IOException {
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection(httpEndpoint.getProxy());
 		if (httpEndpoint.getSSLContext() != null) {
 			((HttpsURLConnection) conn).setSSLSocketFactory(httpEndpoint.getSSLContext().getSocketFactory());
 		}
-		conn.setConnectTimeout(httpEndpoint.getConnectionTimeout());
-		// SSL Handshake got stuck
-		conn.setReadTimeout(httpEndpoint.getConnectionTimeout());
-		conn.setRequestMethod(httpCheckAlive.getCheckAliveMethod());
-		return httpCheckAlive.isAlive(conn.getResponseCode(), (name) -> conn.getHeaderField(name));
+		conn.setConnectTimeout(httpEndpoint.getConnectTimeout());
+		return conn;
 	}
 
 	public HttpUrlConnection connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Map.Entry<String, Object>> headers, Integer chunkLength, Long contentLength) throws IOException {
@@ -262,11 +267,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
 			HttpUrlConnection httpUrlConnection = null;
 			try {
-				HttpURLConnection conn = (HttpURLConnection) url.openConnection(httpEndpoint.getProxy());
-				if (httpEndpoint.getSSLContext() != null) {
-					((HttpsURLConnection) conn).setSSLSocketFactory(httpEndpoint.getSSLContext().getSocketFactory());
-				}
-				conn.setConnectTimeout(httpEndpoint.getConnectionTimeout());
+				HttpURLConnection conn = createHttpURLConnection(httpEndpoint, url);
 				conn.setReadTimeout(timeout);
 				// For "PATCH" refer to https://stackoverflow.com/questions/25163131/httpurlconnection-invalid-http-method-patch
 				if (method.equals("PATCH")) {

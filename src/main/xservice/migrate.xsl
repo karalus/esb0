@@ -20,6 +20,11 @@
 			<xsl:value-of select="." />
 		</xsl:attribute>
 	</xsl:template>
+	<xsl:template match="@connectionTimeout">
+		<xsl:attribute name="connectTimeout">
+			<xsl:value-of select="." />
+		</xsl:attribute>
+	</xsl:template>
 	<xsl:template match="@verb">
 		<xsl:attribute name="action">
 			<xsl:value-of select="." />
