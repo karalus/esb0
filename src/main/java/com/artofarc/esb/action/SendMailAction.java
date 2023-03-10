@@ -81,7 +81,7 @@ public class SendMailAction extends TerminalAction {
 		}
 		msg.setSubject((String) eval(subject, context, message));
 		String content = (String) eval(text, context, message);
-		String contentType = type + "; " + HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + ESBMessage.CHARSET_DEFAULT;
+		String contentType = eval(type, context, message) + "; " + HttpConstants.HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + ESBMessage.CHARSET_DEFAULT;
 		if (message.getAttachments().isEmpty()) {
 			msg.setContent(content, contentType);
 		} else {
