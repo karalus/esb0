@@ -15,10 +15,8 @@
  */
 package com.artofarc.esb.http;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
-import java.net.CookieManager;
 import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -39,9 +37,8 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 		super(httpEndpoint, workerPool);
 		HttpGlobalContext httpGlobalContext = workerPool.getPoolContext().getGlobalContext().getHttpGlobalContext();
 		HttpClient.Builder builder = HttpClient.newBuilder().proxy(httpGlobalContext).connectTimeout(Duration.ofMillis(httpEndpoint.getConnectTimeout()));
-		CookieManager cookieManager = httpGlobalContext.getCookieManager();
-		if (cookieManager != null) {
-			builder.cookieHandler(cookieManager);
+		if (httpGlobalContext.getCookieManager() != null) {
+			builder.cookieHandler(httpGlobalContext.getCookieManager());
 		}
 		if (httpEndpoint.getSSLContext() != null) {
 			builder.sslContext(httpEndpoint.getSSLContext());
@@ -59,7 +56,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 		return httpEndpoint.getHttpCheckAlive().isAlive(httpResponse.statusCode(), (name) -> httpResponse.headers().firstValue(name).orElse(null));
 	}
 
-	public HttpResponse<InputStream> send(HttpEndpoint httpEndpoint, HttpRequest.Builder requestBuilder, String appendUrl, boolean doOutput, CountDownLatch streamConsumed) throws URISyntaxException, IOException, InterruptedException {
+	public HttpResponse<InputStream> send(HttpEndpoint httpEndpoint, HttpRequest.Builder requestBuilder, String appendUrl, boolean doOutput, CountDownLatch streamConsumed) throws Exception {
 		HttpResponse.BodyHandler<InputStream> bodyHandler = HttpResponse.BodyHandlers.ofInputStream();
 		HttpCheckAlive httpCheckAlive = httpEndpoint.getHttpCheckAlive();
 		for (int retryCount = httpEndpoint.getRetries();;) {

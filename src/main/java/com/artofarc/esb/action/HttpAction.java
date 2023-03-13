@@ -18,16 +18,12 @@ package com.artofarc.esb.action;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.net.CookieManager;
-import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -39,13 +35,11 @@ import javax.xml.bind.DatatypeConverter;
 import com.artofarc.esb.context.AsyncProcessingPool;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
 import static com.artofarc.esb.http.HttpConstants.*;
 
 import com.artofarc.esb.http.Http2UrlSelector;
 import com.artofarc.esb.http.HttpEndpoint;
-import com.artofarc.esb.http.HttpUrl;
 import com.artofarc.esb.message.BodyType;
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
@@ -85,18 +79,6 @@ public class HttpAction extends Action {
 		}
 	}
 
-	private HttpClient getHttpClient(GlobalContext globalContext) {
-		HttpClient.Builder builder = HttpClient.newBuilder().proxy(globalContext.getHttpGlobalContext()).connectTimeout(Duration.ofMillis(_httpEndpoint.getConnectTimeout()));
-		CookieManager cookieManager = globalContext.getHttpGlobalContext().getCookieManager();
-		if (cookieManager != null) {
-			builder.cookieHandler(cookieManager);
-		}
-		if (_httpEndpoint.getSSLContext() != null) {
-			builder.sslContext(_httpEndpoint.getSSLContext());
-		}
-		return builder.build();
-	}
-
 	private HttpRequest.Builder createHttpRequestBuilder(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
 		HttpRequest.Builder builder = HttpRequest.newBuilder().method(message.getVariable(HttpMethod), bodyPublisher).timeout(Duration.ofMillis(timeout));
 		for (Map.Entry<String, Object> entry : message.getHeaders()) {
@@ -130,12 +112,6 @@ public class HttpAction extends Action {
 		return appendHttpUrl;
 	}
 
-	private HttpRequest createHttpRequest(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
-		HttpUrl httpUrl = _httpEndpoint.getHttpUrls().get(0);
-		URI uri = new URI(httpUrl.getUrlStr() + createAppendHttpUrl(message));
-		return createHttpRequestBuilder(context, message, bodyPublisher, timeout).uri(uri).build();
-	}
-
 	private BiFunction<HttpResponse<InputStream>, Throwable, Void> createAsyncHandler(int timeout, Context context, ESBMessage message, WorkerPool workerPool) throws Exception {
 		AsyncProcessingPool asyncProcessingPool = workerPool.getAsyncProcessingPool();
 		if (asyncProcessingPool == null) {
@@ -164,20 +140,6 @@ public class HttpAction extends Action {
 		};
 	}
 
-	private CompletableFuture<Void> attachAsyncHandler(CompletableFuture<HttpResponse<InputStream>> completableFuture, int timeout, Context context, ESBMessage message, WorkerPool workerPool) throws Exception {
-		return completableFuture.handleAsync(createAsyncHandler(timeout, context, message, workerPool), workerPool.getExecutorService());
-	}
-
-	private CompletableFuture<HttpResponse<InputStream>> sendAsync(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
-		HttpRequest httpRequest = createHttpRequest(context, message, bodyPublisher, timeout);
-		return getHttpClient(context.getGlobalContext()).sendAsync(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
-	}
-
-	private HttpResponse<InputStream> send(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
-		HttpRequest httpRequest = createHttpRequest(context, message, bodyPublisher, timeout);
-		return getHttpClient(context.getGlobalContext()).send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
-	}
-
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		message.determineSinkContentType();
@@ -195,32 +157,31 @@ public class HttpAction extends Action {
 			boolean doOutput = contentLength == null || contentLength > 0;
 			int timeout = message.getTimeleft(_readTimeout).intValue();
 			WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
+			Http2UrlSelector http2UrlSelector = new Http2UrlSelector(_httpEndpoint, workerPool);
 			// check, if we need a pipe
 			boolean usePipe = inPipeline || (contentLength == null && message.getBodyType() != BodyType.INPUT_STREAM);
 			if (usePipe) {
 				PipedOutputStream pos = new PipedOutputStream();
 				PipedInputStream pis = new PipedInputStream(pos, IOUtils.MTU);
+				CountDownLatch countDownLatch = new CountDownLatch(1);
+				HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
+					countDownLatch.countDown();
+					return pis;
+				}), timeout);
 				if (async) {
-					CountDownLatch countDownLatch = new CountDownLatch(1);
-					CompletableFuture<HttpResponse<InputStream>> completableFuture = sendAsync(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
-						countDownLatch.countDown();
-						return pis;
-					}), timeout);
-					if (!countDownLatch.await((_httpEndpoint.getRetries() + 1) * _httpEndpoint.getConnectTimeout(), TimeUnit.MILLISECONDS)) {
-						pos.close();
-						// The future should now deliver an ConnectException
-						executionContext.setResource2(completableFuture);
-						return executionContext;
-					}
-					attachAsyncHandler(completableFuture, timeout, context, message, workerPool);
+					http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, countDownLatch, createAsyncHandler(timeout, context, message, workerPool), workerPool);
 				} else {
-					Future<HttpResponse<InputStream>> future = workerPool.getExecutorService().submit(() -> send(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> pis), timeout));
+					Future<HttpResponse<InputStream>> future = workerPool.getExecutorService().submit(() -> http2UrlSelector.send(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, countDownLatch));
 					executionContext.setResource2(future);
 				}
-				if (inPipeline) {
-					message.reset(BodyType.OUTPUT_STREAM, pos);
+				if (countDownLatch.await((_httpEndpoint.getRetries() + 1) * _httpEndpoint.getConnectTimeout(), TimeUnit.MILLISECONDS)) {
+					if (inPipeline) {
+						message.reset(BodyType.OUTPUT_STREAM, pos);
+					} else {
+						message.writeRawTo(pos, context);
+					}
 				} else {
-					message.writeRawTo(pos, context);
+					pos.close();
 				}
 			} else {
 				HttpRequest.BodyPublisher bodyPublisher;
@@ -232,19 +193,11 @@ public class HttpAction extends Action {
 				} else {
 					bodyPublisher = HttpRequest.BodyPublishers.ofByteArray(message.getBodyAsByteArray(context));
 				}
+				HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, bodyPublisher, timeout);
 				if (async) {
-					HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, bodyPublisher, timeout);
-					Http2UrlSelector http2UrlSelector = new Http2UrlSelector(_httpEndpoint, workerPool);
 					http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, null, createAsyncHandler(timeout, context, message, workerPool), workerPool);
-
-//					CompletableFuture<HttpResponse<InputStream>> completableFuture = sendAsync(context, message, bodyPublisher, timeout);
-//					attachAsyncHandler(completableFuture, timeout, context, message, workerPool);
 				} else {
-					HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, bodyPublisher, timeout);
-					Http2UrlSelector http2UrlSelector = new Http2UrlSelector(_httpEndpoint, workerPool);
 					HttpResponse<InputStream> response = http2UrlSelector.send(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, null);
-					
-//					HttpResponse<InputStream> response = send(context, message, bodyPublisher, timeout);
 					executionContext.setResource3(response);
 				}
 			}
@@ -263,25 +216,24 @@ public class HttpAction extends Action {
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));
 			WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
+			Http2UrlSelector http2UrlSelector = new Http2UrlSelector(_httpEndpoint, workerPool);
 			PipedOutputStream pos = new PipedOutputStream();
 			PipedInputStream pis = new PipedInputStream(pos, IOUtils.MTU);
+			CountDownLatch countDownLatch = new CountDownLatch(1);
+			HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
+				countDownLatch.countDown();
+				return pis;
+			}), timeout);
 			if (async) {
-				CountDownLatch countDownLatch = new CountDownLatch(1);
-				CompletableFuture<HttpResponse<InputStream>> completableFuture = sendAsync(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
-					countDownLatch.countDown();
-					return pis;
-				}), timeout);
-				if (countDownLatch.await(_httpEndpoint.getConnectTimeout(), TimeUnit.MILLISECONDS)) {
-					attachAsyncHandler(completableFuture, timeout, context, message, workerPool);
-					mmp.writeTo(pos);
-					future = null;
-				} else {
-					pos.close();
-					future = completableFuture;
-				}
+				future = null;
+				http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), true, countDownLatch, createAsyncHandler(timeout, context, message, workerPool), workerPool);
 			} else {
-				future = workerPool.getExecutorService().submit(() -> send(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> pis), timeout));
+				future = workerPool.getExecutorService().submit(() -> http2UrlSelector.send(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), true, countDownLatch));
+			}
+			if (countDownLatch.await((_httpEndpoint.getRetries() + 1) * _httpEndpoint.getConnectTimeout(), TimeUnit.MILLISECONDS)) {
 				mmp.writeTo(pos);
+			} else {
+				pos.close();
 			}
 		} else {
 			future = execContext.getResource2();
