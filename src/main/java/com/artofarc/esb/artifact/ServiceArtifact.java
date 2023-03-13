@@ -17,6 +17,7 @@ package com.artofarc.esb.artifact;
 
 import java.net.CookiePolicy;
 import java.net.Proxy;
+import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -226,19 +227,24 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			if (http.getCheckAliveClass() != null) {
 				@SuppressWarnings("unchecked")
 				Class<? extends HttpCheckAlive> cls = (Class<? extends HttpCheckAlive>) Class.forName(http.getCheckAliveClass(), true, classLoader);
-				httpCheckAlive = cls.newInstance();
+				httpCheckAlive = cls.getConstructor().newInstance();
 			} else if (http.getCheckAliveInterval() != null) {
 				httpCheckAlive = new HttpCheckAlive();
 			}
+			HttpClient.Version version = http.getVersion() != null ? HttpClient.Version.valueOf(http.getVersion().replace('/', '_').replace('.', '_')) : null;
 			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectTimeout(),
-					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy, sslContext);
+					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy, sslContext, version);
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 			String multipartSubtype = http.getMultipartSubtype() != null ? http.getMultipartSubtype().value() : http.getMultipartRequest() != null ? "related" : null;
-			addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), multipartSubtype, http.getMultipartRequest()), location);
-			if (http.getWorkerPool() != null) {
-				addAction(list, new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, false), location);
+			if (http.getVersion() != null) {
+				addAction(list, new HttpAction(httpEndpoint, http.getReadTimeout(), resolveWorkerPool(http.getWorkerPool()), multipartSubtype, http.getMultipartRequest()), location);
+			} else {
+				addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), multipartSubtype, http.getMultipartRequest()), location);
+				if (http.getWorkerPool() != null) {
+					addAction(list, new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, false), location);
+				}
+				addAction(list, new HttpInboundAction(), location);
 			}
-			addAction(list, new HttpInboundAction(), location);
 			break;
 		}
 		case "jms": {
@@ -271,7 +277,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				try {
 					action = cls.getConstructor(java.lang.ClassLoader.class, Properties.class).newInstance(classLoader, createProperties(executeAction.getProperty(), globalContext));
 				} catch (NoSuchMethodException e) {
-					action = cls.newInstance();
+					action = cls.getConstructor().newInstance();
 				}
 			} catch (LinkageError e) {
 				throw new ValidationException(this, executeAction.sourceLocation().getLineNumber(), e.getCause() != null ? e.getCause() : e);

@@ -36,7 +36,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 	public Http2UrlSelector(HttpEndpoint httpEndpoint, WorkerPool workerPool) {
 		super(httpEndpoint, workerPool);
 		HttpGlobalContext httpGlobalContext = workerPool.getPoolContext().getGlobalContext().getHttpGlobalContext();
-		HttpClient.Builder builder = HttpClient.newBuilder().proxy(httpGlobalContext).connectTimeout(Duration.ofMillis(httpEndpoint.getConnectTimeout()));
+		HttpClient.Builder builder = HttpClient.newBuilder().proxy(httpGlobalContext).version(httpEndpoint.getVersion()).connectTimeout(Duration.ofMillis(httpEndpoint.getConnectTimeout()));
 		if (httpGlobalContext.getCookieManager() != null) {
 			builder.cookieHandler(httpGlobalContext.getCookieManager());
 		}

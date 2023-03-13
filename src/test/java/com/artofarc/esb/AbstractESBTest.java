@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.Proxy;
+import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -123,7 +124,7 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static HttpOutboundAction createHttpOutboundAction(String url) throws Exception {
-		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
+		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null, null), 60000, null, null, null);
 	}
 
 	protected static HttpAction createHttpAction(String... urls) throws Exception {
@@ -134,7 +135,7 @@ public abstract class AbstractESBTest {
 				throw new RuntimeException(e);
 			}
 		}).collect(Collectors.toList());
-		return new HttpAction(new HttpEndpoint(null, list, null, null, 1000, list.size() - 1, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
+		return new HttpAction(new HttpEndpoint(null, list, null, null, 1000, list.size() - 1, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null, HttpClient.Version.HTTP_1_1), 60000, null, null, null);
 	}
 
 	protected static AssignAction createAssignAction(String varName, String expression, String... bindNames) {

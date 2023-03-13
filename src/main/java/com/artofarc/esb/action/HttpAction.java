@@ -37,7 +37,6 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.WorkerPool;
 import static com.artofarc.esb.http.HttpConstants.*;
-
 import com.artofarc.esb.http.Http2UrlSelector;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.message.BodyType;
@@ -54,15 +53,15 @@ public class HttpAction extends Action {
 
 	private final HttpEndpoint _httpEndpoint;
 	private final Integer _readTimeout;
-	private final String _multipartSubtype, _multipartOption;
 	private final String _workerPool;
+	private final String _multipartSubtype, _multipartOption;
 
 	public HttpAction(HttpEndpoint httpEndpoint, int readTimeout, String workerPool, String multipartSubtype, String multipartOption) {
 		_httpEndpoint = httpEndpoint;
 		_readTimeout = readTimeout;
+		_workerPool = workerPool;
 		_multipartSubtype = multipartSubtype;
 		_multipartOption = multipartOption;
-		_workerPool = workerPool;
 		_pipelineStop = true;
 	}
 
@@ -79,7 +78,7 @@ public class HttpAction extends Action {
 		}
 	}
 
-	private HttpRequest.Builder createHttpRequestBuilder(Context context, ESBMessage message, HttpRequest.BodyPublisher bodyPublisher, int timeout) throws Exception {
+	private HttpRequest.Builder createHttpRequestBuilder(Context context, ESBMessage message, int timeout, HttpRequest.BodyPublisher bodyPublisher) throws Exception {
 		HttpRequest.Builder builder = HttpRequest.newBuilder().method(message.getVariable(HttpMethod), bodyPublisher).timeout(Duration.ofMillis(timeout));
 		for (Map.Entry<String, Object> entry : message.getHeaders()) {
 			if (entry.getValue() != null) {
@@ -112,13 +111,13 @@ public class HttpAction extends Action {
 		return appendHttpUrl;
 	}
 
-	private BiFunction<HttpResponse<InputStream>, Throwable, Void> createAsyncHandler(int timeout, Context context, ESBMessage message, WorkerPool workerPool) throws Exception {
+	private BiFunction<HttpResponse<InputStream>, Throwable, Void> createAsyncHandler(WorkerPool workerPool, Context context, ESBMessage message, int timeout) throws Exception {
 		AsyncProcessingPool asyncProcessingPool = workerPool.getAsyncProcessingPool();
 		if (asyncProcessingPool == null) {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + workerPool.getName());
 		}
 		Object correlationID = asyncProcessingPool.saveContext(null, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()), new ArrayList<>(context.getStackErrorHandler()),
-				message.getVariables(), System.currentTimeMillis() + _httpEndpoint.getConnectTimeout() + timeout);
+				message.getVariables(), _httpEndpoint.getMaxConnectTimeout() + timeout + System.currentTimeMillis());
 
 		return (httpResponse, exception) -> {
 			ESBMessage esbMessage = exception != null ? new ESBMessage(BodyType.EXCEPTION, exception.getCause()) : new ESBMessage(BodyType.INVALID, null);
@@ -144,37 +143,35 @@ public class HttpAction extends Action {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		message.determineSinkContentType();
 		boolean async = message.getVariables().containsKey(AsyncContext);
+		ExecutionContext executionContext = new ExecutionContext(async);
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			if (inPipeline) {
-				ByteArrayOutputStream bos = new ByteArrayOutputStream();
-				message.reset(BodyType.OUTPUT_STREAM, bos);
-				return new ExecutionContext(async, bos);
+				message.reset(BodyType.OUTPUT_STREAM, executionContext.setResource2(new ByteArrayOutputStream()));
 			}
-			return new ExecutionContext(async);
 		} else {
-			ExecutionContext executionContext = new ExecutionContext(async);;
 			Long contentLength = inPipeline ? null : message.getOutputLength();
 			boolean doOutput = contentLength == null || contentLength > 0;
 			int timeout = message.getTimeleft(_readTimeout).intValue();
 			WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
-			Http2UrlSelector http2UrlSelector = new Http2UrlSelector(_httpEndpoint, workerPool);
+			Http2UrlSelector http2UrlSelector = context.getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint, workerPool);
+			CountDownLatch countDownLatch;
 			// check, if we need a pipe
 			boolean usePipe = inPipeline || (contentLength == null && message.getBodyType() != BodyType.INPUT_STREAM);
 			if (usePipe) {
 				PipedOutputStream pos = new PipedOutputStream();
 				PipedInputStream pis = new PipedInputStream(pos, IOUtils.MTU);
-				CountDownLatch countDownLatch = new CountDownLatch(1);
-				HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
+				countDownLatch = new CountDownLatch(1);
+				HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, timeout, HttpRequest.BodyPublishers.ofInputStream(() -> {
 					countDownLatch.countDown();
 					return pis;
-				}), timeout);
+				}));
 				if (async) {
-					http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, countDownLatch, createAsyncHandler(timeout, context, message, workerPool), workerPool);
+					http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, countDownLatch, createAsyncHandler(workerPool, context, message, timeout), workerPool);
 				} else {
 					Future<HttpResponse<InputStream>> future = workerPool.getExecutorService().submit(() -> http2UrlSelector.send(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, countDownLatch));
 					executionContext.setResource2(future);
 				}
-				if (countDownLatch.await((_httpEndpoint.getRetries() + 1) * _httpEndpoint.getConnectTimeout(), TimeUnit.MILLISECONDS)) {
+				if (countDownLatch.await(_httpEndpoint.getMaxConnectTimeout(), TimeUnit.MILLISECONDS)) {
 					if (inPipeline) {
 						message.reset(BodyType.OUTPUT_STREAM, pos);
 					} else {
@@ -185,52 +182,59 @@ public class HttpAction extends Action {
 				}
 			} else {
 				HttpRequest.BodyPublisher bodyPublisher;
-				if (contentLength != null && contentLength == 0) {
-					bodyPublisher = HttpRequest.BodyPublishers.noBody();
-				} else if (message.getBodyType() == BodyType.INPUT_STREAM && (contentLength == null || contentLength > IOUtils.MTU)) {
+				if (message.getBodyType() == BodyType.INPUT_STREAM && (contentLength == null || contentLength > IOUtils.MTU)) {
+					countDownLatch = new CountDownLatch(1);
 					InputStream is = message.getBodyAsInputStream(context);
-					bodyPublisher = HttpRequest.BodyPublishers.ofInputStream(() -> is);
+					bodyPublisher = HttpRequest.BodyPublishers.ofInputStream(() -> {
+						countDownLatch.countDown();
+						return is;
+					});
 				} else {
-					bodyPublisher = HttpRequest.BodyPublishers.ofByteArray(message.getBodyAsByteArray(context));
+					countDownLatch = null;
+					if (contentLength != null && contentLength == 0) {
+						bodyPublisher = HttpRequest.BodyPublishers.noBody();
+					} else {
+						bodyPublisher = HttpRequest.BodyPublishers.ofByteArray(message.getBodyAsByteArray(context));
+					}
 				}
-				HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, bodyPublisher, timeout);
+				HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, timeout, bodyPublisher);
 				if (async) {
-					http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, null, createAsyncHandler(timeout, context, message, workerPool), workerPool);
+					http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, countDownLatch, createAsyncHandler(workerPool, context, message, timeout), workerPool);
 				} else {
-					HttpResponse<InputStream> response = http2UrlSelector.send(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, null);
+					HttpResponse<InputStream> response = http2UrlSelector.send(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), doOutput, countDownLatch);
 					executionContext.setResource3(response);
 				}
 			}
-			return executionContext;
 		}
+		return executionContext;
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		message.closeBody();
-		Boolean async = execContext.getResource();
 		Future<HttpResponse<InputStream>> future;
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
-			int timeout = message.getTimeleft(_readTimeout).intValue();
 			ByteArrayOutputStream bos = execContext.getResource2();
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));
+			int timeout = message.getTimeleft(_readTimeout).intValue();
 			WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
-			Http2UrlSelector http2UrlSelector = new Http2UrlSelector(_httpEndpoint, workerPool);
+			Http2UrlSelector http2UrlSelector = context.getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint, workerPool);
 			PipedOutputStream pos = new PipedOutputStream();
 			PipedInputStream pis = new PipedInputStream(pos, IOUtils.MTU);
 			CountDownLatch countDownLatch = new CountDownLatch(1);
-			HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, HttpRequest.BodyPublishers.ofInputStream(() -> {
+			HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, timeout, HttpRequest.BodyPublishers.ofInputStream(() -> {
 				countDownLatch.countDown();
 				return pis;
-			}), timeout);
+			}));
+			Boolean async = execContext.getResource();
 			if (async) {
 				future = null;
-				http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), true, countDownLatch, createAsyncHandler(timeout, context, message, workerPool), workerPool);
+				http2UrlSelector.sendAsync(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), true, countDownLatch, createAsyncHandler(workerPool, context, message, timeout), workerPool);
 			} else {
 				future = workerPool.getExecutorService().submit(() -> http2UrlSelector.send(_httpEndpoint, requestBuilder, createAppendHttpUrl(message), true, countDownLatch));
 			}
-			if (countDownLatch.await((_httpEndpoint.getRetries() + 1) * _httpEndpoint.getConnectTimeout(), TimeUnit.MILLISECONDS)) {
+			if (countDownLatch.await(_httpEndpoint.getMaxConnectTimeout(), TimeUnit.MILLISECONDS)) {
 				mmp.writeTo(pos);
 			} else {
 				pos.close();
@@ -238,13 +242,15 @@ public class HttpAction extends Action {
 		} else {
 			future = execContext.getResource2();
 		}
-		HttpResponse<InputStream> httpResponse = execContext.getResource3();
+		HttpResponse<InputStream> httpResponse;
 		if (future != null) {
 			try {
 				httpResponse = future.get();
 			} catch (java.util.concurrent.ExecutionException e) {
 				throw ReflectionUtils.convert(e.getCause(), Exception.class);
 			}
+		} else {
+			httpResponse = execContext.getResource3();
 		}
 		message.clearHeaders();
 		if (httpResponse != null) {

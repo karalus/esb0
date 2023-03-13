@@ -16,6 +16,7 @@
 package com.artofarc.esb.http;
 
 import java.net.Proxy;
+import java.net.http.HttpClient;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
@@ -34,8 +35,9 @@ public final class HttpEndpoint {
 	private final long _modificationTime;
 	private final Proxy _proxy;
 	private final SSLContext _sslContext;
+	private final HttpClient.Version _version;
 
-	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext) {
+	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext, HttpClient.Version version) {
 		if (name != null) {
 			_name = name;
 		} else {
@@ -62,6 +64,7 @@ public final class HttpEndpoint {
 			}
 		}
 		_sslContext = sslContext;
+		_version = version;
 	}
 
 	public String getName() {
@@ -104,6 +107,14 @@ public final class HttpEndpoint {
 		return _sslContext;
 	}
 
+	public HttpClient.Version getVersion() {
+		return _version;
+	}
+
+	public int getMaxConnectTimeout() {
+		return (_retries + 1) * _connectTimeout;
+	}
+
 	public boolean isCompatible(HttpEndpoint other) {
 		ListIterator<HttpUrl> i1 = _endpoints.listIterator();
 		ListIterator<HttpUrl> i2 = other._endpoints.listIterator();
@@ -117,7 +128,8 @@ public final class HttpEndpoint {
 
 	public boolean hasSameConfig(HttpEndpoint other) {
 		return _endpoints.equals(other._endpoints) && _connectTimeout == other._connectTimeout && _retries == other._retries && Objects.equals(_checkAliveInterval, other._checkAliveInterval)
-			&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy) && Objects.equals(_sslContext, other._sslContext) && Objects.equals(_checkAlive, other._checkAlive);
+				&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy) && Objects.equals(_sslContext, other._sslContext)
+				&& Objects.equals(_checkAlive, other._checkAlive) && _version == other._version;
 	}
 
 }
