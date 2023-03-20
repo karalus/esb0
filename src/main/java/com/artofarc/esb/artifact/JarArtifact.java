@@ -17,13 +17,12 @@ package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
+import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.util.LinkedHashMap;
-import java.util.Set;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -31,9 +30,6 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.IOUtils;
 
 public class JarArtifact extends Artifact {
-
-	// will increase memory consumption opposed to reducing class loading time
-	private static final boolean CACHE_JARS_UNZIPPED = Boolean.parseBoolean(System.getProperty("esb0.cacheJARsUnzipped"));
 
 	private Jar _jar;
 
@@ -45,12 +41,14 @@ public class JarArtifact extends Artifact {
 		return _jar;
 	}
 
-	public final Set<String> getEntries() {
-		return _jar._entries.keySet();
+	public final Map<String, ?> getEntries() {
+		synchronized (_jar) {
+			return _jar._entries;
+		}
 	}
 
 	public final boolean isUsed() {
-		return _jar._used;
+		return getEntries() != null;
 	}
 
 	@Override
@@ -66,8 +64,8 @@ public class JarArtifact extends Artifact {
 	}
 
 	@Override
-	protected void validateInternal(GlobalContext globalContext) throws Exception {
-		_jar = new Jar(getContentAsBytes());
+	protected void validateInternal(GlobalContext globalContext) {
+		_jar = new Jar(this);
 	}
 
 	@Override
@@ -78,65 +76,76 @@ public class JarArtifact extends Artifact {
 
 	static final class Jar {
 
-		private final byte[] _content;
-		private final LinkedHashMap<String, byte[]> _entries = new LinkedHashMap<>();
+		private final WeakReference<JarArtifact> _jarArtifact;
+		private Map<String, WeakReference<byte[]>> _entries;
 
-		// track whether the JAR is used 
-		volatile boolean _used;
+		Jar(JarArtifact jarArtifact) {
+			_jarArtifact = new WeakReference<>(jarArtifact);
+		}
 
-		Jar(byte[] content) throws IOException {
-			try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(content))) {
-				ZipEntry entry;
-				while ((entry = zis.getNextEntry()) != null) {
-					if (!entry.isDirectory()) {
-						_entries.put(entry.getName(), CACHE_JARS_UNZIPPED ? IOUtils.toByteArray(zis) : null);
-					}
+		private byte[] load(String filename) throws IOException {
+			if (filename != null || _entries == null) {
+				JarArtifact jarArtifact = _jarArtifact.get();
+				if (jarArtifact == null) {
+					throw new IllegalStateException("JarArtifact is detached " + jarArtifact);
 				}
-			}
-			_content = CACHE_JARS_UNZIPPED ? null : content;
-		}
-
-		boolean contains(String filename) {
-			return _entries.containsKey(filename);
-		}
-
-		byte[] getEntry(String filename) throws IOException {
-			_used = true;
-			if (!CACHE_JARS_UNZIPPED) {
-				try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(_content))) {
+				logger.info("Reading " + jarArtifact);
+				if (_entries == null) {
+					_entries = new LinkedHashMap<>();
+				}
+				try (ZipInputStream zis = new ZipInputStream(jarArtifact.getContentAsStream())) {
 					ZipEntry entry;
 					while ((entry = zis.getNextEntry()) != null) {
-						if (entry.getName().equals(filename)) {
-							return IOUtils.toByteArray(zis);
+						if (!entry.isDirectory() && (filename == null || _entries.containsKey(entry.getName()))) {
+							byte[] data = IOUtils.toByteArray(zis);
+							if (entry.getName().equals(filename)) {
+								return data;
+							}
+							_entries.put(entry.getName(), new WeakReference<>(data));
 						}
 					}
+				} finally {
+					jarArtifact.clearContent();
 				}
 			}
-			return _entries.get(filename);
+			return null;
 		}
 
-		URL createUrlForEntry(String filename) {
-			try {
-				return new URL(null, "esb0:" + filename, new URLStreamHandler() {
-
-					@Override
-					protected URLConnection openConnection(URL u) {
-						return new URLConnection(u) {
-
-							@Override
-							public void connect() {
-							}
-
-							@Override
-							public InputStream getInputStream() throws IOException {
-								return new ByteArrayInputStream(getEntry(url.getPath()));
-							}
-						};
-					}
-				});
-			} catch (MalformedURLException e) {
-				throw new RuntimeException(e);
+		synchronized byte[] getEntry(String filename, boolean nullify) throws IOException {
+			load(null);
+			WeakReference<byte[]> ref = _entries.get(filename);
+			byte[] data = null;
+			if (ref != null) {
+				data = ref.get();
+				if (data == null) {
+					data = load(filename);
+				}
+				if (nullify) {
+					_entries.replace(filename, null);
+				}
 			}
+			return data;
+		}
+
+		URL createUrlForEntry(String filename) throws IOException {
+			byte[] data = getEntry(filename, false);
+			return data == null ? null : new URL(null, "esb0:" + filename, new URLStreamHandler() {
+
+				@Override
+				protected URLConnection openConnection(URL u) {
+					return new URLConnection(u) {
+
+						@Override
+						public void connect() {
+						}
+
+						@Override
+						public ByteArrayInputStream getInputStream() throws IOException {
+							return new ByteArrayInputStream(data);
+						}
+					};
+				}
+			});
 		}
 	}
 
