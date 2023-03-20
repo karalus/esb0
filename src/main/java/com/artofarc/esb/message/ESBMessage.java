@@ -735,16 +735,23 @@ public final class ESBMessage implements Cloneable {
 		case DOM:
 			_body = new DOMSource((Node) _body);
 		case SOURCE:
-			context.transform((Source) _body, new StreamResult(init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null)), getVariable(ESBConstants.serializationParameters));
+			try (Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
+				context.transform((Source) _body, new StreamResult(writer), getVariable(ESBConstants.serializationParameters));
+			}
+			init(BodyType.INVALID, null, null);
 			break;
 		case STRING:
-			String s = (String) _body;
-			init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null).write(s);
+			String str = (String) _body;
+			if (str.length() > 0) {
+				try (Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
+					writer.write(str);
+				}
+			}
 			break;
 		case BYTES:
 			if (isSinkEncodingdifferent()) {
-				try (Reader reader = new InputStreamReader(new ByteArrayInputStream((byte[]) _body), getCharset())) {
-					IOUtils.copy(reader, init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
+				try (Reader reader = new InputStreamReader(new ByteArrayInputStream((byte[]) _body), getCharset()); Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
+					IOUtils.copy(reader, writer);
 				}
 			} else {
 				os.write((byte[]) _body);
@@ -752,8 +759,8 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case INPUT_STREAM:
 			if (isSinkEncodingdifferent()) {
-				try (Reader reader = getInputStreamReader((InputStream) _body)) {
-					IOUtils.copy(reader, init(BodyType.WRITER, new OutputStreamWriter(os, _sinkEncoding), null));
+				try (Reader reader = getInputStreamReader((InputStream) _body); Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
+					IOUtils.copy(reader, writer);
 				}
 			} else {
 				// writes compressed data through!
@@ -761,9 +768,13 @@ public final class ESBMessage implements Cloneable {
 					IOUtils.copy(inputStream, os);
 				}
 			}
+			init(BodyType.INVALID, null, null);
 			break;
 		case READER:
-			IOUtils.copy((Reader) _body, init(BodyType.WRITER, new OutputStreamWriter(os, getSinkEncodingCharset()), null));
+			try (Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
+				IOUtils.copy((Reader) _body, writer);
+			}
+			init(BodyType.INVALID, null, null);
 			break;
 		case XQ_SEQUENCE:
 			extractItemFromSequence();
@@ -781,9 +792,6 @@ public final class ESBMessage implements Cloneable {
 			throw new IllegalStateException("Message is invalid");
 		default:
 			throw new IllegalStateException("BodyType not allowed: " + _bodyType);
-		}
-		if (_bodyType == BodyType.WRITER) {
-			((Writer) _body).flush();
 		}
 	}
 
