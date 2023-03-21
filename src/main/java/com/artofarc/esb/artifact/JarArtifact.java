@@ -123,6 +123,8 @@ public class JarArtifact extends Artifact {
 				if (nullify) {
 					_entries.replace(filename, null);
 				}
+			} else if (nullify && _entries.containsKey(filename)) {
+				throw new IllegalStateException("Same jar is loaded twice from different classLoaders " + _jarArtifact.get());
 			}
 			return data;
 		}
