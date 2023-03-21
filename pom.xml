@@ -30,7 +30,7 @@
 		<connection>scm:git:git@github.com:karalus/esb0.git</connection>
 		<developerConnection>scm:git:git@github.com:karalus/esb0.git</developerConnection>
 		<tag>HEAD</tag>
-	</scm>	
+	</scm>
 	<distributionManagement>
 		<repository>
 			<id>localDeploy</id>
@@ -159,25 +159,28 @@
 		</pluginManagement>
 		<plugins>
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>jaxb2-maven-plugin</artifactId>
-				<version>2.5.0</version>
+				<groupId>org.jvnet.jaxb2.maven2</groupId>
+				<artifactId>maven-jaxb2-plugin</artifactId>
+				<version>0.14.0</version>
 				<executions>
 					<execution>
 						<id>xjc</id>
 						<goals>
-							<goal>xjc</goal>
+							<goal>generate</goal>
 						</goals>
 					</execution>
 				</executions>
 				<configuration>
+					<encoding>${project.build.sourceEncoding}</encoding>
 					<locale>en</locale>
-					<sources>
-						<source>src/main/xsd/service.xsd</source>
-					</sources>
-					<arguments>
-						<argument>-Xlocator</argument>
-					</arguments>
+					<schemaDirectory>${project.basedir}/src/main/xsd</schemaDirectory>
+					<schemaIncludes>
+						<include>service.xsd</include>
+					</schemaIncludes>
+					<episode>false</episode>
+					<args>
+						<arg>-Xlocator</arg>
+					</args>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -188,13 +191,13 @@
 					<archive>
 						<manifest>
 							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-						</manifest>					
+						</manifest>
 						<manifestEntries>
 							<Build-Time>${maven.build.timestamp}</Build-Time>
 						</manifestEntries>
 					</archive>
 				</configuration>
-			</plugin>			
+			</plugin>
 		</plugins>
 		<resources>
 			<resource>

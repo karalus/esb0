@@ -84,13 +84,15 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		processInternal(context, message);
 	}
 
-	public final long processInternal(Context context, ESBMessage message) throws Exception {
+	public final long processInternal(Context context, ESBMessage... messages) throws Exception {
 		context.getTimeGauge().startTimeMeasurement();
-		if (_startAction.getLocation() != null) {
-			message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
-		}
 		try {
-			_startAction.process(context, message);
+			for (ESBMessage message : messages) {
+				if (_startAction.getLocation() != null) {
+					message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
+				}
+				_startAction.process(context, message);
+			}
 		} catch (Exception e) {
 			JDBCAction.closeKeptConnections(context, false);
 			throw e;
@@ -111,7 +113,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 			context.getStackPos().clear();
 			throw new IllegalStateException("StackErrorHandler not empty");
 		}
-		return _completedTaskCount.incrementAndGet();
+		return _completedTaskCount.addAndGet(messages.length);
 	}
 
 	// For JUnit

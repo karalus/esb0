@@ -98,8 +98,8 @@ public class GenericHttpListener extends HttpServlet {
 						} catch (Exception e) {
 							if (!response.isCommitted()) {
 								response.reset();
-								Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
-								sendError(response, httpResponseCode != null ? httpResponseCode.intValue() : HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
+								Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+								sendError(response, httpResponseCode.intValue() < HttpServletResponse.SC_BAD_REQUEST ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : httpResponseCode.intValue(), e);
 							}
 							if (asyncContext != null) {
 								asyncContext.complete();

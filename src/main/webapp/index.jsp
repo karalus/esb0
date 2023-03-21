@@ -366,16 +366,21 @@ Upload Service-JAR:
 				<tr><td></td><td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>" onsubmit="return confirm('Are you sure to delete \'<%=a.getURI()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td></tr>
 				<%
 			} else if (a instanceof JarArtifact && a.isValidated()) {
+				JarArtifact jarArtifact = (JarArtifact) a;
 				%>
-				<tr><td>Used</td><td><%=((JarArtifact) a).isUsed()%></td></tr>
-				</table>
-				<br>
-				<table border="1"><tr bgcolor="#EEEEEE"><td><b>Entries</b></td></tr>
+				<tr><td>Used</td><td><%=jarArtifact.isUsed()%></td></tr>
 				<%
-				for (String e : ((JarArtifact) a).getEntries()) {
+				if (jarArtifact.isUsed()) {
 					%>
-					<tr><td><%=e%></td></tr>
+					</table>
+					<br>
+					<table border="1"><tr bgcolor="#EEEEEE"><td><b>Entry</b></td><td><b>Loaded</b></td></tr>
 					<%
+					for (Map.Entry<String, ?> entry : jarArtifact.getEntries().entrySet()) {
+						%>
+						<tr><td><%=entry.getKey()%></td><td><%=entry.getValue() == null%></td></tr>
+						<%
+					}
 				}
 			}
 			%>
