@@ -257,7 +257,11 @@ public final class ESBMessage implements Cloneable {
 		setContentEncoding(removeHeader(HTTP_HEADER_CONTENT_ENCODING));
 		String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		_contentType = MimeHelper.parseContentType(this, contentType);
-		setCharset(determineCharset(_contentType));
+		if (_bodyType.hasCharset()) {
+			setCharset(determineCharset(_contentType));
+		} else {
+			_charset = null;
+		}
 		return contentType != _contentType;
 	}
 
