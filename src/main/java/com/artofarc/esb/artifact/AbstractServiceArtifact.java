@@ -41,6 +41,7 @@ import org.xml.sax.SAXException;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.service.Property;
+import com.artofarc.util.IOUtils;
 import com.artofarc.util.XMLProcessorFactory;
 
 public abstract class AbstractServiceArtifact extends Artifact {
@@ -125,6 +126,7 @@ public abstract class AbstractServiceArtifact extends Artifact {
 
 	private byte[] transform(Transformer transformer, ByteArrayOutputStream bos) throws TransformerException {
 		transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+		transformer.setParameter("ext", IOUtils.getExt(getName()));
 		transformer.transform(new StreamSource(getContentAsStream()), new StreamResult(bos));
 		return bos.toByteArray();
 	}
