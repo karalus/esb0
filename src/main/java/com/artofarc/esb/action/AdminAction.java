@@ -160,7 +160,7 @@ public class AdminAction extends Action {
 					} else {
 						deployChangeset(globalContext, changeSet, message);
 					}
-				} catch (IOException e) {
+				} catch (IOException | ValidationException e) {
 					throwHttpError(message, SC_BAD_REQUEST, e);
 				}
 			} else {
