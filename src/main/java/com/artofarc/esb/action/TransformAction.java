@@ -127,7 +127,11 @@ public class TransformAction extends Action {
 					break;
 				default:
 					if (HttpConstants.isNotXML(message.getContentType())) {
-						xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
+						if (HttpConstants.isBinary(message.getContentType())) {
+							xqExpression.bindObject(XQConstants.CONTEXT_ITEM, message.getBodyAsByteArray(context), null);
+						} else {
+							xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
+						}
 					} else {
 						xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
 					}
