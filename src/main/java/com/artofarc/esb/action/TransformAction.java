@@ -165,12 +165,9 @@ public class TransformAction extends Action {
 			context.getTimeGauge().stopTimeMeasurement("processSequence", false);
 		}
 		if (_contextItem == null) {
-			if (isPipelineStop()) {
-				checkNext(resultSequence, "body");
-				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
-			} else {
-				message.reset(BodyType.XQ_SEQUENCE, resultSequence);
-			}
+			message.reset(BodyType.XQ_SEQUENCE, resultSequence);
+			message.setContentType(null);
+			message.setCharset(null);
 			if (_clearSchema) {
 				message.setSchema(null);
 			}
@@ -266,11 +263,12 @@ public class TransformAction extends Action {
 			checkNext(resultSequence, "body");
 			if (_contextItem == null) {
 				context.getTimeGauge().startTimeMeasurement();
+				XQItem xqItem = resultSequence.getItem();
 				if (message.isSink()) {
-					message.writeItemToSink(resultSequence, context);
+					message.writeItemToSink(xqItem, context);
 					context.getTimeGauge().stopTimeMeasurement("resultSequence.writeItem", false);
 				} else {
-					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
+					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(xqItem));
 					context.getTimeGauge().stopTimeMeasurement("getXQDataFactory().createItem", false);
 				}
 			}

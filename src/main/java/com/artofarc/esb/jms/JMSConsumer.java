@@ -392,7 +392,9 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 		protected final boolean processMessages(Message... messages) throws JMSException {
 			ESBMessage[] esbMessages = new ESBMessage[messages.length];
-			logger.info("JMS Batch size: " + messages.length);
+			if (messages.length > 1) {
+				logger.info("JMS Batch size: " + messages.length);
+			}
 			try {
 				for (int i = 0; i < messages.length; ++i) {
 					ESBMessage esbMessage = esbMessages[i] = new ESBMessage(BodyType.INVALID, null);

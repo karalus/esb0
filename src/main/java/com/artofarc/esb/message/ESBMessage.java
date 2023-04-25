@@ -55,7 +55,6 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
-import javax.xml.xquery.XQItemAccessor;
 import javax.xml.xquery.XQSequence;
 
 import org.w3c.dom.Node;
@@ -531,7 +530,7 @@ public final class ESBMessage implements Cloneable {
 			default:
 				throw new IllegalStateException("BodyType not allowed: " + _bodyType);
 			}
-			putHeader(HTTP_HEADER_CONTENT_TYPE, _contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? HTTP_HEADER_CONTENT_TYPE_SOAP11 : HTTP_HEADER_CONTENT_TYPE_SOAP12);
+			setContentType(_contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) ? HTTP_HEADER_CONTENT_TYPE_SOAP11 : HTTP_HEADER_CONTENT_TYPE_SOAP12);
 			return new SAXSource(context.getFastInfosetDeserializer(), is);
 		}
 		return getBodyAsSourceInternal();
@@ -799,7 +798,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public void writeItemToSink(XQItemAccessor xqItem, Context context) throws Exception {
+	public void writeItemToSink(XQItem xqItem, Context context) throws Exception {
 		prepareFI(context);
 		switch (_bodyType) {
 		case RESULT:
@@ -813,7 +812,7 @@ public final class ESBMessage implements Cloneable {
 			xqItem.writeItem((Writer) _body, getSinkProperties());
 			break;
 		default:
-			throw new IllegalStateException("Message cannot be converted to Result: " + _bodyType);
+			throw new IllegalStateException("XQItem cannot be written to: " + _bodyType);
 		}
 	}
 
