@@ -37,6 +37,7 @@ import com.artofarc.util.TimeGauge;
 public abstract class Action extends Evaluator<ExecutionException> implements Cloneable {
 
 	protected final static Logger logger = LoggerFactory.getLogger(Action.class);
+
 	private final static Logger loggerTimeGauge = LoggerFactory.getLogger(Action.class.getName() + "TimeGauge");
 	private final static long timeGaugeThreshold = Long.parseLong(System.getProperty("esb0.timeGauge.threshold", "250"));
 
@@ -182,6 +183,9 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 			resources.clear();
 		}
 		context.getStackPos().poll();
+		if (getErrorHandler() != null) {
+			stackErrorHandler.poll();
+		}
 		timeGauge.stopTimeMeasurement("Finished process: %s", false, _location != null ? _location.getServiceArtifactURI() : getClass().getSimpleName());
 	}
 

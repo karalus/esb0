@@ -212,6 +212,8 @@ public class JMSAction extends Action {
 		context.getTimeGauge().stopTimeMeasurement("JMS createMessage", true);
 		message.clearHeaders();
 		message.reset(BodyType.INVALID, null);
+		message.setContentType(null);
+		message.setCharset(null);
 		try {
 			send(context, message, jmsSession, jmsMessage);
 		} catch (JMSException e) {

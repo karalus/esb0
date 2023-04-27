@@ -109,7 +109,9 @@ public class HttpServletResponseAction extends Action {
 		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType == null) {
 			contentType = message.getContentType();
-			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
+			if (contentType != null) {
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
+			}
 		}
 		if (contentType != null) {
 			String accept = message.getVariable(HTTP_HEADER_ACCEPT);
