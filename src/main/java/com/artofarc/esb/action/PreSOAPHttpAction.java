@@ -31,6 +31,9 @@ import com.artofarc.util.WSDL4JUtil;
 
 public class PreSOAPHttpAction extends WrapSOAPAction {
 
+	public static final String ACCEPT_SOAP11 = HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "," + HTTP_HEADER_CONTENT_TYPE_SOAP11 + ";q=.9,multipart/related,*/*;q=.2";
+	public static final String ACCEPT_SOAP12 = HTTP_HEADER_CONTENT_TYPE_FI_SOAP12 + "," + HTTP_HEADER_CONTENT_TYPE_SOAP12 + ";q=.9,multipart/related,*/*;q=.2";
+
 	private final Map<String, String> _mapOperation2SoapActionURI;
 	private final Schema _schema;
 
@@ -49,10 +52,10 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 			if (soapAction != null && soapAction.length() > 0) {
 				message.setContentType(message.getContentType() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + '"' + soapAction + '"');
 			}
-			message.putHeader(HTTP_HEADER_ACCEPT, HTTP_HEADER_CONTENT_TYPE_SOAP12);
+			message.putHeader(HTTP_HEADER_ACCEPT, ACCEPT_SOAP12);
 		} else {
 			message.putHeader(HTTP_HEADER_SOAP_ACTION, soapAction != null ? '"' + soapAction + '"' : "\"\"");
-			message.putHeader(HTTP_HEADER_ACCEPT, HTTP_HEADER_CONTENT_TYPE_SOAP11);
+			message.putHeader(HTTP_HEADER_ACCEPT, ACCEPT_SOAP11);
 		}
 		message.getVariables().put(ESBConstants.HttpMethod, "POST");
 		message.setSchema(_schema);
