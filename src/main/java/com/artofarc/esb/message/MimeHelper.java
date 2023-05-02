@@ -224,7 +224,7 @@ public final class MimeHelper {
 						message.putVariable(dispositionName, content);
 					} else {
 						cid = getFilename(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null));
-						bodyPart.setContentID('<' + cid + '>');
+						bodyPart.setContentID(cid != null ? '<' + cid + '>' : null);
 						message.addAttachment(cid, bodyPart);
 					}
 				}

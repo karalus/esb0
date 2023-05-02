@@ -42,7 +42,7 @@ public class HttpInboundAction extends Action {
 			message.reset(null, inputStream);
 			if (message.prepareContent()) {
 				inputStream.close();
-				inputStream = null;
+				inputStream = message.getBody();
 			}
 			return new ExecutionContext(inputStream, httpUrlConnection);
 		} catch (Exception e) {
@@ -55,15 +55,13 @@ public class HttpInboundAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
 			InputStream inputStream = execContext.getResource();
-			if (inputStream != null) {
-				if (message.isSink()) {
-					message.copyFrom(inputStream);
-				} else {
-					ByteArrayOutputStream bos = new ByteArrayOutputStream();
-					message.reset(BodyType.OUTPUT_STREAM, bos);
-					message.copyFrom(inputStream);
-					message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
-				}
+			if (message.isSink()) {
+				message.copyFrom(inputStream);
+			} else {
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				message.reset(BodyType.OUTPUT_STREAM, bos);
+				message.copyFrom(inputStream);
+				message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 			}
 		}
 	}
