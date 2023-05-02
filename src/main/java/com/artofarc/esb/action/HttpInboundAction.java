@@ -55,13 +55,15 @@ public class HttpInboundAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
 			InputStream inputStream = execContext.getResource();
-			if (message.isSink()) {
-				message.copyFrom(inputStream);
-			} else {
-				ByteArrayOutputStream bos = new ByteArrayOutputStream();
-				message.reset(BodyType.OUTPUT_STREAM, bos);
-				message.copyFrom(inputStream);
-				message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
+			if (inputStream != null) {
+				if (message.isSink()) {
+					message.copyFrom(inputStream);
+				} else {
+					ByteArrayOutputStream bos = new ByteArrayOutputStream();
+					message.reset(BodyType.OUTPUT_STREAM, bos);
+					message.copyFrom(inputStream);
+					message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
+				}
 			}
 		}
 	}
