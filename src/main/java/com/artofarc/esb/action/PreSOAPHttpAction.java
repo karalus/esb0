@@ -31,8 +31,8 @@ import com.artofarc.util.WSDL4JUtil;
 
 public class PreSOAPHttpAction extends WrapSOAPAction {
 
-	public static final String ACCEPT_SOAP11 = HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "," + HTTP_HEADER_CONTENT_TYPE_SOAP11 + ";q=.9,multipart/related,*/*;q=.2";
-	public static final String ACCEPT_SOAP12 = HTTP_HEADER_CONTENT_TYPE_FI_SOAP12 + "," + HTTP_HEADER_CONTENT_TYPE_SOAP12 + ";q=.9,multipart/related,*/*;q=.2";
+	public static final String ACCEPT_SOAP11 = HTTP_HEADER_CONTENT_TYPE_SOAP11 + ",multipart/related,*/*;q=.2";
+	public static final String ACCEPT_SOAP12 = HTTP_HEADER_CONTENT_TYPE_SOAP12 + ",multipart/related,*/*;q=.2";
 
 	private final Map<String, String> _mapOperation2SoapActionURI;
 	private final Schema _schema;
