@@ -176,18 +176,18 @@ public class HttpConstants {
 		return contentType != null && (contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11) || contentType.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
 	}
 
-	public static boolean isSOAP11(String contentType) {
+	public static boolean isNotSOAP11(String contentType) {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
-			return type.equals(HTTP_HEADER_CONTENT_TYPE_SOAP11) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11);
+			return !(type.equals(HTTP_HEADER_CONTENT_TYPE_SOAP11) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11));
 		}
 		return false;
 	}
 
-	public static boolean isSOAP12(String contentType) {
+	public static boolean isNotSOAP12(String contentType) {
 		if (contentType != null) {
 			final String type = getValueFromHttpHeader(contentType).toLowerCase(Locale.ROOT);
-			return type.equals(HTTP_HEADER_CONTENT_TYPE_SOAP12) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12);
+			return !(type.equals(HTTP_HEADER_CONTENT_TYPE_SOAP12) || type.equals(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12));
 		}
 		return false;
 	}

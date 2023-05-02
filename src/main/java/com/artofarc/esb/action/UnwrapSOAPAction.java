@@ -93,7 +93,7 @@ public class UnwrapSOAPAction extends TransformAction {
 			}
 		}
 		String type = parseContentType(message.getContentType());
-		if (!_soap12 && !isSOAP11(type) || _soap12 && !isSOAP12(type)) {
+		if (!_soap12 && isNotSOAP11(type) || _soap12 && isNotSOAP12(type)) {
 			String error = "Unexpected Content-Type: " + type;
 			if (message.getBodyType() != BodyType.INVALID) {
 				error += "\n" + message.getBodyAsString(context);
