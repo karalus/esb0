@@ -49,7 +49,11 @@ public class AdminAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		String verb = (String) eval(_verb, context, message);
-		String resource = URLUtils.decode((String) eval(_resourceExp, context, message));
+		String resource = (String) eval(_resourceExp, context, message);
+		if (resource == null) {
+			throw new ExecutionException(this, _resourceExp + " must not evaluate to null");
+		}
+		resource = URLUtils.decode(resource);
 		switch (verb) {
 		case "GET":
 			if (resource.isEmpty()) {
