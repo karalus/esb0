@@ -218,13 +218,14 @@ public final class MimeHelper {
 					// remove angle brackets (https://tools.ietf.org/html/rfc2392)
 					message.addAttachment(cid.substring(1, cid.length() - 1), bodyPart);
 				} else {
-					String dispositionName = getDispositionName(bodyPart);
 					Object content = bodyPart.getContent();
 					if (content instanceof String) {
-						message.putVariable(dispositionName, content);
+						message.putVariable(getDispositionName(bodyPart), content);
 					} else {
 						cid = getFilename(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null));
-						bodyPart.setContentID(cid != null ? '<' + cid + '>' : null);
+						if (cid != null) {
+							bodyPart.setContentID('<' + cid + '>');
+						}
 						message.addAttachment(cid, bodyPart);
 					}
 				}
