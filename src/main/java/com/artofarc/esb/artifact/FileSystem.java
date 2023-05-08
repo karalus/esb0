@@ -47,6 +47,7 @@ public abstract class FileSystem {
 	protected final static Logger logger = LoggerFactory.getLogger(FileSystem.class);
 
 	public final static String environment = System.getProperty("esb0.environment", "default");
+	public final static boolean ignoreValidationExceptionsOnStartup = Boolean.parseBoolean(System.getProperty("esb0.ignoreValidationExceptionsOnStartup"));
 
 	protected final Directory _root;
 	protected final Map<String, ChangeType> _changes = new LinkedHashMap<>();
@@ -57,6 +58,10 @@ public abstract class FileSystem {
 
 	protected FileSystem(FileSystem fileSystem) {
 		_root = fileSystem._root.clone(this, null);
+	}
+
+	private boolean isStartup() {
+		return _changes.isEmpty();
 	}
 
 	public abstract FileSystem copy();
@@ -327,7 +332,11 @@ public abstract class FileSystem {
 				ValidationException exception = iterator.next();
 				while (iterator.hasNext())
 					exception.addSuppressed(iterator.next());
-				throw exception;
+				if (ignoreValidationExceptionsOnStartup && isStartup()) {
+					logger.warn("ValidationExceptions on startup", exception);
+				} else {
+					throw exception;
+				}
 			}
 			dehydrateArtifacts(_root);
 			return serviceArtifacts;
