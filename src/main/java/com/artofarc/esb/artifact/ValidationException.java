@@ -22,25 +22,25 @@ public class ValidationException extends Exception {
 	private final String _uri;
 	private final int _lineNumber;
 
-	ValidationException(Artifact artifact, String message) {
+	public ValidationException(Artifact artifact, String message) {
 		this(artifact, -1, message);
 	}
 
-	ValidationException(Artifact artifact, Throwable cause) {
+	public ValidationException(Artifact artifact, Throwable cause) {
 		this(artifact, -1, cause);
 	}
 
-	ValidationException(Artifact artifact, int lineNumber, String message) {
+	public ValidationException(Artifact artifact, int lineNumber, String message) {
 		super(message);
 		_uri = artifact.getURI();
 		_lineNumber = lineNumber;
 	}
 
-	ValidationException(Artifact artifact, int lineNumber, Throwable cause) {
+	public ValidationException(Artifact artifact, int lineNumber, Throwable cause) {
 		this(artifact.getURI(), lineNumber, cause);
 	}
 
-	ValidationException(String artifactUri, int lineNumber, Throwable cause) {
+	public ValidationException(String artifactUri, int lineNumber, Throwable cause) {
 		super(cause);
 		_uri = artifactUri;
 		_lineNumber = lineNumber;
