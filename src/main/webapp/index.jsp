@@ -325,7 +325,7 @@ Upload Service-JAR:
 		if (a instanceof Directory) {
 			List<String> artifacts = DataStructures.asSortedList(((Directory) a).getArtifacts().keySet());
 %>
-<br>Filesystem directory ("<%=System.getProperty("esb0.root")%>")"<%=a.getURI()%>" (<%=artifacts.size()%> artifacts)
+<br>Filesystem directory {<%=ESBServletContextListener.ESB_ROOT_DIR%>}<%=a.getURI()%> (<%=artifacts.size()%> artifacts)
 <%
 			if (!a.getURI().isEmpty()) {
 %>

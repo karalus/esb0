@@ -35,6 +35,7 @@ public final class ESBServletContextListener implements ServletContextListener {
 
 	public static final String ADMIN_SERVLET_PATH = "admin/deploy";
 	public static final String CONTEXT = "esb0.context";
+	public static final String ESB_ROOT_DIR = System.getProperty("esb0.root", System.getenv("ESB_ROOT_DIR"));
 
 	public GlobalContext createContext(ClassLoader classLoader, String root, Properties manifest) {
 		Properties properties = new Properties();
@@ -77,7 +78,7 @@ public final class ESBServletContextListener implements ServletContextListener {
 				// ignore
 			}
 		}
-		servletContext.setAttribute(CONTEXT, createContext(servletContext.getClassLoader(), System.getProperty("esb0.root", System.getenv("ESB_ROOT_DIR")), manifest));
+		servletContext.setAttribute(CONTEXT, createContext(servletContext.getClassLoader(), ESB_ROOT_DIR, manifest));
 	}
 
 	@Override
