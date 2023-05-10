@@ -16,7 +16,9 @@
 package com.artofarc.esb.jms;
 
 import javax.jms.CompletionListener;
+import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.MessageProducer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +39,10 @@ public final class JMSCompletionListener implements CompletionListener {
 
 	public JMSCompletionListener(WorkerPool workerPool) {
 		_workerPool = workerPool;
+	}
+
+	public void send(MessageProducer producer, Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
+		producer.send(message, deliveryMode, priority, timeToLive, this);
 	}
 
 	@Override

@@ -281,7 +281,7 @@ public class JMSAction extends Action {
 					JMSCompletionListener completionListener = new JMSCompletionListener(workerPool);
 					asyncProcessingPool.saveContext(completionListener, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()),
 							new ArrayList<>(context.getStackErrorHandler()), message.getVariables(), System.currentTimeMillis() + timeLeft);
-					producer.send(jmsMessage, _deliveryMode, _priority, timeToLive, completionListener);
+					completionListener.send(producer, jmsMessage, _deliveryMode, _priority, timeToLive);
 				} else {
 					producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
 					message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
