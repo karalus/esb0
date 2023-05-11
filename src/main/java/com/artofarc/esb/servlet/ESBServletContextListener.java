@@ -23,6 +23,9 @@ import java.util.Properties;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import javax.websocket.DeploymentException;
+import javax.websocket.server.ServerContainer;
+import javax.websocket.server.ServerEndpointConfig;
 
 import com.artofarc.esb.artifact.DeployHelper;
 import com.artofarc.esb.artifact.FileSystem;
@@ -77,6 +80,12 @@ public final class ESBServletContextListener implements ServletContextListener {
 			} catch (IOException e) {
 				// ignore
 			}
+		}
+		ServerContainer serverContainer = (ServerContainer) servletContext.getAttribute("javax.websocket.server.ServerContainer");
+		try {
+			serverContainer.addEndpoint(ServerEndpointConfig.Builder.create(GenericWebsocketListener.class, "/wstest").build());
+		} catch (DeploymentException e) {
+			throw new RuntimeException(e);
 		}
 		servletContext.setAttribute(CONTEXT, createContext(servletContext.getClassLoader(), ESB_ROOT_DIR, manifest));
 	}
