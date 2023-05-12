@@ -92,7 +92,8 @@ public class Registry extends AbstractContext {
 	public final void unregisterMBean(String postfix) {
 		if (_mbs != null) {
 			try {
-				_mbs.unregisterMBean(_registered.remove(OBJECT_NAME + postfix));
+				ObjectName remove = _registered.remove(OBJECT_NAME + postfix);
+				_mbs.unregisterMBean(remove);
 			} catch (JMException e) {
 				logger.error("unregisterMBean failed", e);
 			}
@@ -168,6 +169,10 @@ public class Registry extends AbstractContext {
 
 	public final void unbindInternalService(ConsumerPort consumerPort) {
 		_services.remove(consumerPort.getUri());
+	}
+
+	private void unbindInternalServiceAndUnregisterMBean(ConsumerPort consumerPort) {
+		_services.remove(consumerPort.getUri());
 		unregisterMBean(consumerPort.getMBeanPostfix());
 	}
 
@@ -220,7 +225,7 @@ public class Registry extends AbstractContext {
 	}
 
 	public final void unbindHttpService(HttpConsumer httpConsumer) {
-		unbindInternalService(httpConsumer.isPathMapping() ? _mappedHttpServices.remove(httpConsumer.getBindPath()) : _httpServices.remove(httpConsumer.getBindPath()));
+		unbindInternalServiceAndUnregisterMBean(httpConsumer.isPathMapping() ? _mappedHttpServices.remove(httpConsumer.getBindPath()) : _httpServices.remove(httpConsumer.getBindPath()));
 	}
 
 	public final ConsumerPort checkBindJmsConsumer(JMSConsumer jmsConsumer) {
@@ -247,7 +252,7 @@ public class Registry extends AbstractContext {
 	}
 
 	public final void unbindJmsConsumer(JMSConsumer jmsConsumer) {
-		unbindInternalService(_jmsConsumer.remove(jmsConsumer.getKey()));
+		unbindInternalServiceAndUnregisterMBean(_jmsConsumer.remove(jmsConsumer.getKey()));
 	}
 
 	public final ConsumerPort bindTimerService(TimerService timerService) {
@@ -262,7 +267,7 @@ public class Registry extends AbstractContext {
 	}
 
 	public final void unbindTimerService(TimerService timerService) {
-		unbindInternalService(_timerServices.remove(timerService.getUri()));
+		unbindInternalServiceAndUnregisterMBean(_timerServices.remove(timerService.getUri()));
 	}
 
 	public final ConsumerPort checkBindFileWatchEventService(FileWatchEventConsumer fileWatchEventConsumer) {
@@ -296,7 +301,7 @@ public class Registry extends AbstractContext {
 		for (Path dir : fileWatchEventConsumer.getDirs()) {
 			oldConsumerPort = _fileWatchEventServices.remove(dir);
 		}
-		unbindInternalService(oldConsumerPort);
+		unbindInternalServiceAndUnregisterMBean(oldConsumerPort);
 	}
 
 	public final ConsumerPort checkBindKafkaConsumer(KafkaConsumerPort kafkaConsumer) {
@@ -319,7 +324,7 @@ public class Registry extends AbstractContext {
 	}
 
 	public final void unbindKafkaConsumer(KafkaConsumerPort kafkaConsumer) {
-		unbindInternalService(_kafkaConsumer.remove(kafkaConsumer.getKey()));
+		unbindInternalServiceAndUnregisterMBean(_kafkaConsumer.remove(kafkaConsumer.getKey()));
 	}
 
 	public final Collection<WorkerPool> getWorkerPools() {
