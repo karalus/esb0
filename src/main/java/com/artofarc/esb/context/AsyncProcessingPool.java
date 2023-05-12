@@ -32,13 +32,14 @@ public final class AsyncProcessingPool implements Runnable {
 
 	private static class AsyncContext {
 		final Action nextAction;
-		final Collection<Action> executionStack;
+		final Collection<Action> executionStack, stackErrorHandler;
 		final Map<String, Object> variables;
 		final long expiry;
 
-		AsyncContext(Action nextAction, Collection<Action> executionStack, Map<String, Object> variables, long expiry) {
+		AsyncContext(Action nextAction, Collection<Action> executionStack, Collection<Action> stackErrorHandler, Map<String, Object> variables, long expiry) {
 			this.nextAction = nextAction;
 			this.executionStack = executionStack;
+			this.stackErrorHandler = stackErrorHandler;
 			this.variables = variables;
 			this.expiry = expiry;
 		}
@@ -74,8 +75,8 @@ public final class AsyncProcessingPool implements Runnable {
 		}
 	}
 
-	public void saveContext(Object correlationID, Action nextAction, Collection<Action> executionStack, Map<String, Object> variables, long expiry) {
-		AsyncContext asyncContext = new AsyncContext(nextAction, executionStack, variables, expiry);
+	public void saveContext(Object correlationID, Action nextAction, Collection<Action> executionStack, Collection<Action> stackErrorHandler, Map<String, Object> variables, long expiry) {
+		AsyncContext asyncContext = new AsyncContext(nextAction, executionStack, stackErrorHandler, variables, expiry);
 		if (_asyncContexts.putIfAbsent(correlationID, asyncContext) != null) {
 			throw new IllegalArgumentException("correlationID already used: " + correlationID);
 		}
@@ -88,6 +89,7 @@ public final class AsyncProcessingPool implements Runnable {
 		if (asyncContext != null) {
 			Context.logger.debug("AsyncContext removed with correlationID " + correlationID);
 			context.getExecutionStack().addAll(asyncContext.executionStack);
+			context.getStackErrorHandler().addAll(asyncContext.stackErrorHandler);
 			message.getVariables().putAll(asyncContext.variables);
 			return asyncContext.nextAction;
 		}

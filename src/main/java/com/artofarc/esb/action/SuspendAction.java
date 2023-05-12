@@ -15,6 +15,8 @@
  */
 package com.artofarc.esb.action;
 
+import java.util.Collections;
+
 import com.artofarc.esb.context.AsyncProcessingPool;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -52,8 +54,8 @@ public class SuspendAction extends Action {
 		if (asyncProcessingPool == null) {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + workerPool.getName());
 		}
-		asyncProcessingPool.saveContext(correlationID, _nextAction, execContext.getResource(), message.getVariables(),
-				message.<Long> getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue());
+		asyncProcessingPool.saveContext(correlationID, _nextAction, execContext.getResource(), Collections.emptyList(), message.getVariables(),
+				message.<Long>getVariable(ESBConstants.initialTimestamp) + message.getTimeleft(_timeout).longValue());
 	}
 
 }

@@ -17,6 +17,7 @@ package com.artofarc.esb.action;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -279,7 +280,7 @@ public class JMSAction extends Action {
 					}
 					JMSCompletionListener completionListener = new JMSCompletionListener(workerPool);
 					asyncProcessingPool.saveContext(completionListener, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()),
-							message.getVariables(), System.currentTimeMillis() + timeLeft);
+							new ArrayList<>(context.getStackErrorHandler()), message.getVariables(), System.currentTimeMillis() + timeLeft);
 					completionListener.send(producer, jmsMessage, _deliveryMode, _priority, timeToLive);
 				} else {
 					producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
