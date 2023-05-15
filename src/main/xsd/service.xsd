@@ -158,6 +158,7 @@
 					<attribute name="zip" type="tns:string1" default="${zip}" />
 					<attribute name="readable" type="boolean" />
 					<attribute name="writable" type="boolean" />
+					<attribute name="ownerOnly" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>

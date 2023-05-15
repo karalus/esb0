@@ -36,10 +36,10 @@ public class FileAction extends TerminalAction {
 
 	private final File _destDir;
 	private final String _action, _filename, _append, _zip;
-	private final boolean _mkdirs;
+	private final boolean _mkdirs, _ownerOnly;
 	private final Boolean _readable, _writable;
 
-	public FileAction(String destDir, String action, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable) throws FileNotFoundException {
+	public FileAction(String destDir, String action, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable, boolean ownerOnly) throws FileNotFoundException {
 		_destDir = new File(destDir);
 		if (!_destDir.exists()) {
 			throw new FileNotFoundException(destDir);
@@ -54,17 +54,18 @@ public class FileAction extends TerminalAction {
 		_zip = zip;
 		_readable = readable;
 		_writable = writable;
+		_ownerOnly = ownerOnly;
 	}
 
 	private void setPermissions(File file) {
 		if (_readable != null) {
-			file.setReadable(_readable, false);
+			file.setReadable(_readable, _ownerOnly);
 			if (file.isDirectory()) {
-				file.setExecutable(_readable, false);
+				file.setExecutable(_readable, _ownerOnly);
 			}
 		}
 		if (_writable != null) {
-			file.setWritable(_writable, false);
+			file.setWritable(_writable, _ownerOnly);
 		}
 	}
 
