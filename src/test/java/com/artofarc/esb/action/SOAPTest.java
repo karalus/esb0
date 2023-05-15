@@ -199,6 +199,7 @@ public class SOAPTest extends AbstractESBTest {
          fail();
       } catch (ExecutionException e) {
          // expected
+         assertTrue(e.getAction() instanceof PostSOAPHttpAction);
       }
       endpoint.stop();
    }

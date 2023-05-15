@@ -45,7 +45,12 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 	protected Action _errorHandler;
 	private Location _location;
 
+	// For JUnit
 	public final Action setNextAction(Action nextAction) {
+		if (nextAction.getLocation() == null) {
+			StackTraceElement stackTraceElement = Thread.currentThread().getStackTrace()[2];
+			nextAction.setLocation(new Location(stackTraceElement.getClassName() + "::" + stackTraceElement.getMethodName(), stackTraceElement.getLineNumber()));
+		}
 		return _nextAction = nextAction;
 	}
 
@@ -269,10 +274,9 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		if (!iterator.hasNext()) {
 			return null;
 		}
-		Action startAction = iterator.next();
-		Action action = startAction;
+		Action startAction = iterator.next(), action = startAction;
 		while (iterator.hasNext()) {
-			action = action.setNextAction(iterator.next());
+			action = action._nextAction = iterator.next();
 		}
 		return startAction;
 	}

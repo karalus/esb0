@@ -109,7 +109,6 @@ public final class AsyncProcessingPool implements Runnable {
 					ESBMessage message = new ESBMessage(BodyType.INVALID, null);
 					message.getVariables().putAll(asyncContext.variables);
 					Action action = new ThrowExceptionAction("AsyncContext expired for correlationID " + entry.getKey());
-					action.setNextAction(asyncContext.nextAction);
 					action.process(context, message);
 				} catch (Exception e) {
 					Context.logger.info("Exception while expiring AsyncContext", e);
