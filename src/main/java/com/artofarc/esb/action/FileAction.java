@@ -18,6 +18,9 @@ package com.artofarc.esb.action;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -57,10 +60,10 @@ public class FileAction extends TerminalAction {
 		_ownerOnly = ownerOnly;
 	}
 
-	private void setPermissions(File file) {
+	private void setPermissions(File file, boolean executable) {
 		if (_readable != null) {
 			file.setReadable(_readable, _ownerOnly);
-			if (file.isDirectory()) {
+			if (executable) {
 				file.setExecutable(_readable, _ownerOnly);
 			}
 		}
@@ -73,7 +76,7 @@ public class FileAction extends TerminalAction {
 		if (dir != null && !dir.exists()) {
 			mkdirs(dir.getParentFile());
 			dir.mkdir();
-			setPermissions(dir);
+			setPermissions(dir, true);
 		}
 	}
 
@@ -103,7 +106,7 @@ public class FileAction extends TerminalAction {
 		} else {
 			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
 			if (contentType == null) {
-				contentType= message.getContentType();
+				contentType = message.getContentType();
 			}
 			String fileExtension = contentType != null ? MimeHelper.getFileExtension(HttpConstants.parseContentType(contentType)) : null;
 			boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
@@ -111,6 +114,7 @@ public class FileAction extends TerminalAction {
 			if (_mkdirs) {
 				mkdirs(file.getCanonicalFile().getParentFile());
 			}
+			message.getVariables().put(ESBConstants.filename, file.getPath());
 			boolean append = false;
 			switch (action) {
 			case "ENTRY_MODIFY":
@@ -121,7 +125,7 @@ public class FileAction extends TerminalAction {
 				}
 				context.getTimeGauge().startTimeMeasurement();
 				try (FileOutputStream fileOutputStream = new FileOutputStream(file, append)) {
-					setPermissions(file);
+					setPermissions(file, false);
 					if (zip) {
 						try (ZipOutputStream zos = new ZipOutputStream(fileOutputStream)) {
 							zos.putNextEntry(new ZipEntry(filename + fileExtension));
@@ -142,12 +146,21 @@ public class FileAction extends TerminalAction {
 				}
 				break;
 			case "ENTRY_DELETE":
-				message.getVariables().put("deleted", file.delete());
+				if (file.isDirectory()) {
+					Files.walk(file.toPath()).sorted(Comparator.reverseOrder()).forEach(p -> {
+						try {
+							Files.delete(p);
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					});
+				} else {
+					Files.delete(file.toPath());
+				}
 				break;
 			default:
-				throw new ExecutionException(this, "Verb not supported: " + action);
+				throw new ExecutionException(this, "Action not supported: " + action);
 			}
-			message.getVariables().put(ESBConstants.filename, file.getPath());
 		}
 	}
 
