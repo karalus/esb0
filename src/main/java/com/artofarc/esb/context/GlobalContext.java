@@ -120,7 +120,6 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 			@Override
 			public void fatalError(TransformerException exception) throws TransformerException {
-				throw exception;
 			}
 		});
 		try {

@@ -28,6 +28,7 @@ import org.xml.sax.ContentHandler;
 
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.XopAwareValidatorHandler;
 
 public class ValidateAction extends AssignAction {
@@ -46,7 +47,7 @@ public class ValidateAction extends AssignAction {
 			ContentHandler saxhdlr = message.getAttachments().isEmpty() ? _schema.newValidatorHandler() : new XopAwareValidatorHandler(_schema, message.getAttachments().keySet());
 			resultSequence.writeItemToResult(new SAXResult(saxhdlr));
 		} catch (XQException e) {
-			throw new ExecutionException(this, "Validation failed", e.getCause());
+			throw new ExecutionException(this, "Validation failed", DataStructures.unwrap(e));
 		}
 		if (_contextItem == null) {
 			message.setSchema(_schema);

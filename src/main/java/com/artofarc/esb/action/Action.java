@@ -31,6 +31,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.Evaluator;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.StringBuilderWriter;
 import com.artofarc.util.TimeGauge;
 
@@ -159,6 +160,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 				if (e instanceof ExecutionException) {
 					logger.info("Flow interrupted by " + e.getMessage(), e.getCause());
 				} else {
+					e = DataStructures.unwrap(e);
 					logger.info("Exception while processing " + action, e);
 				}
 				logESBMessage(context, message);

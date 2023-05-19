@@ -24,49 +24,65 @@ import javax.xml.validation.ValidatorHandler;
 import org.w3c.dom.TypeInfo;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
+import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 public final class XopAwareValidatorHandler extends XMLFilterBase {
 
 	public static final String URI_NS_XOP = "http://www.w3.org/2004/08/xop/include";
 	public static final String NAME_INCLUDE = "Include";
 
+	private final ValidatorHandler _validatorHandler;
 	private final Set<String> _cids;
 	private final XMLFilterBase _receiver;
 	private TypeInfo typeInfo;
 
 	public XopAwareValidatorHandler(Schema schema, Set<String> cids) {
-		ValidatorHandler validatorHandler = schema.newValidatorHandler();
-		super.setContentHandler(validatorHandler);
+		_validatorHandler = schema.newValidatorHandler();
+		super.setContentHandler(_validatorHandler);
 		_receiver = new XMLFilterBase() {
 
 			@Override
 			public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-				typeInfo = validatorHandler.getTypeInfoProvider().getElementTypeInfo();
+				typeInfo = _validatorHandler.getTypeInfoProvider().getElementTypeInfo();
 				super.startElement(uri, localName, qName, atts);
 			}
-
 		};
-		validatorHandler.setContentHandler(_receiver);
+		_validatorHandler.setContentHandler(_receiver);
 		_cids = cids;
 	}
 
+	@Override
 	public void setContentHandler(ContentHandler handler) {
 		_receiver.setContentHandler(handler);
+	}
+
+	@Override
+	public void setErrorHandler(ErrorHandler handler) {
+		_validatorHandler.setErrorHandler(handler);
+	}
+
+	private void reportError(String message) throws SAXException {
+		if (_validatorHandler.getErrorHandler() != null) {
+			_validatorHandler.getErrorHandler().error(new SAXParseException(message, null));
+		} else {
+			throw new SAXException(message);
+		}
 	}
 
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
 		if (URI_NS_XOP.equals(uri) && NAME_INCLUDE.equals(localName)) {
 			if (!typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, "base64Binary", TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_EXTENSION)) {
-				throw new SAXException("Enclosing element not of type xs:base64Binary");
+				reportError("Enclosing element not of type xs:base64Binary");
 			}
 			String href = atts.getValue("href");
 			if (href == null) {
-				throw new SAXException("Missing required attribute href");
+				reportError("Missing required attribute href");
 			}
 			if (!href.startsWith("cid:") || !_cids.contains(href.substring(4))) {
-				throw new SAXException("Not found in attachments " + href);
+				reportError("Not found in attachments " + href);
 			}
 		} else {
 			super.startElement(uri, localName, qName, atts);
