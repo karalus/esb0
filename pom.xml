@@ -151,6 +151,9 @@
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>3.10.1</version>
 					<configuration>
+					<!-- To build with Java 9 or newer (https://www.morling.dev/blog/bytebuffer-and-the-dreaded-nosuchmethoderror/)
+						<release>8</release>
+					-->
 						<source>1.8</source>
 						<target>1.8</target>
 					</configuration>
