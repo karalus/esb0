@@ -23,6 +23,8 @@ import java.security.SecureClassLoader;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 
 public class FileSystemClassLoader extends SecureClassLoader {
 
@@ -74,8 +76,20 @@ public class FileSystemClassLoader extends SecureClassLoader {
 					if (pos > 0) {
 						String packageName = name.substring(0, pos);
 						if (getPackage(packageName) == null) {
+							String specTitle = null, specVersion = null, specVendor = null;
+							String implTitle = null, implVersion = null, implVendor = null;
+							Manifest manifest = jar.getManifest();
+							if (manifest != null) {
+								Attributes attr = manifest.getMainAttributes();
+								specTitle = attr.getValue(Attributes.Name.SPECIFICATION_TITLE);
+								specVersion = attr.getValue(Attributes.Name.SPECIFICATION_VERSION);
+								specVendor = attr.getValue(Attributes.Name.SPECIFICATION_VENDOR);
+								implTitle = attr.getValue(Attributes.Name.IMPLEMENTATION_TITLE);
+								implVersion = attr.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+								implVendor = attr.getValue(Attributes.Name.IMPLEMENTATION_VENDOR);
+							}
 							try {
-								definePackage(packageName, null, null, null, null, null, null, null);
+								definePackage(packageName, specTitle, specVersion, specVendor, implTitle, implVersion, implVendor, null);
 							} catch (IllegalArgumentException e) {
 								// Ignore: normal error due to dual definition of package
 							}

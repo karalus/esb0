@@ -25,4 +25,6 @@ public interface JMSConnectionGuardMXBean {
 
 	List<String> getProducerDestinationCount() throws Exception;
 
+	String getJMSProvider() throws Exception;
+
 }

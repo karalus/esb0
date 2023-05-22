@@ -23,8 +23,9 @@ import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.jar.JarInputStream;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.IOUtils;
@@ -78,6 +79,7 @@ public class JarArtifact extends Artifact {
 
 		private final WeakReference<JarArtifact> _jarArtifact;
 		private Map<String, WeakReference<byte[]>> _entries;
+		private Manifest _manifest;
 
 		Jar(JarArtifact jarArtifact) {
 			_jarArtifact = new WeakReference<>(jarArtifact);
@@ -93,22 +95,27 @@ public class JarArtifact extends Artifact {
 				if (_entries == null) {
 					_entries = new LinkedHashMap<>();
 				}
-				try (ZipInputStream zis = new ZipInputStream(jarArtifact.getContentAsStream())) {
+				try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
 					ZipEntry entry;
-					while ((entry = zis.getNextEntry()) != null) {
+					while ((entry = jis.getNextEntry()) != null) {
 						if (!entry.isDirectory() && (filename == null || _entries.containsKey(entry.getName()))) {
-							byte[] data = IOUtils.toByteArray(zis);
+							byte[] data = IOUtils.toByteArray(jis);
 							if (entry.getName().equals(filename)) {
 								return data;
 							}
 							_entries.put(entry.getName(), new WeakReference<>(data));
 						}
 					}
+					_manifest = jis.getManifest();
 				} finally {
 					jarArtifact.clearContent();
 				}
 			}
 			return null;
+		}
+
+		Manifest getManifest() {
+			return _manifest;
 		}
 
 		synchronized byte[] getEntry(String filename, boolean nullify) throws IOException {
