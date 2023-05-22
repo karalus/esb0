@@ -105,6 +105,26 @@ public final class JMSSession implements AutoCloseable {
 		return _consumer;
 	}
 
+	public void setDeliveryDelay(MessageProducer producer, Message message, long deliveryDelay) throws JMSException {
+		ConnectionMetaData connectionMetaData = _jmsConnectionProvider.getConnectionMetaData(_jmsConnectionData);
+		if (connectionMetaData.getJMSMajorVersion() > 1) {
+			producer.setDeliveryDelay(deliveryDelay);
+		} else if (deliveryDelay > 0) {
+			String jmsProviderName = connectionMetaData.getJMSProviderName();
+			switch (jmsProviderName) {
+			case "ActiveMQ":
+				// https://stackoverflow.com/questions/58609188/delaying-messages-in-activemq
+				message.setLongProperty("AMQ_SCHEDULED_DELAY", deliveryDelay);
+				break;
+			case "Oracle":
+				message.setIntProperty("JMS_OracleDelay", (int) ((deliveryDelay + 999) / 1000));
+				break;
+			default:
+				throw new JMSException("Delivery delay not implemented for " + jmsProviderName);
+			}
+		}
+	}
+
 	@Override
 	public void close() throws JMSException {
 		if (_consumer != null) {

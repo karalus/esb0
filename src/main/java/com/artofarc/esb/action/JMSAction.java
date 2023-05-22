@@ -264,7 +264,7 @@ public class JMSAction extends Action {
 						deliveryDelay = message.<Number> getVariable(_deliveryDelay).longValue();
 					}
 					if (timeToLive == 0 || timeToLive > deliveryDelay) {
-						producer.setDeliveryDelay(deliveryDelay);
+						jmsSession.setDeliveryDelay(producer, jmsMessage, deliveryDelay);
 					} else if (_expiryQueue != null) {
 						producer = jmsSession.createProducer(jmsSession.createQueue(_expiryQueue));
 						timeToLive = Message.DEFAULT_TIME_TO_LIVE;
