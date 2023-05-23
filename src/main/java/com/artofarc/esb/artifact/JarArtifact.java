@@ -23,9 +23,9 @@ import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
-import java.util.zip.ZipEntry;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.IOUtils;
@@ -85,33 +85,49 @@ public class JarArtifact extends Artifact {
 			_jarArtifact = new WeakReference<>(jarArtifact);
 		}
 
-		private byte[] load(String filename) throws IOException {
-			if (filename != null || _entries == null) {
-				JarArtifact jarArtifact = _jarArtifact.get();
-				if (jarArtifact == null) {
-					throw new IllegalStateException("JarArtifact is detached " + jarArtifact);
-				}
-				logger.info("Reading " + jarArtifact);
-				if (_entries == null) {
-					_entries = new LinkedHashMap<>();
-				}
-				try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
-					ZipEntry entry;
-					while ((entry = jis.getNextEntry()) != null) {
-						if (!entry.isDirectory() && (filename == null || _entries.containsKey(entry.getName()))) {
-							byte[] data = IOUtils.toByteArray(jis);
-							if (entry.getName().equals(filename)) {
-								return data;
-							}
-							_entries.put(entry.getName(), new WeakReference<>(data));
-						}
-					}
-					_manifest = jis.getManifest();
-				} finally {
-					jarArtifact.clearContent();
-				}
+		private void loadAll() throws IOException {
+			JarArtifact jarArtifact = _jarArtifact.get();
+			if (jarArtifact == null) {
+				throw new IllegalStateException("JarArtifact is detached " + jarArtifact);
 			}
-			return null;
+			logger.info("Reading " + jarArtifact);
+			_entries = new LinkedHashMap<>();
+			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
+				JarEntry entry;
+				while ((entry = jis.getNextJarEntry()) != null) {
+					if (!entry.isDirectory()) {
+						_entries.put(entry.getName(), new WeakReference<>(IOUtils.toByteArray(jis)));
+					}
+				}
+				_manifest = jis.getManifest();
+			} finally {
+				jarArtifact.clearContent();
+			}
+		}
+
+		private byte[] reload(String filename) throws IOException {
+			JarArtifact jarArtifact = _jarArtifact.get();
+			if (jarArtifact == null) {
+				throw new IllegalStateException("JarArtifact is detached " + jarArtifact);
+			}
+			logger.info("Reloading " + jarArtifact);
+			byte[] result = null;
+			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
+				JarEntry entry;
+				while ((entry = jis.getNextJarEntry()) != null) {
+					WeakReference<byte[]> ref = _entries.get(entry.getName());
+					if (ref != null && ref.get() == null) {
+						byte[] data = IOUtils.toByteArray(jis);
+						if (entry.getName().equals(filename)) {
+							result = data;
+						}
+						_entries.replace(entry.getName(), new WeakReference<>(data));
+					}
+				}
+			} finally {
+				jarArtifact.clearContent();
+			}
+			return result;
 		}
 
 		Manifest getManifest() {
@@ -119,13 +135,15 @@ public class JarArtifact extends Artifact {
 		}
 
 		synchronized byte[] getEntry(String filename, boolean nullify) throws IOException {
-			load(null);
+			if (_entries == null) {
+				loadAll();
+			}
 			WeakReference<byte[]> ref = _entries.get(filename);
 			byte[] data = null;
 			if (ref != null) {
 				data = ref.get();
 				if (data == null) {
-					data = load(filename);
+					data = reload(filename);
 				}
 				if (nullify) {
 					_entries.replace(filename, null);
