@@ -72,10 +72,12 @@ public class JMSAction extends Action {
 	private final Long _timeToLive;
 	private final String _deliveryDelay, _expiryQueue;
 	private final boolean _receiveFromTempQueue;
+	private final String _replyQueue, _receiveSelector;
 	private final String _multipartSubtype, _multipart;
 
 	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
-			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String multipartSubtype, String multipart) throws NamingException {
+			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String replyQueue,
+			String receiveSelector, String multipartSubtype, String multipart) throws NamingException {
 		_pipelineStop = true;
 		_queueName = globalContext.bindProperties(queueName);
 		_topicName = globalContext.bindProperties(topicName);
@@ -90,6 +92,8 @@ public class JMSAction extends Action {
 		_deliveryDelay = deliveryDelay;
 		_expiryQueue = expiryQueue;
 		_receiveFromTempQueue = receiveFromTempQueue;
+		_replyQueue = replyQueue;
+		_receiveSelector = receiveSelector;
 		_multipartSubtype = multipartSubtype;
 		_multipart = multipart;
 	}
@@ -203,6 +207,23 @@ public class JMSAction extends Action {
 				throw new ExecutionException(this, "No reply message received within given timeout");
 			}
 			JMSConsumer.fillESBMessage(message, replyMessage);
+		} else if (_replyQueue != null) {
+			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
+			context.getTimeGauge().stopTimeMeasurement("JMS send", true);
+			message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
+			Queue replyQueue = session.createQueue(_replyQueue);
+			String messageSelector = _receiveSelector != null ? (String) eval(_receiveSelector, context, message) : null;
+			MessageConsumer messageConsumer = session.createConsumer(replyQueue, messageSelector);
+			try {
+				Message replyMessage = messageConsumer.receive(timeToLive);
+				context.getTimeGauge().stopTimeMeasurement("JMS receive", false);
+				if (replyMessage == null) {
+					throw new ExecutionException(this, "No reply message received within given timeout");
+				}
+				JMSConsumer.fillESBMessage(message, replyMessage);
+			} finally {
+				messageConsumer.close();
+			}
 		} else {
 			Destination replyTo = message.getVariable(ESBConstants.JMSReplyTo);
 			if (replyTo != null) {
