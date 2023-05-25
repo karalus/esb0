@@ -90,6 +90,8 @@
 					<attribute name="deliveryDelay" type="tns:string1" />
 					<attribute name="expiryQueue" type="tns:string1" />
 					<attribute name="receiveFromTempQueue" type="boolean" default="false" />
+					<attribute name="replyQueue" type="tns:string1" />
+					<attribute name="receiveSelector" type="tns:string1" />
 					<attribute name="multipartSubtype" type="tns:multipartSubtype" />
 					<attribute name="multipart" type="tns:string1" />
 					<attribute name="workerPool" type="anyURI" />
