@@ -24,6 +24,7 @@ import java.net.CookieStore;
 import java.net.HttpURLConnection;
 import java.net.NoRouteToHostException;
 import java.net.ProtocolException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -308,7 +309,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				}
 				_totalConnectionsCount.incrementAndGet();
 				return httpUrlConnection;
-			} catch (ConnectException | NoRouteToHostException | ProtocolException | HttpCheckAlive.ConnectException e) {
+			} catch (ConnectException | NoRouteToHostException | ProtocolException | HttpCheckAlive.ConnectException | SocketTimeoutException e) {
 				if (httpUrlConnection != null) {
 					httpUrlConnection.close();
 				}
