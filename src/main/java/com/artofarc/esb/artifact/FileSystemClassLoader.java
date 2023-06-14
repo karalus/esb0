@@ -53,7 +53,7 @@ public class FileSystemClassLoader extends SecureClassLoader {
 		if (result == null) {
 			try {
 				result = findClass(name); // invoke our own find algorithm
-			} catch (Exception e) { // also catches java.lang.SecurityException
+			} catch (ClassNotFoundException | SecurityException e) {
 				result = getParent().loadClass(name); // invoke parent
 			}
 		}
@@ -98,8 +98,8 @@ public class FileSystemClassLoader extends SecureClassLoader {
 					return defineClass(name, classData, 0, classData.length);
 				}
 			}
-		} catch (Exception e) {
-			throw new ClassNotFoundException(name, e);
+		} catch (IOException e) {
+			throw (ClassFormatError) new ClassFormatError(name).initCause(e);
 		}
 		throw new ClassNotFoundException(name);
 	}
