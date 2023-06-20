@@ -100,8 +100,6 @@ public class JarArtifact extends Artifact {
 					}
 				}
 				_manifest = jis.getManifest();
-			} finally {
-				jarArtifact.clearContent();
 			}
 		}
 
@@ -124,8 +122,6 @@ public class JarArtifact extends Artifact {
 						_entries.replace(entry.getName(), new WeakReference<>(data));
 					}
 				}
-			} finally {
-				jarArtifact.clearContent();
 			}
 			return result;
 		}
