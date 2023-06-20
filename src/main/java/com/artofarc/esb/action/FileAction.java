@@ -94,13 +94,13 @@ public class FileAction extends TerminalAction {
 							.add("dir", f.isDirectory()).add("length", f.length()).add("modificationTime", f.lastModified()).build());
 				}
 				message.reset(BodyType.JSON_VALUE, builder.build());
-				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+				message.setContentType(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				if (IOUtils.getExt(filename).equals("gz")) {
 					filename = IOUtils.stripExt(filename);
 					message.setContentEncoding("gzip");
 				}
-				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MimeHelper.guessContentTypeFromName(filename));
+				message.setContentType(MimeHelper.guessContentTypeFromName(filename));
 				message.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFileInputStream(file));
 			}
 		} else {

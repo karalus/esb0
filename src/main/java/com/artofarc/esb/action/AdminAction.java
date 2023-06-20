@@ -67,7 +67,7 @@ public class AdminAction extends Action {
 					context.getGlobalContext().getFileSystem().dump(bos);
 					message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 					message.clearHeaders();
-					message.putHeader(HTTP_HEADER_CONTENT_TYPE, "application/zip");
+					message.setContentType("application/zip");
 					message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + filename + '"');
 				}
 			} else {
@@ -102,7 +102,7 @@ public class AdminAction extends Action {
 				}
 				message.reset(BodyType.JSON_VALUE, builder.build());
 				message.clearHeaders();
-				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
+				message.setContentType(HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				String headerAccept = message.getVariable(HTTP_HEADER_ACCEPT);
 				if (headerAccept == null || isAcceptable(headerAccept, artifact.getContentType())) {
@@ -153,7 +153,7 @@ public class AdminAction extends Action {
 	private void changeConfiguration(Context context, ESBMessage message, String resource) throws Exception {
 		GlobalContext globalContext = context.getGlobalContext();
 		if (resource.isEmpty()) {
-			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+			String contentType = message.getContentType();
 			if (contentType == null || "bin".equals(MimeHelper.getFileExtension(contentType))) {
 				boolean simulate = Boolean.parseBoolean(message.getHeader("simulate"));
 				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());

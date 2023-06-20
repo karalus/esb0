@@ -172,7 +172,7 @@ public abstract class JDBCAction extends Action {
 						result.writeJson(jsonValueGenerator);
 						message.reset(BodyType.JSON_VALUE, jsonValueGenerator.getJsonValue());
 					}
-					message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+					message.setContentType(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 				} else if (result.getCurrentUpdateCount() >= 0) {
 					message.getVariables().put(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
 				}
