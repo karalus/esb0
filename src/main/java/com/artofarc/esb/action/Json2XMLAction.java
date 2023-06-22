@@ -49,7 +49,13 @@ public class Json2XMLAction extends SAXAction {
 		if (isNotJSON(contentType)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		message.setContentType(HTTP_HEADER_CONTENT_TYPE_XML);
+		contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType == null || isNotXML(contentType)) {
+			// target Content-Type is not XML, set default XML Content-Type
+			message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
+			contentType = HTTP_HEADER_CONTENT_TYPE_XML;
+		}
+		message.setContentType(contentType);
 		if (message.getBodyType() == BodyType.JSON_VALUE) {
 			SAXSource source = new SAXSource(_json2xml.createParser(message.getBody()), null);
 			message.reset(BodyType.SOURCE, source);

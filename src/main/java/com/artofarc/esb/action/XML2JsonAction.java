@@ -40,11 +40,11 @@ public class XML2JsonAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		String contentType = message.getContentType();
-		String type = parseContentType(contentType);
-		if (isNotXML(type)) {
+		if (isNotXML(parseContentType(contentType))) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		message.removeHeader(HTTP_HEADER_CONTENT_LENGTH);
+		message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
 		message.setContentType(HTTP_HEADER_CONTENT_TYPE_JSON);
 		return null;
 	}
