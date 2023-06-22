@@ -56,8 +56,12 @@ public final class JMSCompletionListener implements CompletionListener {
 				Context context = _workerPool.getContext();
 				Action action = asyncProcessingPool.restoreContext(JMSCompletionListener.this, context, esbMessage);
 				try {
-					esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
-					action.process(context, esbMessage);
+					if (action != null) {
+						esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
+						action.process(context, esbMessage);
+					} else {
+						logger.error("No AsyncContext found for JMSCompletionListener " + JMSCompletionListener.this);
+					}
 				} catch (Exception e) {
 					logger.error("Exception while completing JMS send", e);
 				} finally {
@@ -76,9 +80,13 @@ public final class JMSCompletionListener implements CompletionListener {
 				ESBMessage esbMessage = new ESBMessage(BodyType.EXCEPTION, exception);
 				AsyncProcessingPool asyncProcessingPool = _workerPool.getAsyncProcessingPool();
 				Context context = _workerPool.getContext();
-				asyncProcessingPool.restoreContext(JMSCompletionListener.this, context, esbMessage);
+				Action action = asyncProcessingPool.restoreContext(JMSCompletionListener.this, context, esbMessage);
 				try {
-					Action.processException(context, esbMessage);
+					if (action != null) {
+						Action.processException(context, esbMessage);
+					} else {
+						logger.error("No AsyncContext found for JMSCompletionListener " + JMSCompletionListener.this);
+					}
 				} catch (Exception e) {
 					logger.error("Exception while completing JMS send", e);
 				} finally {

@@ -76,6 +76,9 @@ public final class AsyncProcessingPool implements Runnable {
 	}
 
 	public void saveContext(Object correlationID, Action nextAction, Collection<Action> executionStack, Collection<Action> stackErrorHandler, Map<String, Object> variables, long expiry) {
+		if (nextAction == null && executionStack.isEmpty()) {
+			throw new IllegalArgumentException("No action for resume given");
+		}
 		AsyncContext asyncContext = new AsyncContext(nextAction, executionStack, stackErrorHandler, variables, expiry);
 		if (_asyncContexts.putIfAbsent(correlationID, asyncContext) != null) {
 			throw new IllegalArgumentException("correlationID already used: " + correlationID);
@@ -91,7 +94,7 @@ public final class AsyncProcessingPool implements Runnable {
 			context.getExecutionStack().addAll(asyncContext.executionStack);
 			context.getStackErrorHandler().addAll(asyncContext.stackErrorHandler);
 			message.getVariables().putAll(asyncContext.variables);
-			return asyncContext.nextAction;
+			return asyncContext.nextAction != null ? asyncContext.nextAction : context.getExecutionStack().pop();
 		}
 		return null;
 	}

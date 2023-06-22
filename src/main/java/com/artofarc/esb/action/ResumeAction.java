@@ -33,6 +33,9 @@ public class ResumeAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		if (_nextAction != null) {
+			throw new ExecutionException(this, "resume must be the last action in service flow");
+		}
 		Object correlationID = resolve(message, _correlationID, true);
 		if (correlationID == null) {
 			throw new ExecutionException(this, "name could not be resolved: " + _correlationID);
