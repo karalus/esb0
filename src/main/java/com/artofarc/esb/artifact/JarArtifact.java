@@ -66,7 +66,7 @@ public class JarArtifact extends Artifact {
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) {
-		_jar = new Jar(this);
+		_jar = new Jar(globalContext, getURI());
 	}
 
 	@Override
@@ -77,20 +77,19 @@ public class JarArtifact extends Artifact {
 
 	static final class Jar {
 
-		private final WeakReference<JarArtifact> _jarArtifact;
+		private final GlobalContext _globalContext;
+		private final String _jarArtifactURI;
 		private Map<String, WeakReference<byte[]>> _entries;
 		private Manifest _manifest;
 
-		Jar(JarArtifact jarArtifact) {
-			_jarArtifact = new WeakReference<>(jarArtifact);
+		Jar(GlobalContext globalContext, String jarArtifactURI) {
+			_globalContext = globalContext;
+			_jarArtifactURI = jarArtifactURI;
 		}
 
 		private void loadAll() throws IOException {
-			JarArtifact jarArtifact = _jarArtifact.get();
-			if (jarArtifact == null) {
-				throw new IllegalStateException("JarArtifact is detached " + jarArtifact);
-			}
-			logger.info("Reading " + jarArtifact);
+			JarArtifact jarArtifact = _globalContext.getFileSystem().loadArtifact(_jarArtifactURI);
+			logger.info("Reading " + _jarArtifactURI);
 			_entries = new LinkedHashMap<>();
 			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
 				JarEntry entry;
@@ -104,11 +103,8 @@ public class JarArtifact extends Artifact {
 		}
 
 		private byte[] reload(String filename) throws IOException {
-			JarArtifact jarArtifact = _jarArtifact.get();
-			if (jarArtifact == null) {
-				throw new IllegalStateException("JarArtifact is detached " + jarArtifact);
-			}
-			logger.info("Reloading " + jarArtifact);
+			JarArtifact jarArtifact = _globalContext.getFileSystem().loadArtifact(_jarArtifactURI);
+			logger.info("Reloading " + _jarArtifactURI);
 			byte[] result = null;
 			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
 				JarEntry entry;
@@ -145,7 +141,7 @@ public class JarArtifact extends Artifact {
 					_entries.replace(filename, null);
 				}
 			} else if (nullify && _entries.containsKey(filename)) {
-				throw new IllegalStateException("Same jar is loaded twice from different classLoaders " + _jarArtifact.get());
+				throw new IllegalStateException("Same jar is loaded twice from different classLoaders " + _jarArtifactURI);
 			}
 			return data;
 		}

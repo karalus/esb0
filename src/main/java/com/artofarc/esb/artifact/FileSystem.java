@@ -120,6 +120,10 @@ public abstract class FileSystem {
 		return (A) (name.isEmpty() ? current : current.getArtifacts().get(name));
 	}
 
+	protected final <A extends Artifact> A loadArtifact(String uri) throws FileNotFoundException {
+		return loadArtifact(_root, uri);
+	}
+
 	protected final <A extends Artifact> A loadArtifact(Directory current, String uri) throws FileNotFoundException {
 		A artifact = getArtifact(current, uri);
 		if (artifact == null) {
@@ -391,7 +395,7 @@ public abstract class FileSystem {
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, String uriToDelete) throws FileNotFoundException, ValidationException {
 		FileSystem copy = copy();
-		Artifact artifact = copy.loadArtifact(copy.getRoot(), uriToDelete);
+		Artifact artifact = copy.loadArtifact(uriToDelete);
 		if (!artifact.delete()) {
 			throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
 		}
@@ -446,7 +450,7 @@ public abstract class FileSystem {
 					StringTokenizer tokenizer = new StringTokenizer(delete, ", ");
 					while (tokenizer.hasMoreTokens()) {
 						String uri = tokenizer.nextToken();
-						noteChange(loadArtifact(_root, uri).getURI(), ChangeType.DELETE);
+						noteChange(loadArtifact(uri).getURI(), ChangeType.DELETE);
 					}
 				}
 			}
