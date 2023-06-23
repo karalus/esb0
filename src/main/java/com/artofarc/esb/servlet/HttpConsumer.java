@@ -34,6 +34,7 @@ import com.artofarc.esb.message.ESBMessage;
 public final class HttpConsumer extends ConsumerPort implements Runnable, com.artofarc.esb.mbean.HttpConsumerMXBean {
 
 	private final boolean _pathMapping;
+	private final String _overwriteContentType;
 	private final String _bindPath;
 	private final String _requiredRole;
 	private final int _minPoolSize, _maxPoolSize;
@@ -45,10 +46,11 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	private volatile long _lastPoolLimitExceeded;
 	private final AtomicLong _poolLimitExceededCount = new AtomicLong();
 
-	public HttpConsumer(String uri, int resourceLimit, String bindPath, String requiredRole, int minPoolSize, int maxPoolSize, long keepAlive, boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
+	public HttpConsumer(String uri, int resourceLimit, String bindPath, String overwriteContentType, String requiredRole, int minPoolSize, int maxPoolSize, long keepAlive, boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
 		super(uri);
 		_pathMapping = bindPath.charAt(bindPath.length() - 1) == '*';
 		_bindPath = _pathMapping ? bindPath.substring(0, bindPath.length() - 1) : bindPath;
+		_overwriteContentType = overwriteContentType;
 		_requiredRole = requiredRole;
 		_minPoolSize = minPoolSize;
 		_maxPoolSize = maxPoolSize;
@@ -63,6 +65,10 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 
 	public String getBindPath() {
 		return _bindPath;
+	}
+
+	public String getOverwriteContentType() {
+		return _overwriteContentType;
 	}
 
 	public String getRequiredRole() {

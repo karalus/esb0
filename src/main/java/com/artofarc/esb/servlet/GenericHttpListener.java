@@ -140,6 +140,9 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(ClientCertificate, certs[0]);
 		}
 		if (bodyPresent) {
+			if (httpConsumer.getOverwriteContentType() != null) {
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, httpConsumer.getOverwriteContentType());
+			}
 			message.prepareContent();
 		}
 		// copy into variable for HttpServletResponseAction
