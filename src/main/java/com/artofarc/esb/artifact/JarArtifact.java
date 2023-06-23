@@ -65,8 +65,8 @@ public class JarArtifact extends Artifact {
 	}
 
 	@Override
-	protected void validateInternal(GlobalContext globalContext) {
-		_jar = new Jar(globalContext, getURI());
+	protected void validateInternal(GlobalContext globalContext) throws Exception {
+		_jar = new Jar(globalContext, this);
 	}
 
 	@Override
@@ -79,18 +79,13 @@ public class JarArtifact extends Artifact {
 
 		private final GlobalContext _globalContext;
 		private final String _jarArtifactURI;
-		private Map<String, WeakReference<byte[]>> _entries;
-		private Manifest _manifest;
+		private final Map<String, WeakReference<byte[]>> _entries = new LinkedHashMap<>();
+		private final Manifest _manifest;
 
-		Jar(GlobalContext globalContext, String jarArtifactURI) {
+		Jar(GlobalContext globalContext, JarArtifact jarArtifact) throws IOException {
 			_globalContext = globalContext;
-			_jarArtifactURI = jarArtifactURI;
-		}
-
-		private void loadAll() throws IOException {
-			JarArtifact jarArtifact = _globalContext.getFileSystem().loadArtifact(_jarArtifactURI);
+			_jarArtifactURI = jarArtifact.getURI();
 			logger.info("Reading " + _jarArtifactURI);
-			_entries = new LinkedHashMap<>();
 			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
 				JarEntry entry;
 				while ((entry = jis.getNextJarEntry()) != null) {
@@ -127,9 +122,6 @@ public class JarArtifact extends Artifact {
 		}
 
 		synchronized byte[] getEntry(String filename, boolean nullify) throws IOException {
-			if (_entries == null) {
-				loadAll();
-			}
 			WeakReference<byte[]> ref = _entries.get(filename);
 			byte[] data = null;
 			if (ref != null) {
