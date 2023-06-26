@@ -23,6 +23,7 @@
 		<xsl:attribute name="verb" select="." />
 	</xsl:template>
 	<xsl:template match="@batchSize"/>
+	<xsl:template match="@overwriteContentType"/>
 	<xsl:template match="ns:update">
 		<setMessage>
 			<xsl:apply-templates select="@*|node()" />
