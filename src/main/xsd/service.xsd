@@ -60,7 +60,7 @@
 					<attribute name="multipartRequest" type="tns:string1" />
 					<attribute name="username" type="string" />
 					<attribute name="password" type="string" />
-					<attribute name="connectionTimeout" type="int" default="10000" />
+					<attribute name="connectTimeout" type="int" default="10000" />
 					<attribute name="retries" type="int" default="0" />
 					<attribute name="checkAliveInterval" type="int" />
 					<attribute name="checkAliveClass" type="tns:identifier" />
@@ -68,7 +68,6 @@
 					<attribute name="readTimeout" type="int" default="60000" />
 					<attribute name="chunkLength" type="int" />
 					<attribute name="workerPool" type="anyURI" />
-					<attribute name="join" type="boolean" default="true" />
 					<attribute name="name" type="tns:string1" />
 					<attribute name="proxyUrl" type="tns:string1" />
 					<attribute name="keyStore" type="tns:string1" />
@@ -87,7 +86,7 @@
 					<attribute name="bytesMessage" type="boolean" default="false" />
 					<attribute name="deliveryMode" type="int" default="2" />
 					<attribute name="priority" type="int" default="4" />
-					<attribute name="timeToLive" type="long" />
+					<attribute name="timeToLive" type="long" default="0" />
 					<attribute name="deliveryDelay" type="tns:string1" />
 					<attribute name="expiryQueue" type="tns:string1" />
 					<attribute name="receiveFromTempQueue" type="boolean" default="false" />
@@ -95,6 +94,7 @@
 					<attribute name="receiveSelector" type="tns:string1" />
 					<attribute name="multipartSubtype" type="tns:multipartSubtype" />
 					<attribute name="multipart" type="tns:string1" />
+					<attribute name="workerPool" type="anyURI" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -135,7 +135,7 @@
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="executeJava" substitutionGroup="tns:action">
+	<element name="executeAction" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
@@ -153,18 +153,19 @@
 			<complexContent>
 				<extension base="tns:ActionBase">
 					<attribute name="dir" type="anyURI" use="required" />
-					<attribute name="verb" type="tns:string1" default="${FileEventKind}" />
+					<attribute name="action" type="tns:string1" default="${FileEventKind}" />
 					<attribute name="filename" type="tns:string1" default="${filename}" />
 					<attribute name="mkdirs" type="boolean" default="false" />
 					<attribute name="append" type="tns:string1" default="${append}" />
 					<attribute name="zip" type="tns:string1" default="${zip}" />
 					<attribute name="readable" type="boolean" />
 					<attribute name="writable" type="boolean" />
+					<attribute name="ownerOnly" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="jdbcParameter">
+	<element name="parameter">
 		<complexType>
 			<attribute name="pos" type="int" />
 			<attribute name="body" type="boolean" default="false" />
@@ -172,7 +173,7 @@
 			<attribute name="variable" type="tns:identifier" />
 			<attribute name="type" type="Name" use="required" />
 			<attribute name="truncate" type="int" />
-			<attribute name="xmlElement" type="tns:string1" />			
+			<attribute name="xmlElement" type="tns:string1" />
 		</complexType>
 	</element>
 	<complexType name="JDBCBase" abstract="true">
@@ -193,7 +194,7 @@
 			<complexContent>
 				<extension base="tns:JDBCBase">
 					<sequence>
-						<element ref="tns:jdbcParameter" minOccurs="0" maxOccurs="unbounded" />
+						<element ref="tns:parameter" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="generatedKeys">
 						<simpleType>
@@ -212,7 +213,7 @@
 						<element name="in">
 							<complexType>
 								<sequence>
-									<element ref="tns:jdbcParameter" minOccurs="0"
+									<element ref="tns:parameter" minOccurs="0"
 										maxOccurs="unbounded" />
 								</sequence>
 							</complexType>
@@ -220,7 +221,7 @@
 						<element name="out">
 							<complexType>
 								<sequence>
-									<element ref="tns:jdbcParameter" minOccurs="0"
+									<element ref="tns:parameter" minOccurs="0"
 										maxOccurs="unbounded" />
 								</sequence>
 							</complexType>
@@ -267,7 +268,7 @@
 						</element>
 						<element name="body" type="tns:string1" minOccurs="0"/>
 					</sequence>
-					<attribute name="clearAll" type="boolean" default="false" />
+					<attribute name="clearHeaders" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -349,8 +350,8 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:SOAPAction">
-                    <attribute name="header" type="boolean" default="false" />
-                </extension>
+					<attribute name="header" type="boolean" default="false" />
+				</extension>
 			</complexContent>
 		</complexType>
 	</element>
@@ -358,7 +359,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:SOAPAction">
-                    <attribute name="header" type="boolean" default="false" />
+					<attribute name="header" type="boolean" default="false" />
 					<attribute name="wsdlURI" type="anyURI" use="required" />
 					<attribute name="binding" type="tns:string1" />
 					<attribute name="transport" type="anyURI" />
@@ -409,8 +410,10 @@
 					</sequence>
 					<attribute name="iterable" type="tns:string1" use="required" />
 					<attribute name="iterName" type="tns:string1" />
-					<attribute name="variable" type="tns:identifier" use="required"  />
+					<attribute name="variable" type="tns:identifier" use="required" />
 					<attribute name="remove" type="boolean" default="false" />
+					<attribute name="collectorName" type="tns:identifier" />
+					<attribute name="collect" type="tns:identifier" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -471,7 +474,7 @@
 								</sequence>
 								<attribute name="value">
 									<simpleType>
-									    <list itemType="string" />
+										<list itemType="string" />
 									</simpleType>
 								</attribute>
 								<attribute name="regEx" type="tns:string1" />
@@ -577,7 +580,7 @@
 			</extension>
 		</simpleContent>
 	</complexType>
-	<element name="setMessage" substitutionGroup="tns:action">
+	<element name="update" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
@@ -606,7 +609,7 @@
 							</complexType>
 						</element>
 					</sequence>
-					<attribute name="clearAll" type="boolean" default="false" />
+					<attribute name="clearHeaders" type="boolean" default="false" />
 					<attribute name="classLoader" type="anyURI" />
 				</extension>
 			</complexContent>
@@ -731,13 +734,14 @@
 						<complexType>
 							<simpleContent>
 								<extension base="tns:URI1">
+									<attribute name="overwriteContentType" type="tns:string1" />
 									<attribute name="requiredRole" type="tns:string1" />
 									<attribute name="supportCompression" type="boolean" default="false" />
 									<attribute name="multipartSubtype" type="tns:multipartSubtype" />
 									<attribute name="multipartResponse" type="tns:string1" />
 									<attribute name="bufferSize" type="tns:positiveInt" />
-									<attribute name="minPool" type="unsignedShort" default="1" />
-									<attribute name="maxPool" type="tns:positiveInt" default="20" />
+									<attribute name="minPoolSize" type="unsignedShort" default="1" />
+									<attribute name="maxPoolSize" type="tns:positiveInt" default="20" />
 									<attribute name="keepAlive" type="unsignedInt" default="300000" />
 									<attribute name="resourceLimit" type="int" default="-1" />
 								</extension>
@@ -755,13 +759,10 @@
 							<attribute name="messageSelector" type="string" />
 							<attribute name="minWorkerCount" type="tns:positiveInt" />
 							<attribute name="workerCount" type="tns:positiveInt" default="1" />
+							<attribute name="batchSize" type="int" default="1" />
 							<attribute name="pollInterval" type="int" default="0" />
 							<attribute name="at" type="time" />
 							<attribute name="timeUnit" type="string" default="milliseconds" />
-							<!-- deprecated -->
-							<attribute name="maximumRetries" type="int" />
-							<!-- deprecated -->
-							<attribute name="redeliveryDelay" type="unsignedInt" />
 						</complexType>
 					</element>
 					<element name="timerBinding">
@@ -815,15 +816,6 @@
 			<attribute name="allowCoreThreadTimeOut" type="boolean" default="false" />
 		</complexType>
 	</element>
-	<!-- deprecated -->
-	<element name="dataSource">
-		<complexType>
-			<sequence>
-				<element ref="tns:property" maxOccurs="unbounded"/>
-			</sequence>
-			<attribute name="name" type="tns:string1" use="required" />
-		</complexType>
-	</element>
 	<element name="jndiObjectFactory">
 		<complexType>
 			<sequence>
@@ -831,8 +823,8 @@
 			</sequence>
 			<attribute name="name" type="tns:string1" use="required" />
 			<attribute name="classLoader" type="anyURI" />
+			<attribute name="type" type="tns:identifier" use="required" />
 			<attribute name="factory" type="tns:identifier" />
-			<attribute name="type" type="tns:identifier" />
 			<attribute name="esb0Factory" type="tns:identifier" />
 			<attribute name="adminPostAction" type="tns:string1" />
 		</complexType>

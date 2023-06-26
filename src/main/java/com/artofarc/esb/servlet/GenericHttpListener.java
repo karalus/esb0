@@ -37,7 +37,6 @@ import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.util.DataStructures;
 
 import static com.artofarc.esb.message.ESBConstants.*;
@@ -85,13 +84,13 @@ public class GenericHttpListener extends HttpServlet {
 						ESBMessage message = createESBMessage(request, pathInfo, consumerPort);
 						AsyncContext asyncContext = null;
 						try {
-							Context context = consumerPort.getContextPool().getContext();
+							Context context = consumerPort.acquireContext();
 							if (context != null) {
 								message.getVariables().put(AsyncContext, asyncContext = request.startAsync());
 								try {
 									consumerPort.process(context, message);
 								} finally {
-									consumerPort.getContextPool().releaseContext(context);
+									consumerPort.releaseContext(context);
 								}
 							} else {
 								sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
@@ -99,8 +98,8 @@ public class GenericHttpListener extends HttpServlet {
 						} catch (Exception e) {
 							if (!response.isCommitted()) {
 								response.reset();
-								Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
-								sendError(response, httpResponseCode != null ? httpResponseCode.intValue() : HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e);
+								Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+								sendError(response, httpResponseCode.intValue() < HttpServletResponse.SC_BAD_REQUEST ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : httpResponseCode.intValue(), e);
 							}
 							if (asyncContext != null) {
 								asyncContext.complete();
@@ -129,7 +128,6 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(appendHttpUrlPath, pathInfo.substring(httpConsumer.getBindPath().length()));
 		}
 		message.putVariableIfNotNull(QueryString, request.getQueryString());
-		message.setCharset(getCharset(request.getContentType()));
 		for (Enumeration<String> headerNames = request.getHeaderNames(); headerNames.hasMoreElements();) {
 			String headerName = headerNames.nextElement();
 			message.putHeader(headerName, request.getHeader(headerName));
@@ -142,7 +140,10 @@ public class GenericHttpListener extends HttpServlet {
 			message.getVariables().put(ClientCertificate, certs[0]);
 		}
 		if (bodyPresent) {
-			MimeHelper.parseMultipart(message, request.getContentType());
+			if (httpConsumer.getOverwriteContentType() != null) {
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, httpConsumer.getOverwriteContentType());
+			}
+			message.prepareContent();
 		}
 		// copy into variable for HttpServletResponseAction
 		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));
@@ -160,13 +161,13 @@ public class GenericHttpListener extends HttpServlet {
 			sc = HttpServletResponse.SC_NOT_FOUND;
 		}
 		response.setStatus(sc);
-		response.setContentType(SOAP_1_1_CONTENT_TYPE);
+		response.setContentType(HTTP_HEADER_CONTENT_TYPE_XML);
 		response.getWriter().print(DataStructures.asXMLString(e));
 	}
 
 	public static void sendError(HttpServletResponse response, int sc, String message) throws IOException {
 		response.setStatus(sc);
-		response.setContentType(SOAP_1_1_CONTENT_TYPE);
+		response.setContentType(HTTP_HEADER_CONTENT_TYPE_XML);
 		response.getWriter().print("<message>" + message + "</message>");
 	}
 

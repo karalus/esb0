@@ -92,8 +92,8 @@ public class UnwrapSOAPAction extends TransformAction {
 				throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));
 			}
 		}
-		String type = parseContentType(message.<String> getHeader(HTTP_HEADER_CONTENT_TYPE));
-		if (!_soap12 && !isSOAP11(type) || _soap12 && !isSOAP12(type)) {
+		String type = parseContentType(message.getContentType());
+		if (!_soap12 && isNotSOAP11(type) || _soap12 && isNotSOAP12(type)) {
 			String error = "Unexpected Content-Type: " + type;
 			if (message.getBodyType() != BodyType.INVALID) {
 				error += "\n" + message.getBodyAsString(context);
@@ -113,8 +113,7 @@ public class UnwrapSOAPAction extends TransformAction {
 		if (soapAction != null) {
 			soapAction = soapAction.isEmpty() ? null : soapAction.substring(1, soapAction.length() - 1);
 		} else if (_soap12) {
-			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-			soapAction = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
+			soapAction = getValueFromHttpHeader(message.getContentType(), HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
 		}
 		if (soapAction != null) {
 			String operation = _mapAction2Operation.get(soapAction);

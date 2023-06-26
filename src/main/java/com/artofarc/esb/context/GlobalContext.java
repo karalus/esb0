@@ -120,7 +120,6 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 			@Override
 			public void fatalError(TransformerException exception) throws TransformerException {
-				throw exception;
 			}
 		});
 		try {
@@ -160,8 +159,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 	private void logVersion(String capability, String ifcPkg, String factoryClass, String factoryField) {
 		try {
-			Class<?> cls = Class.forName(factoryClass, true, _classLoader);
 			if (factoryField != null) {
+				Class<?> cls = Class.forName(factoryClass, true, _classLoader);
 				java.lang.reflect.Field field = cls.getDeclaredField(factoryField);
 				field.setAccessible(true);
 				Object factory = field.get(null);
@@ -171,6 +170,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 					logVersion(capability, field.getType().getPackage(), factory.getClass());
 				}
 			} else {
+				Class<?> cls = Class.forName(factoryClass, false, _classLoader);
 				logVersion(capability, Package.getPackage(ifcPkg), cls);
 			}
 		} catch (ReflectiveOperationException e) {
@@ -178,9 +178,9 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		}
 	}
 
-	private void logVersion(String capability, Package ifcPackage, Class<?> factoryClass) {
-		Package factoryPackage = factoryClass.getPackage();
+	public static void logVersion(String capability, Package ifcPackage, Class<?> factoryClass) {
 		logger.info(capability + ", interface: " + ifcPackage);
+		Package factoryPackage = factoryClass.getPackage();
 		String impl = "package " + factoryPackage.getName();
 		if (factoryPackage.getImplementationTitle() != null) {
 			impl += ", " + factoryPackage.getImplementationTitle();
@@ -244,7 +244,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	@Override
 	public void run() {
 		for (HttpConsumer httpConsumer : getHttpConsumers()) {
-			httpConsumer.getContextPool().shrinkPool();
+			httpConsumer.shrinkPool();
 		}
 		long now = System.currentTimeMillis();
 		for (JMSConsumer jmsConsumer : getJMSConsumers()) {

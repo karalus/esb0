@@ -97,11 +97,6 @@ public final class IOUtils {
 		}
 	}
 
-	@Deprecated
-	public static byte[] copy(InputStream is) throws IOException {
-		return toByteArray(is);
-	}
-
 	private final static MethodHandle BUF = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "buf");
 	private final static MethodHandle POS = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "pos");
 	private final static MethodHandle COUNT = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "count");
@@ -171,6 +166,10 @@ public final class IOUtils {
 		try (InputStream is = new PredictableFileInputStream(file)) {
 			return toByteArray(is);
 		}
+	}
+
+	public static String convertToHexDump(byte[] ba) throws IOException {
+		return convertToHexDump(new ByteArrayInputStream(ba));
 	}
 
 	public static String convertToHexDump(InputStream is) throws IOException {

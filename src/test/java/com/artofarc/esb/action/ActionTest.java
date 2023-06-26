@@ -163,6 +163,15 @@ public class ActionTest extends AbstractESBTest {
 	}
 
 	@Test
+	public void testSetMessageBody() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+		message.putVariable("string", "Hello");
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("${string}"), "javax.json.Json", "createValue");
+		action.process(context, message);
+		assertEquals(BodyType.JSON_VALUE, message.getBodyType());
+	}
+
+	@Test
 	public void testSetMessageOverloading() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
 		message.putVariable("cal", new GregorianCalendar());
@@ -308,6 +317,17 @@ public class ActionTest extends AbstractESBTest {
    }
 
 	@Test
+	public void testJsonValue() throws Exception {
+		String msgStr = "\"Hello\"";
+		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
+		ProcessJsonAction processJsonAction = new ProcessJsonAction("${rawBody.string}");
+		Action action = processJsonAction;
+		action = action.setNextAction(new DumpAction());
+		processJsonAction.process(context, message);
+		assertEquals("Hello", message.getBodyAsString(context));
+	}
+
+	@Test
 	public void testJsonArray() throws Exception {
 		String msgStr = "{\"name\":\"esb0\",\"alive\":true,\"surname\":null,\"no\":1,\"amount\":5.0,\"foo\":[\"bar\",\"baz\"]}";
 		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
@@ -315,10 +335,11 @@ public class ActionTest extends AbstractESBTest {
 		processJsonAction.addVariable("foes", "/foo");
 		processJsonAction.addVariable("all", "");
 		Action action = processJsonAction;
-		action = action.setNextAction(new IterateAction("${all.entrySet}", "_iterator", false, "_entry", new DumpAction()));
-		action = action.setNextAction(new IterateAction("${foes}", "_iterator", false, "foo", new DumpAction()));
+		action = action.setNextAction(new IterateAction("${all.entrySet}", "_iterator", false, "_entry", null, null, new DumpAction()));
+		action = action.setNextAction(new IterateAction("${foes}", "_iterator", false, "foo", "result", "foo", new DumpAction()));
 		action = action.setNextAction(new DumpAction());
 		processJsonAction.process(context, message);
+		assertEquals(2, (message.<List> getVariable("result")).size());
 	}
 
 	@Test

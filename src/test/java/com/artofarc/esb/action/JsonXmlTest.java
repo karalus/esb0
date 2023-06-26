@@ -42,7 +42,7 @@ public class JsonXmlTest extends AbstractESBTest {
 	@Test
 	public void testXML2JsonInPipeline() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/SOAPRequest.xml"));
-		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "text/xml; charset=\"utf-8\"");
+		message.setContentType("text/xml; charset=\"utf-8\"");
 		Action action = createUnwrapSOAPAction(false, false);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);

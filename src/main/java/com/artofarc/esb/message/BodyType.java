@@ -42,8 +42,6 @@ public enum BodyType {
 			return JSON_VALUE;
 		} else if (body instanceof java.io.InputStream) {
 			return INPUT_STREAM;
-		} else if (body == null) {
-			return INVALID;
 		} else {
 			throw new IllegalArgumentException("BodyType cannot be auto detected: " + body.getClass().getName());
 		}

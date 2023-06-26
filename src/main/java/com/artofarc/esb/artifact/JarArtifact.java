@@ -17,23 +17,20 @@ package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
+import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.util.LinkedHashMap;
-import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import java.util.Map;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
+import java.util.jar.Manifest;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.IOUtils;
 
 public class JarArtifact extends Artifact {
-
-	// will increase memory consumption opposed to reducing class loading time
-	private static final boolean CACHE_JARS_UNZIPPED = Boolean.parseBoolean(System.getProperty("esb0.cacheJARsUnzipped"));
 
 	private Jar _jar;
 
@@ -45,12 +42,14 @@ public class JarArtifact extends Artifact {
 		return _jar;
 	}
 
-	public final Set<String> getEntries() {
-		return _jar._entries.keySet();
+	public final Map<String, ?> getEntries() {
+		synchronized (_jar) {
+			return _jar._entries;
+		}
 	}
 
 	public final boolean isUsed() {
-		return _jar._used;
+		return getEntries() != null;
 	}
 
 	@Override
@@ -67,7 +66,7 @@ public class JarArtifact extends Artifact {
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
-		_jar = new Jar(getContentAsBytes());
+		_jar = new Jar(globalContext, this);
 	}
 
 	@Override
@@ -78,65 +77,86 @@ public class JarArtifact extends Artifact {
 
 	static final class Jar {
 
-		private final byte[] _content;
-		private final LinkedHashMap<String, byte[]> _entries = new LinkedHashMap<>();
+		private final GlobalContext _globalContext;
+		private final String _jarArtifactURI;
+		private final Map<String, WeakReference<byte[]>> _entries = new LinkedHashMap<>();
+		private final Manifest _manifest;
 
-		// track whether the JAR is used 
-		volatile boolean _used;
-
-		Jar(byte[] content) throws IOException {
-			try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(content))) {
-				ZipEntry entry;
-				while ((entry = zis.getNextEntry()) != null) {
+		Jar(GlobalContext globalContext, JarArtifact jarArtifact) throws IOException {
+			_globalContext = globalContext;
+			_jarArtifactURI = jarArtifact.getURI();
+			logger.info("Reading " + _jarArtifactURI);
+			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
+				JarEntry entry;
+				while ((entry = jis.getNextJarEntry()) != null) {
 					if (!entry.isDirectory()) {
-						_entries.put(entry.getName(), CACHE_JARS_UNZIPPED ? IOUtils.toByteArray(zis) : null);
+						_entries.put(entry.getName(), new WeakReference<>(IOUtils.toByteArray(jis)));
 					}
 				}
+				_manifest = jis.getManifest();
 			}
-			_content = CACHE_JARS_UNZIPPED ? null : content;
 		}
 
-		boolean contains(String filename) {
-			return _entries.containsKey(filename);
-		}
-
-		byte[] getEntry(String filename) throws IOException {
-			_used = true;
-			if (!CACHE_JARS_UNZIPPED) {
-				try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(_content))) {
-					ZipEntry entry;
-					while ((entry = zis.getNextEntry()) != null) {
+		private byte[] reload(String filename) throws IOException {
+			JarArtifact jarArtifact = _globalContext.getFileSystem().loadArtifact(_jarArtifactURI);
+			logger.info("Reloading " + _jarArtifactURI);
+			byte[] result = null;
+			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
+				JarEntry entry;
+				while ((entry = jis.getNextJarEntry()) != null) {
+					WeakReference<byte[]> ref = _entries.get(entry.getName());
+					if (ref != null && ref.get() == null) {
+						byte[] data = IOUtils.toByteArray(jis);
 						if (entry.getName().equals(filename)) {
-							return IOUtils.toByteArray(zis);
+							result = data;
 						}
+						_entries.replace(entry.getName(), new WeakReference<>(data));
 					}
 				}
 			}
-			return _entries.get(filename);
+			return result;
 		}
 
-		URL createUrlForEntry(String filename) {
-			try {
-				return new URL(null, "esb0:" + filename, new URLStreamHandler() {
+		Manifest getManifest() {
+			return _manifest;
+		}
 
-					@Override
-					protected URLConnection openConnection(URL u) {
-						return new URLConnection(u) {
-
-							@Override
-							public void connect() {
-							}
-
-							@Override
-							public InputStream getInputStream() throws IOException {
-								return new ByteArrayInputStream(getEntry(url.getPath()));
-							}
-						};
-					}
-				});
-			} catch (MalformedURLException e) {
-				throw new RuntimeException(e);
+		synchronized byte[] getEntry(String filename, boolean nullify) throws IOException {
+			WeakReference<byte[]> ref = _entries.get(filename);
+			byte[] data = null;
+			if (ref != null) {
+				data = ref.get();
+				if (data == null) {
+					data = reload(filename);
+				}
+				if (nullify) {
+					_entries.replace(filename, null);
+				}
+			} else if (nullify && _entries.containsKey(filename)) {
+				throw new IllegalStateException("Same jar is loaded twice from different classLoaders " + _jarArtifactURI);
 			}
+			return data;
+		}
+
+		URL createUrlForEntry(String filename) throws IOException {
+			byte[] data = getEntry(filename, false);
+			return data == null ? null : new URL(null, "esb0:" + filename, new URLStreamHandler() {
+
+				@Override
+				protected URLConnection openConnection(URL u) {
+					return new URLConnection(u) {
+
+						@Override
+						public void connect() {
+						}
+
+						@Override
+						public ByteArrayInputStream getInputStream() throws IOException {
+							return new ByteArrayInputStream(data);
+						}
+					};
+				}
+			});
 		}
 	}
 

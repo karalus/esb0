@@ -24,7 +24,6 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.HttpQueryHelper;
 import com.artofarc.util.URLUtils;
 
 public class BranchOnPathAction extends Action {
@@ -78,7 +77,10 @@ public class BranchOnPathAction extends Action {
 				}
 			}
 		}
-		HttpQueryHelper.parseQueryString(message, _genericQuery);
+		String queryString = message.getVariable(ESBConstants.QueryString);
+		if (queryString != null) {
+			URLUtils.parseURLEncodedString(queryString, message.getVariables(), _genericQuery ? ESBConstants.QueryString : null);
+		}
 		if (_nextAction != null) {
 			context.getExecutionStack().push(_nextAction);
 		}

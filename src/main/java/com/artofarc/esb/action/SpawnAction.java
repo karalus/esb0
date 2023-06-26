@@ -18,6 +18,7 @@ package com.artofarc.esb.action;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
@@ -56,7 +57,7 @@ public class SpawnAction extends Action {
 		if (_nextAction == null) {
 			throw new ExecutionException(this, "nextAction not set");
 		}
-		Collection<Action> executionStack = DataStructures.moveToNewList(context.getExecutionStack(), false);
+		Collection<Action> executionStack = DataStructures.moveToNewList(context.getExecutionStack());
 		if (_usePipe) {
 			PipedOutputStream pos = new PipedOutputStream();
 			ESBMessage clone = message.clone();
@@ -112,8 +113,8 @@ public class SpawnAction extends Action {
 		context.getTimeGauge().startTimeMeasurement();
 		String workerPoolName = message.getVariable(ESBConstants.WorkerPool, _workerPool);
 		final WorkerPool workerPool = context.getGlobalContext().getWorkerPool(workerPoolName);
-		final Collection<Action> stackErrorHandler = DataStructures.moveToNewList(context.getStackErrorHandler(), _join);
-		final Collection<Integer> stackPos = DataStructures.moveToNewList(context.getStackPos(), _join);
+		final Collection<Action> stackErrorHandler = _join ? Collections.emptyList() : DataStructures.moveToNewList(context.getStackErrorHandler());
+		final Collection<Integer> stackPos = _join ? Collections.emptyList() : DataStructures.moveToNewList(context.getStackPos());
 		try {
 			return workerPool.getExecutorService().submit(new Callable<ESBMessage>() {
 		

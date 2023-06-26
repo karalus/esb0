@@ -20,20 +20,20 @@ public class EncodingTest extends AbstractESBTest {
 	@Test
 	public void testDecodeRequest() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES,
-				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<test>Hellö</test>".getBytes(ESBMessage.CHARSET_DEFAULT));
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<test>Hellï¿½</test>".getBytes(ESBMessage.CHARSET_DEFAULT));
 		message.putHeader(HTTP_HEADER_CONTENT_TYPE, "text/xml");
-		message.setCharset(getCharset("text/xml"));
+		message.setCharset(determineCharset("text/xml"));
 		Action action = createAssignAction("result", "test/text()");
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
-		assertEquals("Hellö", message.getVariable("result"));
+		assertEquals("Hellï¿½", message.getVariable("result"));
 	}
 
 	@Test
 	public void testEncodeResponse() throws Exception {
-		String test = "<test>ä</test>\n";
+		String test = "<test>ï¿½</test>\n";
 		ESBMessage message = new ESBMessage(BodyType.STRING, test);
 		message.setSinkEncoding("utf-16");
 		Action action = createAssignAction("request", ".");
@@ -50,7 +50,7 @@ public class EncodingTest extends AbstractESBTest {
 		assertEquals("utf-8", getValueFromHttpHeader("utf-8, iso-8859-1;q=0.5"));
 		assertEquals("UTF-8", getValueFromHttpHeader("application/soap+xml;action=\"urn:listShipments\";charset=UTF-8", HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
 		assertEquals("utf-8", getValueFromHttpHeader("text/xml; charset=\"utf-8\"", HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET));
-		assertEquals(SOAP_1_1_CONTENT_TYPE, parseContentType("text/xml; charset=\"utf-8\""));
+		assertEquals(HTTP_HEADER_CONTENT_TYPE_SOAP11, parseContentType("text/xml; charset=\"utf-8\""));
 		assertEquals("urn:listShipments", getValueFromHttpHeader("application/soap+xml;charset=UTF-8;action=\"urn:listShipments\"", HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION));
 	}
 
@@ -76,7 +76,7 @@ public class EncodingTest extends AbstractESBTest {
 	@Test
 	public void testMalformedContentType() {
 		// Before bugfix this resulted in an infinite loop
-		getCharset("application/json; UTF-8");
+		determineCharset("application/json; UTF-8");
 	}
 
 }

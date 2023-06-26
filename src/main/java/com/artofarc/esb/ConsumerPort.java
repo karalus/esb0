@@ -37,6 +37,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	protected Action _startAction;
 	private volatile boolean _enabled = true;
 	protected final AtomicLong _completedTaskCount = new AtomicLong();
+	private final Trend _timeConsumed = new Trend(10L);
 
 	public ConsumerPort(String uri) {
 		_uri = uri;
@@ -50,7 +51,11 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		return _completedTaskCount.get();
 	}
 
-	public final String getMBeanPostfix() {
+	public final long getExecutionTime() {
+		return _timeConsumed.getCurrent();
+	}
+
+	public String getMBeanPostfix() {
 		return ",consumerType=" + getClass().getSimpleName() + ",uri=" + ObjectName.quote(getUri());
 	}
 
@@ -79,17 +84,21 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		processInternal(context, message);
 	}
 
-	public final long processInternal(Context context, ESBMessage message) throws Exception {
+	public final long processInternal(Context context, ESBMessage... messages) throws Exception {
+		context.getTimeGauge().startTimeMeasurement();
 		try {
-			if (_startAction.getLocation() != null) {
-				message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
+			for (ESBMessage message : messages) {
+				if (_startAction.getLocation() != null) {
+					message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
+				}
+				_startAction.process(context, message);
 			}
-			_startAction.process(context, message);
 		} catch (Exception e) {
-			JDBCAction.closeKeptConnections(message, false);
+			JDBCAction.closeKeptConnections(context, false);
 			throw e;
 		} finally {
-			JDBCAction.closeKeptConnections(message, true);
+			JDBCAction.closeKeptConnections(context, true);
+			_timeConsumed.accumulateAndGet(context.getTimeGauge().stopTimeMeasurement());
 			context.getTimeGauge().clear();
 		}
 		if (context.getExecutionStack().size() > 0) {
@@ -104,7 +113,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 			context.getStackPos().clear();
 			throw new IllegalStateException("StackErrorHandler not empty");
 		}
-		return _completedTaskCount.incrementAndGet();
+		return _completedTaskCount.addAndGet(messages.length);
 	}
 
 	// For JUnit

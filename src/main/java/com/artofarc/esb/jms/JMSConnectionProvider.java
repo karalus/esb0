@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.jms.Connection;
+import javax.jms.ConnectionMetaData;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.jms.Session;
@@ -88,10 +89,12 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		return new JMSSession(this, jmsConnectionData, connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE));
 	}
 
-	public void checkConnection(JMSConnectionData jmsConnectionData) throws JMSException {
-		if (!getResource(jmsConnectionData).isConnected()) {
-			throw new JMSException("Currently reconnecting " + jmsConnectionData);
-		}
+	public boolean isConnected(JMSConnectionData jmsConnectionData) {
+		return getResource(jmsConnectionData).isConnected();
+	}
+
+	public ConnectionMetaData getConnectionMetaData(JMSConnectionData jmsConnectionData) {
+		return getResource(jmsConnectionData).getConnectionMetaData();
 	}
 
 	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws JMSException {
@@ -111,6 +114,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		private final JMSConnectionData _jmsConnectionData;
 		private final String _clientID; 
 		private volatile Connection _connection;
+		private volatile ConnectionMetaData _connectionMetaData;
 		private volatile Future<?> _future;
 		private volatile long _sequenceNumber;
 
@@ -133,6 +137,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			Connection connection = _jmsConnectionData.createConnection(_poolContext.getGlobalContext(), this);
 			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Connection state changed", "connected", "boolean", false, true));
 			try {
+				_connectionMetaData = connection.getMetaData();
 				if (_clientID != null) {
 					connection.setClientID(_clientID);
 				}
@@ -142,6 +147,10 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 				throw e;
 			}
 			return connection;
+		}
+
+		ConnectionMetaData getConnectionMetaData() {
+			return _connectionMetaData;
 		}
 
 		Connection getConnection(JMSSessionFactory jmsSessionFactory) throws JMSException {
@@ -330,6 +339,11 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 				result.add(entry.getKey() + "=" + entry.getValue());
 			}
 			return result;
+		}
+
+		public String getJMSProvider() throws JMSException {
+			ConnectionMetaData connectionMetaData = _connectionMetaData;
+			return connectionMetaData != null ? connectionMetaData.getJMSProviderName() + ' ' + connectionMetaData.getProviderVersion() : null;
 		}
 	}
 

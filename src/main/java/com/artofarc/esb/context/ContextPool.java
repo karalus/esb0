@@ -31,10 +31,10 @@ public final class ContextPool implements AutoCloseable {
 	private volatile int _maxPoolSize;
 	private final long _keepAliveMillis;
 
-	public ContextPool(PoolContext poolContext, int minPool, int maxPool, long keepAliveMillis) {
+	public ContextPool(PoolContext poolContext, int minPoolSize, int maxPoolSize, long keepAliveMillis) {
 		_poolContext = poolContext;
-		_minPoolSize = minPool;
-		_maxPoolSize = maxPool;
+		_minPoolSize = minPoolSize;
+		_maxPoolSize = maxPoolSize;
 		_keepAliveMillis = keepAliveMillis;
 	}
 

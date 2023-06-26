@@ -18,6 +18,9 @@ package com.artofarc.esb.action;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -35,11 +38,11 @@ import com.artofarc.util.JsonFactoryHelper;
 public class FileAction extends TerminalAction {
 
 	private final File _destDir;
-	private final String _verb, _filename, _append, _zip;
-	private final boolean _mkdirs;
+	private final String _action, _filename, _append, _zip;
+	private final boolean _mkdirs, _ownerOnly;
 	private final Boolean _readable, _writable;
 
-	public FileAction(String destDir, String verb, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable) throws FileNotFoundException {
+	public FileAction(String destDir, String action, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable, boolean ownerOnly) throws FileNotFoundException {
 		_destDir = new File(destDir);
 		if (!_destDir.exists()) {
 			throw new FileNotFoundException(destDir);
@@ -47,24 +50,25 @@ public class FileAction extends TerminalAction {
 		if (!_destDir.isDirectory()) {
 			throw new IllegalStateException("Is not a directory " + destDir);
 		}
-		_verb = verb;
+		_action = action;
 		_filename = filename;
 		_mkdirs = mkdirs;
 		_append = append;
 		_zip = zip;
 		_readable = readable;
 		_writable = writable;
+		_ownerOnly = ownerOnly;
 	}
 
-	private void setPermissions(File file) {
+	private void setPermissions(File file, boolean executable) {
 		if (_readable != null) {
-			file.setReadable(_readable, false);
-			if (file.isDirectory()) {
-				file.setExecutable(_readable, false);
+			file.setReadable(_readable, _ownerOnly);
+			if (executable) {
+				file.setExecutable(_readable, _ownerOnly);
 			}
 		}
 		if (_writable != null) {
-			file.setWritable(_writable, false);
+			file.setWritable(_writable, _ownerOnly);
 		}
 	}
 
@@ -72,23 +76,17 @@ public class FileAction extends TerminalAction {
 		if (dir != null && !dir.exists()) {
 			mkdirs(dir.getParentFile());
 			dir.mkdir();
-			setPermissions(dir);
+			setPermissions(dir, true);
 		}
 	}
 
 	@Override
 	protected void execute(Context context, ESBMessage message) throws Exception {
-		String contentType = HttpConstants.parseContentType(message.<String> getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
 		String filename = (String) eval(_filename, context, message);
-		String fileExtension = contentType != null ? MimeHelper.getFileExtension(contentType) : null;
-		boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
-		File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension != null ? '.' + fileExtension : ""));
-		if (_mkdirs) {
-			mkdirs(file.getCanonicalFile().getParentFile());
-		}
-		String verb = (String) eval(_verb, context, message);
-		if (verb == null) {
+		String action = (String) eval(_action, context, message);
+		if (action == null) {
 			message.clearHeaders();
+			File file = new File(_destDir, filename);
 			if (file.isDirectory()) {
 				JsonArrayBuilder builder = JsonFactoryHelper.JSON_BUILDER_FACTORY.createArrayBuilder();
 				for (File f : file.listFiles()) {
@@ -96,17 +94,29 @@ public class FileAction extends TerminalAction {
 							.add("dir", f.isDirectory()).add("length", f.length()).add("modificationTime", f.lastModified()).build());
 				}
 				message.reset(BodyType.JSON_VALUE, builder.build());
-				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+				message.setContentType(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				if (IOUtils.getExt(filename).equals("gz")) {
 					filename = IOUtils.stripExt(filename);
+					message.setContentEncoding("gzip");
 				}
-				message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, MimeHelper.guessContentTypeFromName(filename));
+				message.setContentType(MimeHelper.guessContentTypeFromName(filename));
 				message.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFileInputStream(file));
 			}
 		} else {
+			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+			if (contentType == null) {
+				contentType = message.getContentType();
+			}
+			String fileExtension = contentType != null ? MimeHelper.getFileExtension(HttpConstants.parseContentType(contentType)) : null;
+			boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
+			File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension != null ? '.' + fileExtension : ""));
+			if (_mkdirs) {
+				mkdirs(file.getCanonicalFile().getParentFile());
+			}
+			message.getVariables().put(ESBConstants.filename, file.getPath());
 			boolean append = false;
-			switch (verb) {
+			switch (action) {
 			case "ENTRY_MODIFY":
 				append = Boolean.parseBoolean(String.valueOf(eval(_append, context, message)));
 			case "ENTRY_CREATE":
@@ -115,7 +125,7 @@ public class FileAction extends TerminalAction {
 				}
 				context.getTimeGauge().startTimeMeasurement();
 				try (FileOutputStream fileOutputStream = new FileOutputStream(file, append)) {
-					setPermissions(file);
+					setPermissions(file, false);
 					if (zip) {
 						try (ZipOutputStream zos = new ZipOutputStream(fileOutputStream)) {
 							zos.putNextEntry(new ZipEntry(filename + fileExtension));
@@ -136,12 +146,21 @@ public class FileAction extends TerminalAction {
 				}
 				break;
 			case "ENTRY_DELETE":
-				message.getVariables().put("deleted", file.delete());
+				if (file.isDirectory()) {
+					Files.walk(file.toPath()).sorted(Comparator.reverseOrder()).forEach(p -> {
+						try {
+							Files.delete(p);
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					});
+				} else {
+					Files.delete(file.toPath());
+				}
 				break;
 			default:
-				throw new ExecutionException(this, "Verb not supported: " + verb);
+				throw new ExecutionException(this, "Action not supported: " + action);
 			}
-			message.getVariables().put(ESBConstants.filename, file.getPath());
 		}
 	}
 

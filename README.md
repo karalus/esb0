@@ -21,12 +21,14 @@ Features:
 - Small memory requirements. Even with 32MB heap you can run service flows. 
 - Simple REST admin services to deploy and control service flows
 - JMX support, i.e. MBeans for remote monitoring & management
+- JMS Providers and JDBC DataSources can be created and updated on the fly
+- Offers JMS outbound loadbalancing supporting HA and active/active, asynchronous JMS send is supported with JMS 2.0 capable providers
 
 ### Fitness for production ###
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.9.3.
+Current stable version is 1.10.0.
 
 ### Design goals ###
 
@@ -82,16 +84,16 @@ You need to have [Maven](http://maven.apache.org/) and [Java](http://www.oracle.
 
 ESB Zero build is using Maven 3.6.x and has been tested with Oracle JDK8 and OpenJDK 11.
 
-From version 1.4 on Java 8 is required at runtime.
+From version 1.4 on Java 8 is required at runtime. From version 1.11 on Java 11 is minimum requirement.
 
 "mvn package" will build a WAR file "esb0.war"
 
 ### How to deploy ###
 
 ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API. 
-It has been tested with Tomcat 8 and 8.5, Wildfly, Jetty 9 and JBoss EAP 7.x.
+It has been tested with Tomcat 8, 8.5, 9, Wildfly, Jetty 9 and JBoss EAP 7.x.
 
-JBoss EAP 7.2 has been tested with Oracle JDK8 and OpenJDK 11.
+ESB Zero is built with Java 8 and has been tested with Oracle JDK8 and OpenJDK 11.
 
 ESB Zero needs one directory to retrieve service flows and other artifacts from and persist to.
 Per default it is expected to have a folder named "esb_root" in the user home folder (of the user running the servlet container).
@@ -135,10 +137,6 @@ Optional
 
 ### Roadmap ###
 
-__1.10__ (Q1 2023):
-- Bugfix: DumpAction may corrupt message exchange (e.g. when using FastInfoSet)
-- Feature: JMS loadbalancer supporting HA
-- Feature: https://github.com/karalus/esb0/issues/5
-
-__1.11__ (Q2 2023):
+__1.11__ (Q3 2023):
 - Optimized for Java 11 and later (deprecate support for Java 8)
+- Offer new JDK HTTP Client thus facilitate asynchronous HTTP

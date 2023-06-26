@@ -53,7 +53,7 @@ input[type="submit"][value="false"] {
 		case "HttpServices":
 			%>
 <br>HttpServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Path</b></td><td><b>Uri</b></td><td><b>PoolSize</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Path</b></td><td><b>Uri</b></td><td><b>PoolSize</b></td><td><b>Completed tasks</b></td><td><b>Execution time</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 			for (String path : DataStructures.asSortedList(globalContext.getHttpServicePaths())) {
 				HttpConsumer consumerPort = globalContext.getHttpService(path);
@@ -62,6 +62,7 @@ input[type="submit"][value="false"] {
 					<td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 					<td><%=consumerPort.getPoolSize()%></td>
 					<td><%=consumerPort.getCompletedTaskCount()%></td>
+					<td><%=consumerPort.getExecutionTime()%></td>
 					<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?HttpServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
 					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="HttpServices"/></form></td>
 				</tr>
@@ -95,7 +96,7 @@ input[type="submit"][value="false"] {
 		case "JMSServices":
 			%>
 <br>JMSServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>WorkerCount</b></td><td><b>Completed tasks</b></td><td><b>Current SentReceiveDelay</b></td><td><b>Current retries</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>WorkerCount</b></td><td><b>Completed tasks</b></td><td><b>Current SentReceiveDelay</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 			for (JMSConsumer jmsConsumer : DataStructures.asSortedList(globalContext.getJMSConsumers())) {
 				%>
@@ -105,9 +106,13 @@ input[type="submit"][value="false"] {
 					<td><%=jmsConsumer.getWorkerCount()%></td>
 					<td><%=jmsConsumer.getCompletedTaskCount()%></td>
 					<td><%=jmsConsumer.getCurrentSentReceiveDelay()%></td>
-					<td><%=jmsConsumer.getRetries()%></td>
 					<td><%=jmsConsumer.getLastChangeOfState()%></td>
-					<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=jmsConsumer.getUri()%>?JMSServices"><input type="submit" value="<%=jmsConsumer.isEnabled()%>"/></form></td>
+					<td>
+						<form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=jmsConsumer.getUri()%>?JMSServices">
+							<input type="submit" value="<%=jmsConsumer.isEnabled()%>"/>
+							<input type="hidden" name="enable" value="<%=!jmsConsumer.isEnabled()%>"/> 
+						</form>
+					</td>
 					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=jmsConsumer.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=jmsConsumer.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="JMSServices"/></form></td>
 				</tr>
 				<%
@@ -148,7 +153,7 @@ input[type="submit"][value="false"] {
 				<td><%=consumerPort.getDirs()%></td>
 				<td><%=consumerPort.getCompletedTaskCount()%></td>
 				<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?FileWatchEventConsumer"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
-				<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="TimerServices"/></form></td>
+				<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="FileWatchEventConsumer"/></form></td>
 			</tr>
 			<%
 		}
@@ -169,7 +174,7 @@ input[type="submit"][value="false"] {
 				<td><%=consumerPort.getTopics()%></td>
 				<td><%=consumerPort.getCompletedTaskCount()%></td>
 				<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?KafkaConsumerServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
-				<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="TimerServices"/></form></td>
+				<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="KafkaConsumerServices"/></form></td>
 			</tr>
 			<%
 		}
@@ -320,12 +325,12 @@ Upload Service-JAR:
 		if (a instanceof Directory) {
 			List<String> artifacts = DataStructures.asSortedList(((Directory) a).getArtifacts().keySet());
 %>
-<br>Filesystem directory ("<%=System.getProperty("esb0.root")%>")"<%=a.getURI()%>" (<%=artifacts.size()%> artifacts)
+<br>Filesystem directory {<%=ESBServletContextListener.ESB_ROOT_DIR%>}<%=a.getURI()%> (<%=artifacts.size()%> artifacts)
 <%
 			if (!a.getURI().isEmpty()) {
 %>
 
-<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>" enctype="multipart/form-data" method="POST">
+<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>?wsdl" enctype="text/plain" method="POST">
 	<input type="file" name="file">
 	<input type="submit" value="Upload">
 </form>
@@ -355,21 +360,26 @@ Upload Service-JAR:
 				%>
 				<tr><td>Namespace</td><td><%=((SchemaArtifact) a).getNamespace()%></td></tr>
 				<%
-			} else if (a instanceof JNDIObjectFactoryArtifact || a instanceof DataSourceArtifact) {
+			} else if (a instanceof JNDIObjectFactoryArtifact) {
 				%>
 				<tr><td></td><td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>" onsubmit="return confirm('Are you sure to delete \'<%=a.getURI()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td></tr>
 				<%
 			} else if (a instanceof JarArtifact && a.isValidated()) {
+				JarArtifact jarArtifact = (JarArtifact) a;
 				%>
-				<tr><td>Used</td><td><%=((JarArtifact) a).isUsed()%></td></tr>
-				</table>
-				<br>
-				<table border="1"><tr bgcolor="#EEEEEE"><td><b>Entries</b></td></tr>
+				<tr><td>Used</td><td><%=jarArtifact.isUsed()%></td></tr>
 				<%
-				for (String e : ((JarArtifact) a).getEntries()) {
+				if (jarArtifact.isUsed()) {
 					%>
-					<tr><td><%=e%></td></tr>
+					</table>
+					<br>
+					<table border="1"><tr bgcolor="#EEEEEE"><td><b>Entry</b></td><td><b>Loaded</b></td></tr>
 					<%
+					for (Map.Entry<String, ?> entry : jarArtifact.getEntries().entrySet()) {
+						%>
+						<tr><td><%=entry.getKey()%></td><td><%=entry.getValue() == null%></td></tr>
+						<%
+					}
 				}
 			}
 			%>

@@ -42,13 +42,15 @@ public final class DeployHelper {
 				closer.closeAsync(httpConsumer);
 				break;
 			case JMS:
-				JMSConsumer jmsConsumer = service.getConsumerPort();
-				globalContext.unbindJmsConsumer(jmsConsumer);
-				jmsConsumer.unsubscribe();
-				try {
-					jmsConsumer.close();
-				} catch (Exception e) {
-					// ignore
+				for (ConsumerPort consumer : service.getConsumerPorts()) {
+					JMSConsumer jmsConsumer = (JMSConsumer) consumer;
+					globalContext.unbindJmsConsumer(jmsConsumer);
+					jmsConsumer.unsubscribe();
+					try {
+						jmsConsumer.close();
+					} catch (Exception e) {
+						// ignore
+					}
 				}
 				break;
 			case FILE:
@@ -84,11 +86,6 @@ public final class DeployHelper {
 				closer.add((AutoCloseable) object);
 			}
 		});
-		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), DataSourceArtifact.class).forEach(dataSourceArtifact -> {
-			Object dataSource = globalContext.removeProperty(dataSourceArtifact.getDataSourceName());
-			// close later
-			closer.add((AutoCloseable) dataSource);
-		});
 		for (WorkerPoolArtifact workerPoolArtifact : changeSet.getWorkerPoolArtifacts()) {
 			String name = IOUtils.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
@@ -121,20 +118,6 @@ public final class DeployHelper {
 			}
 			globalContext.putProperty(jndiObjectFactoryArtifact.getJndiName(), jndiObjectFactoryArtifact.createObject());
 		}
-		for (DataSourceArtifact dataSourceArtifact : changeSet.getDataSourceArtifacts()) {
-			try {
-				Object oldDataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
-				if (dataSourceArtifact.tryUpdate(oldDataSource)) {
-					continue;
-				}
-				if (oldDataSource instanceof AutoCloseable) {
-					closer.add((AutoCloseable) oldDataSource);
-				}
-			} catch (javax.naming.NamingException e) {
-				// ignore
-			}
-			globalContext.putProperty(dataSourceArtifact.getDataSourceName(), dataSourceArtifact.createDataSource());
-		}
 		for (ServiceArtifact service : serviceArtifacts) {
 			ConsumerPort oldConsumerPort;
 			switch (service.getProtocol()) {
@@ -147,20 +130,22 @@ public final class DeployHelper {
 				}
 				break;
 			case JMS:
-				JMSConsumer jmsConsumer = service.getConsumerPort();
-				oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumer);
-				if (oldConsumerPort != null) {
-					try {
-						oldConsumerPort.close();
-					} catch (Exception e) {
-						// ignore
+				for (ConsumerPort consumer : service.getConsumerPorts()) {
+					JMSConsumer jmsConsumer = (JMSConsumer) consumer;
+					oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumer);
+					if (oldConsumerPort != null) {
+						try {
+							oldConsumerPort.close();
+						} catch (Exception e) {
+							// ignore
+						}
 					}
-				}
-				try {
-					jmsConsumer.init(globalContext);
-				} catch (Exception e) {
-					Artifact.logger.info("Could not init JMSConsumer " + jmsConsumer.getKey(), e);
-					// ignore, if JMS is down we reconnect later
+					try {
+						jmsConsumer.init(globalContext);
+					} catch (Exception e) {
+						Artifact.logger.info("Could not init JMSConsumer " + jmsConsumer.getKey(), e);
+						// ignore, if JMS is down we reconnect later
+					}
 				}
 				break;
 			case FILE:

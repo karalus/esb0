@@ -18,7 +18,8 @@ package com.artofarc.esb.jdbc;
 import java.math.BigDecimal;
 import java.sql.*;
 import static java.sql.Types.*;
-import java.util.GregorianCalendar;
+
+import java.util.Calendar;
 import java.util.HashMap;
 
 import javax.json.stream.JsonGenerator;
@@ -137,7 +138,7 @@ public final class JDBCResult implements AutoCloseable {
 			json.writeEnd();
 		}
 		json.writeEnd();
-		GregorianCalendar calendar = new GregorianCalendar(JDBCParameter.TIME_ZONE);
+		Calendar calendar = JDBCParameter.getCalendarInstance();
 		json.writeStartArray("rows");
 		while (resultSet.next()) {
 			json.writeStartArray();

@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright 2023 Andre Karalus
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +23,8 @@ import java.security.SecureClassLoader;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 
 public class FileSystemClassLoader extends SecureClassLoader {
 
@@ -52,7 +53,7 @@ public class FileSystemClassLoader extends SecureClassLoader {
 		if (result == null) {
 			try {
 				result = findClass(name); // invoke our own find algorithm
-			} catch (Exception e) { // also catches java.lang.SecurityException
+			} catch (ClassNotFoundException | SecurityException e) {
 				result = getParent().loadClass(name); // invoke parent
 			}
 		}
@@ -67,43 +68,50 @@ public class FileSystemClassLoader extends SecureClassLoader {
 		String classFilename = name.replace('.', '/') + ".class";
 		try {
 			// search only with our own mechanism here!
-			byte[] classData = findInJarArtifacts(classFilename);
-			if (classData != null) {
-				// Looking up the package
-				int pos = name.lastIndexOf('.');
-				if (pos > 0) {
-					String packageName = name.substring(0, pos);
-					if (getPackage(packageName) == null) {
-						try {
-							definePackage(packageName, null, null, null, null, null, null, null);
-						} catch (IllegalArgumentException e) {
-							// Ignore: normal error due to dual definition of package
+			for (JarArtifact.Jar jar : _jars) {
+				byte[] classData = jar.getEntry(classFilename, true);
+				if (classData != null) {
+					// Looking up the package
+					int pos = name.lastIndexOf('.');
+					if (pos > 0) {
+						String packageName = name.substring(0, pos);
+						if (getPackage(packageName) == null) {
+							String specTitle = null, specVersion = null, specVendor = null;
+							String implTitle = null, implVersion = null, implVendor = null;
+							Manifest manifest = jar.getManifest();
+							if (manifest != null) {
+								Attributes attr = manifest.getMainAttributes();
+								specTitle = attr.getValue(Attributes.Name.SPECIFICATION_TITLE);
+								specVersion = attr.getValue(Attributes.Name.SPECIFICATION_VERSION);
+								specVendor = attr.getValue(Attributes.Name.SPECIFICATION_VENDOR);
+								implTitle = attr.getValue(Attributes.Name.IMPLEMENTATION_TITLE);
+								implVersion = attr.getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+								implVendor = attr.getValue(Attributes.Name.IMPLEMENTATION_VENDOR);
+							}
+							try {
+								definePackage(packageName, specTitle, specVersion, specVendor, implTitle, implVersion, implVendor, null);
+							} catch (IllegalArgumentException e) {
+								// Ignore: normal error due to dual definition of package
+							}
 						}
 					}
+					return defineClass(name, classData, 0, classData.length);
 				}
-				return defineClass(name, classData, 0, classData.length);
 			}
-		} catch (Exception e) {
-			throw new ClassNotFoundException(name, e);
+		} catch (IOException e) {
+			throw (ClassFormatError) new ClassFormatError(name).initCause(e);
 		}
 		throw new ClassNotFoundException(name);
-	}
-
-	private byte[] findInJarArtifacts(final String filename) throws IOException {
-		for (JarArtifact.Jar jar : _jars) {
-			if (jar.contains(filename)) {
-				return jar.getEntry(filename);
-			}
-		}
-		return null;
 	}
 
 	@Override
 	public InputStream getResourceAsStream(String name) {
 		try {
-			byte[] data = findInJarArtifacts(name);
-			if (data != null) {
-				return new ByteArrayInputStream(data);
+			for (JarArtifact.Jar jar : _jars) {
+				byte[] data = jar.getEntry(name, false);
+				if (data != null) {
+					return new ByteArrayInputStream(data);
+				}
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -113,10 +121,15 @@ public class FileSystemClassLoader extends SecureClassLoader {
 
 	@Override
 	public URL getResource(String name) {
-		for (JarArtifact.Jar jar : _jars) {
-			if (jar.contains(name)) {
-				return jar.createUrlForEntry(name);
+		try {
+			for (JarArtifact.Jar jar : _jars) {
+				URL url = jar.createUrlForEntry(name);
+				if (url != null) {
+					return url;
+				}
 			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 		return super.getResource(name);
 	}
@@ -125,8 +138,9 @@ public class FileSystemClassLoader extends SecureClassLoader {
 	public Enumeration<URL> getResources(String name) throws IOException {
 		Vector<URL> urls = new Vector<>();
 		for (JarArtifact.Jar jar : _jars) {
-			if (jar.contains(name)) {
-				urls.add(jar.createUrlForEntry(name));
+			URL url = jar.createUrlForEntry(name);
+			if (url != null) {
+				urls.add(url);
 			}
 		}
 		Enumeration<URL> resources = super.getResources(name);

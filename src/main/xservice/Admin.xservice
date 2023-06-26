@@ -1,21 +1,21 @@
 <service protocol="http" version="1" errorHandler="errorHandler" xmlns="http://www.artofarc.com/esb/service">
-	<httpBindURI maxPool="2">/admin/deploy*</httpBindURI>
+	<httpBindURI maxPoolSize="2">/admin/deploy*</httpBindURI>
 	<actionPipeline name="errorHandler">
-		<setMessage clearAll="true">
+		<update clearHeaders="true">
 			<header name="Content-Type">text/plain</header>
-			<body>${body.toString}</body>
-		</setMessage>
+			<body>${body}</body>
+		</update>
 	</actionPipeline>
 	<actionPipeline name="createUpdateDelete">
-		<admin resourceExp="${appendHttpUrlPath}" />
+		<admin resourceExp="${appendHttpUrlPath}"/>
 		<branchOnVariable variable="QueryString">
 			<default>
-				<setMessage clearAll="true">
+				<update clearHeaders="true">
 					<variable name="redirect">${ContextPath}/admin?${QueryString}</variable>
-				</setMessage>
+				</update>
 			</default>
 			<null>
-				<setMessage clearAll="true" />
+				<update clearHeaders="true"/>
 			</null>
 		</branchOnVariable>
 	</actionPipeline>
@@ -24,44 +24,44 @@
 			<!-- Dirty hack for standard JSP is not able to send DELETE without ajax -->
 			<branchOnVariable variable="DELETE">
 				<default>
-					<setMessage>
+					<update>
 						<variable name="HttpMethod">DELETE</variable>
 						<variable name="QueryString">${DELETE}</variable>
-					</setMessage>
+					</update>
 				</default>
 			</branchOnVariable>
 			<branchOnVariable variable="HttpMethod">
 				<branch value="POST PUT">
 					<branchOnVariable variable="appendHttpUrlPath">
 						<branch value="/">
-							<admin />
-							<setMessage clearAll="true">
+							<admin/>
+							<update clearHeaders="true">
 								<variable name="redirect">${ContextPath}/admin</variable>
-							</setMessage>
+							</update>
 						</branch>
 						<default>
 							<branchOnVariable variable="body">
 								<branch regEx="(?s)content=(.*)\r\n">
-									<setMessage>
+									<update>
 										<body>${body#1}</body>
-									</setMessage>
-									<admin resourceExp="${appendHttpUrlPath}" />
-									<setMessage clearAll="true">
+									</update>
+									<admin resourceExp="${appendHttpUrlPath}"/>
+									<update clearHeaders="true">
 										<variable name="redirect">${ContextPath}/admin${appendHttpUrlPath}</variable>
-									</setMessage>
+									</update>
 								</branch>
-								<default>
-									<actionPipelineRef ref="createUpdateDelete" />
-								</default>
+								<defaultOrNull>
+									<actionPipelineRef ref="createUpdateDelete"/>
+								</defaultOrNull>
 							</branchOnVariable>
 						</default>
 					</branchOnVariable>
 				</branch>
 				<branch value="DELETE">
-					<actionPipelineRef ref="createUpdateDelete" />
+					<actionPipelineRef ref="createUpdateDelete"/>
 				</branch>
 				<default>
-					<admin resourceExp="${appendHttpUrlPath}" />
+					<admin resourceExp="${appendHttpUrlPath}"/>
 				</default>
 			</branchOnVariable>
 		</default>

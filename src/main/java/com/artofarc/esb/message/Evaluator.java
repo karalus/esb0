@@ -37,7 +37,7 @@ public abstract class Evaluator<E extends Exception> {
 			String path = exp.substring(i + 2, j);
 			int k = path.indexOf('.');
 			String name = k < 0 ? path : path.substring(0, k);
-			Object value = "body".equals(name) ? message.getBodyAsString(context)
+			Object value = "rawBody".equals(name) ? k > 0 ? message.getBody() : message.cloneBody(context, false) : "body".equals(name) ? message.getBodyAsString(context)
 					: "attachments".equals(name) ? message.getAttachments() : resolve(message, name, true);
 			if (value == null && (k >= 0 || name.indexOf('_') >= 0 || name.startsWith("java:"))) {
 				// interpret dots as separators

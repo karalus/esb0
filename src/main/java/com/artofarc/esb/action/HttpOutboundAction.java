@@ -28,10 +28,10 @@ import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnection;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.URLUtils;
 
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.HttpQueryHelper;
 
 public class HttpOutboundAction extends Action {
 
@@ -54,7 +54,15 @@ public class HttpOutboundAction extends Action {
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
 		String appendHttpUrl = message.getVariable(appendHttpUrlPath);
-		String queryString = HttpQueryHelper.getQueryString(message);
+		String queryString = message.getVariable(QueryString);
+		if (queryString == null || queryString.isEmpty()) {
+			String httpQueryParameter = message.getVariable(HttpQueryParameter);
+			if (httpQueryParameter != null) {
+				queryString = URLUtils.createURLEncodedString(message.getVariables(), httpQueryParameter, ",");
+			} else {
+				queryString = null;
+			}
+		}
 		if (queryString != null) {
 			appendHttpUrl += "?" + queryString;
 		}
@@ -69,26 +77,23 @@ public class HttpOutboundAction extends Action {
 		}
 		int timeout = message.getTimeleft(_readTimeout).intValue();
 		HttpUrlConnection httpUrlConnection = httpUrlSelector.connectTo(_httpEndpoint, timeout, method, appendHttpUrl, message.getHeaders(), _chunkLength, contentLength);
-		message.getVariables().put(HttpURLConnection, httpUrlConnection);
+		context.putResource(HttpURLConnection, httpUrlConnection);
 		message.getVariables().put(HttpURLOutbound, httpUrlConnection.getHttpUrl().getUrlStr());
 		return httpUrlConnection;
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (needsCharset(contentType)) {
-			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
-		}
+		message.determineSinkContentType();
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			if (inPipeline) {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				message.reset(BodyType.OUTPUT_STREAM, bos);
-				return new ExecutionContext(bos); 
+				return new ExecutionContext(bos);
 			}
 			return null;
 		} else {
-			Long contentLength = inPipeline ? null : message.getByteLength();
+			Long contentLength = inPipeline ? null : message.getOutputLength();
 			HttpUrlConnection httpUrlConnection = createHttpURLConnection(context, message, contentLength);
 			try {
 				if (inPipeline) {
@@ -98,7 +103,7 @@ public class HttpOutboundAction extends Action {
 				}
 			} catch (Exception e) {
 				httpUrlConnection.close();
-				message.removeVariable(HttpURLConnection);
+				context.removeResource(HttpURLConnection);
 				throw e;
 			}
 			return new ExecutionContext(httpUrlConnection); 
@@ -118,9 +123,9 @@ public class HttpOutboundAction extends Action {
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) {
+	protected void close(Context context, ExecutionContext execContext, boolean exception) {
 		if (exception) {
-			HttpUrlConnection httpUrlConnection = message.removeVariable(HttpURLConnection);
+			HttpUrlConnection httpUrlConnection = context.removeResource(HttpURLConnection);
 			httpUrlConnection.close();
 		}
 	}

@@ -80,7 +80,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			if (_responseCode < 0) {
 				_responseCode = _httpURLConnection.getResponseCode();
 				HttpCheckAlive httpCheckAlive = _httpEndpoint.getHttpCheckAlive();
-				if (httpCheckAlive != null && !httpCheckAlive.isAlive(_httpURLConnection, _responseCode)) {
+				if (httpCheckAlive != null && !httpCheckAlive.isAlive(_responseCode, (name) -> _httpURLConnection.getHeaderField(name))) {
 					if (_httpEndpoint.getCheckAliveInterval() != null) {
 						setActive(_pos, false);
 					}
@@ -218,13 +218,15 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		HttpEndpoint httpEndpoint = getHttpEndpoint();
 		for (int i = 0; i < size; ++i) {
 			if (httpEndpoint != null && !isActive(i)) {
+				HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(i);
 				try {
-					HttpURLConnection conn = httpEndpoint.getHttpCheckAlive().connect(httpEndpoint, i);
-					if (httpEndpoint.getHttpCheckAlive().isAlive(conn, conn.getResponseCode())) {
+					if (checkAlive(httpEndpoint, httpUrl)) {
 						setActive(i, true);
 					}
 				} catch (IOException e) {
 					// ignore
+				} catch (Exception e) {
+					HttpEndpointRegistry.logger.error("Unexpected exception for " + httpUrl, e);
 				}
 			}
 		}
@@ -233,6 +235,27 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				scheduleHealthCheck();
 			}
 		}
+	}
+
+	public boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl) throws IOException {
+		return checkAlive(httpEndpoint, httpUrl, httpEndpoint.getHttpCheckAlive());
+	}
+
+	public static boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl, HttpCheckAlive httpCheckAlive) throws IOException {
+		HttpURLConnection conn = createHttpURLConnection(httpEndpoint, httpUrl.getUrl());
+		// SSL Handshake got stuck
+		conn.setReadTimeout(httpEndpoint.getConnectTimeout());
+		conn.setRequestMethod(httpCheckAlive.getCheckAliveMethod());
+		return httpCheckAlive.isAlive(conn.getResponseCode(), (name) -> conn.getHeaderField(name));
+	}
+
+	private static HttpURLConnection createHttpURLConnection(HttpEndpoint httpEndpoint, URL url) throws IOException {
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection(httpEndpoint.getProxy());
+		if (httpEndpoint.getSSLContext() != null) {
+			((HttpsURLConnection) conn).setSSLSocketFactory(httpEndpoint.getSSLContext().getSocketFactory());
+		}
+		conn.setConnectTimeout(httpEndpoint.getConnectTimeout());
+		return conn;
 	}
 
 	public HttpUrlConnection connectTo(HttpEndpoint httpEndpoint, int timeout, String method, String appendUrl, Collection<Map.Entry<String, Object>> headers, Integer chunkLength, Long contentLength) throws IOException {
@@ -245,11 +268,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 			URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
 			HttpUrlConnection httpUrlConnection = null;
 			try {
-				HttpURLConnection conn = (HttpURLConnection) url.openConnection(httpEndpoint.getProxy());
-				if (httpEndpoint.getSSLContext() != null) {
-					((HttpsURLConnection) conn).setSSLSocketFactory(httpEndpoint.getSSLContext().getSocketFactory());
-				}
-				conn.setConnectTimeout(httpEndpoint.getConnectionTimeout());
+				HttpURLConnection conn = createHttpURLConnection(httpEndpoint, url);
 				conn.setReadTimeout(timeout);
 				// For "PATCH" refer to https://stackoverflow.com/questions/25163131/httpurlconnection-invalid-http-method-patch
 				if (method.equals("PATCH")) {

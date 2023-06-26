@@ -45,12 +45,12 @@ public class SAXValidationAction extends SAXAction {
 
 		ValidatingXQJFilter(XQItem item) {
 			super(item);
+			super.setContentHandler(_validatorHandler);
 		}
 
 		@Override
-		public ContentHandler getContentHandler() {
-			_validatorHandler.setContentHandler(super.getContentHandler());
-			return _validatorHandler;
+		public void setContentHandler(ContentHandler handler) {
+			_validatorHandler.setContentHandler(handler);
 		}
 	}
 
@@ -58,7 +58,7 @@ public class SAXValidationAction extends SAXAction {
 		private final ValidatorHandler _validatorHandler = _schema.newValidatorHandler();
 		private final SAXParser _saxParser;
 
-		public ReuseParserXMLFilter(SAXParser saxParser) throws SAXException {
+		ReuseParserXMLFilter(SAXParser saxParser) throws SAXException {
 			super(saxParser.getXMLReader());
 			_saxParser = saxParser;
 			super.setContentHandler(_validatorHandler);

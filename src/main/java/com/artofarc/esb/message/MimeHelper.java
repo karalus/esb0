@@ -32,6 +32,7 @@ import javax.mail.internet.MimeMultipart;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.URLUtils;
 
 public final class MimeHelper {
 
@@ -102,7 +103,8 @@ public final class MimeHelper {
 				}
 				String name = pair.substring(0, i);
 				String exp = pair.substring(i + 1);
-				Object value = evaluator.eval(exp, context, message);
+				boolean isBody = "${body}".equals(exp);
+				Object value = isBody ? message.getBodyAsByteArray(context) : evaluator.eval(exp, context, message);
 				if (value instanceof MimeBodyPart) {
 					part = (MimeBodyPart) value;
 					String cid = part.getContentID();
@@ -114,7 +116,7 @@ public final class MimeHelper {
 					setDisposition(part, "form-data", name, filename != null ? filename : name);
 				} else {
 					InternetHeaders headers = new InternetHeaders();
-					if (exp.startsWith("${body")) {
+					if (isBody) {
 						headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 						for (Entry<String, Object> entry : message.getHeaders()) {
 							headers.setHeader(entry.getKey(), entry.getValue().toString());
@@ -171,9 +173,8 @@ public final class MimeHelper {
 		return mmp;
 	}
 
-	public static boolean parseMultipart(ESBMessage message, String contentType) throws Exception {
-		final boolean isMultipart = contentType != null && contentType.startsWith("multipart/");
-		if (isMultipart) {
+	static String parseContentType(ESBMessage message, String contentType) throws Exception {
+		if (contentType != null && contentType.startsWith("multipart/")) {
 			InputStream inputStream = message.getBodyAsInputStream(null);
 			MimeMultipart mmp = new MimeMultipart(new DataSource() {
 
@@ -202,6 +203,7 @@ public final class MimeHelper {
 			if (soapAction != null) {
 				message.putHeader(HTTP_HEADER_SOAP_ACTION, soapAction);
 			}
+			String newContentType = null;
 			for (int i = 0; i < mmp.getCount(); i++) {
 				MimeBodyPart bodyPart = (MimeBodyPart) mmp.getBodyPart(i);
 				String cid = bodyPart.getContentID();
@@ -210,24 +212,31 @@ public final class MimeHelper {
 						Header header = allHeaders.nextElement();
 						message.putHeader(header.getName(), header.getValue());
 					}
-					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream(), getCharset(bodyPart.getContentType()));
+					newContentType = bodyPart.getContentType();
+					message.reset(BodyType.INPUT_STREAM, bodyPart.getInputStream(), determineCharset(newContentType));
 				} else if (cid != null) {
 					// remove angle brackets (https://tools.ietf.org/html/rfc2392)
 					message.addAttachment(cid.substring(1, cid.length() - 1), bodyPart);
 				} else {
-					String dispositionName = getDispositionName(bodyPart);
 					Object content = bodyPart.getContent();
 					if (content instanceof String) {
-						message.putVariable(dispositionName, content);
+						message.putVariable(getDispositionName(bodyPart), content);
 					} else {
 						cid = getFilename(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null));
-						bodyPart.setContentID('<' + cid + '>');
+						if (cid != null) {
+							bodyPart.setContentID('<' + cid + '>');
+						}
 						message.addAttachment(cid, bodyPart);
 					}
 				}
 			}
+			return newContentType;
+		} else if (HTTP_HEADER_CONTENT_TYPE_FORM_URLENCODED.equals(contentType)) {
+			URLUtils.parseURLEncodedString(message.getBodyAsString(null), message.getVariables(), null);
+			message.reset(BodyType.INVALID, null);
+			return null;
 		}
-		return isMultipart;
+		return contentType;
 	}
 
 	public static String guessContentTypeFromName(String filename) {

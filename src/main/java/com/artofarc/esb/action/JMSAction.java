@@ -17,22 +17,25 @@ package com.artofarc.esb.action;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.*;
 import javax.mail.internet.MimeMultipart;
 import javax.naming.NamingException;
 
-import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.context.*;
 import static com.artofarc.esb.http.HttpConstants.*;
+import com.artofarc.esb.jms.JMSCompletionListener;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSSession;
 import com.artofarc.esb.message.*;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.DataStructures;
 
 public class JMSAction extends Action {
 
@@ -62,21 +65,23 @@ public class JMSAction extends Action {
 		}
 	}
 
-	private final JMSConnectionData _jmsConnectionData;
+	private final List<JMSConnectionData> _jmsConnectionDataList;
 	private Destination _destination;
 	private final String _queueName;
 	private final String _topicName;
 	private final boolean _isBytesMessage;
 	private final int _deliveryMode;
 	private final int _priority;
-	private final Long _timeToLive;
+	private final long _timeToLive;
 	private final String _deliveryDelay, _expiryQueue;
+	private final String _workerPool;
 	private final boolean _receiveFromTempQueue;
 	private final String _replyQueue, _receiveSelector;
 	private final String _multipartSubtype, _multipart;
+	private final AtomicInteger _pos;
 
-	public JMSAction(GlobalContext globalContext, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, boolean isBytesMessage,
-			int deliveryMode, int priority, Long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String replyQueue,
+	public JMSAction(GlobalContext globalContext, List<JMSConnectionData> jmsConnectionDataList, String jndiDestination, String queueName, String topicName, String workerPool,
+			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String replyQueue,
 			String receiveSelector, String multipartSubtype, String multipart) throws NamingException {
 		_pipelineStop = true;
 		_queueName = globalContext.bindProperties(queueName);
@@ -84,7 +89,9 @@ public class JMSAction extends Action {
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
 		}
-		_jmsConnectionData = jmsConnectionData;
+		_workerPool = workerPool;
+		_jmsConnectionDataList = jmsConnectionDataList;
+		_pos = jmsConnectionDataList.size() > 1 ? new AtomicInteger() : null;
 		_isBytesMessage = isBytesMessage;
 		_deliveryMode = deliveryMode;
 		_priority = priority;
@@ -98,15 +105,40 @@ public class JMSAction extends Action {
 		_multipart = multipart;
 	}
 
+	private JMSSession getJMSSession(Context context, JMSSession oldSession) throws JMSException {
+		JMSSession jmsSession = context.getResource(ESBConstants.JMSSession);
+		if (jmsSession != null && _jmsConnectionDataList.contains(jmsSession.getJMSConnectionData())) {
+			return jmsSession;
+		}
+		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
+		if (_pos != null) {
+			int currentPos = _pos.getAndUpdate(old -> (old + 1) % _jmsConnectionDataList.size());
+			int pos = currentPos;
+			do {
+				try {
+					jmsSession = jmsSessionFactory.getResource(_jmsConnectionDataList.get(pos), false);
+					if (jmsSession != oldSession && jmsSession.isConnected()) {
+						return jmsSession;
+					}
+				} catch (JMSException e) {
+					// try next pos
+				}
+				pos = (pos + 1) % _jmsConnectionDataList.size();
+			} while (pos != currentPos);
+			throw new JMSException("No connected JMSSession");
+		} else {
+			return jmsSessionFactory.getResource(_jmsConnectionDataList.get(0), false);
+		}
+	}
+
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if (inPipeline) {
 			if (_isBytesMessage && _multipart == null) {
-				JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
-				JMSSession jmsSession = jmsSessionFactory.getResource(_jmsConnectionData, false);
+				JMSSession jmsSession = getJMSSession(context, null);
 				BytesMessage bytesMessage = jmsSession.getSession().createBytesMessage();
 				message.reset(BodyType.OUTPUT_STREAM, new BytesMessageOutputStream(bytesMessage));
-				return new ExecutionContext(bytesMessage);
+				return new ExecutionContext(bytesMessage, jmsSession);
 			} else {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -118,9 +150,15 @@ public class JMSAction extends Action {
 
 	@Override
 	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
-		JMSSession jmsSession = jmsSessionFactory.getResource(_jmsConnectionData, false);
+		context.getTimeGauge().startTimeMeasurement();
+		JMSSession jmsSession = execContext != null ? execContext.getResource2() : null;
+		if (jmsSession == null) {
+			jmsSession = getJMSSession(context, null);
+		}
 		final Session session = jmsSession.getSession();
+		if (_workerPool != null && session.getTransacted()) {
+			throw new ExecutionException(this, "Cannot send asynchronous within a transacted session");
+		}
 		if (_destination == null) {
 			if (_queueName != null) {
 				_destination = session.createQueue(_queueName);
@@ -128,7 +166,7 @@ public class JMSAction extends Action {
 				_destination = session.createTopic(_topicName);
 			}
 		}
-		context.getTimeGauge().startTimeMeasurement();
+		context.getTimeGauge().stopTimeMeasurement("JMS getSession", true);
 		Message jmsMessage;
 		if (execContext != null && execContext.getResource() instanceof Message) {
 			jmsMessage = execContext.getResource();
@@ -143,10 +181,7 @@ public class JMSAction extends Action {
 			} else if (_isBytesMessage) {
 				BytesMessage bytesMessage = session.createBytesMessage();
 				if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
-					String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-					if (needsCharset(contentType)) {
-						message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
-					}
+					message.determineSinkContentType();
 					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipart, message.getBodyAsByteArray(context), false, true);
 					mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
 					message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));
@@ -181,19 +216,29 @@ public class JMSAction extends Action {
 		context.getTimeGauge().stopTimeMeasurement("JMS createMessage", true);
 		message.clearHeaders();
 		message.reset(BodyType.INVALID, null);
-		long timeToLive;
-		Number ttl = message.getTimeleft(_timeToLive);
-		if (ttl != null) {
-			timeToLive = ttl.longValue();
-		} else {
-			Long jmsExpiration = message.getVariable(ESBConstants.JMSExpiration);
-			if (jmsExpiration != null && jmsExpiration > 0) {
-				timeToLive = jmsExpiration - System.currentTimeMillis();
-				if (timeToLive <= 0) {
-					throw new ExecutionException(this, "Incoming message has expired or system clocks differ too much");
-				}
+		message.setContentType(null);
+		message.setCharset(null);
+		try {
+			send(context, message, jmsSession, jmsMessage);
+		} catch (JMSException e) {
+			if (_pos != null && !session.getTransacted()) {
+				// retry once
+				jmsSession = getJMSSession(context, jmsSession);
+				send(context, message, jmsSession, jmsMessage);
 			} else {
-				timeToLive = Message.DEFAULT_TIME_TO_LIVE;
+				throw e;
+			}
+		}
+	}
+
+	private void send(Context context, ESBMessage message, JMSSession jmsSession, Message jmsMessage) throws Exception {
+		long timeLeft = message.getTimeleft(60000L).longValue();
+		long timeToLive = _timeToLive;
+		Long jmsExpiration = message.getVariable(ESBConstants.JMSExpiration);
+		if (jmsExpiration != null && jmsExpiration > 0) {
+			timeToLive = jmsExpiration - System.currentTimeMillis();
+			if (timeToLive <= 0) {
+				throw new ExecutionException(this, "Incoming message has expired or system clocks differ too much");
 			}
 		}
 		Destination destination = _destination != null ? _destination : getDestination(message, jmsSession);
@@ -201,7 +246,7 @@ public class JMSAction extends Action {
 			jmsMessage.setJMSReplyTo(jmsSession.getTemporaryQueue());
 			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
 			context.getTimeGauge().stopTimeMeasurement("JMS send", true);
-			Message replyMessage = jmsSession.getConsumerForTemporaryQueue().receive(timeToLive > 0L ? timeToLive : 60000L);
+			Message replyMessage = jmsSession.getConsumerForTemporaryQueue().receive(timeLeft);
 			context.getTimeGauge().stopTimeMeasurement("JMS receive", false);
 			if (replyMessage == null) {
 				throw new ExecutionException(this, "No reply message received within given timeout");
@@ -211,6 +256,7 @@ public class JMSAction extends Action {
 			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
 			context.getTimeGauge().stopTimeMeasurement("JMS send", true);
 			message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
+			final Session session = jmsSession.getSession();
 			Queue replyQueue = session.createQueue(_replyQueue);
 			String messageSelector = _receiveSelector != null ? (String) eval(_receiveSelector, context, message) : null;
 			MessageConsumer messageConsumer = session.createConsumer(replyQueue, messageSelector);
@@ -229,6 +275,7 @@ public class JMSAction extends Action {
 			if (replyTo != null) {
 				MessageProducer producer = jmsSession.createProducer(null);
 				producer.send(replyTo, jmsMessage, _deliveryMode, _priority, timeToLive);
+				message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
 			} else if (destination != null) {
 				MessageProducer producer = jmsSession.createProducer(destination);
 				if (_deliveryDelay != null) {
@@ -239,7 +286,7 @@ public class JMSAction extends Action {
 						deliveryDelay = message.<Number> getVariable(_deliveryDelay).longValue();
 					}
 					if (timeToLive == 0 || timeToLive > deliveryDelay) {
-						producer.setDeliveryDelay(deliveryDelay);
+						jmsSession.setDeliveryDelay(producer, jmsMessage, deliveryDelay);
 					} else if (_expiryQueue != null) {
 						producer = jmsSession.createProducer(jmsSession.createQueue(_expiryQueue));
 						timeToLive = Message.DEFAULT_TIME_TO_LIVE;
@@ -247,13 +294,30 @@ public class JMSAction extends Action {
 						throw new ExecutionException(this, "Message is about to expire");
 					}
 				}
-				producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
+				if (_workerPool != null) {
+					WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
+					AsyncProcessingPool asyncProcessingPool = workerPool.getAsyncProcessingPool();
+					if (asyncProcessingPool == null) {
+						throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + workerPool.getName());
+					}
+					JMSCompletionListener completionListener = new JMSCompletionListener(workerPool);
+					asyncProcessingPool.saveContext(completionListener, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()),
+							new ArrayList<>(context.getStackErrorHandler()), message.getVariables(), System.currentTimeMillis() + timeLeft);
+					completionListener.send(producer, jmsMessage, _deliveryMode, _priority, timeToLive);
+				} else {
+					producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
+					message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
+				}
 			} else {
 				throw new ExecutionException(this, "Could not determine destination");
 			}
 			context.getTimeGauge().stopTimeMeasurement("JMS send", false);
-			message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
 		}
+	}
+
+	@Override
+	protected Action nextAction(ExecutionContext execContext) {
+		return _workerPool == null ? super.nextAction(execContext) : null;
 	}
 
 	private static Destination getDestination(ESBMessage message, JMSSession jmsSession) throws JMSException {

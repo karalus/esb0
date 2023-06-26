@@ -21,19 +21,15 @@ import java.util.Map.Entry;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnection;
 import com.artofarc.esb.message.*;
-import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.ByteArrayOutputStream;
 
 public class HttpInboundAction extends Action {
 
-	private static final InputStream EMPTY_INPUT_STREAM = new ByteArrayInputStream(new byte[0]);
-
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		HttpUrlConnection httpUrlConnection = message.removeVariable(ESBConstants.HttpURLConnection);
+		HttpUrlConnection httpUrlConnection = context.removeResource(ESBConstants.HttpURLConnection);
 		try {
 			message.getVariables().put(ESBConstants.HttpResponseCode, httpUrlConnection.getResponseCode());
 			message.clearHeaders();
@@ -42,14 +38,9 @@ public class HttpInboundAction extends Action {
 					message.putHeader(entry.getKey(), entry.getValue().get(0));
 				}
 			}
-			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-			message.setCharset(HttpConstants.getCharset(contentType));
 			InputStream inputStream = httpUrlConnection.getInputStream();
-			if (inputStream == null) {
-				inputStream = EMPTY_INPUT_STREAM;
-			} 
-			message.reset(BodyType.INPUT_STREAM, inputStream);
-			if (MimeHelper.parseMultipart(message, contentType)) {
+			message.reset(null, inputStream);
+			if (message.prepareContent()) {
 				inputStream.close();
 				inputStream = message.getBody();
 			}
@@ -78,9 +69,8 @@ public class HttpInboundAction extends Action {
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
-		try {
-			execContext.<InputStream> getResource().close();
+	protected void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
+		try (InputStream inputStream = execContext.getResource()) {
 		} finally {
 			execContext.<HttpUrlConnection> getResource2().close();
 		}

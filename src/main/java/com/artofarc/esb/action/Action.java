@@ -31,6 +31,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.Evaluator;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.StringBuilderWriter;
 import com.artofarc.util.TimeGauge;
 
@@ -45,7 +46,12 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 	protected Action _errorHandler;
 	private Location _location;
 
+	// For JUnit
 	public final Action setNextAction(Action nextAction) {
+		if (nextAction.getLocation() == null) {
+			StackTraceElement stackTraceElement = Thread.currentThread().getStackTrace()[2];
+			nextAction.setLocation(new Location(stackTraceElement.getClassName() + "::" + stackTraceElement.getMethodName(), stackTraceElement.getLineNumber()));
+		}
 		return _nextAction = nextAction;
 	}
 
@@ -112,6 +118,9 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		List<Action> pipeline = new ArrayList<>();
 		List<ExecutionContext> resources = new ArrayList<>();
 		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
+		if (getErrorHandler() != null) {
+			stackErrorHandler.push(getErrorHandler());
+		}
 		context.pushStackPos();
 		TimeGauge timeGauge = new TimeGauge(loggerTimeGauge, timeGaugeThreshold, false);
 		timeGauge.startTimeMeasurement();
@@ -151,36 +160,21 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 				if (e instanceof ExecutionException) {
 					logger.info("Flow interrupted by " + e.getMessage(), e.getCause());
 				} else {
+					e = DataStructures.unwrap(e);
 					logger.info("Exception while processing " + action, e);
 				}
 				logESBMessage(context, message);
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
 				context.unwindStack();
-				nextAction = stackErrorHandler.poll();
-				if (nextAction != null) {
-					nextAction.process(context, message);
-					nextAction = null;
-				} else {
-					if (getErrorHandler() != null) {
-						nextAction = getErrorHandler();
-					} else {
-						nextAction = context.getExecutionStack().poll();
-					}
-					if (nextAction != null) {
-						nextAction.process(context, message);
-						context.pushStackPos();
-						break;
-					} else {
-						throw e;
-					}
-				}
+				processException(context, message);
+				break;
 			} finally {
 				for (int i = pipeline.size(); i > 0;) {
 					action = pipeline.get(--i);
 					ExecutionContext exContext = resources.get(i);
 					try {
-						action.close(exContext, message, closeSilently);
+						action.close(context, exContext, closeSilently);
 						if (action.getErrorHandler() != null) {
 							context.getStackPos().pop();
 							stackErrorHandler.pop();
@@ -196,7 +190,26 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 			resources.clear();
 		}
 		context.getStackPos().poll();
+		if (getErrorHandler() != null) {
+			stackErrorHandler.poll();
+		}
 		timeGauge.stopTimeMeasurement("Finished process: %s", false, _location != null ? _location.getServiceArtifactURI() : getClass().getSimpleName());
+	}
+
+	public static void processException(Context context, ESBMessage message) throws Exception {
+		Action nextAction = context.getStackErrorHandler().poll();
+		if (nextAction != null) {
+			nextAction.process(context, message);
+			nextAction = null;
+		} else {
+			nextAction = context.getExecutionStack().poll();
+			if (nextAction != null) {
+				nextAction.process(context, message);
+				context.pushStackPos();
+			} else {
+				throw message.<Exception> getBody();
+			}
+		}
 	}
 
 	// pipelining
@@ -238,7 +251,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 	/**
 	 * Cleanup resources.
 	 */
-	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
+	protected void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
 	}
 
 	@Override
@@ -263,19 +276,11 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		if (!iterator.hasNext()) {
 			return null;
 		}
-		Action startAction = iterator.next();
-		Action action = startAction;
+		Action startAction = iterator.next(), action = startAction;
 		while (iterator.hasNext()) {
-			action = action.setNextAction(iterator.next());
+			action = action._nextAction = iterator.next();
 		}
 		return startAction;
-	}
-
-	/**
-	 * @deprecated Use {@link #eval(String,Context,ESBMessage)} instead
-	 */
-	public final Object bindVariable(String exp, Context context, final ESBMessage message) throws Exception {
-		return eval(exp, context, message);
 	}
 
 	protected final void checkAtomic(Object value, String exp) throws ExecutionException {

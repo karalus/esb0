@@ -49,7 +49,11 @@ public class AdminAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		String verb = (String) eval(_verb, context, message);
-		String resource = URLUtils.decode((String) eval(_resourceExp, context, message));
+		String resource = (String) eval(_resourceExp, context, message);
+		if (resource == null) {
+			throw new ExecutionException(this, _resourceExp + " must not evaluate to null");
+		}
+		resource = URLUtils.decode(resource);
 		switch (verb) {
 		case "GET":
 			if (resource.isEmpty()) {
@@ -63,7 +67,7 @@ public class AdminAction extends Action {
 					context.getGlobalContext().getFileSystem().dump(bos);
 					message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 					message.clearHeaders();
-					message.putHeader(HTTP_HEADER_CONTENT_TYPE, "application/zip");
+					message.setContentType("application/zip");
 					message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + filename + '"');
 				}
 			} else {
@@ -98,7 +102,7 @@ public class AdminAction extends Action {
 				}
 				message.reset(BodyType.JSON_VALUE, builder.build());
 				message.clearHeaders();
-				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
+				message.setContentType(HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				String headerAccept = message.getVariable(HTTP_HEADER_ACCEPT);
 				if (headerAccept == null || isAcceptable(headerAccept, artifact.getContentType())) {
@@ -149,7 +153,7 @@ public class AdminAction extends Action {
 	private void changeConfiguration(Context context, ESBMessage message, String resource) throws Exception {
 		GlobalContext globalContext = context.getGlobalContext();
 		if (resource.isEmpty()) {
-			String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+			String contentType = message.getContentType();
 			if (contentType == null || "bin".equals(MimeHelper.getFileExtension(contentType))) {
 				boolean simulate = Boolean.parseBoolean(message.getHeader("simulate"));
 				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
@@ -167,9 +171,8 @@ public class AdminAction extends Action {
 				throwHttpError(message, SC_UNSUPPORTED_MEDIA_TYPE, new ExecutionException(this, contentType));
 			}
 		} else {
-			String enable = message.getHeader("enable");
-			byte[] content = message.getBodyAsByteArray(context);
-			if (enable != null || content.length == 0) {
+			String enable = resolve(message, "enable", true);
+			if (enable != null || message.isEmpty()) {
 				ConsumerPort consumerPort = globalContext.getInternalService(resource);
 				if (consumerPort != null) {
 					// if header is missing just toggle state
@@ -188,10 +191,6 @@ public class AdminAction extends Action {
 						} else {
 							throwHttpError(message, SC_METHOD_NOT_ALLOWED, new ExecutionException(this, resource));
 						}
-					} else if (artifact instanceof DataSourceArtifact) {
-						DataSourceArtifact dataSourceArtifact = (DataSourceArtifact) artifact;
-						Object dataSource = globalContext.getProperty(dataSourceArtifact.getDataSourceName());
-						ReflectionUtils.eval(dataSource, "hikariPoolMXBean.softEvictConnections");
 					} else {
 						throwHttpError(message, SC_NOT_FOUND, new ExecutionException(this, resource));
 					}
@@ -203,7 +202,7 @@ public class AdminAction extends Action {
 				if (filename != null) {
 					resource += '/' + filename;
 				}
-				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, content);
+				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, message.getBodyAsByteArray(context));
 				deployChangeset(globalContext, changeSet, message);
 			}
 		}

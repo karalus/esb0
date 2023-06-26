@@ -20,10 +20,10 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.ByteArrayInputStream;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.StringBuilderWriter;
 
@@ -75,10 +75,10 @@ public class DumpAction extends TerminalAction {
 						fileOutputStream.write(message.getBodyAsByteArray(context));
 					}
 					logger.info("Body dumped into " + dumpFile);
-				} else if (_binary || message.isFI()) {
-					ByteArrayInputStream bis = new ByteArrayInputStream(message.getBodyAsByteArray(context));
-					logger.info("Body length: " + bis.length());
-					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(bis));
+				} else if (_binary || HttpConstants.isBinary(message.getContentType())) {
+					byte[] ba = message.getBodyAsByteArray(context);
+					logger.info("Body length: " + ba.length);
+					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(ba));
 				} else {
 					logger.info("Body:\n" + message.getBodyAsString(context));
 				}

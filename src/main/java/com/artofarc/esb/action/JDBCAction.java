@@ -87,7 +87,7 @@ public abstract class JDBCAction extends Action {
 		String dsName = _dsName != null ? (String) eval(_dsName, context, message) : null;
 		boolean keepConnection = Boolean.parseBoolean(eval(_keepConnection, context, message).toString());
 		JDBCConnection connection = null;
-		ArrayDeque<JDBCConnection> connections = message.getVariable(ESBConstants.JDBCConnections);
+		ArrayDeque<JDBCConnection> connections = context.getResource(ESBConstants.JDBCConnections);
 		if (connections != null) {
 			if (dsName == null) {
 				connection = keepConnection ? connections.peek() : connections.poll();
@@ -115,7 +115,7 @@ public abstract class JDBCAction extends Action {
 			connection = new JDBCConnection(dsName, dataSource.getConnection(), keepConnection);
 			if (keepConnection) {
 				if (connections == null) {
-					message.putVariable(ESBConstants.JDBCConnections, connections = new ArrayDeque<>());
+					context.putResource(ESBConstants.JDBCConnections, connections = new ArrayDeque<>());
 				}
 				connections.push(connection);
 			}
@@ -164,7 +164,7 @@ public abstract class JDBCAction extends Action {
 				if (result.hasComplexContent()) {
 					message.clearHeaders();
 					if (message.isSink()) {
-						try (JsonGenerator jsonGenerator = message.getBodyAsJsonGenerator()) {
+						try (JsonGenerator jsonGenerator = message.createJsonGeneratorFromBodyAsSink()) {
 							result.writeJson(jsonGenerator);
 						}
 					} else {
@@ -172,7 +172,7 @@ public abstract class JDBCAction extends Action {
 						result.writeJson(jsonValueGenerator);
 						message.reset(BodyType.JSON_VALUE, jsonValueGenerator.getJsonValue());
 					}
-					message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+					message.setContentType(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
 				} else if (result.getCurrentUpdateCount() >= 0) {
 					message.getVariables().put(JDBCResult.SQL_UPDATE_COUNT, result.getCurrentUpdateCount());
 				}
@@ -181,21 +181,20 @@ public abstract class JDBCAction extends Action {
 	}
 
 	@Override
-	protected void close(ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception  {
+	protected void close(Context context, ExecutionContext execContext, boolean exception) throws Exception  {
 		JDBCConnection connection = execContext.getResource();
 		boolean connectionKept = execContext.getResource2();
 		if (!connectionKept) {
 			connection.close(!exception);
 		} else if (exception) {
-			ArrayDeque<JDBCConnection> connections = message.getVariable(ESBConstants.JDBCConnections);
+			ArrayDeque<JDBCConnection> connections = context.getResource(ESBConstants.JDBCConnections);
 			connections.remove(connection);
 			connection.close(false);
 		}
 	}
 
-	public static void closeKeptConnections(ESBMessage message, boolean commit) throws SQLException {
-		@SuppressWarnings("unchecked")
-		ArrayDeque<JDBCConnection> connections = (ArrayDeque<JDBCConnection>) message.getVariables().remove(ESBConstants.JDBCConnections);
+	public static void closeKeptConnections(Context context, boolean commit) throws SQLException {
+		ArrayDeque<JDBCConnection> connections = context.removeResource(ESBConstants.JDBCConnections);
 		if (connections != null) {
 			for (JDBCConnection connection : connections) {
 				connection.close(commit);
@@ -245,7 +244,7 @@ public abstract class JDBCAction extends Action {
 						if (message.getBodyType() == BodyType.INVALID) {
 							ps.setNull(param.getPos(), BLOB);
 						} else {
-							Long length = message.getByteLength();
+							Long length = message.getOutputLength();
 							if (param.getTruncate() == null || length != null && length <= param.getTruncate()) {
 								ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
 							} else {
@@ -268,12 +267,7 @@ public abstract class JDBCAction extends Action {
 					ps.setObject(param.getPos(), jdbcAttachments.createAttachments(message, conn));
 				}
 			} else {
-				Object value = resolve(message, param.getBindName(), false);
-				if (value != null) {
-					ps.setObject(param.getPos(), param.alignValue(value, conn), param.getType().getVendorTypeNumber());
-				} else {
-					ps.setNull(param.getPos(), param.getType().getVendorTypeNumber());
-				}
+				param.setParameter(ps, resolve(message, param.getBindName(), false), conn);
 			}
 		}
 		int ceil = (message.getTimeleft(_timeout).intValue() + 999) / 1000;

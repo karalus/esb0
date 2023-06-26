@@ -83,7 +83,7 @@ public class BranchOnVariableAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Object value = _varName == "body" ? message.getBody() != null ? message.getBodyAsString(context) : null : resolve(message, _varName, true);
+		Object value = _varName == "body" ? message.getBody() != null ? message.getBodyAsString(context) : null : _varName == "bodyType" ? message.getBodyType() : resolve(message, _varName, true);
 		if (value instanceof Optional<?>) {
 			value = ((Optional<?>) value).orElse(null);
 		}

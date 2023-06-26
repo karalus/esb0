@@ -1,13 +1,12 @@
 <!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
-  
+  Copyright 2023 Andre Karalus
+ 
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
   http://www.apache.org/licenses/LICENSE-2.0
-  
+
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,19 +18,21 @@
 	<groupId>com.artofarc.eai</groupId>
 	<artifactId>esb0</artifactId>
 	<packaging>war</packaging>
-	<version>1.9.4</version>
+	<version>1.10.0-SNAPSHOT</version>
 	<name>ESB Zero Maven Webapp</name>
 	<url>https://github.com/karalus/esb0</url>
 	<properties>
 		<project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mmz</maven.build.timestamp.format>
+		<jaxb.version>2.3.3</jaxb.version>
+		<saxon.version>9.9.1-8</saxon.version>
 	</properties>
 	<scm>
 		<url>scm:git:git@github.com:karalus/esb0.git</url>
 		<connection>scm:git:git@github.com:karalus/esb0.git</connection>
 		<developerConnection>scm:git:git@github.com:karalus/esb0.git</developerConnection>
 		<tag>HEAD</tag>
-	</scm>	
+	</scm>
 	<distributionManagement>
 		<repository>
 			<id>localDeploy</id>
@@ -59,18 +60,18 @@
 		<dependency>
 			<groupId>net.sf.saxon</groupId>
 			<artifactId>Saxon-HE</artifactId>
-			<version>9.9.1-8</version>
+			<version>${saxon.version}</version>
 			<classifier>xqj</classifier>
 		</dependency>
 		<dependency>
 			<groupId>net.sf.saxon</groupId>
 			<artifactId>Saxon-HE</artifactId>
-			<version>9.9.1-8</version>
+			<version>${saxon.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jaxb</groupId>
 			<artifactId>jaxb-runtime</artifactId>
-			<version>2.3.3</version>
+			<version>${jaxb.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -90,7 +91,7 @@
 		<dependency>
 			<groupId>org.glassfish.jaxb</groupId>
 			<artifactId>xsom</artifactId>
-			<version>2.3.3</version>
+			<version>${jaxb.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sun.xml.fastinfoset</groupId>
@@ -101,12 +102,6 @@
 			<groupId>jakarta.jms</groupId>
 			<artifactId>jakarta.jms-api</artifactId>
 			<version>2.0.3</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.zaxxer</groupId>
-			<artifactId>HikariCP</artifactId>
-			<version>4.0.3</version>
 			<scope>provided</scope>
 		</dependency>
 		<!--
@@ -132,7 +127,7 @@
 		<dependency>
 			<groupId>com.sun.xml.ws</groupId>
 			<artifactId>jaxws-ri</artifactId>
-			<version>2.3.3</version>
+			<version>${jaxb.version}</version>
 			<type>pom</type>
 			<scope>test</scope>
 		</dependency>
@@ -151,57 +146,56 @@
 	</dependencies>
 	<build>
 		<finalName>esb0</finalName>
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.10.1</version>
-					<configuration>
-						<source>1.8</source>
-						<target>1.8</target>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
 		<plugins>
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>jaxb2-maven-plugin</artifactId>
-				<version>2.5.0</version>
+				<groupId>org.jvnet.jaxb2.maven2</groupId>
+				<artifactId>maven-jaxb2-plugin</artifactId>
+				<version>0.14.0</version>
 				<executions>
 					<execution>
 						<id>xjc</id>
 						<goals>
-							<goal>xjc</goal>
+							<goal>generate</goal>
 						</goals>
 					</execution>
 				</executions>
 				<configuration>
+					<encoding>${project.build.sourceEncoding}</encoding>
 					<locale>en</locale>
-					<sources>
-						<source>src/main/xsd/service.xsd</source>
-					</sources>
-					<arguments>
-						<argument>-Xlocator</argument>
-					</arguments>
+					<schemaDirectory>${project.basedir}/src/main/xsd</schemaDirectory>
+					<schemaIncludes>
+						<include>service.xsd</include>
+					</schemaIncludes>
+					<episode>false</episode>
+					<args>
+						<arg>-Xlocator</arg>
+					</args>
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.11.0</version>
+				<configuration>
+					<encoding>${project.build.sourceEncoding}</encoding>
+				<!-- To build with Java 9 or newer (https://www.morling.dev/blog/bytebuffer-and-the-dreaded-nosuchmethoderror/)
+					<release>8</release>
+				-->
+				</configuration>
+			</plugin>
+			<plugin>
 				<artifactId>maven-war-plugin</artifactId>
 				<version>3.3.2</version>
 				<configuration>
 					<archive>
 						<manifest>
 							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-						</manifest>					
+						</manifest>
 						<manifestEntries>
 							<Build-Time>${maven.build.timestamp}</Build-Time>
 						</manifestEntries>
 					</archive>
 				</configuration>
-			</plugin>			
+			</plugin>
 		</plugins>
 		<resources>
 			<resource>

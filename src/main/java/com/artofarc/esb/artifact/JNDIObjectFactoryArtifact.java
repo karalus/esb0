@@ -50,13 +50,11 @@ public final class JNDIObjectFactoryArtifact extends AbstractServiceArtifact {
 		JndiObjectFactory jndiObjectFactory = unmarshal(globalContext);
 		ClassLoader classLoader = resolveClassLoader(globalContext, jndiObjectFactory.getClassLoader());
 		_type = jndiObjectFactory.getType();
-		if (_type != null) {
-			classLoader.loadClass(_type);
-		}
+		Class<?> type = classLoader.loadClass(_type);
 		_properties = createProperties(jndiObjectFactory.getProperty(), globalContext);
 		if (jndiObjectFactory.getEsb0Factory() != null) {
 			_factory = (Factory) classLoader.loadClass(jndiObjectFactory.getEsb0Factory()).newInstance();
-			_factory.validate(_type, _properties);
+			_factory.validate(type, _properties);
 		} else if (jndiObjectFactory.getFactory() != null) {
 			_objectFactory = (ObjectFactory) classLoader.loadClass(jndiObjectFactory.getFactory()).newInstance();
 		} else {
@@ -107,7 +105,7 @@ public final class JNDIObjectFactoryArtifact extends AbstractServiceArtifact {
 	}
 
 	public interface Factory {
-		void validate(String type, Properties properties);
+		void validate(Class<?> type, Properties properties) throws Exception;
 		boolean tryUpdate(Object oldObject);
 		Object createObject();
 	}

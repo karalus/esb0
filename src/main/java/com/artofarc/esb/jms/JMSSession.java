@@ -45,6 +45,14 @@ public final class JMSSession implements AutoCloseable {
 		_session = session;
 	}
 
+	public JMSConnectionData getJMSConnectionData() {
+		return _jmsConnectionData;
+	}
+
+	public boolean isConnected() {
+		return _jmsConnectionProvider.isConnected(_jmsConnectionData);
+	}
+
 	public Session getSession() {
 		return _session;
 	}
@@ -74,8 +82,8 @@ public final class JMSSession implements AutoCloseable {
 	}
 
 	public MessageProducer createProducer(Destination destination) throws JMSException {
-		if (checkConnection) {
-			_jmsConnectionProvider.checkConnection(_jmsConnectionData);
+		if (checkConnection && !isConnected()) {
+			throw new JMSException("Currently reconnecting " + _jmsConnectionData);
 		}
 		MessageProducer producer = _producers.get(destination);
 		if (producer == null) {
@@ -95,6 +103,26 @@ public final class JMSSession implements AutoCloseable {
 
 	public MessageConsumer getConsumerForTemporaryQueue() {
 		return _consumer;
+	}
+
+	public void setDeliveryDelay(MessageProducer producer, Message message, long deliveryDelay) throws JMSException {
+		ConnectionMetaData connectionMetaData = _jmsConnectionProvider.getConnectionMetaData(_jmsConnectionData);
+		if (connectionMetaData.getJMSMajorVersion() > 1) {
+			producer.setDeliveryDelay(deliveryDelay);
+		} else if (deliveryDelay > 0) {
+			String jmsProviderName = connectionMetaData.getJMSProviderName();
+			switch (jmsProviderName) {
+			case "ActiveMQ":
+				// https://stackoverflow.com/questions/58609188/delaying-messages-in-activemq
+				message.setLongProperty("AMQ_SCHEDULED_DELAY", deliveryDelay);
+				break;
+			case "Oracle":
+				message.setIntProperty("JMS_OracleDelay", (int) ((deliveryDelay + 999) / 1000));
+				break;
+			default:
+				throw new JMSException("Delivery delay not implemented for " + jmsProviderName);
+			}
+		}
 	}
 
 	@Override

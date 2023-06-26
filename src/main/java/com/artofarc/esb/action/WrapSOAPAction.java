@@ -50,7 +50,7 @@ public class WrapSOAPAction extends TransformAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		message.clearHeaders();
-		message.putHeader(HTTP_HEADER_CONTENT_TYPE, _soap12 ? SOAP_1_2_CONTENT_TYPE : SOAP_1_1_CONTENT_TYPE);
+		message.putHeader(HTTP_HEADER_CONTENT_TYPE, _soap12 ? HTTP_HEADER_CONTENT_TYPE_SOAP12 : HTTP_HEADER_CONTENT_TYPE_SOAP11);
 		return super.prepare(context, message, inPipeline);
 	}
 

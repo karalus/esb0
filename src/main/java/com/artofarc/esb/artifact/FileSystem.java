@@ -47,6 +47,7 @@ public abstract class FileSystem {
 	protected final static Logger logger = LoggerFactory.getLogger(FileSystem.class);
 
 	public final static String environment = System.getProperty("esb0.environment", "default");
+	public final static boolean ignoreValidationExceptionsOnStartup = Boolean.parseBoolean(System.getProperty("esb0.ignoreValidationExceptionsOnStartup"));
 
 	protected final Directory _root;
 	protected final Map<String, ChangeType> _changes = new LinkedHashMap<>();
@@ -57,6 +58,10 @@ public abstract class FileSystem {
 
 	protected FileSystem(FileSystem fileSystem) {
 		_root = fileSystem._root.clone(this, null);
+	}
+
+	private boolean isStartup() {
+		return _changes.isEmpty();
 	}
 
 	public abstract FileSystem copy();
@@ -115,6 +120,10 @@ public abstract class FileSystem {
 		return (A) (name.isEmpty() ? current : current.getArtifacts().get(name));
 	}
 
+	protected final <A extends Artifact> A loadArtifact(String uri) throws FileNotFoundException {
+		return loadArtifact(_root, uri);
+	}
+
 	protected final <A extends Artifact> A loadArtifact(Directory current, String uri) throws FileNotFoundException {
 		A artifact = getArtifact(current, uri);
 		if (artifact == null) {
@@ -164,9 +173,6 @@ public abstract class FileSystem {
 		} else if (artifact instanceof JNDIObjectFactoryArtifact) {
 			artifact.validate(globalContext);
 			changeSet.getJNDIObjectFactoryArtifacts().add((JNDIObjectFactoryArtifact) artifact);
-		} else if (artifact instanceof DataSourceArtifact) {
-			artifact.validate(globalContext);
-			changeSet.getDataSourceArtifacts().add((DataSourceArtifact) artifact);
 		}
 	}
 
@@ -199,9 +205,8 @@ public abstract class FileSystem {
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(this, parent, name);
 		case JNDIObjectFactoryArtifact.FILE_EXTENSION:
+		case "dsdef":
 			return new JNDIObjectFactoryArtifact(this, parent, name);
-		case DataSourceArtifact.FILE_EXTENSION:
-			return new DataSourceArtifact(this, parent, name);
 		case ClassLoaderArtifact.FILE_EXTENSION:
 			return new ClassLoaderArtifact(this, parent, name);
 		case "jar":
@@ -245,7 +250,7 @@ public abstract class FileSystem {
 				if (!XMLCatalog.isXMLCatalog(child)) {
 					detachOrphans(child, visited);
 				}
-			} else if (!(artifact instanceof DataSourceArtifact || visited.contains(artifact.getURI()))) {
+			} else if (!(artifact instanceof JNDIObjectFactoryArtifact || visited.contains(artifact.getURI()))) {
 				artifact.detachFromReferenced();
 			}
 		}
@@ -261,7 +266,7 @@ public abstract class FileSystem {
 					iterator.remove();
 					noteChange(artifact.getURI(), ChangeType.DELETE);
 				}
-			} else if (!(artifact instanceof DataSourceArtifact || visited.contains(artifact.getURI()))) {
+			} else if (!(artifact instanceof JNDIObjectFactoryArtifact || visited.contains(artifact.getURI()))) {
 				logger.info("Remove: " + artifact);
 				iterator.remove();
 				noteChange(artifact.getURI(), ChangeType.DELETE);
@@ -304,7 +309,6 @@ public abstract class FileSystem {
 		private final List<Future<ServiceArtifact>> futures = new ArrayList<>();
 		private final List<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
 		private final List<JNDIObjectFactoryArtifact> jndiObjectFactoryArtifacts = new ArrayList<>();
-		private final List<DataSourceArtifact> dataSourceArtifacts = new ArrayList<>();
 		private final List<Artifact> deletedArtifacts = new ArrayList<>();
 
 		public FileSystem getFileSystem() {
@@ -332,7 +336,11 @@ public abstract class FileSystem {
 				ValidationException exception = iterator.next();
 				while (iterator.hasNext())
 					exception.addSuppressed(iterator.next());
-				throw exception;
+				if (ignoreValidationExceptionsOnStartup && isStartup()) {
+					logger.warn("ValidationExceptions on startup", exception);
+				} else {
+					throw exception;
+				}
 			}
 			dehydrateArtifacts(_root);
 			return serviceArtifacts;
@@ -344,10 +352,6 @@ public abstract class FileSystem {
 
 		public List<JNDIObjectFactoryArtifact> getJNDIObjectFactoryArtifacts() {
 			return jndiObjectFactoryArtifacts;
-		}
-
-		public List<DataSourceArtifact> getDataSourceArtifacts() {
-			return dataSourceArtifacts;
 		}
 
 		public List<Artifact> getDeletedArtifacts() {
@@ -391,7 +395,7 @@ public abstract class FileSystem {
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, String uriToDelete) throws FileNotFoundException, ValidationException {
 		FileSystem copy = copy();
-		Artifact artifact = copy.loadArtifact(copy.getRoot(), uriToDelete);
+		Artifact artifact = copy.loadArtifact(uriToDelete);
 		if (!artifact.delete()) {
 			throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
 		}
@@ -446,7 +450,7 @@ public abstract class FileSystem {
 					StringTokenizer tokenizer = new StringTokenizer(delete, ", ");
 					while (tokenizer.hasMoreTokens()) {
 						String uri = tokenizer.nextToken();
-						noteChange(loadArtifact(_root, uri).getURI(), ChangeType.DELETE);
+						noteChange(loadArtifact(uri).getURI(), ChangeType.DELETE);
 					}
 				}
 			}

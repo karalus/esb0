@@ -56,7 +56,7 @@ import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.XQuerySource;
 import com.sun.xml.xsom.XSSchemaSet;
 
-public class ServiceArtifact extends AbstractServiceArtifact {
+public final class ServiceArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "xservice";
 
@@ -64,7 +64,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 	private static final boolean ASSIGN_NULL_CHECK = Boolean.parseBoolean(System.getProperty("esb0.assignNullCheck"));
 
 	private Protocol _protocol;
-	private ConsumerPort _consumerPort;
+	private List<ConsumerPort> _consumerPorts = new ArrayList<>();
 
 	// only used during validation
 	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
@@ -78,16 +78,20 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return _protocol;
 	}
 
+	public final List<ConsumerPort> getConsumerPorts() {
+		return _consumerPorts;
+	}
+
 	@SuppressWarnings("unchecked")
 	public final <C extends ConsumerPort> C getConsumerPort() {
-		return (C) _consumerPort;
+		return (C) _consumerPorts.get(0);
 	}
 
 	@Override
 	protected ServiceArtifact clone(FileSystem fileSystem, Directory parent) {
 		ServiceArtifact clone = initClone(new ServiceArtifact(fileSystem, parent, getName()));
 		clone._protocol = _protocol;
-		clone._consumerPort = _consumerPort;
+		clone._consumerPorts.addAll(_consumerPorts);
 		return clone;
 	}
 
@@ -113,13 +117,14 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 				_actionPipelines.put(actionPipeline.getName(), transform(globalContext, actionPipeline.getAction(), actionPipeline.getErrorHandler()));
 			}
 			List<Action> list = transform(globalContext, service.getAction(), service.getErrorHandler());
+			_consumerPorts.clear();
 			switch (_protocol = service.getProtocol()) {
 			case HTTP:
 				Service.HttpBindURI httpBinding = checkBindingPresent(service.getHttpBindURI());
 				String multipartSubtype = httpBinding.getMultipartSubtype() != null ? httpBinding.getMultipartSubtype().value() : httpBinding.getMultipartResponse() != null ? "related" : null;
-				_consumerPort = new HttpConsumer(getURI(), httpBinding.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), globalContext.bindProperties(httpBinding.getRequiredRole()), httpBinding.getMinPool(),
-						httpBinding.getMaxPool(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), multipartSubtype, httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
-				globalContext.checkBindHttpService((HttpConsumer) _consumerPort);
+				_consumerPorts.add(new HttpConsumer(getURI(), httpBinding.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), httpBinding.getOverwriteContentType(), globalContext.bindProperties(httpBinding.getRequiredRole()),
+						httpBinding.getMinPoolSize(), httpBinding.getMaxPoolSize(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), multipartSubtype, httpBinding.getMultipartResponse(), httpBinding.getBufferSize()));
+				globalContext.checkBindHttpService(getConsumerPort());
 				break;
 			case JMS:
 				Service.JmsBinding jmsBinding = checkBindingPresent(service.getJmsBinding());
@@ -127,32 +132,37 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					throw new ValidationException(this, "With at only one worker is allowed");
 				}
 				int minWorkerCount = jmsBinding.getMinWorkerCount() != null ? jmsBinding.getMinWorkerCount() : jmsBinding.getWorkerCount();
-				JMSConnectionData jmsConnectionData = JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
-				_consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(), jmsBinding.getQueueName(), jmsBinding.getTopicName(),
-						jmsBinding.getSubscription(), jmsBinding.isNoLocal(), jmsBinding.isShared(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt(), jmsBinding.getMaximumRetries(), jmsBinding.getRedeliveryDelay());
-				globalContext.checkBindJmsConsumer((JMSConsumer) _consumerPort);
+				for (JMSConnectionData jmsConnectionData : JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword())) {
+					JMSConsumer consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(),
+							jmsBinding.getQueueName(), jmsBinding.getTopicName(), jmsBinding.getSubscription(), jmsBinding.isNoLocal(), jmsBinding.isShared(), jmsBinding.getMessageSelector(),
+							jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getBatchSize(), jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt());
+					globalContext.checkBindJmsConsumer(consumerPort);
+					_consumerPorts.add(consumerPort);
+				}
 				break;
 			case TIMER:
 				Service.TimerBinding timerBinding = checkBindingPresent(service.getTimerBinding());
-				_consumerPort = new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getAt(), timerBinding.getTimeUnit(), timerBinding.getPeriod(),
-						timerBinding.getInitialDelay(), timerBinding.isFixedDelay());
+				_consumerPorts.add(new TimerService(getURI(), resolveWorkerPool(timerBinding.getWorkerPool()), timerBinding.getAt(), timerBinding.getTimeUnit(), timerBinding.getPeriod(),
+						timerBinding.getInitialDelay(), timerBinding.isFixedDelay()));
 				break;
 			case FILE:
 				Service.FileWatchBinding fileWatchBinding = checkBindingPresent(service.getFileWatchBinding());
-				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), resolveWorkerPool(fileWatchBinding.getWorkerPool()), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
-				globalContext.checkBindFileWatchEventService((FileWatchEventConsumer) _consumerPort);
+				_consumerPorts.add(new FileWatchEventConsumer(globalContext, getURI(), resolveWorkerPool(fileWatchBinding.getWorkerPool()), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError()));
+				globalContext.checkBindFileWatchEventService(getConsumerPort());
 				break;
 			case KAFKA:
 				Service.KafkaBinding kafkaBinding = checkBindingPresent(service.getKafkaBinding());
-				_consumerPort = new KafkaConsumerPort(getURI(), resolveWorkerPool(kafkaBinding.getWorkerPool()), kafkaBinding.getPollInterval(), createProperties(kafkaBinding.getProperty(), globalContext), kafkaBinding.getTopic(), kafkaBinding.getTimeout());
-				globalContext.checkBindKafkaConsumer((KafkaConsumerPort) _consumerPort);
+				_consumerPorts.add(new KafkaConsumerPort(getURI(), resolveWorkerPool(kafkaBinding.getWorkerPool()), kafkaBinding.getPollInterval(), createProperties(kafkaBinding.getProperty(), globalContext), kafkaBinding.getTopic(), kafkaBinding.getTimeout()));
+				globalContext.checkBindKafkaConsumer(getConsumerPort());
 				break;
 			default:
-				_consumerPort = new ConsumerPort(getURI());
+				_consumerPorts.add(new ConsumerPort(getURI()));
 				break;
 			}
-			_consumerPort.setServiceFlow(list);
-			_consumerPort.setEnabled(service.isEnabled());
+			for (ConsumerPort consumerPort : _consumerPorts) {
+				consumerPort.setServiceFlow(list);
+				consumerPort.setEnabled(service.isEnabled());
+			}
 		} finally {
 			_actionPipelines.clear();
 			_xmlProcessorFactory = null;
@@ -221,24 +231,24 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			} else if (http.getCheckAliveInterval() != null) {
 				httpCheckAlive = new HttpCheckAlive();
 			}
-			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectionTimeout(),
+			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.getUsername(), http.getPassword(), http.getConnectTimeout(),
 					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy, sslContext);
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 			String multipartSubtype = http.getMultipartSubtype() != null ? http.getMultipartSubtype().value() : http.getMultipartRequest() != null ? "related" : null;
 			addAction(list, new HttpOutboundAction(httpEndpoint, http.getReadTimeout(), http.getChunkLength(), multipartSubtype, http.getMultipartRequest()), location);
 			if (http.getWorkerPool() != null) {
-				addAction(list, new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, http.isJoin()), location);
+				addAction(list, new SpawnAction(resolveWorkerPool(http.getWorkerPool()), false, false), location);
 			}
 			addAction(list, new HttpInboundAction(), location);
 			break;
 		}
 		case "jms": {
 			Jms jms = (Jms) actionElement.getValue();
-			JMSConnectionData jmsConnectionData = JMSConnectionData.create(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
+			List<JMSConnectionData> jmsConnectionData = JMSConnectionData.create(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
 			String multipartSubtype = jms.getMultipartSubtype() != null ? jms.getMultipartSubtype().value() : jms.getMultipart() != null ? "related" : null;
-			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), jms.isBytesMessage(), jms.getDeliveryMode(),
-					jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.getExpiryQueue(), jms.isReceiveFromTempQueue(), jms.getReplyQueue(), jms.getReceiveSelector(),
-					multipartSubtype, jms.getMultipart()), location);
+			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), resolveWorkerPool(jms.getWorkerPool()), jms.isBytesMessage(),
+					jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.getExpiryQueue(),
+					jms.isReceiveFromTempQueue(), jms.getReplyQueue(), jms.getReceiveSelector(), multipartSubtype, jms.getMultipart()), location);
 			break;
 		}
 		case "produceKafka": {
@@ -253,80 +263,80 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					sendMail.getReplyTo(), sendMail.getSubject(), sendMail.getText(), sendMail.getType(), globalContext.bindProperties(sendMail.getUserName()), globalContext.bindProperties(sendMail.getPassword())), location);
 			break;
 		}
-		case "executeJava": {
-			ExecuteJava executeJava = (ExecuteJava) actionElement.getValue();
-			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, executeJava.getClassLoader());
+		case "executeAction": {
+			ExecuteAction executeAction = (ExecuteAction) actionElement.getValue();
+			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, executeAction.getClassLoader());
 			Action action; 
 			try {
 				@SuppressWarnings("unchecked")
-				Class<? extends Action> cls = (Class<? extends Action>) Class.forName(executeJava.getJavaType(), true, classLoader);
+				Class<? extends Action> cls = (Class<? extends Action>) Class.forName(executeAction.getJavaType(), true, classLoader);
 				try {
-					action = cls.getConstructor(java.lang.ClassLoader.class, Properties.class).newInstance(classLoader, createProperties(executeJava.getProperty(), globalContext));
+					action = cls.getConstructor(java.lang.ClassLoader.class, Properties.class).newInstance(classLoader, createProperties(executeAction.getProperty(), globalContext));
 				} catch (NoSuchMethodException e) {
 					action = cls.newInstance();
 				}
 			} catch (LinkageError e) {
-				throw new ValidationException(this, executeJava.sourceLocation().getLineNumber(), e.getCause() != null ? e.getCause() : e);
+				throw new ValidationException(this, executeAction.sourceLocation().getLineNumber(), e.getCause() != null ? e.getCause() : e);
 			}
 			addAction(list, action, location);
 			break;
 		}
 		case "file": {
 			File file = (File) actionElement.getValue();
-			addAction(list, new FileAction(globalContext.bindProperties(file.getDir()), file.getVerb(), file.getFilename(), file.isMkdirs(), file.getAppend(), file.getZip(), file.isReadable(), file.isWritable()), location);
+			addAction(list, new FileAction(globalContext.bindProperties(file.getDir()), file.getAction(), file.getFilename(), file.isMkdirs(), file.getAppend(), file.getZip(), file.isReadable(), file.isWritable(), file.isOwnerOnly()), location);
 			break;
 		}
 		case "jdbcProcedure": {
 			JdbcProcedure jdbcProcedure = (JdbcProcedure) actionElement.getValue();
-			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getJdbcParameter().size() + jdbcProcedure.getOut().getJdbcParameter().size()];
-			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getJdbcParameter(), posUsed), createJDBCParameters(jdbcProcedure.getOut().getJdbcParameter(), posUsed),
+			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getParameter().size() + jdbcProcedure.getOut().getParameter().size()];
+			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getParameter(), posUsed), createJDBCParameters(jdbcProcedure.getOut().getParameter(), posUsed),
 					jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.getKeepConnection(), resolveSchemaSet(globalContext, jdbcProcedure.getSchemaURI())), location);
 			break;
 		}
 		case "jdbc": {
 			Jdbc jdbc = (Jdbc) actionElement.getValue();
-			boolean[] posUsed = new boolean[jdbc.getJdbcParameter().size()];
-			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getJdbcParameter(), posUsed),
+			boolean[] posUsed = new boolean[jdbc.getParameter().size()];
+			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getParameter(), posUsed),
 					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.getKeepConnection()), location);
 			break;
 		}
-		case "setMessage": {
-			SetMessage setMessage = (SetMessage) actionElement.getValue();
-			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, setMessage.getClassLoader());
-			SetMessageAction setMessageAction;
-			if (setMessage.getBody() != null) {
+		case "update": {
+			Update update = (Update) actionElement.getValue();
+			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, update.getClassLoader());
+			SetMessageAction action;
+			if (update.getBody() != null) {
 				StringWrapper bodyExpr;
-				if (setMessage.getBody().getFileURI() != null) {
-					Artifact artifact = loadArtifact(setMessage.getBody().getFileURI());
+				if (update.getBody().getFileURI() != null) {
+					Artifact artifact = loadArtifact(update.getBody().getFileURI());
 					artifact.validate(globalContext);
 					addReference(artifact);
 					bodyExpr = new StringWrapper(artifact.getContentAsBytes());
 				} else {
-					bodyExpr = new StringWrapper(setMessage.getBody().getValue());
+					bodyExpr = new StringWrapper(update.getBody().getValue());
 				}
-				setMessageAction = new SetMessageAction(classLoader, bodyExpr, setMessage.getBody().getJavaType(), setMessage.getBody().getMethod());
+				action = new SetMessageAction(classLoader, bodyExpr, update.getBody().getJavaType(), update.getBody().getMethod());
 			} else {
-				setMessageAction = new SetMessageAction(classLoader, null, null, null);
+				action = new SetMessageAction(classLoader, null, null, null);
 			}
 			HashSet<String> retainHeaders = new HashSet<>();
-			for (HeaderOrVariable hov : setMessage.getHeaderOrVariable()) {
-				boolean header = hov instanceof SetMessage.Header;
-				if (header && ((SetMessage.Header) hov).isRetain()) {
+			for (HeaderOrVariable hov : update.getHeaderOrVariable()) {
+				boolean header = hov instanceof Update.Header;
+				if (header && ((Update.Header) hov).isRetain()) {
 					retainHeaders.add(hov.getName().toLowerCase(Locale.ROOT));
 					if (hov.getValue().isEmpty()) {
 						continue;
 					}
 				}
 				try {
-					setMessageAction.addAssignment(hov.getName(), header, hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
+					action.addAssignment(hov.getName(), header, hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
 				} catch (LinkageError e) {
 					throw new ValidationException(this, hov.sourceLocation().getLineNumber(), e.getCause() != null ? e.getCause() : e);
 				}
 			}
-			if (setMessage.isClearAll()) {
-				setMessageAction.setClearHeadersExcept(retainHeaders.isEmpty() ? Collections.emptySet() : retainHeaders);
+			if (update.isClearHeaders()) {
+				action.setClearHeadersExcept(retainHeaders.isEmpty() ? Collections.emptySet() : retainHeaders);
 			}
-			addAction(list, setMessageAction, location);
+			addAction(list, action, location);
 			break;
 		}
 		case "processJson": {
@@ -353,7 +363,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either variable or header");
 				}
 			}
-			AssignAction assignAction = new AssignAction(assignments, ASSIGN_NULL_CHECK, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearAll());
+			AssignAction assignAction = new AssignAction(assignments, ASSIGN_NULL_CHECK, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearHeaders());
 			XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;
@@ -487,7 +497,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		case "iterate":
 			Iterate iterate = (Iterate) actionElement.getValue();
 			String iterName = iterate.getIterName() != null ? iterate.getIterName() : "_iter" + location;
-			IterateAction iterateAction = new IterateAction(iterate.getIterable(), iterName, iterate.isRemove(), iterate.getVariable(), Action.linkList(transform(globalContext, iterate.getAction(), null)));
+			IterateAction iterateAction = new IterateAction(iterate.getIterable(), iterName, iterate.isRemove(), iterate.getVariable(), iterate.getCollectorName(), iterate.getCollect(), Action.linkList(transform(globalContext, iterate.getAction(), null)));
 			addAction(list, iterateAction, location);
 			break;
 		case "branchOnVariable": {
@@ -584,9 +594,9 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 		return result;
 	}
 
-	private static List<JDBCParameter> createJDBCParameters(List<JdbcParameter> jdbcParameters, boolean[] posUsed) {
+	private static List<JDBCParameter> createJDBCParameters(List<Parameter> jdbcParameters, boolean[] posUsed) {
 		List<JDBCParameter> params = new ArrayList<>(jdbcParameters.size());
-		for (JdbcParameter jdbcParameter : jdbcParameters) {
+		for (Parameter jdbcParameter : jdbcParameters) {
 			if (jdbcParameter.getPos() != null) {
 				params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
 						jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
@@ -594,7 +604,7 @@ public class ServiceArtifact extends AbstractServiceArtifact {
 			}
 		}
 		int pos = 0;
-		for (JdbcParameter jdbcParameter : jdbcParameters) {
+		for (Parameter jdbcParameter : jdbcParameters) {
 			if (jdbcParameter.getPos() == null) {
 				while (posUsed[pos]) ++pos;
 				posUsed[pos] = true;

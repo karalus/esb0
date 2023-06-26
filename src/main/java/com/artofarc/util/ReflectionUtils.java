@@ -97,7 +97,7 @@ public final class ReflectionUtils {
 						continue outer;
 					}
 				}
-				throw new NoSuchMethodException(methodName);
+				throw new NoSuchMethodException(methodName + " for args " + args + " in " + root.getClass().getName());
 			}
 		}
 		return (T) root;

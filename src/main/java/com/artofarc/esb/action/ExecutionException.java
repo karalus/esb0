@@ -31,6 +31,10 @@ public class ExecutionException extends Exception {
 		_action = action;
 	}
 
+	public final Action getAction() {
+		return _action;
+	}
+
 	@Override
 	public String getMessage() {
 		return _action + ": " + super.getMessage();

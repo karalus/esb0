@@ -15,128 +15,31 @@
  */
 package com.artofarc.esb.jms;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.*;
+import javax.management.ObjectName;
 import javax.naming.NamingException;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import com.artofarc.esb.SchedulingConsumerPort;
+import com.artofarc.esb.Trend;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
-import com.artofarc.util.ConcurrentResourcePool;
-import com.artofarc.util.IOUtils;
-import com.artofarc.util.ReflectionUtils;
+import com.artofarc.util.DataStructures;
 
 public final class JMSConsumer extends SchedulingConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
-
-	static class BytesMessageInputStream extends InputStream implements IOUtils.PredictableInputStream{
-		final BytesMessage _bytesMessage;
-		final long length; 
-		long available, markpos = -1;
-
-		BytesMessageInputStream(BytesMessage bytesMessage) throws JMSException {
-			_bytesMessage = bytesMessage;
-			available = length = bytesMessage.getBodyLength();
-		}
-
-		@Override
-		public long length() {
-			return available;
-		}
-
-		@Override
-		public int available() {
-			return available > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) available;
-		}
-
- 		@Override
-		public boolean markSupported() {
-			return true;
-		}
-
-		public void mark(int readlimit) {
-			markpos = length - available;
-		}
-
-		@Override
-		public void reset() throws IOException {
-			if (markpos < 0)
-				throw new IOException("Resetting to invalid mark");
-			try {
-				_bytesMessage.reset();
-			} catch (JMSException e) {
-				throw new IOException(e);
-			}
-			available = length;
-			if (skip(markpos) != markpos) {
-				throw new IOException("Resetting to mark did not work");
-			}
-		}
-
-		@Override
-		public int read() throws IOException {
-			if (available == 0L) {
-				return -1;
-			}
-			try {
-				final int c = _bytesMessage.readUnsignedByte();
-				--available;
-				return c;
-			} catch (JMSException e) {
-				throw new IOException(e);
-			}
-		}
-
-		@Override
-		public int read(byte[] b, int off, int len) throws IOException {
-			if (available == 0L) {
-				return -1;
-			}
-			try {
-				if (off == 0) {
-					len = _bytesMessage.readBytes(b, len);
-				} else {
-					final byte[] ba = new byte[len];
-					len = _bytesMessage.readBytes(ba, len);
-					if (len > 0) {
-						System.arraycopy(ba, 0, b, off, len);
-					}
-				}
-				if (len > 0 && (available -= len) == 0L && markpos < 0L) {
-					_bytesMessage.clearBody();
-				}
-				return len;
-			} catch (JMSException e) {
-				throw new IOException(e);
-			}
-		}
-
-		@Override
-		public void close() throws IOException {
-			available = 0;
-			try {
-				_bytesMessage.clearBody();
-			} catch (JMSException e) {
-				throw new IOException(e);
-			}
-		}
-	}
 
 	private final JMSConnectionData _jmsConnectionData;
 	private Destination _destination;
@@ -147,24 +50,21 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private final boolean _shared;
 	private final String _messageSelector;
 	private final JMSWorker[] _jmsWorker;
-	private final Integer _maximumRetries;
-	private final ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException> _retries;
-	private final Long _redeliveryDelay;
 	private final long _rampUpThreshold = 1000L;
 	private final long _rampUpDelay = 2000L;
 	private final long _rampDownThreshold = 100L;
 	private final long _rampDownDelay = 10000L;
 	private final int _minWorkerCount;
-	private final int _significance = 10;
+	private final int _batchSize;
 	private long _lastControlChange;
 	private volatile boolean _operating;
 	private volatile int _workerCount;
-	private volatile long _currentSentReceiveDelay;
+	private final Trend _sentReceiveDelay = new Trend(10L);
 	private volatile long _lastChangeOfState;
 	private Future<?> _control;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, String subscription,
-			boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, long pollInterval, String timeUnit, XMLGregorianCalendar at, Integer maximumRetries, Long redeliveryDelay) throws NamingException, JMSException {
+			boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, int batchSize, long pollInterval, String timeUnit, XMLGregorianCalendar at) throws NamingException, JMSException {
 
 		super(uri, workerPool, at, timeUnit, pollInterval, false);
 		_jmsConnectionData = jmsConnectionData;
@@ -191,30 +91,18 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		_noLocal = noLocal;
 		_shared = shared;
 		_jmsWorker = new JMSWorker[workerCount];
-		_maximumRetries = maximumRetries;
-		if (maximumRetries != null) {
-			_retries = new ConcurrentResourcePool<AtomicInteger, String, Void, RuntimeException>() {
-				
-				@Override
-				protected AtomicInteger createResource(String descriptor, Void param) {
-					return new AtomicInteger();
-				}
-			};
-		} else {
-			_retries = null;
-		}
-		_redeliveryDelay = redeliveryDelay;
 		_minWorkerCount = minWorkerCount;
+		_batchSize = batchSize;
 	}
 
 	private String getDestinationName() {
 		return _queueName != null ? _queueName : _topicName;
 	}
 
-	private Destination getDestination(Session session) throws JMSException {
+	private Destination getDestination(JMSSession session) throws JMSException {
 		if (_destination == null) {
 			// All popular MOMs have no session related data in the Destination object, so we dare to cache it
-			_destination = _queueName != null ? session.createQueue(_queueName) : session.createTopic(_topicName);
+			_destination = _queueName != null ? session.getSession().createQueue(_queueName) : session.getSession().createTopic(_topicName);
 		}
 		return _destination;
 	}
@@ -229,6 +117,11 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		return key;
 	}
 
+	@Override
+	public String getMBeanPostfix() {
+		return ",consumerType=" + getClass().getSimpleName() + ",key=" + ObjectName.quote(getKey());
+	}
+
 	public int getWorkerCount() {
 		return _workerCount;
 	}
@@ -238,11 +131,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	public long getCurrentSentReceiveDelay() {
-		return _currentSentReceiveDelay;
-	}
-
-	public int getRetries() {
-		return _retries != null ? _retries.getResourceDescriptors().size() : -1;
+		return _sentReceiveDelay.getCurrent();
 	}
 
 	@Override
@@ -302,13 +191,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	void resume() throws JMSException {
-		if (_retries != null) {
-			try {
-				_retries.reset(true);
-			} catch (Exception e) {
-				// ignore
-			}
-		}
 		for (int i = 0; i < _workerCount;) {
 			JMSWorker jmsWorker = _jmsWorker[i++];
 			jmsWorker.open();
@@ -393,11 +275,11 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	public Boolean unsubscribe() {
-		Session session = _jmsWorker[0]._session;
+		JMSSession session = _jmsWorker[0]._session;
 		if (_subscription != null && session != null) {
 			try {
 				enable(false);
-				session.unsubscribe(_subscription);
+				session.getSession().unsubscribe(_subscription);
 				return true;
 			} catch (JMSException e) {
 				logger.error("unsubscribe " + _subscription, e);
@@ -407,12 +289,19 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws Exception {
+		for (@SuppressWarnings("unchecked")
+		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
+			String propertyName = propertyNames.nextElement();
+			esbMessage.putHeader(propertyName, message.getObjectProperty(propertyName));
+		}
 		if (message instanceof BytesMessage) {
 			esbMessage.reset(BodyType.INPUT_STREAM, new BytesMessageInputStream((BytesMessage) message), message.getStringProperty(ESBConstants.Charset));
+			esbMessage.prepareContent();
 		} else if (message instanceof TextMessage) {
 			TextMessage textMessage = (TextMessage) message;
 			esbMessage.reset(BodyType.STRING, textMessage.getText());
 			message.clearBody();
+			esbMessage.prepareContent();
 		}
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
 		esbMessage.putVariable(ESBConstants.JMSTimestamp, message.getJMSTimestamp());
@@ -424,34 +313,29 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		if (destinationName != null) {
 			esbMessage.putVariable(destinationName.getKey(), destinationName.getValue());
 		}
-		for (@SuppressWarnings("unchecked")
-		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
-			String propertyName = propertyNames.nextElement();
-			esbMessage.putHeader(propertyName, message.getObjectProperty(propertyName));
-		}
-		MimeHelper.parseMultipart(esbMessage, esbMessage.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE));
 	}
 
 	class JMSWorker implements MessageListener {
 		final Context _context = new Context(_workerPool.getPoolContext());
-		volatile Session _session;
+		volatile JMSSession _session;
 		volatile MessageConsumer _messageConsumer;
 
 		final void open() throws JMSException {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
-			_session = jmsSessionFactory.getResource(_jmsConnectionData, true).getSession();
+			_session = jmsSessionFactory.getResource(_jmsConnectionData, true);
+			_context.putResource(ESBConstants.JMSSession, _session);
 		}
 
 		final void initMessageConsumer() throws JMSException {
 			if (_messageConsumer == null && _session != null) {
 				if (_subscription != null) {
 					if (_shared) {
-						_messageConsumer = _session.createSharedDurableConsumer((Topic) getDestination(_session), _subscription, _messageSelector);
+						_messageConsumer = _session.getSession().createSharedDurableConsumer((Topic) getDestination(_session), _subscription, _messageSelector);
 					} else {
-						_messageConsumer = _session.createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, _noLocal);
+						_messageConsumer = _session.getSession().createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, _noLocal);
 					}
 				} else {
-					_messageConsumer = _session.createConsumer(getDestination(_session), _messageSelector, _noLocal);
+					_messageConsumer = _session.getSession().createConsumer(getDestination(_session), _messageSelector, _noLocal);
 				}
 			}
 		}
@@ -500,47 +384,34 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			// monitor threads not started by us but by the JMS provider 
 			_workerPool.addThread(Thread.currentThread(), getDestinationName());
 			try {
-				processMessage(message);
-			} catch (Exception e) {
-				throw ReflectionUtils.convert(e, RuntimeException.class);
+				processMessages(message);
+			} catch (JMSException e) {
+				throw new RuntimeException(e); 
 			}
 		}
 
-		final boolean processMessage(Message message) throws JMSException, InterruptedException {
-			ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
-			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
+		protected final boolean processMessages(Message... messages) throws JMSException {
+			ESBMessage[] esbMessages = new ESBMessage[messages.length];
+			if (messages.length > 1) {
+				logger.info("JMS Batch size: " + messages.length);
+			}
 			try {
-				fillESBMessage(esbMessage, message);
-				processInternal(_context, esbMessage);
-				_session.commit();
-				if (message.getJMSRedelivered() ) {
-					if (_retries != null) {
-						_retries.removeResource(message.getJMSMessageID());
-					}
-				} else {
-					long receiveTimestamp = esbMessage.getVariable(ESBConstants.initialTimestamp);
-					long sentReceiveDelay = (_currentSentReceiveDelay * _significance + receiveTimestamp - message.getJMSTimestamp()) / (_significance + 1);
-					controlJMSWorkerPool(_currentSentReceiveDelay = sentReceiveDelay, receiveTimestamp);
+				for (int i = 0; i < messages.length; ++i) {
+					ESBMessage esbMessage = esbMessages[i] = new ESBMessage(BodyType.INVALID, null);
+					esbMessage.putVariable("JMSConnectionData", _jmsConnectionData.toString());
+					esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
+					fillESBMessage(esbMessage, messages[i]);
 				}
-				return true;
+				processInternal(_context, esbMessages);
 			} catch (Exception e) {
-				if (_redeliveryDelay != null) {
-					Thread.sleep(_redeliveryDelay);
-				}
 				logger.info("Rolling back for " + getKey(), e);
-				_session.rollback();
-				if (_retries != null) {
-					AtomicInteger retries = _retries.getResource(message.getJMSMessageID());
-					if (retries.incrementAndGet() > _maximumRetries) {
-						try {
-							enable(false);
-						} catch (JMSException je) {
-							logger.error("Failed to disable after reaching maximumRetries: " + getKey(), je);
-						}
-					}
-				}
+				_session.getSession().rollback();
 				return false;
 			}
+			_session.getSession().commit();
+			long receiveTimestamp = esbMessages[messages.length - 1].getVariable(ESBConstants.initialTimestamp);
+			controlJMSWorkerPool(_sentReceiveDelay.accumulateAndGet(receiveTimestamp - messages[0].getJMSTimestamp()), receiveTimestamp);
+			return true;
 		}
 	}
 
@@ -571,18 +442,24 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		@Override
 		public void run() {
 			try {
-				Message message;
-				do {
-					message = _messageConsumer.receiveNoWait();
-				} while (message != null && processMessage(message));
+				for (ArrayList<Message> messages = new ArrayList<>(_batchSize);; messages.clear()) {
+					for (int i = 0; i < _batchSize; ++i) {
+						Message message = _messageConsumer.receiveNoWait();
+						if (message == null) {
+							break;
+						}
+						messages.add(message);
+					}
+					if (messages.isEmpty() || !processMessages(DataStructures.toArray(messages))) {
+						break;
+					}
+				}
 				if (needsReschedule()) {
 					_poller = schedule(this, _initialDelay);
 				}
 			} catch (JMSException e) {
 				JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 				jmsConnectionProvider.getExceptionListener(_jmsConnectionData).onException(e);
-			} catch (InterruptedException e) {
-				// stopListening
 			}
 		}
 	}

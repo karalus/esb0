@@ -45,7 +45,7 @@ public interface ESBConstants {
 	String redirect = "redirect";
 
 	// HTTPURLConnection
-	String HttpURLConnection = "_HttpURLConnection";
+	String HttpURLConnection = "HttpURLConnection";
 
 	String HttpURLOutbound = "HttpURLOutbound";
 
@@ -72,6 +72,8 @@ public interface ESBConstants {
 	String SOAP_HEADER = "header";
 
 	// JMS concepts
+	String JMSSession = "JMSSession";
+
 	String JMSMessageID = "JMSMessageID";
 
 	String JMSCorrelationID = "JMSCorrelationID";
@@ -96,6 +98,6 @@ public interface ESBConstants {
 	String filename = "filename";
 
 	// JDBC concepts
-	String JDBCConnections = "_JDBCConnections";
+	String JDBCConnections = "JDBCConnections";
 
 }

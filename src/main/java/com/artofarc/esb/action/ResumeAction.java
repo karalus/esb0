@@ -33,6 +33,9 @@ public class ResumeAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		if (_nextAction != null) {
+			throw new ExecutionException(this, "resume must be the last action in service flow");
+		}
 		Object correlationID = resolve(message, _correlationID, true);
 		if (correlationID == null) {
 			throw new ExecutionException(this, "name could not be resolved: " + _correlationID);
@@ -41,13 +44,11 @@ public class ResumeAction extends Action {
 		if (asyncProcessingPool == null) {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + _workerPool);
 		}
-		AsyncProcessingPool.AsyncContext asyncContext = asyncProcessingPool.removeAsyncContext(correlationID);
-		if (asyncContext == null) {
+		Action action = asyncProcessingPool.restoreContext(correlationID, context, message);
+		if (action == null) {
 			throw new ExecutionException(this, "No AsyncContext found for " + correlationID);
 		}
-		context.getExecutionStack().addAll(asyncContext.executionStack);
-		message.getVariables().putAll(asyncContext.variables);
-		return new ExecutionContext(asyncContext.nextAction);		
+		return new ExecutionContext(action);		
 	}
 
 	@Override

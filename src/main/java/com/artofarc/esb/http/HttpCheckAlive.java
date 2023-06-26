@@ -16,11 +16,22 @@
 package com.artofarc.esb.http;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
-
-import javax.net.ssl.HttpsURLConnection;
+import java.util.Date;
+import java.util.function.Function;
 
 public class HttpCheckAlive {
+
+	@SuppressWarnings("deprecation")
+	protected static long convertDateString(String dateString) {
+		try {
+			if (dateString.indexOf("GMT") < 0) {
+				dateString += " GMT";
+			}
+			return Date.parse(dateString);
+		} catch (Exception e) {
+			return -1;
+		}
+	}
 
 	protected Integer _retryAfter; 
 
@@ -29,27 +40,19 @@ public class HttpCheckAlive {
 		return obj != null && getClass() == obj.getClass();
 	}
 
-	public HttpURLConnection connect(HttpEndpoint httpEndpoint, int pos) throws IOException {
-		HttpURLConnection conn = (HttpURLConnection) httpEndpoint.getHttpUrls().get(pos).getUrl().openConnection(httpEndpoint.getProxy());
-		if (httpEndpoint.getSSLContext() != null) {
-			((HttpsURLConnection) conn).setSSLSocketFactory(httpEndpoint.getSSLContext().getSocketFactory());
-		}
-		conn.setConnectTimeout(httpEndpoint.getConnectionTimeout());
-		// SSL Handshake got stuck
-		conn.setReadTimeout(httpEndpoint.getConnectionTimeout());
-		conn.setRequestMethod("HEAD");
-		return conn;
+	public String getCheckAliveMethod() {
+		return "HEAD";
 	}
 
-	public boolean isAlive(HttpURLConnection conn, int responseCode) {
-		if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
+	public boolean isAlive(int statusCode, Function<String, String> getHeader) {
+		if (statusCode == 503) {
 			_retryAfter = null;
-			String retryAfter = conn.getHeaderField(HttpConstants.HTTP_HEADER_RETRY_AFTER);
+			String retryAfter = getHeader.apply(HttpConstants.HTTP_HEADER_RETRY_AFTER);
 			if (retryAfter != null) {
 				try {
 					_retryAfter = Integer.valueOf(retryAfter);
 				} catch (NumberFormatException e) {
-					long date = conn.getHeaderFieldDate(HttpConstants.HTTP_HEADER_RETRY_AFTER, 0);
+					long date = convertDateString(retryAfter);
 					if (date > 0) {
 						_retryAfter = (int) (date - System.currentTimeMillis() + 999) / 1000;
 					}
@@ -66,14 +69,13 @@ public class HttpCheckAlive {
 		return retryAfter;
 	}
 
-	public static class ConnectException extends IOException {
+	public static final class ConnectException extends IOException {
 
 		private static final long serialVersionUID = 1L;
 
 		public ConnectException(String message) {
 			super(message);
 		}
-
 	}
 
 }

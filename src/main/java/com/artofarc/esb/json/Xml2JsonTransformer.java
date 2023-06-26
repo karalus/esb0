@@ -27,8 +27,6 @@ import java.util.regex.Pattern;
 import javax.json.stream.JsonGenerator;
 import javax.xml.XMLConstants;
 import javax.xml.bind.DatatypeConverter;
-import javax.xml.datatype.DatatypeConstants;
-import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
 
 import org.xml.sax.Attributes;
@@ -403,12 +401,6 @@ public final class Xml2JsonTransformer {
 			date = date.substring(0, 10);
 		}
 		return date;
-	}
-
-	public static void omitTZfromDate(XMLGregorianCalendar date) {
-		if (JSON_OMIT_TZ_FROM_DATE) {
-			date.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
-		}
 	}
 
 }

@@ -19,7 +19,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Map;
+import java.util.StringTokenizer;
+
+import javax.xml.datatype.DatatypeConstants;
+import javax.xml.datatype.XMLGregorianCalendar;
 
 /**
  * @see https://tools.ietf.org/html/rfc3986
@@ -98,6 +104,77 @@ public final class URLUtils {
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static void parseURLEncodedString(String urlEncodedString, Map<String, Object> variables, String genericVariable) {
+		int count = 0;
+		StringTokenizer st = new StringTokenizer(urlEncodedString, "&");
+		while (st.hasMoreTokens()) {
+			final String pair = st.nextToken();
+			final int i = pair.indexOf("=");
+			final String key, value;
+			if (i > 0) {
+				key = decode(pair.substring(0, i));
+				value = decode(pair.substring(i + 1));
+			} else {
+				key = decode(pair);
+				value = null;
+			}
+			if (genericVariable != null) {
+				variables.put(genericVariable + '#' + ++count, key);
+				variables.put(genericVariable + '#' + ++count, value);
+			} else {
+				Object old = variables.get(key);
+				if (old != null) {
+					ArrayList<Object> list; 
+					if (old instanceof ArrayList) {
+						list = (ArrayList<Object>) old;
+					} else {
+						list = new ArrayList<>();
+						list.add(old);
+						variables.put(key, list);
+					}
+					list.add(value);
+				} else {
+					variables.put(key, value);
+				}
+			}
+		}
+		if (genericVariable != null) {
+			variables.put(genericVariable + '#', count);
+		}
+	}
+
+	public static String createURLEncodedString(Map<String, Object> variables, String parameters, String delim) {
+		StringBuilder sb = new StringBuilder();
+		StringTokenizer st = new StringTokenizer(parameters, delim);
+		while (st.hasMoreTokens()) {
+			String varName = st.nextToken();
+			Object value = variables.get(varName);
+			if (value != null) {
+				varName = encode(varName);
+				if (value instanceof Iterable) {
+					for (Object object : (Iterable<?>) value) {
+						append(sb, varName, object);
+					}
+				} else {
+					append(sb, varName, value);
+				}
+			}
+		}
+		return sb.length() > 0 ? sb.toString() : null;
+	}
+
+	private static void append(StringBuilder sb, String key, Object value) {
+		if (value instanceof XMLGregorianCalendar) {
+			// omit time zone from Date
+			((XMLGregorianCalendar) value).setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+		}
+		if (sb.length() > 0) {
+			sb.append('&');
+		}
+		sb.append(key).append('=').append(encode(value.toString()));
 	}
 
 }

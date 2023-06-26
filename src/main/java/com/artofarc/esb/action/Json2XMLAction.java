@@ -45,11 +45,17 @@ public class Json2XMLAction extends SAXAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
+		String contentType = message.getContentType();
 		if (isNotJSON(contentType)) {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
-		message.putHeader(HTTP_HEADER_CONTENT_TYPE, SOAP_1_1_CONTENT_TYPE);
+		contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType == null || isNotXML(contentType)) {
+			// target Content-Type is not XML, set default XML Content-Type
+			message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
+			contentType = HTTP_HEADER_CONTENT_TYPE_XML;
+		}
+		message.setContentType(contentType);
 		if (message.getBodyType() == BodyType.JSON_VALUE) {
 			SAXSource source = new SAXSource(_json2xml.createParser(message.getBody()), null);
 			message.reset(BodyType.SOURCE, source);

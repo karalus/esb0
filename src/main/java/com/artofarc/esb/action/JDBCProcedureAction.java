@@ -85,6 +85,8 @@ public class JDBCProcedureAction extends JDBCAction {
 				default:
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getType());
 				}
+				message.setContentType(null);
+				message.setCharset(null);
 			} else if (param.isAttachments()) {
 				Struct struct = (Struct) cs.getObject(param.getPos());
 				if (struct != null) {

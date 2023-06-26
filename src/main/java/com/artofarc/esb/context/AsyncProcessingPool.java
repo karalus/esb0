@@ -30,15 +30,16 @@ import com.artofarc.esb.message.ESBMessage;
 
 public final class AsyncProcessingPool implements Runnable {
 
-	public final static class AsyncContext {
-		public final Action nextAction;
-		public final Collection<Action> executionStack;
-		public final Map<String, Object> variables;
-		public final long expiry;
+	private static class AsyncContext {
+		final Action nextAction;
+		final Collection<Action> executionStack, stackErrorHandler;
+		final Map<String, Object> variables;
+		final long expiry;
 
-		public AsyncContext(Action nextAction, Collection<Action> executionStack, Map<String, Object> variables, long expiry) {
+		AsyncContext(Action nextAction, Collection<Action> executionStack, Collection<Action> stackErrorHandler, Map<String, Object> variables, long expiry) {
 			this.nextAction = nextAction;
 			this.executionStack = executionStack;
+			this.stackErrorHandler = stackErrorHandler;
 			this.variables = variables;
 			this.expiry = expiry;
 		}
@@ -46,8 +47,7 @@ public final class AsyncProcessingPool implements Runnable {
 
 	private final Map<Object, AsyncContext> _asyncContexts = new ConcurrentHashMap<>();
 	private final WorkerPool _workerPool;
-
-	private ScheduledFuture<?> _scheduledFuture;
+	private volatile ScheduledFuture<?> _scheduledFuture;
 
 	public AsyncProcessingPool(WorkerPool workerPool) {
 		_workerPool = workerPool;
@@ -57,19 +57,29 @@ public final class AsyncProcessingPool implements Runnable {
 		return _asyncContexts.size();
 	}
 
-	private synchronized void start() {
+	private void start() {
+		// double checked locking
 		if (_scheduledFuture == null) {
-			_scheduledFuture = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, 30L, 30L, TimeUnit.SECONDS);
+			synchronized (this) {
+				if (_scheduledFuture == null) {
+					_scheduledFuture = _workerPool.getScheduledExecutorService().scheduleWithFixedDelay(this, 30L, 30L, TimeUnit.SECONDS);
+				}
+			}
 		}
 	}
 
-	synchronized void stop() {
-		if (_scheduledFuture != null) {
-			_scheduledFuture.cancel(true);
+	void stop() {
+		ScheduledFuture<?> scheduledFuture = _scheduledFuture;
+		if (scheduledFuture != null) {
+			scheduledFuture.cancel(true);
 		}
 	}
 
-	public void putAsyncContext(Object correlationID, AsyncContext asyncContext) {
+	public void saveContext(Object correlationID, Action nextAction, Collection<Action> executionStack, Collection<Action> stackErrorHandler, Map<String, Object> variables, long expiry) {
+		if (nextAction == null && executionStack.isEmpty()) {
+			throw new IllegalArgumentException("No action for resume given");
+		}
+		AsyncContext asyncContext = new AsyncContext(nextAction, executionStack, stackErrorHandler, variables, expiry);
 		if (_asyncContexts.putIfAbsent(correlationID, asyncContext) != null) {
 			throw new IllegalArgumentException("correlationID already used: " + correlationID);
 		}
@@ -77,9 +87,16 @@ public final class AsyncProcessingPool implements Runnable {
 		start();
 	}
 
-	public AsyncContext removeAsyncContext(Object correlationID) {
-		Context.logger.debug("AsyncContext removed with correlationID " + correlationID);
-		return _asyncContexts.remove(correlationID);
+	public Action restoreContext(Object correlationID, Context context, ESBMessage message) {
+		AsyncContext asyncContext = _asyncContexts.remove(correlationID);
+		if (asyncContext != null) {
+			Context.logger.debug("AsyncContext removed with correlationID " + correlationID);
+			context.getExecutionStack().addAll(asyncContext.executionStack);
+			context.getStackErrorHandler().addAll(asyncContext.stackErrorHandler);
+			message.getVariables().putAll(asyncContext.variables);
+			return asyncContext.nextAction != null ? asyncContext.nextAction : context.getExecutionStack().pop();
+		}
+		return null;
 	}
 
 	@Override
@@ -95,7 +112,6 @@ public final class AsyncProcessingPool implements Runnable {
 					ESBMessage message = new ESBMessage(BodyType.INVALID, null);
 					message.getVariables().putAll(asyncContext.variables);
 					Action action = new ThrowExceptionAction("AsyncContext expired for correlationID " + entry.getKey());
-					action.setNextAction(asyncContext.nextAction);
 					action.process(context, message);
 				} catch (Exception e) {
 					Context.logger.info("Exception while expiring AsyncContext", e);
