@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 	private final ClassLoader _classLoader;
 	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache;
+	private final Map<Object, String> _localJndiObjects = new IdentityHashMap<>();
 	private final Map<String, List<WeakReference<PropertyChangeListener>>> _propertyChangeListeners = new HashMap<>();
 	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
@@ -294,8 +296,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		} catch (NamingException e) {
 			// Ignore
 		}
-		// Close HikariDataSource from DataSourceArtifact
-		DataStructures.typeSelect(_propertyCache.getResources(), AutoCloseable.class).forEach(Closer::closeQuietly);
+		// Close esb0 local JNDI Objects
+		DataStructures.typeSelect(_localJndiObjects.keySet(), AutoCloseable.class).forEach(Closer::closeQuietly);
 		super.close();
 	}
 
@@ -321,6 +323,23 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 	public Set<String> getCachedProperties() {
 		return _propertyCache.getResourceDescriptors();
+	}
+
+	public Object putJndiObject(String key, Object jndiObject, String artifactUri) {
+		Object old = putProperty(key, jndiObject);
+		_localJndiObjects.remove(old);
+		_localJndiObjects.put(jndiObject, artifactUri);
+		return old;
+	}
+
+	public Object removeJndiObject(String key) {
+		Object jndiObject = removeProperty(key);
+		_localJndiObjects.remove(jndiObject);
+		return jndiObject;
+	}
+
+	public String getArtifactUri(Object jndiObject) {
+		return _localJndiObjects.get(jndiObject);
 	}
 
 	public String getVersion() throws NamingException {

@@ -80,7 +80,7 @@ public final class DeployHelper {
 			closer.add(oldWorkerPool);
 		});
 		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), JNDIObjectFactoryArtifact.class).forEach(jndiObjectFactoryArtifact -> {
-			Object object = globalContext.removeProperty(jndiObjectFactoryArtifact.getJndiName());
+			Object object = globalContext.removeJndiObject(jndiObjectFactoryArtifact.getJndiName());
 			if (object instanceof AutoCloseable) {
 				// close later
 				closer.add((AutoCloseable) object);
@@ -116,7 +116,7 @@ public final class DeployHelper {
 			} catch (javax.naming.NamingException e) {
 				// no oldObject
 			}
-			globalContext.putProperty(jndiObjectFactoryArtifact.getJndiName(), jndiObjectFactoryArtifact.createObject());
+			globalContext.putJndiObject(jndiObjectFactoryArtifact.getJndiName(), jndiObjectFactoryArtifact.createObject(), jndiObjectFactoryArtifact.getURI());
 		}
 		for (ServiceArtifact service : serviceArtifacts) {
 			ConsumerPort oldConsumerPort;

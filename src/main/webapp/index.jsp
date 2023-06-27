@@ -203,7 +203,7 @@ input[type="submit"][value="false"] {
 		case "DataSources":
 			%>
 <br>DataSources:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Type</b></td><td><b>Active Connections</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Type</b></td><td><b>Active Connections</b></td><td><b>Uri</b></td><td><b>Delete</b></td></tr>
 <%
 			for (String propertyName : globalContext.getCachedProperties()) {
 				Object object = globalContext.getProperty(propertyName);
@@ -214,8 +214,25 @@ input[type="submit"][value="false"] {
 					} catch (Exception e) {
 						// ignore
 					}
+					String uri = globalContext.getArtifactUri(object);
 					%>
-					<tr><td><%=propertyName%></td><td><%=object.getClass().getName()%></td><td><%=activeConnections%></td></tr>
+					<tr>
+						<td><%=propertyName%></td>
+						<td><%=object.getClass().getName()%></td>
+						<td><%=activeConnections%></td>
+					<%
+					if (uri != null) {
+						%>
+						<td><a href="<%=request.getContextPath() + request.getServletPath() + uri%>"><%=uri%></a></td>
+						<td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + uri%>" onsubmit="return confirm('Are you sure to delete \'<%=uri%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td>
+						<%
+					} else {
+						%>
+						<td></td><td></td>
+						<%
+					}
+					%>
+					</tr>
 					<%
 				}
 			}
@@ -230,7 +247,13 @@ input[type="submit"][value="false"] {
 <%
 			for (WorkerPool workerPool : globalContext.getWorkerPools()) {
 				%>
-				<tr><td><a href="<%=workerPool.getName() != "default" ? request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION : ""%>"><%=workerPool.getName()%></a></td><td><%=workerPool.getPoolSize()%></td><td><%=workerPool.getQueueSize()%></td><td><%=workerPool.getActiveCount()%></td><td><%=workerPool.getCompletedTaskCount()%></td></tr>
+				<tr>
+					<td><a href="<%=workerPool.getName() != "default" ? request.getContextPath() + request.getServletPath() + workerPool.getName() + "." + WorkerPoolArtifact.FILE_EXTENSION : ""%>"><%=workerPool.getName()%></a></td>
+					<td><%=workerPool.getPoolSize()%></td>
+					<td><%=workerPool.getQueueSize()%></td>
+					<td><%=workerPool.getActiveCount()%></td>
+					<td><%=workerPool.getCompletedTaskCount()%></td>
+				</tr>
 				<%
 			}
 %>
@@ -359,10 +382,6 @@ Upload Service-JAR:
 			if (a instanceof SchemaArtifact) {
 				%>
 				<tr><td>Namespace</td><td><%=((SchemaArtifact) a).getNamespace()%></td></tr>
-				<%
-			} else if (a instanceof JNDIObjectFactoryArtifact) {
-				%>
-				<tr><td></td><td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>" onsubmit="return confirm('Are you sure to delete \'<%=a.getURI()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td></tr>
 				<%
 			} else if (a instanceof JarArtifact && a.isValidated()) {
 				JarArtifact jarArtifact = (JarArtifact) a;
