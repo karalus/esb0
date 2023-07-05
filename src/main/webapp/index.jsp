@@ -200,41 +200,43 @@ input[type="submit"][value="false"] {
 </table>
 			<%
 			break;
-		case "DataSources":
+		case "LocalJNDIobjects":
 			%>
-<br>DataSources:
+<br>Local JNDI objects:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Type</b></td><td><b>Active Connections</b></td><td><b>Uri</b></td><td><b>Delete</b></td></tr>
 <%
 			for (String propertyName : globalContext.getCachedProperties()) {
 				Object object = globalContext.getProperty(propertyName);
+				String uri = globalContext.getArtifactUri(object);
+				Object activeConnections = "N/A";
 				if (object instanceof javax.sql.DataSource) {
-					Object activeConnections = "N/A";
 					try {
 						activeConnections = com.artofarc.util.ReflectionUtils.eval(object, "hikariPoolMXBean.activeConnections");
 					} catch (Exception e) {
 						// ignore
 					}
-					String uri = globalContext.getArtifactUri(object);
+				} else if (uri == null) {
+					continue;
+				}
+				%>
+				<tr>
+					<td><%=propertyName%></td>
+					<td><%=object.getClass().getName()%></td>
+					<td><%=activeConnections%></td>
+				<%
+				if (uri != null) {
 					%>
-					<tr>
-						<td><%=propertyName%></td>
-						<td><%=object.getClass().getName()%></td>
-						<td><%=activeConnections%></td>
+					<td><a href="<%=request.getContextPath() + request.getServletPath() + uri%>"><%=uri%></a></td>
+					<td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + uri%>" onsubmit="return confirm('Are you sure to delete \'<%=uri%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td>
 					<%
-					if (uri != null) {
-						%>
-						<td><a href="<%=request.getContextPath() + request.getServletPath() + uri%>"><%=uri%></a></td>
-						<td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + uri%>" onsubmit="return confirm('Are you sure to delete \'<%=uri%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td>
-						<%
-					} else {
-						%>
-						<td></td><td></td>
-						<%
-					}
+				} else {
 					%>
-					</tr>
+					<td></td><td></td>
 					<%
 				}
+				%>
+				</tr>
+				<%
 			}
 %>
 </table>
@@ -324,7 +326,7 @@ input[type="submit"][value="false"] {
 	<tr bgcolor="#EEEEEE">
 		<td><a href="<%=request.getContextPath()%>/admin?InternalServices">InternalServices</a></td>
 		<td><a href="<%=request.getContextPath()%>/admin?WorkerPools">WorkerPools</a></td>
-		<td><a href="<%=request.getContextPath()%>/admin?DataSources">DataSources</a></td>
+		<td><a href="<%=request.getContextPath()%>/admin?LocalJNDIobjects">Local JNDI objects</a></td>
 	</tr>
 	<tr bgcolor="#EEEEEE">
 		<td><a href="<%=request.getContextPath()%>/admin?HttpEndpoints">HttpEndpoints</a></td>
