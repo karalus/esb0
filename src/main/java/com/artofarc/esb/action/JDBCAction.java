@@ -124,27 +124,32 @@ public abstract class JDBCAction extends Action {
 		if (inPipeline) {
 			for (JDBCParameter param : _params) {
 				if (param.isBody()) {
-					switch (param.getType()) {
-					case SQLXML:
-						SQLXML xmlObject = connection.createSQLXML();
-						message.reset(BodyType.RESULT, xmlObject.setResult(DOMResult.class));
-						execContext.setResource3(xmlObject);
-						break;
-					case CLOB:
-						Clob clob = connection.createClob();
-						message.reset(BodyType.WRITER, clob.setCharacterStream(1L));
-						execContext.setResource3(clob);
-						break;
-					case BLOB:
-						Blob blob = connection.createBlob();
-						message.reset(BodyType.OUTPUT_STREAM, blob.setBinaryStream(1L));
-						message.setCharset(message.getSinkEncoding());						
-						execContext.setResource3(blob);
-						break;
-					case STRUCT:
-						break;
-					default:
-						throw new ExecutionException(this, "SQL type for body not supported: " + param.getType());
+					try {
+						switch (param.getType()) {
+						case SQLXML:
+							SQLXML xmlObject = connection.createSQLXML();
+							message.reset(BodyType.RESULT, xmlObject.setResult(DOMResult.class));
+							execContext.setResource3(xmlObject);
+							break;
+						case CLOB:
+							Clob clob = connection.createClob();
+							message.reset(BodyType.WRITER, clob.setCharacterStream(1L));
+							execContext.setResource3(clob);
+							break;
+						case BLOB:
+							Blob blob = connection.createBlob();
+							message.reset(BodyType.OUTPUT_STREAM, blob.setBinaryStream(1L));
+							message.setCharset(message.getSinkEncoding());						
+							execContext.setResource3(blob);
+							break;
+						case STRUCT:
+							break;
+						default:
+							throw new ExecutionException(this, "SQL type for body not supported: " + param.getType());
+						}
+					} catch (Exception e) {
+						connection.close(false);
+						throw e;
 					}
 					break;
 				}
