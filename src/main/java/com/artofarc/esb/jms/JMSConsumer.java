@@ -37,7 +37,6 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
-import com.artofarc.util.DataStructures;
 
 public final class JMSConsumer extends SchedulingConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
@@ -450,7 +449,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 						}
 						messages.add(message);
 					}
-					if (messages.isEmpty() || !processMessages(DataStructures.toArray(messages))) {
+					if (messages.isEmpty() || !processMessages(messages.toArray(new Message[messages.size()]))) {
 						break;
 					}
 				}
