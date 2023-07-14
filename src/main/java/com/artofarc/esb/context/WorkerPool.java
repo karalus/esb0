@@ -131,6 +131,9 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 	@Override
 	public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
 		try {
+			if (executor.isTerminated()) {
+				throw new RejectedExecutionException("Already closed " + _name);
+			}
 			do {
 				PoolContext.logger.warn("Could not submit to worker pool " + _name);
 			} while (!executor.getQueue().offer(r, 60, TimeUnit.SECONDS));
