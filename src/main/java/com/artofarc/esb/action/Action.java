@@ -151,7 +151,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 					action = pipeline.get(i);
 					ExecutionContext exContext = resources.get(i);
 					action.execute(context, exContext, message, i == secondLast);
-					timeGauge.stopTimeMeasurement("Execute: " + action, true);
+					timeGauge.stopTimeMeasurement("Execute: %s", true, action);
 				}
 				if (nextAction == null) {
 					nextAction = context.getExecutionStack().poll();
@@ -183,7 +183,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 						if (!closeSilently)
 							throw e;
 					}
-					timeGauge.stopTimeMeasurement("Close: " + action, true);
+					timeGauge.stopTimeMeasurement("Close: %s", true, action);
 				}
 			}
 			pipeline.clear();

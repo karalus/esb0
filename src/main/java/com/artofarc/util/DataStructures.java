@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,13 +88,12 @@ public final class DataStructures {
 		return list;
 	}
 
-	public static <T> T[] toArray(Collection<T> list) {
-		Iterator<T> iter = list.iterator();
-		if (!iter.hasNext()) {
-			throw new IllegalArgumentException("Collection must not be empty");
+	public static <T> T[] toArray(List<T> list) {
+		if (list.isEmpty()) {
+			throw new IllegalArgumentException("List must not be empty");
 		}
 		@SuppressWarnings("unchecked")
-		T[] array = (T[]) Array.newInstance(iter.next().getClass(), list.size());
+		T[] array = (T[]) Array.newInstance(list.get(0).getClass(), list.size());
 		return list.toArray(array);
 	}
 
