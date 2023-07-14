@@ -140,6 +140,9 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 	public synchronized void init(GlobalContext globalContext) throws JMSException {
 		initWorkerPool(globalContext);
+		if (_workerPool.getExecutorService() == null) {
+			throw new IllegalArgumentException("WorkerPool must have an ExecutorService: " + _workerPoolName);
+		}
 		// distribute evenly over poll interval
 		long delay = _period / _jmsWorker.length;
 		for (; _workerCount < _minWorkerCount; ++_workerCount) {

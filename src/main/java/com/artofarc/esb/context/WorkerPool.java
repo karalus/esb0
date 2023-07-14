@@ -182,6 +182,10 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 		}
 	}
 
+	public int getGuaranteedPoolSize() {
+		return _allowCoreThreadTimeOut ? 0 : getCorePoolSize();
+	}
+
 	// Methods for monitoring
 
 	public int getPoolSize() {

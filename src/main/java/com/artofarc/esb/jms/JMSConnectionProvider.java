@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
+import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.esb.resource.ResourceFactory;
 import com.artofarc.util.Closer;
@@ -237,7 +238,11 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 					Connection connection = _connection;
 					if (connection != null) {
 						_connection = null;
-						_future = _poolContext.getWorkerPool().getExecutorService().submit(() -> {
+						WorkerPool workerPool = _poolContext.getWorkerPool();
+						if (workerPool.getGuaranteedPoolSize() < 2) {
+							workerPool = _poolContext.getGlobalContext().getDefaultWorkerPool();
+						}
+						_future = workerPool.getExecutorService().submit(() -> {
 							shutdown(connection);
 							startReconnectThread();
 						});
