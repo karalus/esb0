@@ -814,6 +814,7 @@
 			<attribute name="queueDepth" type="int" use="required" />
 			<attribute name="scheduledThreads" type="unsignedShort" use="required" />
 			<attribute name="allowCoreThreadTimeOut" type="boolean" default="false" />
+			<attribute name="retry" type="boolean" default="true" />
 		</complexType>
 	</element>
 	<element name="jndiObjectFactory">

@@ -92,16 +92,16 @@ public final class DeployHelper {
 			WorkerPool oldWorkerPool = globalContext.getWorkerPool(name);
 			if (oldWorkerPool != null) {
 				if (!oldWorkerPool.tryUpdate(wpDef.getMinThreads(), wpDef.getMaxThreads(),
-						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut())) {
+						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut(), wpDef.isRetry())) {
 
 					globalContext.putWorkerPool(name, new WorkerPool(oldWorkerPool.getPoolContext(), name, wpDef.getMinThreads(), wpDef.getMaxThreads(),
-							wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
+							wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut(), wpDef.isRetry()));
 					// close later
 					closer.add(oldWorkerPool);
 				}
 			} else {
 				globalContext.putWorkerPool(name, new WorkerPool(globalContext, name, wpDef.getMinThreads(), wpDef.getMaxThreads(),
-						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut()));
+						wpDef.getPriority(), wpDef.getQueueDepth(), wpDef.getScheduledThreads(), wpDef.isAllowCoreThreadTimeOut(), wpDef.isRetry()));
 			}
 		}
 		for (JNDIObjectFactoryArtifact jndiObjectFactoryArtifact : changeSet.getJNDIObjectFactoryArtifacts()) {

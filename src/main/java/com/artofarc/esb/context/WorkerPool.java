@@ -27,6 +27,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 	private final String _name;
 	private final int _queueDepth, _scheduledThreads;
 	private final boolean _allowCoreThreadTimeOut;
+	private volatile boolean _retry;
 	private final PoolContext _poolContext;
 	private final ContextPool _contextPool;
 	private final WorkerPoolThreadFactory _threadFactory;
@@ -35,11 +36,12 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 	private final AsyncProcessingPool _asyncProcessingPool;
 	private final ConcurrentHashMap<Thread, String> _threads = new ConcurrentHashMap<>();
 
-	public WorkerPool(PoolContext poolContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
+	public WorkerPool(PoolContext poolContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut, boolean retry) {
 		_name = name;
 		_queueDepth = queueDepth;
 		_scheduledThreads = scheduledThreads;
 		_allowCoreThreadTimeOut = allowCoreThreadTimeOut;
+		_retry = retry;
 		_contextPool = new ContextPool(_poolContext = poolContext, allowCoreThreadTimeOut ? scheduledThreads : minThreads + scheduledThreads, maxThreads + scheduledThreads, 60000L);
 		if (maxThreads > 0 || scheduledThreads > 0) {
 			_threadFactory = new WorkerPoolThreadFactory(name, priority);
@@ -47,7 +49,16 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 			_threadFactory = null;
 		}
 		if (maxThreads > 0) {
-			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, queueDepth > 0 ? new ArrayBlockingQueue<>(queueDepth) : new LinkedBlockingQueue<>(), _threadFactory, this);
+			BlockingQueue<Runnable> workQueue;
+			if (queueDepth < 0) {
+				workQueue = new LinkedBlockingQueue<>();
+			} else if (queueDepth == 0) {
+				// https://stackoverflow.com/questions/10186397/threadpoolexecutor-without-a-queue
+				workQueue = new SynchronousQueue<>();
+			} else {
+				workQueue = new ArrayBlockingQueue<>(queueDepth);
+			}
+			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, workQueue, _threadFactory, this);
 			_executorService.allowCoreThreadTimeOut(allowCoreThreadTimeOut);
 		} else {
 			_executorService = null;
@@ -62,20 +73,21 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 		}
 	}
 
-	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
-		this(new PoolContext(globalContext, name), name, minThreads, maxThreads, priority, queueDepth, scheduledThreads, allowCoreThreadTimeOut);
+	public WorkerPool(GlobalContext globalContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut, boolean retry) {
+		this(new PoolContext(globalContext, name), name, minThreads, maxThreads, priority, queueDepth, scheduledThreads, allowCoreThreadTimeOut, retry);
 	}
 
 	WorkerPool(GlobalContext globalContext, String name, int nThreads) {
-		this(new PoolContext(globalContext, name), name, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true);
+		this(new PoolContext(globalContext, name), name, nThreads, nThreads, Thread.NORM_PRIORITY, 0, 2, true, true);
 	}
 
-	public boolean tryUpdate(int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut) {
+	public boolean tryUpdate(int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut, boolean retry) {
 		if (maxThreads > 0 && getMaximumPoolSize() < 0 || queueDepth != _queueDepth || scheduledThreads != _scheduledThreads || allowCoreThreadTimeOut != _allowCoreThreadTimeOut) {
 			return false;
 		}
 		setCorePoolSize(minThreads);
 		setMaximumPoolSize(maxThreads);
+		_retry = retry;
 		return true;
 	}
 
@@ -130,15 +142,19 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 
 	@Override
 	public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-		try {
-			if (executor.isTerminated()) {
-				throw new RejectedExecutionException("Already closed " + _name);
+		if (executor.isShutdown()) {
+			throw new RejectedExecutionException("Already closed " + _name);
+		}
+		if (_retry) {
+			try {
+				do {
+					PoolContext.logger.warn("Could not submit to worker pool " + _name);
+				} while (!executor.getQueue().offer(r, 60, TimeUnit.SECONDS));
+			} catch (InterruptedException e) {
+				throw new RejectedExecutionException("Interrupted while trying to submit to " + _name);
 			}
-			do {
-				PoolContext.logger.warn("Could not submit to worker pool " + _name);
-			} while (!executor.getQueue().offer(r, 60, TimeUnit.SECONDS));
-		} catch (InterruptedException e) {
-			throw new RejectedExecutionException("Interrupted while trying to submit to " + _name);
+		} else {
+			throw new RejectedExecutionException("Task rejected from " + _name);
 		}
 	}
 
@@ -183,7 +199,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 	}
 
 	public int getGuaranteedPoolSize() {
-		return _allowCoreThreadTimeOut ? 0 : getCorePoolSize();
+		return _queueDepth == 0 ? getMaximumPoolSize() : _allowCoreThreadTimeOut ? 0 : getCorePoolSize();
 	}
 
 	// Methods for monitoring
