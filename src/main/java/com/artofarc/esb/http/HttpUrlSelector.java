@@ -337,7 +337,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 							weight[pos] = httpEndpoint.getHttpUrls().get(pos).getWeight();
 							return pos++;
 						}
-					} else if (inUse.get(pos) == 0 || ++i == activeCount) {
+					} else if (i++ == activeCount || inUse.get(pos) == 0) {
 						return pos++;
 					}
 				}

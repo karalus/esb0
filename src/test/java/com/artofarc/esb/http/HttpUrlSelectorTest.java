@@ -38,6 +38,7 @@ public class HttpUrlSelectorTest extends AbstractESBTest {
 		HttpEndpoint httpEndpoint = new HttpEndpoint(null, list, false, null, null, 1000, 5, 120, new HttpCheckAlive(), System.currentTimeMillis(), Proxy.NO_PROXY, null);
 		HttpUrlSelector httpUrlSelector = new HttpUrlSelector(httpEndpoint , getGlobalContext().getDefaultWorkerPool());
 		for (int i = 0; i < 6; i += 2) {
+			// every even position is in use
 			httpUrlSelector.new HttpUrlConnection(httpEndpoint, i, null, null);
 		}
 		for (int i = 0; i < 20; ++i) {
@@ -58,10 +59,12 @@ public class HttpUrlSelectorTest extends AbstractESBTest {
 		for (int i = 0; i < 6; ++i) {
 			httpUrlSelector.new HttpUrlConnection(httpEndpoint, i, null, null);
 		}
+		int oldpos = 5;
 		for (int i = 0; i < 20; ++i) {
 			int pos = httpUrlSelector.computeNextPos(httpEndpoint);
 			System.out.println(pos);
-			assertEquals(5, pos);
+			assertTrue((6 + pos - oldpos) % 6 == 1);
+			oldpos = pos;
 		}
 	}
 
