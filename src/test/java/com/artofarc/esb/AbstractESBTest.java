@@ -115,7 +115,7 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static HttpOutboundAction createHttpOutboundAction(String url) throws Exception {
-		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
+		return new HttpOutboundAction(new HttpEndpoint(null, Collections.singletonList(new HttpUrl(url, 1, true)), true, null, null, 1000, 0, null, null, System.currentTimeMillis(), Proxy.NO_PROXY, null), 60000, null, null, null);
 	}
 
 	protected static AssignAction createAssignAction(String varName, String expression, String... bindNames) {

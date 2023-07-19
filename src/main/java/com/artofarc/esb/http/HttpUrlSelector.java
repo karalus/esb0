@@ -22,9 +22,6 @@ import java.lang.ref.WeakReference;
 import java.net.ConnectException;
 import java.net.CookieStore;
 import java.net.HttpURLConnection;
-import java.net.NoRouteToHostException;
-import java.net.ProtocolException;
-import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -216,17 +213,17 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 	@Override
 	public void run() {
 		HttpEndpoint httpEndpoint = getHttpEndpoint();
-		for (int i = 0; i < size; ++i) {
-			if (httpEndpoint != null && !isActive(i)) {
-				HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(i);
-				try {
-					if (checkAlive(httpEndpoint, httpUrl)) {
-						setActive(i, true);
+		if (httpEndpoint != null) {
+			for (int i = 0; i < size; ++i) {
+				if (!isActive(i)) {
+					HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(i);
+					try {
+						if (checkAlive(httpEndpoint, httpUrl)) {
+							setActive(i, true);
+						}
+					} catch (IOException e) {
+						// ignore
 					}
-				} catch (IOException e) {
-					// ignore
-				} catch (Exception e) {
-					HttpEndpointRegistry.logger.error("Unexpected exception for " + httpUrl, e);
 				}
 			}
 		}
@@ -309,12 +306,12 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				}
 				_totalConnectionsCount.incrementAndGet();
 				return httpUrlConnection;
-			} catch (ConnectException | NoRouteToHostException | ProtocolException | HttpCheckAlive.ConnectException | SocketTimeoutException e) {
-				if (httpUrlConnection != null) {
-					httpUrlConnection.close();
-				}
+			} catch (IOException e) {
 				if (httpEndpoint.getCheckAliveInterval() != null) {
 					setActive(pos, false);
+				}
+				if (httpUrlConnection != null) {
+					httpUrlConnection.close();
 				}
 				if (--retryCount < 0) {
 					throw e;
@@ -323,8 +320,8 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 		}
 	}
 
-	private synchronized int computeNextPos(HttpEndpoint httpEndpoint) {
-		for (;; ++pos) {
+	synchronized int computeNextPos(HttpEndpoint httpEndpoint) {
+		for (int i = 0;; ++pos) {
 			if (pos == size) {
 				pos = 0;
 			}
@@ -335,8 +332,12 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				return pos;
 			default:
 				if (active[pos]) {
-					if (--weight[pos] == 0) {
-						weight[pos] = httpEndpoint.getHttpUrls().get(pos).getWeight();
+					if (httpEndpoint.isMultiThreaded()) {
+						if (--weight[pos] == 0) {
+							weight[pos] = httpEndpoint.getHttpUrls().get(pos).getWeight();
+							return pos++;
+						}
+					} else if (inUse.get(pos) == 0 || ++i == activeCount) {
 						return pos++;
 					}
 				}

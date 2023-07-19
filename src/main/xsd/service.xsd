@@ -56,6 +56,7 @@
 							</complexType>
 						</element>
 					</sequence>
+					<attribute name="multiThreaded" type="boolean" default="true" />
 					<attribute name="multipartSubtype" type="tns:multipartSubtype" />
 					<attribute name="multipartRequest" type="tns:string1" />
 					<attribute name="username" type="string" />

@@ -26,6 +26,7 @@ public final class HttpEndpoint {
 
 	private final String _name;
 	private final List<HttpUrl> _endpoints;
+	private final boolean _multiThreaded;
 	private final String _basicAuthCredential;
 	private final int _connectTimeout;
 	private final int _retries;
@@ -35,7 +36,7 @@ public final class HttpEndpoint {
 	private final Proxy _proxy;
 	private final SSLContext _sslContext;
 
-	public HttpEndpoint(String name, List<HttpUrl> endpoints, String username, String password, int connectTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext) {
+	public HttpEndpoint(String name, List<HttpUrl> endpoints, boolean multiThreaded, String username, String password, int connectTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext) {
 		if (name != null) {
 			_name = name;
 		} else {
@@ -47,6 +48,7 @@ public final class HttpEndpoint {
 			_name = builder.toString();
 		}
 		_endpoints = endpoints;
+		_multiThreaded = multiThreaded;
 		_basicAuthCredential = username != null && password != null ? username + ':' + password : null;
 		_connectTimeout = connectTimeout;
 		_retries = retries;
@@ -70,6 +72,10 @@ public final class HttpEndpoint {
 
 	public List<HttpUrl> getHttpUrls() {
 		return _endpoints;
+	}
+
+	public boolean isMultiThreaded() {
+		return _multiThreaded;
 	}
 
 	public String getBasicAuthCredential() {
@@ -116,8 +122,9 @@ public final class HttpEndpoint {
 	}
 
 	public boolean hasSameConfig(HttpEndpoint other) {
-		return _endpoints.equals(other._endpoints) && _connectTimeout == other._connectTimeout && _retries == other._retries && Objects.equals(_checkAliveInterval, other._checkAliveInterval)
-			&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && _proxy.equals(other._proxy) && Objects.equals(_sslContext, other._sslContext) && Objects.equals(_checkAlive, other._checkAlive);
+		return _endpoints.equals(other._endpoints) && _connectTimeout == other._connectTimeout && _retries == other._retries && _multiThreaded == other._multiThreaded
+				&& Objects.equals(_checkAliveInterval, other._checkAliveInterval) && Objects.equals(_checkAlive, other._checkAlive)
+				&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && Objects.equals(_proxy, other._proxy) && Objects.equals(_sslContext, other._sslContext);
 	}
 
 }
