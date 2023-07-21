@@ -109,14 +109,6 @@ public final class DataStructures {
 		return (Stream<T>) coll.stream().filter(cls::isInstance);
 	}
 
-	public static Exception unwrap(Exception e) {
-		Set<Exception> dejaVu = Collections.newSetFromMap(new IdentityHashMap<Exception, Boolean>());
-		while (dejaVu.add(e) && e.getCause() instanceof Exception) {
-			e = (Exception) e.getCause();
-		}
-		return e;
-	}
-
 	public static String asXMLString(Throwable e) {
 		Set<Throwable> dejaVu = Collections.newSetFromMap(new IdentityHashMap<Throwable, Boolean>());
 		return "<exception>" + asXMLString(e, dejaVu) + "</exception>";
