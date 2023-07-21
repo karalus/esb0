@@ -34,7 +34,7 @@ Current stable version is 1.10.0.
 
 Most ESB products are very heavy suites which is counterproductive for their main purpose - to act as a fast and simple service gateway to control and monitor service usage within your enterprise.
 
-ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently about 100k of size!
+ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently about 128k of size!
 
 The minimal set of features is supported based on the VETRO pattern. All basic EAI components that are needed are built-in with the exemption of stateful components (e.g. [resquencer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Resequencer.html)). As the ESB Zero does not maintain state on its own, it can be easily scaled up and runs very stable.
 
@@ -50,32 +50,32 @@ __"Perfection is reached, not when there is no longer anything to add, but when 
 
 ### FAQ ###
 
-Why not using Apache Camel?
+*Why not using Apache Camel?*
 
 Apache Camel is a great project, but with offering > 200 Components and all known EAI patterns it is already too huge for the above mentioned purpose.
 
-Why not using Apache Karaf for deploying?
+*Why not using Apache Karaf for deploying?*
 
 OSGi is a great idea when managing different versions of JARs but unnecessarily complex for not code based artifacts.
 
-Why not using Apache CXF?
+*Why not using Apache CXF?*
 
 For a generic gateway which is not really processing the data content this is not needed.
 
-How to achieve good performance and having small memory footprint when processing XML?
+*How to achieve good performance and having small memory footprint when processing XML?*
 
 XML pipelining is an efficient means because it does not require to have a full DOM in memory but can rather do streaming in certain scenarios. Refer to e.g. https://www.progress.com/tutorials/xquery/api-for-java-xqj
 
 Currently ESB Zero uses well proven [Saxon](http://saxon.sourceforge.net/) but basically could be run with any [XQJ](http://xqj.net/) compliant product.
 
-Will this technology be superseded by Spring Boot plus Camel (new JBoss Fusion concept) running inside of a Docker container?
+*Will this technology be superseded by Spring Boot plus Camel (new JBoss Fusion concept) running inside of a Docker container?*
 
 Using Camel with Spring Boot will run you a few EAI services well, but is not suitable for a scenario where >100 services need to be mediated while only needing endpoint virtualization and validation.
 Besides, the memory footprint of ESB Zero running webservices inside docker is even less than Spring Boot plus Camel!
 
-Will this technology be superseded by Istio?
+*Will this technology be superseded by Istio?*
 
-Yes, when all of the services in your enterprise are micro services talking natively REST/JSON! No monoliths, no legacy, no 3rd party stuff. I.e. that means a no for the medium future for most of us. While I'm a big fan of [Kubernetes](https://kubernetes.io/) I don't expect that everything will be µServices soon.
+Yes, when all of the services in your enterprise are micro services talking natively REST/JSON! No monoliths, no legacy, no 3rd party stuff. I.e. that means a no for the mid-term future for most of us. While I'm a big fan of [Kubernetes](https://kubernetes.io/) I don't expect that everything will be µServices soon.
 Even in a Kubernetes environment where endpoint virtualization and load balancing is done by K8s Controller, ESB Zero can be used (also as a sidecar) to provide for message transformation/validation (e.g JSON/XML) and protocol conversion (e.g. HTTP/JMS).
 
 ### How to build ###
@@ -137,6 +137,7 @@ Optional
 
 ### Roadmap ###
 
-__1.11__ (Q3 2023):
+__1.11__ (Q4 2023):
 - Optimized for Java 11 and later (deprecate support for Java 8)
 - Offer new JDK HTTP Client thus facilitate asynchronous HTTP
+- divide source into modules using parent POM
