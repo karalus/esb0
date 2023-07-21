@@ -75,7 +75,7 @@ input[type="submit"][value="false"] {
 		case "MappedHttpServices":
 			%>
 <br>HttpServices with path mapping:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Path</b></td><td><b>Uri</b></td><td><b>PoolSize</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Path</b></td><td><b>Uri</b></td><td><b>PoolSize</b></td><td><b>Completed tasks</b></td><td><b>Execution time</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 			for (String path : globalContext.getMappedHttpServicePaths()) {
 				HttpConsumer consumerPort = globalContext.getHttpService(path);
@@ -84,6 +84,7 @@ input[type="submit"][value="false"] {
 					<td><%=path%>*</td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 					<td><%=consumerPort.getPoolSize()%></td>
 					<td><%=consumerPort.getCompletedTaskCount()%></td>
+					<td><%=consumerPort.getExecutionTime()%></td>
 					<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?MappedHttpServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
 					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="MappedHttpServices"/></form></td>
 				</tr>
@@ -96,7 +97,7 @@ input[type="submit"][value="false"] {
 		case "JMSServices":
 			%>
 <br>JMSServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>WorkerCount</b></td><td><b>Completed tasks</b></td><td><b>Current SentReceiveDelay</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>Worker count</b></td><td><b>Completed tasks</b></td><td><b>Execution time</b></td><td><b>Current sent/receive delay</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 			for (JMSConsumer jmsConsumer : DataStructures.asSortedList(globalContext.getJMSConsumers())) {
 				%>
@@ -105,6 +106,7 @@ input[type="submit"][value="false"] {
 					<td><a href="<%=request.getContextPath() + request.getServletPath() + jmsConsumer.getUri()%>"><%=jmsConsumer.getUri()%></a></td>
 					<td><%=jmsConsumer.getWorkerCount()%></td>
 					<td><%=jmsConsumer.getCompletedTaskCount()%></td>
+					<td><%=jmsConsumer.getExecutionTime()%></td>
 					<td><%=jmsConsumer.getCurrentSentReceiveDelay()%></td>
 					<td><%=jmsConsumer.getLastChangeOfState()%></td>
 					<td>
