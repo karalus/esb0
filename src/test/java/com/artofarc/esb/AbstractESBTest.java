@@ -171,7 +171,7 @@ public abstract class AbstractESBTest {
 		for (String varName : varNames) {
 			assignments.add(new AssignAction.Assignment(varName, false));
 		}
-		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), null, assignments, false, true, xqueryArtifact.getParent().getURI(), null);
+		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), null, assignments, false, true, xqueryArtifact.getParent().getURI(), null, null);
 	}
 
 }

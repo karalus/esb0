@@ -36,7 +36,7 @@ public class AssignAction extends TransformAction {
 	}
 
 	public AssignAction(List<Assignment> assignments, boolean doNullCheck, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders) {
-		super(createXQuery(assignments, doNullCheck, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), createCheckNotNull(bindNames), assignments,	doNullCheck, bodyExpr != null, null, contextItem);
+		super(createXQuery(assignments, doNullCheck, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), createCheckNotNull(bindNames), assignments,	doNullCheck, bodyExpr != null, null, contextItem, null);
 		_clearHeaders = clearHeaders;
 	}
 

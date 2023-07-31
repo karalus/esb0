@@ -314,6 +314,7 @@
 					</sequence>
 					<attribute name="xqueryURI" type="anyURI" />
 					<attribute name="contextItem" type="tns:identifier" />
+					<attribute name="mediaType" type="tns:string1" />
 				</extension>
 			</complexContent>
 		</complexType>

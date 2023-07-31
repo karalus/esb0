@@ -67,8 +67,9 @@ public class TransformAction extends Action {
 	private final boolean _doNullCheck, _clearSchema;
 	private final String _baseURI; 
 	protected final String _contextItem;
+	private final String _newContentType;
 
-	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, boolean doNullCheck, boolean clearSchema, String baseURI, String contextItem) {
+	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, boolean doNullCheck, boolean clearSchema, String baseURI, String contextItem, String newContentType) {
 		_xquery = xquery;
 		_checkNotNull = checkNotNull != null ? checkNotNull : Collections.emptySet();
 		_assignments = assignments;
@@ -76,19 +77,20 @@ public class TransformAction extends Action {
 		_clearSchema = clearSchema;
 		_baseURI = baseURI;
 		_contextItem = contextItem;
+		_newContentType = newContentType;
 		_pipelineStop = contextItem != null;
 	}
 
-	public TransformAction(XQuerySource xquery, String baseURI, String contextItem) {
-		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), false, true, baseURI, contextItem);
+	public TransformAction(XQuerySource xquery, String baseURI, String contextItem, String newContentType) {
+		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), false, true, baseURI, contextItem, newContentType);
 	}
 
-	protected TransformAction(String xquery, List<Assignment> varNames) {
-		this(XQuerySource.create(xquery), null, varNames, false, false, null, null);
+	protected TransformAction(String xquery, List<Assignment> varNames, String newContentType) {
+		this(XQuerySource.create(xquery), null, varNames, false, false, null, null, newContentType);
 	}
 
 	protected TransformAction(String xquery) {
-		this(XQuerySource.create(xquery), null, Collections.emptyList(), false, false, null, null);
+		this(XQuerySource.create(xquery), null, Collections.emptyList(), false, false, null, null, null);
 	}
 
 	public final XQuerySource getXQuery() {
@@ -166,7 +168,9 @@ public class TransformAction extends Action {
 		}
 		if (_contextItem == null) {
 			message.reset(BodyType.XQ_SEQUENCE, resultSequence);
-			message.setContentType(null);
+			if (_newContentType != null) {
+				message.setContentType((String) eval(_newContentType, context, message));
+			}
 			message.setCharset(null);
 			if (_clearSchema) {
 				message.setSchema(null);
@@ -258,19 +262,16 @@ public class TransformAction extends Action {
 
 	@Override
 	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (nextActionIsPipelineStop && execContext != null) {
+		if (nextActionIsPipelineStop && execContext != null && _contextItem == null) {
 			XQResultSequence resultSequence = execContext.getResource();
 			checkNext(resultSequence, "body");
-			if (_contextItem == null) {
-				context.getTimeGauge().startTimeMeasurement();
-				XQItem xqItem = resultSequence.getItem();
-				if (message.isSink()) {
-					message.writeItemToSink(xqItem, context);
-					context.getTimeGauge().stopTimeMeasurement("resultSequence.writeItem", false);
-				} else {
-					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(xqItem));
-					context.getTimeGauge().stopTimeMeasurement("getXQDataFactory().createItem", false);
-				}
+			context.getTimeGauge().startTimeMeasurement();
+			if (message.isSink()) {
+				message.writeItemToSink(resultSequence.getItem(), context);
+				context.getTimeGauge().stopTimeMeasurement("XQItem::writeItem", false);
+			} else {
+				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
+				context.getTimeGauge().stopTimeMeasurement("XQDataFactory::createItem", false);
 			}
 		}
 	}
@@ -280,7 +281,7 @@ public class TransformAction extends Action {
 		if (execContext != null) {
 			XQResultSequence resultSequence = execContext.getResource();
 			if (resultSequence.next() && _contextItem == null) {
-				logger.debug("XQResultSequence not fully consumed");
+				logger.warn("XQResultSequence not fully consumed");
 				if (logger.isDebugEnabled()) {
 					resultSequence.writeItem(System.err, null);
 				}

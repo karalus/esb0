@@ -94,8 +94,8 @@ public abstract class SAXAction extends Action {
 			if (!sequence.next()) {
 				throw new ExecutionException(this, "body not passed through");
 			}
-			source = createSAXSource(context, message, sequence.getItem());
-			break;
+			message.reset(BodyType.XQ_ITEM, sequence.getItem());
+			// nobreak
 		case XQ_ITEM:
 			source = createSAXSource(context, message, message.<XQItem> getBody());
 			break;

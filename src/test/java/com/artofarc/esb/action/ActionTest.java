@@ -348,7 +348,7 @@ public class ActionTest extends AbstractESBTest {
 		message.putVariable("count", 42);
 		List<AssignAction.Assignment> assignments = createAssignments(false);
 		assignments.add(new AssignAction.Assignment("array1", false, "for $index in (1 to $count) return $index", false, "xs:integer+"));
-		Action action = createAssignAction(assignments, ".", null, "count");
+		Action action = createAssignAction(assignments, null, null, "count");
 		action.setNextAction(new DumpAction());
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
@@ -366,7 +366,7 @@ public class ActionTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
 	      List<AssignAction.Assignment> assignments = createAssignments(false);
 	      assignments.add(new AssignAction.Assignment("nodes", false, "*/*", true, "element()"));
-		AssignAction assignAction = createAssignAction(assignments, ".", null);
+		AssignAction assignAction = createAssignAction(assignments, null, null);
 		Action action = assignAction;
 		//action = action.setNextAction(new IterateAction("${nodes}", "_iterator", false, "node", new DumpAction()));
 		action = action.setNextAction(new DumpAction());
