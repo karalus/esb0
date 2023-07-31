@@ -160,7 +160,12 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void putHeader(String headerName, Object value) {
-		_headers.put(normalize(headerName), DataStructures.createEntry(headerName, value));
+		String key = normalize(headerName);
+		if (value != null) {
+			_headers.put(key, DataStructures.createEntry(headerName, value));
+		} else {
+			_headers.remove(key);
+		}
 	}
 
 	public void addHeader(String headerName, Object value) {
@@ -893,6 +898,7 @@ public final class ESBMessage implements Cloneable {
 		if (withBody) {
 			Object newBody = cloneBody(context, true);
 			clone = new ESBMessage(_bodyType, newBody, _charset);
+			clone.setContentType(_contentType);
 		} else {
 			clone = new ESBMessage(BodyType.INVALID, null, null);
 		}

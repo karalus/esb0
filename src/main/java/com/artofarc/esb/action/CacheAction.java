@@ -90,7 +90,7 @@ public class CacheAction extends Action {
 								ttl = SchedulingConsumerPort.millisUntilNext(time) / 1000;
 							}
 						} else {
-							ttl = this.<Number> resolve(message, _ttl, true).longValue();
+							ttl = ((Number) resolve(message, _ttl, true)).longValue();
 						}
 						if (ttl > 0) {
 							Object[] values = new Object[_valueNames.size()];

@@ -29,14 +29,12 @@ public final class ExecutionContext {
 		_resource2 = resource2;
 	}
 
-	@SuppressWarnings("unchecked")
-	public <R> R setResource2(R resource) {
-		return (R) (_resource2 = resource);
+	public void setResource2(Object resource) {
+		_resource2 = resource;
 	}
 
-	@SuppressWarnings("unchecked")
-	public <R> R setResource3(R resource) {
-		return (R) (_resource3 = resource);
+	public void setResource3(Object resource) {
+		_resource3 = resource;
 	}
 
 	@SuppressWarnings("unchecked")

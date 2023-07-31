@@ -171,7 +171,7 @@ public class AdminAction extends Action {
 				throwHttpError(message, SC_UNSUPPORTED_MEDIA_TYPE, new ExecutionException(this, contentType));
 			}
 		} else {
-			String enable = resolve(message, "enable", true);
+			String enable = (String) resolve(message, "enable", true);
 			if (enable != null || message.isEmpty()) {
 				ConsumerPort consumerPort = globalContext.getInternalService(resource);
 				if (consumerPort != null) {

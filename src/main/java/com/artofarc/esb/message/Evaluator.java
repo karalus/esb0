@@ -75,19 +75,21 @@ public abstract class Evaluator<E extends Exception> {
 		return builder.toString();
 	}
 
-	public final <T> T resolve(ESBMessage message, String name, boolean checkAmbiguity) throws E {
-		T variable = message.getVariable(name);
-		if (variable != null) {
-			if (checkAmbiguity) {
-				T header = message.getHeader(name);
-				if (header != null && !variable.equals(header)) {
-					throw createException("name could not unambiguously be resolved: " + name);
-				}
+	public final Object resolve(ESBMessage message, String name, boolean checkAmbiguity) throws E {
+		Object value = message.getVariable(name);
+		if (value == null) {
+			if ("contentType".equals(name)) {
+				value = message.getContentType();
+			} else {
+				value = message.getHeader(name);
 			}
-			return variable;
-		} else {
-			return message.getHeader(name);
+		} else if (checkAmbiguity) {
+			Object header = message.getHeader(name);
+			if (header != null && !value.equals(header)) {
+				throw createException("name could not unambiguously be resolved: " + name);
+			}
 		}
+		return value;
 	}
 
 }

@@ -284,9 +284,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				}
 				conn.setInstanceFollowRedirects(false);
 				for (Map.Entry<String, Object> entry : headers) {
-					if (entry.getValue() != null) {
-						conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
-					}
+					conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
 				}
 				// check whether server is willing to respond (before sending data)
 				boolean checkServer = retryCount > size - activeCount;
