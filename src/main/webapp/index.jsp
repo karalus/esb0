@@ -205,7 +205,7 @@ input[type="submit"][value="false"] {
 		case "LocalJNDIobjects":
 			%>
 <br>Local JNDI objects:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Type</b></td><td><b>Active Connections</b></td><td><b>Uri</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Name</b></td><td><b>Type</b></td><td><b>Active Connections</b></td><td><b>Uri</b></td><td><b>Delete</b></td><td><b>Action</b></td></tr>
 <%
 			for (String propertyName : globalContext.getCachedProperties()) {
 				Object object = globalContext.getProperty(propertyName);
@@ -231,9 +231,19 @@ input[type="submit"][value="false"] {
 					<td><a href="<%=request.getContextPath() + request.getServletPath() + uri%>"><%=uri%></a></td>
 					<td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + uri%>" onsubmit="return confirm('Are you sure to delete \'<%=uri%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td>
 					<%
+					JNDIObjectFactoryArtifact a = globalContext.getFileSystem().getArtifact(uri);
+					if (a.getAdminPostAction() != null) {
+						%>
+						<td><form method="post" action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + uri%>?LocalJNDIobjects"><input type="submit" value="<%=a.getAdminPostAction()%>"/></form></td>
+						<%
+					} else {
+						%>
+						<td></td>
+						<%
+					}
 				} else {
 					%>
-					<td></td><td></td>
+					<td></td><td></td><td></td>
 					<%
 				}
 				%>
