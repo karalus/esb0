@@ -28,7 +28,7 @@
 	<element name="property">
 		<complexType>
 			<simpleContent>
-				<extension base="string">
+				<extension base="tns:globalExpression">
 					<attribute name="key" type="Name" use="required" />
 				</extension>
 			</simpleContent>
@@ -59,8 +59,8 @@
 					<attribute name="multiThreaded" type="boolean" default="true" />
 					<attribute name="multipartSubtype" type="tns:multipartSubtype" />
 					<attribute name="multipartRequest" type="tns:string1" />
-					<attribute name="username" type="string" />
-					<attribute name="password" type="string" />
+					<attribute name="username" type="tns:expression" />
+					<attribute name="password" type="tns:expression" />
 					<attribute name="connectTimeout" type="int" default="10000" />
 					<attribute name="retries" type="int" default="0" />
 					<attribute name="checkAliveInterval" type="int" />
@@ -70,9 +70,9 @@
 					<attribute name="chunkLength" type="int" />
 					<attribute name="workerPool" type="anyURI" />
 					<attribute name="name" type="tns:string1" />
-					<attribute name="proxyUrl" type="tns:string1" />
-					<attribute name="keyStore" type="tns:string1" />
-					<attribute name="keyStorePassword" type="tns:string1" />
+					<attribute name="proxyUrl" type="tns:globalExpression" />
+					<attribute name="keyStore" type="tns:globalExpression" />
+					<attribute name="keyStorePassword" type="tns:globalExpression" />
 					<attribute name="cookiePolicy" type="tns:CookiePolicy" />
 				</extension>
 			</complexContent>
@@ -92,7 +92,7 @@
 					<attribute name="expiryQueue" type="tns:string1" />
 					<attribute name="receiveFromTempQueue" type="boolean" default="false" />
 					<attribute name="replyQueue" type="tns:string1" />
-					<attribute name="receiveSelector" type="tns:string1" />
+					<attribute name="receiveSelector" type="tns:expression" />
 					<attribute name="multipartSubtype" type="tns:multipartSubtype" />
 					<attribute name="multipart" type="tns:string1" />
 					<attribute name="workerPool" type="anyURI" />
@@ -122,16 +122,16 @@
 						<element ref="tns:property" maxOccurs="unbounded"/>
 					</sequence>
 					<attribute name="workerPool" type="anyURI" />
-					<attribute name="from" type="tns:string1" use="required" />
-					<attribute name="to" type="tns:string1" use="required" />
-					<attribute name="cc" type="tns:string1" />
-					<attribute name="bcc" type="tns:string1" />
-					<attribute name="replyTo" type="tns:string1" />
-					<attribute name="subject" type="tns:string1" use="required" />
-					<attribute name="text" type="tns:string1" default="${body}" />
-					<attribute name="type" type="tns:string1" default="text/plain" />
-					<attribute name="userName" type="string" />
-					<attribute name="password" type="string" />
+					<attribute name="from" type="tns:expression" use="required" />
+					<attribute name="to" type="tns:expression" use="required" />
+					<attribute name="cc" type="tns:expression" />
+					<attribute name="bcc" type="tns:expression" />
+					<attribute name="replyTo" type="tns:expression" />
+					<attribute name="subject" type="tns:expression" use="required" />
+					<attribute name="text" type="tns:expression" default="${body}" />
+					<attribute name="type" type="tns:expression" default="text/plain" />
+					<attribute name="userName" type="tns:globalExpression" />
+					<attribute name="password" type="tns:globalExpression" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -153,12 +153,12 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
-					<attribute name="dir" type="anyURI" use="required" />
-					<attribute name="action" type="tns:string1" default="${FileEventKind}" />
-					<attribute name="filename" type="tns:string1" default="${filename}" />
+					<attribute name="dir" type="tns:globalExpression" use="required" />
+					<attribute name="action" type="tns:expression" default="${FileEventKind}" />
+					<attribute name="filename" type="tns:expression" default="${filename}" />
 					<attribute name="mkdirs" type="boolean" default="false" />
-					<attribute name="append" type="tns:string1" default="${append}" />
-					<attribute name="zip" type="tns:string1" default="${zip}" />
+					<attribute name="append" type="tns:expression" default="${append}" />
+					<attribute name="zip" type="tns:expression" default="${zip}" />
 					<attribute name="readable" type="boolean" />
 					<attribute name="writable" type="boolean" />
 					<attribute name="ownerOnly" type="boolean" default="false" />
@@ -181,12 +181,12 @@
 		<complexContent>
 			<extension base="tns:ActionBase">
 				<sequence>
-					<element name="sql" type="string" minOccurs="0" />
+					<element name="sql" type="tns:expression" minOccurs="0" />
 				</sequence>
-				<attribute name="dataSource" type="string" />
+				<attribute name="dataSource" type="tns:expression" />
 				<attribute name="maxRows" type="int" default="0" />
 				<attribute name="timeout" type="int" default="60000" />
-				<attribute name="keepConnection" type="tns:string1" default="false" />
+				<attribute name="keepConnection" type="tns:expression" default="false" />
 			</extension>
 		</complexContent>
 	</complexType>
@@ -314,7 +314,7 @@
 					</sequence>
 					<attribute name="xqueryURI" type="anyURI" />
 					<attribute name="contextItem" type="tns:identifier" />
-					<attribute name="mediaType" type="tns:string1" />
+					<attribute name="mediaType" type="tns:expression" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -410,7 +410,7 @@
 					<sequence>
 						<element ref="tns:action" maxOccurs="unbounded" />
 					</sequence>
-					<attribute name="iterable" type="tns:string1" use="required" />
+					<attribute name="iterable" type="tns:expression" use="required" />
 					<attribute name="iterName" type="tns:string1" />
 					<attribute name="variable" type="tns:identifier" use="required" />
 					<attribute name="remove" type="boolean" default="false" />
@@ -427,7 +427,7 @@
 					<sequence>
 						<element ref="tns:action" maxOccurs="unbounded" />
 					</sequence>
-					<attribute name="key" type="tns:string1" use="required" />
+					<attribute name="key" type="tns:expression" use="required" />
 					<attribute name="nullable" type="boolean" default="false" />
 					<attribute name="value" use="required" >
 						<simpleType>
@@ -446,7 +446,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
-					<attribute name="key" type="tns:string1" />
+					<attribute name="key" type="tns:expression" />
 					<attribute name="name" type="Name" use="required" />
 				</extension>
 			</complexContent>
@@ -476,7 +476,7 @@
 								</sequence>
 								<attribute name="value">
 									<simpleType>
-										<list itemType="string" />
+										<list itemType="tns:globalExpression" />
 									</simpleType>
 								</attribute>
 								<attribute name="regEx" type="tns:string1" />
@@ -574,7 +574,7 @@
 	</element>
 	<complexType name="HeaderOrVariable">
 		<simpleContent>
-			<extension base="string">
+			<extension base="tns:expressionOrEmpty">
 				<attribute name="name" type="tns:identifier" use="required" />
 				<attribute name="javaType" type="tns:identifier" />
 				<attribute name="method" type="NCName" />
@@ -602,7 +602,7 @@
 						<element name="body" minOccurs="0">
 							<complexType>
 								<simpleContent>
-									<extension base="string">
+									<extension base="tns:expressionOrEmpty">
 										<attribute name="javaType" type="NCName" />
 										<attribute name="method" type="NCName" />
 										<attribute name="fileURI" type="anyURI" />
@@ -625,7 +625,7 @@
 						<element name="header" minOccurs="0" maxOccurs="unbounded">
 							<complexType>
 								<simpleContent>
-									<extension base="string">
+									<extension base="tns:string1">
 										<attribute name="name" type="tns:identifier" use="required" />
 									</extension>
 								</simpleContent>
@@ -634,13 +634,13 @@
 						<element name="variable" minOccurs="0" maxOccurs="unbounded">
 							<complexType>
 								<simpleContent>
-									<extension base="string">
+									<extension base="tns:string1">
 										<attribute name="name" type="tns:identifier" use="required" />
 									</extension>
 								</simpleContent>
 							</complexType>
 						</element>
-						<element name="body" minOccurs="0" type="string" />
+						<element name="body" minOccurs="0" type="tns:expression" />
 					</sequence>
 				</extension>
 			</complexContent>
@@ -657,7 +657,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase" >
-					<attribute name="correlationID" type="tns:string1" use="required" />
+					<attribute name="correlationID" type="tns:expression" use="required" />
 					<attribute name="timeout" type="long" default="60000" />
 				</extension>
 			</complexContent>
@@ -677,7 +677,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase" >
-					<attribute name="message" type="tns:string1" use="required" />
+					<attribute name="message" type="tns:expression" use="required" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -686,7 +686,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase" >
-					<attribute name="dir" type="anyURI" />
+					<attribute name="dir" type="tns:globalExpression" />
 					<attribute name="binary" type="boolean" default="false" />
 				</extension>
 			</complexContent>
@@ -696,8 +696,8 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
-					<attribute name="verb" type="tns:string1" default="${HttpMethod}" />
-					<attribute name="resourceExp" type="string" default="" />
+					<attribute name="verb" type="tns:expression" default="${HttpMethod}" />
+					<attribute name="resourceExp" type="tns:expressionOrEmpty" default="" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -737,7 +737,7 @@
 							<simpleContent>
 								<extension base="tns:URI1">
 									<attribute name="overwriteContentType" type="tns:string1" />
-									<attribute name="requiredRole" type="tns:string1" />
+									<attribute name="requiredRole" type="tns:globalExpression" />
 									<attribute name="supportCompression" type="boolean" default="false" />
 									<attribute name="multipartSubtype" type="tns:multipartSubtype" />
 									<attribute name="multipartResponse" type="tns:string1" />
@@ -780,10 +780,10 @@
 					<element name="fileWatchBinding">
 						<complexType>
 							<sequence>
-								<element name="dir" type="anyURI" maxOccurs="unbounded"/>
+								<element name="dir" type="tns:globalExpression" maxOccurs="unbounded"/>
 							</sequence>
-							<attribute name="move" type="anyURI" />
-							<attribute name="moveOnError" type="anyURI" />
+							<attribute name="move" type="tns:expression" />
+							<attribute name="moveOnError" type="tns:expression" />
 							<attribute name="workerPool" type="anyURI" />
 						</complexType>
 					</element>
@@ -835,7 +835,7 @@
 	<element name="classLoader">
 		<complexType>
 			<sequence>
-				<element name="jar" type="anyURI" maxOccurs="unbounded" />
+				<element name="jar" type="tns:globalExpression" maxOccurs="unbounded" />
 			</sequence>
 			<attribute name="parent" type="anyURI" />
 		</complexType>
@@ -861,6 +861,23 @@
 		 	<pattern value="(\c|#|$)+"/>
 		</restriction>
 	</simpleType>
+	<simpleType name="expressionOrEmpty">
+		<annotation>
+			<documentation>contained ${varOrHeaderName} will be resolved against current message</documentation>
+		</annotation>
+		<restriction base="string" />
+	</simpleType>
+	<simpleType name="expression">
+		<restriction base="tns:expressionOrEmpty">
+			<minLength value="1" />
+		</restriction>
+	</simpleType>
+	<simpleType name="globalExpression">
+		<annotation>
+			<documentation>contained ${varName} will be resolved against GlobalContext</documentation>
+		</annotation>
+		<restriction base="string" />
+	</simpleType>
 	<simpleType name="multipartSubtype">
 		<restriction base="string">
 			<enumeration value="related" />
@@ -869,15 +886,15 @@
 		</restriction>
 	</simpleType>
 	<attributeGroup name="JMSConnectionData">
-		<attribute name="jndiConnectionFactory" type="anyURI" use="required" />
-		<attribute name="userName" type="string" />
-		<attribute name="password" type="string" />
+		<attribute name="jndiConnectionFactory" type="tns:globalExpression" use="required" />
+		<attribute name="userName" type="tns:globalExpression" />
+		<attribute name="password" type="tns:globalExpression" />
 	</attributeGroup>
 	<group name="JMSDestination">
 		<choice>
 			<element name="jndiDestination" type="anyURI" />
-			<element name="queueName" type="tns:string1" />
-			<element name="topicName" type="tns:string1" />
+			<element name="queueName" type="tns:globalExpression" />
+			<element name="topicName" type="tns:globalExpression" />
 		</choice>
 	</group>
 </schema>
