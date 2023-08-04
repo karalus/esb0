@@ -28,6 +28,11 @@ import com.artofarc.util.URLUtils;
 public class ProxyAuthenticator extends Authenticator {
 
 	private final ConcurrentHashMap<Proxy, PasswordAuthentication> _map = new ConcurrentHashMap<>();
+	private final Authenticator _authenticator;
+
+	ProxyAuthenticator(Authenticator authenticator) {
+		_authenticator = authenticator;
+	}
 
 	public final Proxy registerProxy(String proxyUrl) throws IOException {
 		URL url = new URL(proxyUrl);
@@ -49,7 +54,19 @@ public class ProxyAuthenticator extends Authenticator {
 		if (getRequestorType() == RequestorType.PROXY) {
 			Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(getRequestingHost(), getRequestingPort()));
 			PasswordAuthentication passwordAuthentication = _map.get(proxy);
-			return passwordAuthentication != null ? new PasswordAuthentication(passwordAuthentication.getUserName(), passwordAuthentication.getPassword()) : null;
+			if (passwordAuthentication != null) {
+				return new PasswordAuthentication(passwordAuthentication.getUserName(), passwordAuthentication.getPassword());
+			}
+		}
+		if (_authenticator != null) {
+			// In Java 11 we can use Authenticator::requestPasswordAuthenticationInstance
+			setDefault(_authenticator);
+			try {
+				return requestPasswordAuthentication(getRequestingHost(), getRequestingSite(), getRequestingPort(), getRequestingProtocol(), getRequestingPrompt(), getRequestingScheme(),
+						getRequestingURL(), getRequestorType());
+			} finally {
+				setDefault(this);
+			}
 		}
 		return null;
 	}

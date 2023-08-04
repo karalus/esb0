@@ -52,13 +52,22 @@ public final class HttpGlobalContext implements CookiePolicy {
 		}
 	}
 
-	private final ProxyAuthenticator _proxyAuthenticator = new ProxyAuthenticator();
+	private final Authenticator _authenticator;
+	private final ProxyAuthenticator _proxyAuthenticator;
 	private final CookieManager _cookieManager;
 	private final ConcurrentHashMap<URI, CookiePolicy> _policies;
 	private final HashMap<String, SSLContext> _keyStores = new HashMap<>();
 
 	public HttpGlobalContext() {
-		Authenticator.setDefault(_proxyAuthenticator);
+		// In Java 11 there is Authenticator::getDefault
+		try {
+			Field field = Authenticator.class.getDeclaredField("theAuthenticator");
+			field.setAccessible(true);
+			_authenticator = (Authenticator) field.get(null);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+		Authenticator.setDefault(_proxyAuthenticator = new ProxyAuthenticator(_authenticator));
 		CookieHandler cookieHandler = CookieHandler.getDefault();
 		if (defaultCookiePolicy != null) {
 			if (cookieHandler != null) {
@@ -120,7 +129,7 @@ public final class HttpGlobalContext implements CookiePolicy {
 	}
 
 	public void close() {
-		Authenticator.setDefault(null);
+		Authenticator.setDefault(_authenticator);
 	}
 
 }
