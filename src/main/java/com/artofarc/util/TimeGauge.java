@@ -21,6 +21,8 @@ import org.slf4j.Logger;
 
 public final class TimeGauge {
 
+	private final static Object[] EMPTY_OBJECT_ARRAY = new Object[0];
+
 	private final Logger _logger; 
 	private final boolean _debug;
 	private final long _threshold;
@@ -50,6 +52,10 @@ public final class TimeGauge {
 
 	public long stopTimeMeasurement() {
 		return (System.nanoTime() - _measuredPoints.pop()) / 1000000L;
+	}
+
+	public long stopTimeMeasurement(String text, boolean restart) {
+		return stopTimeMeasurement(text, restart, EMPTY_OBJECT_ARRAY);
 	}
 
 	public long stopTimeMeasurement(String text, boolean restart, Object... args) {
