@@ -80,24 +80,27 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		return _startAction = Action.linkList(service);
 	}
 
-	public void process(Context context, ESBMessage message) throws Exception {
-		processInternal(context, message);
-	}
-
-	public final long processInternal(Context context, ESBMessage... messages) throws Exception {
-		context.getTimeGauge().startTimeMeasurement();
+	public final long process(Context context, ESBMessage message) throws Exception {
 		try {
-			for (ESBMessage message : messages) {
-				if (_startAction.getLocation() != null) {
-					message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
-				}
-				_startAction.process(context, message);
-			}
+			return processInternal(context, message);
 		} catch (Exception e) {
 			JDBCAction.closeKeptConnections(context, false);
 			throw e;
 		} finally {
 			JDBCAction.closeKeptConnections(context, true);
+		}
+	}
+
+	protected final long processInternal(Context context, ESBMessage message) throws Exception {
+		context.getTimeGauge().startTimeMeasurement();
+		if (_startAction.getLocation() != null) {
+			message.putVariable("ServiceArtifactURI", _startAction.getLocation().getServiceArtifactURI());
+		}
+		try {
+			_startAction.process(context, message);
+		} catch (Exception e) {
+			throw e;
+		} finally {
 			_timeConsumed.accumulateAndGet(context.getTimeGauge().stopTimeMeasurement());
 			context.getTimeGauge().clear();
 		}
@@ -113,7 +116,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 			context.getStackPos().clear();
 			throw new IllegalStateException("StackErrorHandler not empty");
 		}
-		return _completedTaskCount.addAndGet(messages.length);
+		return _completedTaskCount.incrementAndGet();
 	}
 
 	// For JUnit

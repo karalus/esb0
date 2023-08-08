@@ -248,9 +248,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		for (HttpConsumer httpConsumer : getHttpConsumers()) {
 			httpConsumer.shrinkPool();
 		}
-		long now = System.currentTimeMillis();
 		for (JMSConsumer jmsConsumer : getJMSConsumers()) {
-			jmsConsumer.controlJMSWorkerPool(0, now);
+			jmsConsumer.adjustJMSWorkerPool();
 		}
 	}
 

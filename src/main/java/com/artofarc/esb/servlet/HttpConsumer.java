@@ -98,8 +98,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 		_contextPool = new ContextPool(poolContext, _minPoolSize, _maxPoolSize, _keepAlive);
 	}
 
-	@Override
-	public void process(Context context, ESBMessage message) throws Exception {
+	void processWithServletResponse(Context context, ESBMessage message) throws Exception {
 		if (_resourceLimit > 0 && getCompletedTaskCount() >= _resourceLimit) {
 			message.reset(BodyType.STRING, "Resource limit exhausted");
 			message.getVariables().put(ESBConstants.HttpResponseCode, javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE);
@@ -112,7 +111,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 			_terminalAction.process(context, message);
 		} else {
 			context.getExecutionStack().push(_terminalAction);
-			long count = processInternal(context, message);
+			long count = process(context, message);
 			if (_resourceLimit > 0 && count == 1) {
 				_scheduledFuture = context.getGlobalContext().getDefaultWorkerPool().getScheduledExecutorService().schedule(this, 60L, TimeUnit.SECONDS);
 			}

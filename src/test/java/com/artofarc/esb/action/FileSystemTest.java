@@ -59,7 +59,7 @@ public class FileSystemTest extends AbstractESBTest {
          message.getVariables().put("hasFault", false);
          try {
             PoolContext poolContext = globalContext.getDefaultWorkerPool().getPoolContext();
-				service.processInternal(new Context(poolContext ), message);
+				service.process(new Context(poolContext ), message);
          } catch (IOException e) {
 		      // ignore
          }

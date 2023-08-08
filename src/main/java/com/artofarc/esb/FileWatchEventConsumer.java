@@ -89,7 +89,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 								msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
 								try (InputStream inputStream = Channels.newInputStream(fileChannel)) {
 									fillESBMessage(msg, inputStream, path.toString());
-									processInternal(context, msg);
+									process(context, msg);
 									moveFile(context, msg, absolutePath, _move);
 								} catch (Exception e) {
 									logger.error("Exception processing file " + absolutePath, e);

@@ -15,7 +15,7 @@
  */
 package com.artofarc.esb.jms;
 
-import java.util.ArrayList;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Map;
@@ -30,6 +30,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 
 import com.artofarc.esb.SchedulingConsumerPort;
 import com.artofarc.esb.Trend;
+import com.artofarc.esb.action.JDBCAction;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.message.BodyType;
@@ -55,6 +56,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private final long _rampDownDelay = 10000L;
 	private final int _minWorkerCount;
 	private final int _batchSize;
+	private final long _batchTime = 1000000000L;
 	private long _lastControlChange;
 	private volatile boolean _operating;
 	private volatile int _workerCount;
@@ -160,7 +162,11 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		}
 	}
 
-	public synchronized void controlJMSWorkerPool(long sentReceiveDelay, long receiveTimestamp) {
+	public void adjustJMSWorkerPool() {
+		adjustJMSWorkerPool(0, System.currentTimeMillis());
+	}
+
+	private synchronized void adjustJMSWorkerPool(long sentReceiveDelay, long receiveTimestamp) {
 		boolean notBusy = _control == null || _control.isDone();
 		if (_operating && _workerCount < _jmsWorker.length && sentReceiveDelay > _rampUpThreshold && notBusy && _lastControlChange + _rampUpDelay < receiveTimestamp) {
 			// add Worker
@@ -386,34 +392,45 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			// monitor threads not started by us but by the JMS provider 
 			_workerPool.addThread(Thread.currentThread(), getDestinationName());
 			try {
-				processMessages(message);
+				try {
+					long receiveTimestamp = processMessage(message);
+					commit(receiveTimestamp, receiveTimestamp - message.getJMSTimestamp());
+				} catch (Exception e) {
+					logger.info("Rolling back for " + getKey(), e);
+					rollback();
+				}
 			} catch (JMSException e) {
 				throw new RuntimeException(e); 
 			}
 		}
 
-		protected final boolean processMessages(Message... messages) throws JMSException {
-			ESBMessage[] esbMessages = new ESBMessage[messages.length];
-			if (messages.length > 1) {
-				logger.info("JMS Batch size: " + messages.length);
-			}
+		protected final long processMessage(Message message) throws Exception {
+			ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
+			esbMessage.putVariable("JMSConnectionData", _jmsConnectionData.toString());
+			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
+			fillESBMessage(esbMessage, message);
+			processInternal(_context, esbMessage);
+			return esbMessage.getVariable(ESBConstants.initialTimestamp);
+		}
+
+		protected final void commit(long receiveTimestamp, long sentReceiveDelay) throws JMSException {
 			try {
-				for (int i = 0; i < messages.length; ++i) {
-					ESBMessage esbMessage = esbMessages[i] = new ESBMessage(BodyType.INVALID, null);
-					esbMessage.putVariable("JMSConnectionData", _jmsConnectionData.toString());
-					esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
-					fillESBMessage(esbMessage, messages[i]);
-				}
-				processInternal(_context, esbMessages);
-			} catch (Exception e) {
+				JDBCAction.closeKeptConnections(_context, true);
+				_session.getSession().commit();
+				adjustJMSWorkerPool(_sentReceiveDelay.accumulateAndGet(sentReceiveDelay), receiveTimestamp);
+			} catch (SQLException e) {
 				logger.info("Rolling back for " + getKey(), e);
-				_session.getSession().rollback();
-				return false;
+				rollback();
 			}
-			_session.getSession().commit();
-			long receiveTimestamp = esbMessages[messages.length - 1].getVariable(ESBConstants.initialTimestamp);
-			controlJMSWorkerPool(_sentReceiveDelay.accumulateAndGet(receiveTimestamp - messages[0].getJMSTimestamp()), receiveTimestamp);
-			return true;
+		}
+
+		protected final void rollback() throws JMSException {
+			try {
+				JDBCAction.closeKeptConnections(_context, false);
+			} catch (SQLException e) {
+				logger.info("JDBC rollback", e);
+			}
+			_session.getSession().rollback();
 		}
 	}
 
@@ -435,7 +452,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 		void stopListening() {
 			if (_poller != null) {
-				_poller.cancel(true);
+				_poller.cancel(false);
 				_poller = null;
 				super.stopListening();
 			}
@@ -444,19 +461,34 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		@Override
 		public void run() {
 			try {
-				for (ArrayList<Message> messages = new ArrayList<>(_batchSize);; messages.clear()) {
-					for (int i = 0; i < _batchSize; ++i) {
-						Message message = _messageConsumer.receiveNoWait();
-						if (message == null) {
-							break;
-						}
-						messages.add(message);
-					}
-					if (messages.isEmpty() || !processMessages(messages.toArray(new Message[messages.size()]))) {
+				long receiveTimestamp = 0, sentReceiveDelay = 0, start = System.nanoTime();
+				int i = 0;
+				Message message;
+				// Not completely thread safe (AMQ219017: Consumer is closed)
+				while (_poller != null && (message = _messageConsumer.receiveNoWait()) != null) {
+					try {
+						receiveTimestamp = processMessage(message);
+						sentReceiveDelay = receiveTimestamp - message.getJMSTimestamp();
+					} catch (Exception e) {
+						logger.info("Rolling back for " + getKey(), e);
+						rollback();
 						break;
 					}
+					if (++i == _batchSize) {
+						commit(receiveTimestamp, sentReceiveDelay);
+						i = 0;
+						start = System.nanoTime();
+					} else if (System.nanoTime() - start > _batchTime) {
+						logger.info("Batch timeout reached. Processed messages: " + i);
+						commit(receiveTimestamp, sentReceiveDelay);
+						i = 0;
+						start = System.nanoTime();
+					}
 				}
-				if (needsReschedule()) {
+				if (i > 0) {
+					commit(receiveTimestamp, sentReceiveDelay);
+				}
+				if (needsReschedule() && _poller != null) {
 					_poller = schedule(this, _initialDelay);
 				}
 			} catch (JMSException e) {

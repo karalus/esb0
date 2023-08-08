@@ -77,7 +77,7 @@ public final class KafkaConsumerPort extends PollingConsumerPort {
 							logger.debug("Kafka Consumer Record(topic=" + record.topic() + ", partition=" + record.partition() + ", offset=" + record.offset() + ")");
 							Context context = _workerPool.getContext();
 							try {
-								processInternal(context, msg);
+								process(context, msg);
 							} finally {
 								_workerPool.releaseContext(context);
 							}

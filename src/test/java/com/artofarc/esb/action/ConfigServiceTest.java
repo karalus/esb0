@@ -51,7 +51,7 @@ public class ConfigServiceTest extends AbstractESBTest {
       message.getVariables().put(ESBConstants.HttpMethod, "POST");
       message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.getHeaders().put(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
-      consumerPort.processInternal(context, message);
+      consumerPort.process(context, message);
       endpoint.stop();
    }
 

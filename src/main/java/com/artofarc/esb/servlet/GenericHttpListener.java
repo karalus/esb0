@@ -88,7 +88,7 @@ public class GenericHttpListener extends HttpServlet {
 							if (context != null) {
 								message.getVariables().put(AsyncContext, asyncContext = request.startAsync());
 								try {
-									consumerPort.process(context, message);
+									consumerPort.processWithServletResponse(context, message);
 								} finally {
 									consumerPort.releaseContext(context);
 								}
