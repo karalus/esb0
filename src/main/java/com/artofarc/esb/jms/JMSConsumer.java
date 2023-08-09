@@ -455,17 +455,22 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			if (_poller != null) {
 				_poller.cancel(false);
 				_poller = null;
-				super.stopListening();
+				synchronized (this) {
+					super.stopListening();
+					if (needsReschedule() && _poller != null) {
+						_poller.cancel(false);
+						_poller = null;
+					}
+				}
 			}
 		}
 
 		@Override
-		public void run() {
+		public synchronized void run() {
 			try {
 				long receiveTimestamp = 0, sentReceiveDelay = 0, start = System.nanoTime();
 				int i = 0;
 				Message message;
-				// Not completely thread safe (AMQ219017: Consumer is closed)
 				while (_poller != null && (message = _messageConsumer.receiveNoWait()) != null) {
 					try {
 						receiveTimestamp = processMessage(message);
@@ -473,15 +478,14 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 					} catch (Exception e) {
 						logger.info("Rolling back for " + getKey(), e);
 						rollback();
+						i = 0;
 						break;
 					}
-					if (++i == _batchSize) {
+					if (++i == _batchSize || System.nanoTime() - start > _batchTime) {
 						commit(receiveTimestamp, sentReceiveDelay);
-						i = 0;
-						start = System.nanoTime();
-					} else if (System.nanoTime() - start > _batchTime) {
-						logger.info("Batch timeout reached. Processed messages: " + i);
-						commit(receiveTimestamp, sentReceiveDelay);
+						if (i < _batchSize) {
+							logger.info("Batch timeout reached. Processed messages: " + i);
+						}
 						i = 0;
 						start = System.nanoTime();
 					}
