@@ -56,7 +56,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private final long _rampDownDelay = 10000L;
 	private final int _minWorkerCount;
 	private final int _batchSize;
-	private final long _batchTime = 1000000000L;
+	private final long _batchTime;
 	private long _lastControlChange;
 	private volatile boolean _operating;
 	private volatile int _workerCount;
@@ -65,7 +65,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private Future<?> _control;
 
 	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, String subscription,
-			boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, int batchSize, long pollInterval, String timeUnit, XMLGregorianCalendar at) throws NamingException, JMSException {
+			boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, int batchSize, int batchTime, long pollInterval, String timeUnit, XMLGregorianCalendar at) throws NamingException, JMSException {
 
 		super(uri, workerPool, at, timeUnit, pollInterval, false);
 		_jmsConnectionData = jmsConnectionData;
@@ -94,6 +94,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		_jmsWorker = new JMSWorker[workerCount];
 		_minWorkerCount = minWorkerCount;
 		_batchSize = batchSize;
+		_batchTime = batchTime * 1000000;
 	}
 
 	private String getDestinationName() {

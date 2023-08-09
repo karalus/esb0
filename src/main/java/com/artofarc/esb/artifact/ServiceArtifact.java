@@ -135,7 +135,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				for (JMSConnectionData jmsConnectionData : JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword())) {
 					JMSConsumer consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(),
 							jmsBinding.getQueueName(), jmsBinding.getTopicName(), jmsBinding.getSubscription(), jmsBinding.isNoLocal(), jmsBinding.isShared(), jmsBinding.getMessageSelector(),
-							jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getBatchSize(), jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt());
+							jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getBatchSize(), jmsBinding.getBatchTime(), jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt());
 					globalContext.checkBindJmsConsumer(consumerPort);
 					_consumerPorts.add(consumerPort);
 				}

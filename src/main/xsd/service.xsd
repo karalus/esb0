@@ -762,6 +762,7 @@
 							<attribute name="minWorkerCount" type="tns:positiveInt" />
 							<attribute name="workerCount" type="tns:positiveInt" default="1" />
 							<attribute name="batchSize" type="int" default="1" />
+							<attribute name="batchTime" type="int" default="1000" />
 							<attribute name="pollInterval" type="int" default="0" />
 							<attribute name="at" type="time" />
 							<attribute name="timeUnit" type="string" default="milliseconds" />
