@@ -120,7 +120,7 @@ public class JsonXmlTest extends AbstractESBTest {
 		Json2XMLAction action = new Json2XMLAction(xsd.getXSSchemaSet(), "{http://aoa.de/xsd/demo/v1/}demoType", true, "{http://aoa.de/xsd/demo/v1/}demoElementRequest", urisToPrefixes, null);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
-		action.setNextAction(new DumpAction() {});
+		action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
 //		TimeGauge timeGauge = new TimeGauge(Action.logger, 0L, false);
 //		timeGauge.startTimeMeasurement();
@@ -153,5 +153,16 @@ public class JsonXmlTest extends AbstractESBTest {
 //		action.setNextAction(new DumpAction());
 //		consumerPort.process(context, message);
 //	}
+
+	@Test
+	public void testJsonPrimitive2XML() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "true");
+		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "application/json; charset=\"utf-8\"");
+		Json2XMLAction action = new Json2XMLAction(null, null, false, null, null, true);
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(action);
+		action.setNextAction(new DumpAction());
+		consumerPort.process(context, message);
+	}
 
 }

@@ -398,6 +398,11 @@ public final class Json2XmlTransformer {
 			if (attribute) {
 				addAttribute(value);
 			} else {
+				if (keyName == null && xsomHelper == null) {
+					keyName = _rootName;
+					uri = _rootUri;
+					xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
+				}
 				if ((simpleContent || any >= 0 && type == null) && valueWrapper.equals(keyName)) {
 					simpleContent = true;
 					characters(value);
