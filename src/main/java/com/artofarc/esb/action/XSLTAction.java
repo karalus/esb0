@@ -35,6 +35,7 @@ import org.xml.sax.XMLReader;
 import com.artofarc.esb.artifact.XSLTArtifact;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
@@ -79,6 +80,13 @@ public class XSLTAction extends SAXAction {
 		String mediaType = outputProperties.getProperty(OutputKeys.MEDIA_TYPE);
 		if (mediaType != null) {
 			message.setContentType(mediaType);
+		} else {
+			String method = outputProperties.getProperty(OutputKeys.METHOD);
+			if (method == null || "xml".equals(method) || "xhtml".equals(method)) {
+				message.setContentType(HttpConstants.HTTP_HEADER_CONTENT_TYPE_XML);
+			} else{
+				message.setContentType(HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT);
+			}
 		}
 	}
 
