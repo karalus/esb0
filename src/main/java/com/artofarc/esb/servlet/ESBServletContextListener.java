@@ -45,7 +45,7 @@ public final class ESBServletContextListener implements ServletContextListener {
 		try {
 			FileSystem fileSystem;
 			if (root != null && root.contains("jdbc")) {
-				fileSystem = new FileSystemDB(globalContext.<javax.sql.DataSource> lookup(root));
+				fileSystem = new FileSystemDB(globalContext.lookup(root));
 			} else {
 				File rootDir = root != null ? new File(root) : new File(System.getProperty("user.home"), "esb_root");
 				if (!rootDir.exists() || !rootDir.isDirectory()) {
@@ -56,6 +56,7 @@ public final class ESBServletContextListener implements ServletContextListener {
 			globalContext.setFileSystem(fileSystem);
 			XMLCatalog.attachToFileSystem(globalContext);
 			DeployHelper.deployChangeSet(globalContext, fileSystem.init(globalContext));
+			// necessary for auto migrated artifacts 
 			fileSystem.writeBackChanges();
 			DeployHelper.createAdminService(globalContext, '/' + ADMIN_SERVLET_PATH);
 		} catch (Exception e) {

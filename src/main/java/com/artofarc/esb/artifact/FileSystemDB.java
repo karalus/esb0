@@ -41,7 +41,7 @@ public class FileSystemDB extends FileSystem {
 	}
 
 	@Override
-	public FileSystemDB copy() {
+	protected FileSystemDB copy() {
 		return new FileSystemDB(this);
 	}
 
@@ -66,7 +66,7 @@ public class FileSystemDB extends FileSystem {
 	}
 
 	@Override
-	public void load() throws SQLException {
+	protected void load() throws SQLException {
 		CRC32 crc = new CRC32();
 		String sql = "select URI, MODIFIED, CONTENT from " + FILESYSTEM_TABLE + " where ENVIRONMENT='" + environment + "'";
 		try (Connection conn = _dataSource.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet resultSet = ps.executeQuery()) {
@@ -87,7 +87,7 @@ public class FileSystemDB extends FileSystem {
 	}
 
 	@Override
-	public void writeBackChanges() throws SQLException {
+	protected void writeBackChanges(Map<String, ChangeType> changes) throws SQLException {
 		String createSql = "insert into " + FILESYSTEM_TABLE + " (URI, ENVIRONMENT, MODIFIED, CONTENT) VALUES (?,'" + environment + "',?,?)";
 		String updateSql = "update " + FILESYSTEM_TABLE + " set MODIFIED=?, CONTENT=? WHERE URI=? and ENVIRONMENT='" + environment + "'";
 		String deleteSql = "delete from " + FILESYSTEM_TABLE + " WHERE URI=? and ENVIRONMENT='" + environment + "'";
@@ -96,7 +96,7 @@ public class FileSystemDB extends FileSystem {
 				PreparedStatement update = conn.prepareStatement(updateSql);
 				PreparedStatement delete = conn.prepareStatement(deleteSql)) {
 
-			for (Map.Entry<String, ChangeType> entry : _changes.entrySet()) {
+			for (Map.Entry<String, ChangeType> entry : changes.entrySet()) {
 				Artifact artifact = getArtifact(entry.getKey());
 				if (!(artifact instanceof Directory)) {
 					switch (entry.getValue()) {
@@ -123,8 +123,6 @@ public class FileSystemDB extends FileSystem {
 				}
 			}
 		}
-		_changes.clear();
-		dehydrateArtifacts(_root);
 	}
 
 }

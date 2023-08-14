@@ -78,16 +78,16 @@ public abstract class AbstractESBTest {
 		getGlobalContext().setFileSystem(new FileSystem() {
 
 			@Override
-			public FileSystem copy() {
+			protected FileSystem copy() {
 				return null;
 			}
 
 			@Override
-			public void load() {
+			protected void load() {
 			}
 
 			@Override
-			public void writeBackChanges() {
+			protected void writeBackChanges(Map<String, ChangeType> changes) {
 			}
 		});
 		XMLCatalog.attachToFileSystem(getGlobalContext());

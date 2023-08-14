@@ -77,14 +77,19 @@ public final class DeployHelper {
 			String name = IOUtils.stripExt(workerPool.getURI());
 			WorkerPool oldWorkerPool = globalContext.getWorkerPool(name);
 			// close later
-			closer.add(oldWorkerPool);
+			closer.add(() -> {
+				oldWorkerPool.close();
+				oldWorkerPool.getPoolContext().close();
+				globalContext.removeWorkerPool(name);
+			});
 		});
 		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), JNDIObjectFactoryArtifact.class).forEach(jndiObjectFactoryArtifact -> {
-			Object object = globalContext.removeJndiObject(jndiObjectFactoryArtifact.getJndiName());
-			if (object instanceof AutoCloseable) {
-				// close later
-				closer.add((AutoCloseable) object);
-			}
+			closer.add(() -> {
+				Object object = globalContext.removeJndiObject(jndiObjectFactoryArtifact.getJndiName());
+				if (object instanceof AutoCloseable) {
+					((AutoCloseable) object).close();
+				}
+			});
 		});
 		for (WorkerPoolArtifact workerPoolArtifact : changeSet.getWorkerPoolArtifacts()) {
 			String name = IOUtils.stripExt(workerPoolArtifact.getURI());
@@ -114,7 +119,7 @@ public final class DeployHelper {
 					closer.add((AutoCloseable) oldObject);
 				}
 			} catch (javax.naming.NamingException e) {
-				// no oldObject
+				throw new ValidationException(jndiObjectFactoryArtifact, "Not registered");
 			}
 			globalContext.putJndiObject(jndiObjectFactoryArtifact.getJndiName(), jndiObjectFactoryArtifact.createObject(), jndiObjectFactoryArtifact.getURI());
 		}

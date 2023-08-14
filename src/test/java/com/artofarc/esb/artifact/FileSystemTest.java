@@ -1,4 +1,4 @@
-package com.artofarc.esb.action;
+package com.artofarc.esb.artifact;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,8 +9,7 @@ import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
-import com.artofarc.esb.artifact.FileSystem;
-import com.artofarc.esb.artifact.FileSystemDir;
+import com.artofarc.esb.action.TerminalAction;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.PoolContext;
@@ -31,7 +30,7 @@ public class FileSystemTest extends AbstractESBTest {
       fileSystem.init(context.getPoolContext().getGlobalContext());
       FileSystem clone = fileSystem.copy();
       assertFalse(fileSystem.getRoot() == clone.getRoot());
-      assertFalse(fileSystem.tidyOut());
+      assertFalse(fileSystem.tidyOut(clone.new ChangeSet()));
    }
    
   @Test

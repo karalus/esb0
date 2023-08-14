@@ -159,12 +159,12 @@ public class Registry extends AbstractContext {
 		return oldConsumerPort;
 	}
 
-	private ConsumerPort rebindService(ConsumerPort consumerPort, ConsumerPort oldConsumerPort) {
+	private void rebindInternalServiceAndMBean(ConsumerPort consumerPort, ConsumerPort oldConsumerPort) {
 		if (oldConsumerPort != null) {
 			unregisterMBean(oldConsumerPort.getMBeanPostfix());
 		}
 		registerMBean(consumerPort, consumerPort.getMBeanPostfix());
-		return _services.put(consumerPort.getUri(), consumerPort);
+		_services.put(consumerPort.getUri(), consumerPort);
 	}
 
 	public final void unbindInternalService(ConsumerPort consumerPort) {
@@ -188,8 +188,7 @@ public class Registry extends AbstractContext {
 			JMSConsumer jmsConsumer = (JMSConsumer) consumerPort;
 			_jmsConsumer.remove(jmsConsumer.getKey());
 		} else if (consumerPort instanceof TimerService) {
-			TimerService timerService = (TimerService) consumerPort;
-			_timerServices.remove(timerService.getUri());
+			_timerServices.remove(consumerPort.getUri());
 		} else if (consumerPort instanceof FileWatchEventConsumer) {
 			FileWatchEventConsumer fileWatchEventConsumer = (FileWatchEventConsumer) consumerPort;
 			for (Path dir : fileWatchEventConsumer.getDirs()) {
@@ -215,7 +214,7 @@ public class Registry extends AbstractContext {
 			oldConsumerPort = getInternalService(httpConsumer.getUri());
 			unbindService(oldConsumerPort);
 		}
-		rebindService(httpConsumer, oldConsumerPort);
+		rebindInternalServiceAndMBean(httpConsumer, oldConsumerPort);
 		if (httpConsumer.isPathMapping()) {
 			_mappedHttpServices.upsert(httpConsumer.getBindPath(), httpConsumer);
 		} else {
@@ -240,13 +239,9 @@ public class Registry extends AbstractContext {
 		ConsumerPort oldConsumerPort = checkBindJmsConsumer(jmsConsumer);
 		if (oldConsumerPort == null) {
 			oldConsumerPort = getInternalService(jmsConsumer.getUri());
-			if (oldConsumerPort instanceof JMSConsumer) {
-				oldConsumerPort = null;
-			} else {
-				unbindService(oldConsumerPort);
-			}
+			unbindService(oldConsumerPort);
 		}
-		rebindService(jmsConsumer, oldConsumerPort);
+		rebindInternalServiceAndMBean(jmsConsumer, oldConsumerPort);
 		_jmsConsumer.put(jmsConsumer.getKey(), jmsConsumer);
 		return oldConsumerPort;
 	}
@@ -257,12 +252,11 @@ public class Registry extends AbstractContext {
 
 	public final ConsumerPort bindTimerService(TimerService timerService) {
 		ConsumerPort oldConsumerPort = _timerServices.put(timerService.getUri(), timerService);
-		if (oldConsumerPort != null) {
-			rebindService(timerService, oldConsumerPort);
-		} else {
-			oldConsumerPort = rebindService(timerService, null);
+		if (oldConsumerPort == null) {
+			oldConsumerPort = getInternalService(timerService.getUri());
 			unbindService(oldConsumerPort);
 		}
+		rebindInternalServiceAndMBean(timerService, oldConsumerPort);
 		return oldConsumerPort;
 	}
 
@@ -289,7 +283,7 @@ public class Registry extends AbstractContext {
 			oldConsumerPort = getInternalService(fileWatchEventConsumer.getUri());
 			unbindService(oldConsumerPort);
 		}
-		rebindService(fileWatchEventConsumer, oldConsumerPort);
+		rebindInternalServiceAndMBean(fileWatchEventConsumer, oldConsumerPort);
 		for (Path dir : fileWatchEventConsumer.getDirs()) {
 			_fileWatchEventServices.put(dir, fileWatchEventConsumer);
 		}
@@ -318,7 +312,7 @@ public class Registry extends AbstractContext {
 			oldConsumerPort = getInternalService(kafkaConsumer.getUri());
 			unbindService(oldConsumerPort);
 		}
-		rebindService(kafkaConsumer, oldConsumerPort);
+		rebindInternalServiceAndMBean(kafkaConsumer, oldConsumerPort);
 		_kafkaConsumer.put(kafkaConsumer.getKey(), kafkaConsumer);
 		return oldConsumerPort;
 	}
@@ -345,6 +339,11 @@ public class Registry extends AbstractContext {
 			unregisterMBean(",group=WorkerPool,name=" + name);
 		}
 		registerMBean(workerPool, ",group=WorkerPool,name=" + name);
+	}
+
+	public final void removeWorkerPool(String name) {
+		_workerPoolMap.remove(name);
+		unregisterMBean(",group=WorkerPool,name=" + name);
 	}
 
 	@Override

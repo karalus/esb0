@@ -39,7 +39,7 @@ public class FileSystemDir extends FileSystem {
 	}
 
 	@Override
-	public FileSystemDir copy() {
+	protected FileSystemDir copy() {
 		return new FileSystemDir(this);
 	}
 
@@ -49,8 +49,8 @@ public class FileSystemDir extends FileSystem {
 	}
 
 	@Override
-	public void load() throws IOException {
-		readDir(_root, _anchorDir, new CRC32());
+	protected void load() throws IOException {
+		readDir(getRoot(), _anchorDir, new CRC32());
 	}
 
 	private void readDir(Directory base, File dir, CRC32 crc) throws IOException {
@@ -74,8 +74,8 @@ public class FileSystemDir extends FileSystem {
 	}
 
 	@Override
-	public void writeBackChanges() throws IOException {
-		for (Map.Entry<String, ChangeType> entry : _changes.entrySet()) {
+	protected void writeBackChanges(Map<String, ChangeType> changes) throws IOException {
+		for (Map.Entry<String, ChangeType> entry : changes.entrySet()) {
 			File file = new File(_anchorDir, entry.getKey());
 			if (entry.getValue() == ChangeType.DELETE) {
 				if (!file.delete() && file.exists()) {
@@ -92,8 +92,6 @@ public class FileSystemDir extends FileSystem {
 				}
 			}
 		}
-		_changes.clear();
-		dehydrateArtifacts(_root);
 	}
 
 }

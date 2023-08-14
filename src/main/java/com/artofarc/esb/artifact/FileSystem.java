@@ -49,8 +49,8 @@ public abstract class FileSystem {
 	public final static String environment = System.getProperty("esb0.environment", "default");
 	public final static boolean ignoreValidationExceptionsOnStartup = Boolean.parseBoolean(System.getProperty("esb0.ignoreValidationExceptionsOnStartup"));
 
-	protected final Directory _root;
-	protected final Map<String, ChangeType> _changes = new LinkedHashMap<>();
+	private final Directory _root;
+	private final Map<String, ChangeType> _changes = new LinkedHashMap<>();
 
 	public FileSystem() {
 		_root = new Directory(this, null, "");
@@ -64,11 +64,17 @@ public abstract class FileSystem {
 		return _changes.isEmpty();
 	}
 
-	public abstract FileSystem copy();
+	protected abstract FileSystem copy();
 
-	public abstract void load() throws Exception;
+	protected abstract void load() throws Exception;
 
-	public abstract void writeBackChanges() throws Exception;
+	protected abstract void writeBackChanges(Map<String, ChangeType> changes) throws Exception;
+
+	public final void writeBackChanges() throws Exception {
+		writeBackChanges(_changes);
+		_changes.clear();
+		dehydrateArtifacts(_root);
+	}
 
 	protected InputStream createInputStream(String uri) throws Exception {
 		return new ByteArrayInputStream(reloadContent(uri));
@@ -236,11 +242,11 @@ public abstract class FileSystem {
 		return result;
 	}
 
-	public final boolean tidyOut() {
+	final boolean tidyOut(ChangeSet changeSet) {
 		HashSet<String> visited = new HashSet<>();
 		collectFolders(visited, _root);
 		detachOrphans(_root, visited);
-		return deleteOrphans(_root, visited);
+		return deleteOrphans(_root, visited, changeSet);
 	}
 
 	private static void detachOrphans(Directory directory, HashSet<String> visited) {
@@ -250,25 +256,26 @@ public abstract class FileSystem {
 				if (!XMLCatalog.isXMLCatalog(child)) {
 					detachOrphans(child, visited);
 				}
-			} else if (!(artifact instanceof JNDIObjectFactoryArtifact || visited.contains(artifact.getURI()))) {
+			} else if (!visited.contains(artifact.getURI())) {
 				artifact.detachFromReferenced();
 			}
 		}
 	}
 
-	private boolean deleteOrphans(Directory directory, HashSet<String> visited) {
+	private boolean deleteOrphans(Directory directory, HashSet<String> visited, ChangeSet changeSet) {
 		for (Iterator<Artifact> iterator = directory.getArtifacts().values().iterator(); iterator.hasNext();) {
 			Artifact artifact = iterator.next();
 			if (artifact instanceof Directory) {
 				Directory child = (Directory) artifact;
-				if (!XMLCatalog.isXMLCatalog(child) && deleteOrphans(child, visited)) {
+				if (!XMLCatalog.isXMLCatalog(child) && deleteOrphans(child, visited, changeSet)) {
 					logger.info("Remove: " + artifact.getURI());
 					iterator.remove();
 					noteChange(artifact.getURI(), ChangeType.DELETE);
 				}
-			} else if (!(artifact instanceof JNDIObjectFactoryArtifact || visited.contains(artifact.getURI()))) {
+			} else if (!visited.contains(artifact.getURI())) {
 				logger.info("Remove: " + artifact);
 				iterator.remove();
+				changeSet.getDeletedArtifacts().add(artifact);
 				noteChange(artifact.getURI(), ChangeType.DELETE);
 			}
 		}
@@ -277,7 +284,7 @@ public abstract class FileSystem {
 
 	private void collectFolders(HashSet<String> visited, Directory directory) {
 		for (Artifact artifact : directory.getArtifacts().values()) {
-			if (artifact instanceof ServiceArtifact) {
+			if (artifact instanceof ServiceArtifact || artifact instanceof JNDIObjectFactoryArtifact) {
 				collectDownwardDependencies(visited, artifact.getURI());
 			} else if (artifact instanceof Directory) {
 				collectFolders(visited, (Directory) artifact);
@@ -367,7 +374,7 @@ public abstract class FileSystem {
 		FileSystem copy = copy();
 		boolean tidyOut = copy.mergeZIP(inputStream);
 		ChangeSet changeSet = validateChanges(globalContext, copy);
-		if (tidyOut) copy.tidyOut();
+		if (tidyOut) copy.tidyOut(changeSet);
 		return changeSet;
 	}
 
@@ -402,7 +409,7 @@ public abstract class FileSystem {
 		copy.noteChange(uriToDelete, ChangeType.DELETE);
 		ChangeSet changeSet = copy.new ChangeSet();
 		changeSet.getDeletedArtifacts().add(artifact);
-		copy.tidyOut();
+		copy.tidyOut(changeSet);
 		return changeSet;
 	}
 
@@ -484,7 +491,7 @@ public abstract class FileSystem {
 		return tidyOut;
 	}
 
-	public void dump(OutputStream outputStream) throws IOException {
+	public final void dump(OutputStream outputStream) throws IOException {
 		try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
 			dumpDirectory(zos, _root);
 		}
