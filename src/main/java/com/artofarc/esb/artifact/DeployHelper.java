@@ -119,7 +119,7 @@ public final class DeployHelper {
 					closer.add((AutoCloseable) oldObject);
 				}
 			} catch (javax.naming.NamingException e) {
-				throw new ValidationException(jndiObjectFactoryArtifact, "Not registered");
+				// no oldObject
 			}
 			globalContext.putJndiObject(jndiObjectFactoryArtifact.getJndiName(), jndiObjectFactoryArtifact.createObject(), jndiObjectFactoryArtifact.getURI());
 		}
