@@ -80,7 +80,7 @@ public final class WSDL4JUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <T extends ExtensibilityElement> T getExtensibilityElement(final ElementExtensible elementExtensible, final Class<?>... classes) {
+	public static <T extends ExtensibilityElement> T getExtensibilityElement(final ElementExtensible elementExtensible, final Class<?>... classes) {
 		for (Object extensibilityElement : elementExtensible.getExtensibilityElements()) {
 			for (Class<?> cls : classes) {
 				if (cls.isInstance(extensibilityElement)) {
