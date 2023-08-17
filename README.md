@@ -28,7 +28,7 @@ Features:
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.10.0.
+Current stable version is 1.10.1.
 
 ### Design goals ###
 
@@ -36,7 +36,7 @@ Most ESB products are very heavy suites which is counterproductive for their mai
 
 ESB Zero is designed to be very small and thus manageable. The zipped (7zip) sources are currently about 128k of size!
 
-The minimal set of features is supported based on the VETRO pattern. All basic EAI components that are needed are built-in with the exemption of stateful components (e.g. [resquencer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Resequencer.html)). As the ESB Zero does not maintain state on its own, it can be easily scaled up and runs very stable.
+The minimal set of features is supported based on the VETRO pattern. All basic EAI components that are needed are built-in with the exemption of stateful components (e.g. [resequencer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Resequencer.html)). As the ESB Zero does not maintain state on its own, it can be easily scaled up and runs very stable.
 
 Having no built-in state does not necessarily mean that you need more tools or products. You can build many patterns with ESB Zero and a MOM and/or DB. For instance the mentioned resequencer can be realized with two ESB Zero service flows and a DB table in the middle (First flow puts messages into the table along with sequence nr and timestamp and the second flow polls the table for messages arrived before a given period of time in the correct order and forwards the messages to the next endpoint).
 This general concept puts the burden of persistent state (not losing or corrupting it) on the MOM/DB.
@@ -90,8 +90,10 @@ From version 1.4 on Java 8 is required at runtime. From version 1.11 on Java 11 
 
 ### How to deploy ###
 
-ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API. 
+ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API, i.e. Java EE 7 and Java/Jakarta EE 8. to Jakarta EE 9
+ 
 It has been tested with Tomcat 8, 8.5, 9, Wildfly, Jetty 9 and JBoss EAP 7.x.
+For Tomcat 10.x (Jakarta EE 9) you must make use of the migration tool (by deploying the WAR to *webapps-javaee* instead of *webapps*).
 
 ESB Zero is built with Java 8 and has been tested with Oracle JDK8 and OpenJDK 11.
 
@@ -139,5 +141,9 @@ Optional
 
 __1.11__ (Q4 2023):
 - Optimized for Java 11 and later (deprecate support for Java 8)
-- Offer new JDK HTTP Client thus facilitate asynchronous HTTP
+- Offer new JDK HTTP Client thus facilitate asynchronous HTTP and HTTP/2 outbound
 - divide source into modules using parent POM
+
+__Backlog:__
+- make use of virtual threads (requires Java 21 minimum)
+- migrate to Jakarta EE 9 (at least when Tomcat 9.0 and JBoss 7.4 reached EOL)
