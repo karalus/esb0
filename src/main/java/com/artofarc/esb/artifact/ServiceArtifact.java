@@ -412,7 +412,12 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			Binding binding = WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), unwrapSOAP.getBinding(), unwrapSOAP.getTransport());
 			@SuppressWarnings("unchecked")
 			List<BindingOperation> bindingOperations = binding != null ? binding.getBindingOperations() : Collections.emptyList();
-			UnwrapSOAPAction unwrapSOAPAction = new UnwrapSOAPAction(unwrapSOAP.isSoap12(), unwrapSOAP.isSinglePart(), wsdlArtifact.getSchema(), bindingOperations, wsdlArtifact.getURI(), unwrapSOAP.isGetWsdl());
+			UnwrapSOAPAction unwrapSOAPAction;
+			if (unwrapSOAP.isGetWsdl()) {
+				unwrapSOAPAction = new com.artofarc.esb.servlet.UnwrapSOAPAction(unwrapSOAP.isSoap12(), unwrapSOAP.isSinglePart(), wsdlArtifact.getSchema(), bindingOperations, wsdlArtifact.getURI());
+			} else {
+				unwrapSOAPAction = new UnwrapSOAPAction(unwrapSOAP.isSoap12(), unwrapSOAP.isSinglePart(), wsdlArtifact.getSchema(), bindingOperations);
+			}
 			addAction(list, unwrapSOAPAction, location);
 			break;
 		}

@@ -28,6 +28,7 @@ input[type="submit"][value="false"] {
 <body style="background-color:<%=System.getProperty("esb0.adminUI.bgcolor", "transparent")%>">
 <%
 	GlobalContext globalContext = (GlobalContext) application.getAttribute(ESBServletContextListener.CONTEXT);
+	String adminPath = request.getContextPath() + ESBServletContextListener.ADMIN_SERVLET_PATH;
 %>
 <h2>ESB Zero - A lightweight service gateway (Version <%=globalContext.getVersion()%> build time <%=globalContext.getProperty(GlobalContext.BUILD_TIME)%>)</h2>
 <%
@@ -63,8 +64,8 @@ input[type="submit"][value="false"] {
 					<td><%=consumerPort.getPoolSize()%></td>
 					<td><%=consumerPort.getCompletedTaskCount()%></td>
 					<td><%=consumerPort.getExecutionTime()%></td>
-					<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?HttpServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
-					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="HttpServices"/></form></td>
+					<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?HttpServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+					<td><form action="<%=adminPath + consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="HttpServices"/></form></td>
 				</tr>
 				<%
 			}
@@ -85,8 +86,8 @@ input[type="submit"][value="false"] {
 					<td><%=consumerPort.getPoolSize()%></td>
 					<td><%=consumerPort.getCompletedTaskCount()%></td>
 					<td><%=consumerPort.getExecutionTime()%></td>
-					<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?MappedHttpServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
-					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="MappedHttpServices"/></form></td>
+					<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?MappedHttpServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+					<td><form action="<%=adminPath + consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="MappedHttpServices"/></form></td>
 				</tr>
 				<%
 			}
@@ -110,12 +111,12 @@ input[type="submit"][value="false"] {
 					<td><%=jmsConsumer.getCurrentSentReceiveDelay()%></td>
 					<td><%=jmsConsumer.getLastChangeOfState()%></td>
 					<td>
-						<form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=jmsConsumer.getUri()%>?JMSServices">
+						<form method="post" action="<%=adminPath + jmsConsumer.getUri()%>?JMSServices">
 							<input type="submit" value="<%=jmsConsumer.isEnabled()%>"/>
 							<input type="hidden" name="enable" value="<%=!jmsConsumer.isEnabled()%>"/> 
 						</form>
 					</td>
-					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=jmsConsumer.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=jmsConsumer.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="JMSServices"/></form></td>
+					<td><form action="<%=adminPath + jmsConsumer.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=jmsConsumer.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="JMSServices"/></form></td>
 				</tr>
 				<%
 			}
@@ -134,8 +135,8 @@ input[type="submit"][value="false"] {
 					<td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 					<td><%=consumerPort.getDelay() != null ? consumerPort.getDelay() + " " + consumerPort.getTimeUnit().name().toLowerCase(Locale.ROOT) : "N/A"%></td>
 					<td><%=consumerPort.getCompletedTaskCount()%></td>
-					<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?TimerServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
-					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="TimerServices"/></form></td>
+					<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?TimerServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+					<td><form action="<%=adminPath + consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="TimerServices"/></form></td>
 				</tr>
 				<%
 			}
@@ -154,8 +155,8 @@ input[type="submit"][value="false"] {
 				<td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 				<td><%=consumerPort.getDirs()%></td>
 				<td><%=consumerPort.getCompletedTaskCount()%></td>
-				<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?FileWatchEventConsumer"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
-				<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="FileWatchEventConsumer"/></form></td>
+				<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?FileWatchEventConsumer"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+				<td><form action="<%=adminPath + consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="FileWatchEventConsumer"/></form></td>
 			</tr>
 			<%
 		}
@@ -175,8 +176,8 @@ input[type="submit"][value="false"] {
 				<td><%=consumerPort.getConfig()%></td>
 				<td><%=consumerPort.getTopics()%></td>
 				<td><%=consumerPort.getCompletedTaskCount()%></td>
-				<td><form method="post" action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>?KafkaConsumerServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
-				<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="KafkaConsumerServices"/></form></td>
+				<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?KafkaConsumerServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
+				<td><form action="<%=adminPath + consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="KafkaConsumerServices"/></form></td>
 			</tr>
 			<%
 		}
@@ -194,7 +195,7 @@ input[type="submit"][value="false"] {
 				<tr>
 					<td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 					<td><%=globalContext.getFileSystem().getArtifact(consumerPort.getUri()).getReferencedBy().size()%></td>
-					<td><form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%><%=consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="InternalServices"/></form></td>
+					<td><form action="<%=adminPath + consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="InternalServices"/></form></td>
 				</tr>
 				<%
 			}
@@ -229,12 +230,12 @@ input[type="submit"][value="false"] {
 				if (uri != null) {
 					%>
 					<td><a href="<%=request.getContextPath() + request.getServletPath() + uri%>"><%=uri%></a></td>
-					<td><form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + uri%>" onsubmit="return confirm('Are you sure to delete \'<%=uri%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td>
+					<td><form action="<%=adminPath + uri%>" onsubmit="return confirm('Are you sure to delete \'<%=uri%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="DataSources"/></form></td>
 					<%
 					JNDIObjectFactoryArtifact a = globalContext.getFileSystem().getArtifact(uri);
 					if (a.getAdminPostAction() != null) {
 						%>
-						<td><form method="post" action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + uri%>?LocalJNDIobjects"><input type="submit" value="<%=a.getAdminPostAction()%>"/></form></td>
+						<td><form method="post" action="<%=adminPath + uri%>?LocalJNDIobjects"><input type="submit" value="<%=a.getAdminPostAction()%>"/></form></td>
 						<%
 					} else {
 						%>
@@ -348,7 +349,7 @@ input[type="submit"][value="false"] {
 </table>
 <br>
 Upload Service-JAR:
-<form action="<%=ESBServletContextListener.ADMIN_SERVLET_PATH%>/" enctype="multipart/form-data" method="POST">
+<form action="<%=adminPath%>/" enctype="multipart/form-data" method="POST">
 	<input type="file" name="file">
 	<input type="submit" value="Upload">
 </form>
@@ -362,12 +363,12 @@ Upload Service-JAR:
 		if (a instanceof Directory) {
 			List<String> artifacts = DataStructures.asSortedList(((Directory) a).getArtifacts().keySet());
 %>
-<br>Filesystem directory {<%=ESBServletContextListener.ESB_ROOT_DIR%>}<%=a.getURI()%> (<%=artifacts.size()%> artifacts)
+<br>Filesystem directory {<%=application.getAttribute(ESBServletContextListener.ESB_ROOT_DIR)%>}<%=a.getURI()%> (<%=artifacts.size()%> artifacts)
 <%
 			if (!a.getURI().isEmpty()) {
 %>
 
-<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + a.getURI()%>?wsdl" enctype="text/plain" method="POST">
+<form action="<%=adminPath + a.getURI()%>?wsdl" enctype="text/plain" method="POST">
 	<input type="file" name="file">
 	<input type="submit" value="Upload">
 </form>
@@ -445,7 +446,7 @@ Upload Service-JAR:
 				}
 				%>
 				<br>
-				<form action="<%=request.getContextPath() + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + pathInfo%>" enctype="text/plain" method="POST" accept-charset="utf-8">
+				<form action="<%=adminPath + pathInfo%>" enctype="text/plain" method="POST" accept-charset="utf-8">
 					<textarea name="content" rows="50" cols="200" spellcheck="false" style="tab-size:4"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=content%></textarea>
 					<input type="submit" value="Change">
 				</form>

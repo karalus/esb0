@@ -15,7 +15,6 @@
  */
 package com.artofarc.esb.servlet;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -25,46 +24,13 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
 import com.artofarc.esb.artifact.DeployHelper;
-import com.artofarc.esb.artifact.FileSystem;
-import com.artofarc.esb.artifact.FileSystemDB;
-import com.artofarc.esb.artifact.FileSystemDir;
-import com.artofarc.esb.artifact.XMLCatalog;
 import com.artofarc.esb.context.GlobalContext;
 
 public final class ESBServletContextListener implements ServletContextListener {
 
-	public static final String ADMIN_SERVLET_PATH = "admin/deploy";
+	public static final String ADMIN_SERVLET_PATH = "/admin/deploy";
 	public static final String CONTEXT = "esb0.context";
-	public static final String ESB_ROOT_DIR = System.getProperty("esb0.root", System.getenv("ESB_ROOT_DIR"));
-
-	public GlobalContext createContext(ClassLoader classLoader, String root, Properties manifest) {
-		Properties properties = new Properties();
-		properties.setProperty(GlobalContext.VERSION, manifest.getProperty("Implementation-Version", "0.0"));
-		properties.setProperty(GlobalContext.BUILD_TIME, manifest.getProperty("Build-Time", ""));
-		GlobalContext globalContext = new GlobalContext(classLoader, java.lang.management.ManagementFactory.getPlatformMBeanServer(), properties);
-		try {
-			FileSystem fileSystem;
-			if (root != null && root.contains("jdbc")) {
-				fileSystem = new FileSystemDB(globalContext.lookup(root));
-			} else {
-				File rootDir = root != null ? new File(root) : new File(System.getProperty("user.home"), "esb_root");
-				if (!rootDir.exists() || !rootDir.isDirectory()) {
-					throw new IOException("No directory " + rootDir);
-				}
-				fileSystem = new FileSystemDir(rootDir);
-			}
-			globalContext.setFileSystem(fileSystem);
-			XMLCatalog.attachToFileSystem(globalContext);
-			DeployHelper.deployChangeSet(globalContext, fileSystem.init(globalContext));
-			// necessary for auto migrated artifacts 
-			fileSystem.writeBackChanges();
-			DeployHelper.createAdminService(globalContext, '/' + ADMIN_SERVLET_PATH);
-		} catch (Exception e) {
-			globalContext.close();
-			throw new RuntimeException("Could not initialize services", e);
-		}
-		return globalContext;
-	}
+	public static final String ESB_ROOT_DIR = "esb0.root";
 
 	@Override
 	public void contextInitialized(ServletContextEvent contextEvent) {
@@ -79,7 +45,23 @@ public final class ESBServletContextListener implements ServletContextListener {
 				// ignore
 			}
 		}
-		servletContext.setAttribute(CONTEXT, createContext(servletContext.getClassLoader(), ESB_ROOT_DIR, manifest));
+		Properties properties = new Properties();
+		properties.setProperty(GlobalContext.VERSION, manifest.getProperty("Implementation-Version", "0.0"));
+		properties.setProperty(GlobalContext.BUILD_TIME, manifest.getProperty("Build-Time", ""));
+		GlobalContext globalContext = new GlobalContext(servletContext.getClassLoader(), java.lang.management.ManagementFactory.getPlatformMBeanServer(), properties);
+		String esbRootDir = System.getProperty("esb0.root", System.getenv("ESB_ROOT_DIR"));
+		if (esbRootDir == null) {
+			esbRootDir = System.getProperty("user.home") + "/esb_root";
+		}
+		try {
+			DeployHelper.attachFileSystemAndDeploy(globalContext, esbRootDir);
+			DeployHelper.createAdminService(globalContext, ADMIN_SERVLET_PATH);
+			servletContext.setAttribute(CONTEXT, globalContext);
+			servletContext.setAttribute(ESB_ROOT_DIR, esbRootDir);
+		} catch (Exception e) {
+			globalContext.close();
+			throw new RuntimeException("Could not initialize services", e);
+		}
 	}
 
 	@Override
@@ -88,10 +70,6 @@ public final class ESBServletContextListener implements ServletContextListener {
 		if (globalContext != null) {
 			globalContext.close();
 		}
-	}
-
-	public static void main(String[] args) {
-		new ESBServletContextListener().createContext(ESBServletContextListener.class.getClassLoader(), args[0], new Properties());
 	}
 
 }

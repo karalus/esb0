@@ -76,6 +76,10 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private volatile FileSystem _fileSystem;
 	private volatile Future<?> _future;
 
+	public GlobalContext(MBeanServer mbs) {
+		this(GlobalContext.class.getClassLoader(), mbs, new Properties());
+	}
+
 	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, Properties properties) {
 		super(mbs);
 		_classLoader = classLoader;

@@ -2,7 +2,6 @@ package com.artofarc.esb.artifact;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Properties;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -17,16 +16,12 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.servlet.ESBServletContextListener;
-
 
 public class FileSystemTest extends AbstractESBTest {
 
    @Test
    public void testFileSystem() throws Exception {
-      File dir = new File("src/test/resources");
-      assertTrue(dir.exists());
-      FileSystem fileSystem = new FileSystemDir(dir);
+      FileSystem fileSystem = new FileSystemDir("src/test/resources");
       fileSystem.init(context.getPoolContext().getGlobalContext());
       FileSystem clone = fileSystem.copy();
       assertFalse(fileSystem.getRoot() == clone.getRoot());
@@ -34,8 +29,9 @@ public class FileSystemTest extends AbstractESBTest {
    }
    
   @Test
-   public void testStartup() {
-		try (GlobalContext globalContext = new ESBServletContextListener().createContext(getClass().getClassLoader(), "src/test/resources", new Properties())) {
+   public void testStartup() throws Exception {
+      try (GlobalContext globalContext = new GlobalContext(null)) {
+         DeployHelper.attachFileSystemAndDeploy(globalContext, "src/test/resources");
          ConsumerPort service = globalContext.getInternalService("/HttpService4.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/demo1");
@@ -45,7 +41,8 @@ public class FileSystemTest extends AbstractESBTest {
    
    @Test
    public void testRealService() throws Exception {
-		try (GlobalContext globalContext = new ESBServletContextListener().createContext(getClass().getClassLoader(), "src/test/resources", new Properties())) {
+      try (GlobalContext globalContext = new GlobalContext(null)) {
+          DeployHelper.attachFileSystemAndDeploy(globalContext, "src/test/resources");
          ConsumerPort service = globalContext.getInternalService("/example/ExampleService.xservice");
          assertNotNull(service);
          service = globalContext.getHttpService("/exampleUsingport");

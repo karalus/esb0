@@ -29,8 +29,11 @@ public class FileSystemDir extends FileSystem {
 
 	private final File _anchorDir;
 
-	public FileSystemDir(File anchorDir) {
-		_anchorDir = anchorDir;
+	public FileSystemDir(String anchorDir) throws IOException {
+		_anchorDir = new File(anchorDir);
+		if (!_anchorDir.isDirectory()) {
+			throw new IOException("No directory " + anchorDir);
+		}
 	}
 
 	protected FileSystemDir(FileSystemDir fileSystem) {

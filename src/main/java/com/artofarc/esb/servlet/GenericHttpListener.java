@@ -44,7 +44,7 @@ import static com.artofarc.esb.message.ESBConstants.*;
 /**
  * This servlet is the one and only HTTP endpoint for all services.
  */
-@WebServlet(asyncSupported = true, urlPatterns = { "/*", "/admin/ext/*", "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + "/*" })
+@WebServlet(asyncSupported = true, urlPatterns = { "/*", "/admin/ext/*", ESBServletContextListener.ADMIN_SERVLET_PATH + "/*" })
 @MultipartConfig
 public class GenericHttpListener extends HttpServlet {
 
@@ -152,7 +152,7 @@ public class GenericHttpListener extends HttpServlet {
 		return message;
 	}
 
-	public static void sendError(HttpServletResponse response, int sc, Exception e) throws IOException {
+	static void sendError(HttpServletResponse response, int sc, Exception e) throws IOException {
 		if (e instanceof TimeoutException || e instanceof SocketTimeoutException) {
 			sc = HttpServletResponse.SC_GATEWAY_TIMEOUT;
 		} else if (e instanceof RejectedExecutionException) {
@@ -165,7 +165,7 @@ public class GenericHttpListener extends HttpServlet {
 		response.getWriter().print(DataStructures.asXMLString(e));
 	}
 
-	public static void sendError(HttpServletResponse response, int sc, String message) throws IOException {
+	static void sendError(HttpServletResponse response, int sc, String message) throws IOException {
 		response.setStatus(sc);
 		response.setContentType(HTTP_HEADER_CONTENT_TYPE_XML);
 		response.getWriter().print("<message>" + message + "</message>");

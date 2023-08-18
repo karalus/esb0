@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.esb.action;
+package com.artofarc.esb.servlet;
 
 import java.util.Map.Entry;
 
@@ -21,6 +21,8 @@ import javax.mail.internet.MimeMultipart;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
 
+import com.artofarc.esb.action.Action;
+import com.artofarc.esb.action.ExecutionException;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
@@ -29,17 +31,16 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
-import com.artofarc.esb.servlet.GenericHttpListener;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.IOUtils;
 
-public class HttpServletResponseAction extends Action {
+public class HttpResponseAction extends Action {
 
 	private final boolean _supportCompression;
 	private final String _multipartSubtype, _multipartOption;
 	private final Integer _bufferSize;
 
-	public HttpServletResponseAction(boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
+	public HttpResponseAction(boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
 		_pipelineStop = true;
 		_supportCompression = supportCompression;
 		_multipartSubtype = multipartSubtype;

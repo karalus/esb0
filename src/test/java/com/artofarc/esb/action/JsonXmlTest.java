@@ -1,8 +1,5 @@
 package com.artofarc.esb.action;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,7 +28,7 @@ public class JsonXmlTest extends AbstractESBTest {
 
 	@Before
 	public void createContext() throws Exception {
-		createContext(new File("src/test/resources/example/"));
+		createContext("src/test/resources/example/");
       fileSystem = getGlobalContext().getFileSystem();
       fileSystem.init(getGlobalContext());
       XSDArtifact xsd = fileSystem.getArtifact("de.aoa.ei.foundation.v1.xsd");

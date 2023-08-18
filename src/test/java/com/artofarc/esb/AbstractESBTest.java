@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -62,11 +61,11 @@ public abstract class AbstractESBTest {
 
 	protected final void _createContext() {
 		if (context == null) {
-			context = new Context(new GlobalContext(getClass().getClassLoader(), null, new Properties()).getDefaultWorkerPool().getPoolContext());
+			context = new Context(new GlobalContext(null).getDefaultWorkerPool().getPoolContext());
 		}
 	}
 
-	protected final void createContext(File dir) {
+	protected final void createContext(String dir) throws IOException {
 		_createContext();
 		getGlobalContext().setFileSystem(new FileSystemDir(dir));
 		XMLCatalog.attachToFileSystem(getGlobalContext());

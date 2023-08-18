@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.artofarc.esb.ConsumerPort;
-import com.artofarc.esb.action.HttpServletResponseAction;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ContextPool;
 import com.artofarc.esb.context.GlobalContext;
@@ -40,7 +39,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	private final int _minPoolSize, _maxPoolSize;
 	private final long _keepAlive;
 	private final int _resourceLimit;
-	private final HttpServletResponseAction _terminalAction;
+	private final HttpResponseAction _terminalAction;
 	private ContextPool _contextPool;
 	private volatile ScheduledFuture<?> _scheduledFuture;
 	private volatile long _lastPoolLimitExceeded;
@@ -56,7 +55,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 		_maxPoolSize = maxPoolSize;
 		_keepAlive = keepAlive;
 		_resourceLimit = resourceLimit;
-		_terminalAction = new HttpServletResponseAction(supportCompression, multipartSubtype, multipartOption, bufferSize);
+		_terminalAction = new HttpResponseAction(supportCompression, multipartSubtype, multipartOption, bufferSize);
 	}
 
 	public boolean isPathMapping() {

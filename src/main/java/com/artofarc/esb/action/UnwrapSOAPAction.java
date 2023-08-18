@@ -27,12 +27,9 @@ import javax.xml.validation.Schema;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
-
 import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.servlet.ESBServletContextListener;
-
 import static com.artofarc.esb.message.ESBConstants.*;
+import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.DataStructures;
 import static com.artofarc.util.WSDL4JUtil.*;
 
@@ -41,8 +38,6 @@ public class UnwrapSOAPAction extends TransformAction {
 	protected final boolean _soap12;
 	protected final Map<String, String> _mapAction2Operation;
 	protected final Map<String, QName> _operations;
-	private final String _wsdlUrl;
-	private final boolean _getWsdl;
 	private final Schema _schema;
 
 	private static final List<Assignment> ARG2 = Arrays.asList(new Assignment(SOAP_HEADER, true), new Assignment(SOAP_ELEMENT_NAME, false));
@@ -53,7 +48,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	 *
 	 * @see <a href="https://www.ibm.com/developerworks/webservices/library/ws-whichwsdl/">WSDL styles/</a>
 	 */
-	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl, Schema schema) {
+	private UnwrapSOAPAction(boolean soap12, boolean singlePart, Map<String, String> mapAction2Operation, List<BindingOperation> bindingOperations, Schema schema) {
 		super("declare namespace soapenv=\"" + (soap12 ? URI_NS_SOAP_1_2_ENVELOPE : URI_NS_SOAP_1_1_ENVELOPE ) + "\";\n"
 				+ "let $h := soapenv:Envelope[1]/soapenv:Header[1] let $b := soapenv:Envelope[1]/soapenv:Body[1]" + (singlePart ? "/*[1]" : "") + " return (count($h), $h, "
 				+ (singlePart && bindingOperations != null ? "node-name($b), " : "") + "$b)", singlePart && bindingOperations != null ? ARG2 : ARG1, HTTP_HEADER_CONTENT_TYPE_XML);
@@ -68,30 +63,19 @@ public class UnwrapSOAPAction extends TransformAction {
 		} else {
 			_operations = null;
 		}
-		_wsdlUrl = wsdlUrl;
-		_getWsdl = getWsdl;
 		_schema = schema;
 	}
 
-	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, List<BindingOperation> bindingOperations, String wsdlUrl, boolean getWsdl) {
-		this(soap12, singlePart, DataStructures.inverseMap(getMapOperation2SoapActionURI(bindingOperations)), bindingOperations, wsdlUrl, getWsdl, schema);
+	public UnwrapSOAPAction(boolean soap12, boolean singlePart, Schema schema, List<BindingOperation> bindingOperations) {
+		this(soap12, singlePart, DataStructures.inverseMap(getMapOperation2SoapActionURI(bindingOperations)), bindingOperations, schema);
 	}
 
 	public UnwrapSOAPAction(boolean soap12, boolean singlePart) {
-		this(soap12, singlePart, Collections.emptyMap(), null, null, false, null);
+		this(soap12, singlePart, Collections.emptyMap(), null, null);
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		if ("GET".equals(message.getVariable(HttpMethod))) {
-			String queryString = message.getVariable(QueryString);
-			if (_getWsdl && ("wsdl".equals(queryString) || "WSDL".equals(queryString))) {
-				message.getVariables().put(redirect, message.getVariable(ContextPath) + "/" + ESBServletContextListener.ADMIN_SERVLET_PATH + _wsdlUrl);
-				return null;
-			} else if (!_soap12) {
-				throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));
-			}
-		}
 		String type = parseContentType(message.getContentType());
 		if (!_soap12 && isNotSOAP11(type) || _soap12 && isNotSOAP12(type)) {
 			String error = "Unexpected Content-Type: " + type;
@@ -139,11 +123,6 @@ public class UnwrapSOAPAction extends TransformAction {
 			throw new ExecutionException(this, "Operation not found in WSDL. Input element: " + inputElementName);
 		}
 		throw new ExecutionException(this, "Operation not found in WSDL. SOAP action: " + soapAction);
-	}
-
-	@Override
-	protected Action nextAction(ExecutionContext execContext) {
-		return execContext != null ? super.nextAction(execContext) : null;
 	}
 
 }

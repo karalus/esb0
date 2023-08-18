@@ -423,10 +423,8 @@ public class SOAPTest extends AbstractESBTest {
    
    @Test
    public void testFastinfoset() throws Exception {
-      File dir = new File("src/test/resources");
-      assertTrue(dir.exists());
       closeContext();
-      createContext(dir);
+      createContext("src/test/resources");
       FileSystem fileSystem = getGlobalContext().getFileSystem();
       fileSystem.init(getGlobalContext()).getServiceArtifacts();
       WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");
@@ -436,7 +434,7 @@ public class SOAPTest extends AbstractESBTest {
       message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
       
       @SuppressWarnings("unchecked")
-		Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), null, null).getBindingOperations(), null, false);
+		Action action = new UnwrapSOAPAction(false, true, wsdlArtifact.getSchema(), WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), null, null).getBindingOperations());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
@@ -452,10 +450,8 @@ public class SOAPTest extends AbstractESBTest {
    
    @Test
    public void testFastinfosetValidate() throws Exception {
-      File dir = new File("src/test/resources");
-      assertTrue(dir.exists());
       closeContext();
-      createContext(dir);
+      createContext("src/test/resources");
       FileSystem fileSystem = getGlobalContext().getFileSystem();
       fileSystem.init(getGlobalContext()).getServiceArtifacts();
       WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");

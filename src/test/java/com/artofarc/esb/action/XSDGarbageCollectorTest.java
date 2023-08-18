@@ -14,7 +14,7 @@ public class XSDGarbageCollectorTest extends AbstractESBTest {
 
 	@Test
 	public void testXSDStrip() throws Exception {
-		createContext(new File("src/test/resources/example/"));
+		createContext("src/test/resources/example/");
 		FileSystem fileSystem = getGlobalContext().getFileSystem();
 		fileSystem.init(getGlobalContext());
 		XSDArtifact xsd = fileSystem.getArtifact("de.aoa.xsd.demo.v1.xsd");
@@ -27,7 +27,7 @@ public class XSDGarbageCollectorTest extends AbstractESBTest {
 
 	@Test
 	public void testXSDStripServiceXSD() throws Exception {
-		createContext(new File("src/main/xsd/"));
+		createContext("src/main/xsd/");
 		FileSystem fileSystem = getGlobalContext().getFileSystem();
 		fileSystem.init(getGlobalContext());
 		XSDArtifact xsd = fileSystem.getArtifact("service.xsd");

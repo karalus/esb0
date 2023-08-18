@@ -31,6 +31,20 @@ import com.artofarc.util.IOUtils;
 
 public final class DeployHelper {
 
+	public static void attachFileSystemAndDeploy(GlobalContext globalContext, String root) throws Exception {
+		FileSystem fileSystem;
+		if (root.contains("jdbc")) {
+			fileSystem = new FileSystemDB(globalContext.<javax.sql.DataSource> lookup(root));
+		} else {
+			fileSystem = new FileSystemDir(root);
+		}
+		globalContext.setFileSystem(fileSystem);
+		XMLCatalog.attachToFileSystem(globalContext);
+		deployChangeSet(globalContext, fileSystem.init(globalContext));
+		// necessary for auto migrated artifacts 
+		fileSystem.writeBackChanges();
+	}
+
 	public static int deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet changeSet) throws ValidationException {
 		List<ServiceArtifact> serviceArtifacts = changeSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
@@ -192,7 +206,7 @@ public final class DeployHelper {
 	}
 
 	public static void createAdminService(GlobalContext globalContext, String path) throws Exception {
-		HttpConsumer adminService = globalContext.getHttpService(path + '/');
+		HttpConsumer adminService = globalContext.getHttpService(path);
 		if (adminService == null || !adminService.getBindPath().startsWith(path)) {
 			Directory parent = globalContext.getFileSystem().makeDirectory("admin");
 			ServiceArtifact serviceArtifact = new ServiceArtifact(globalContext.getFileSystem(), parent, "Admin.xservice");
@@ -201,6 +215,12 @@ public final class DeployHelper {
 			adminService = serviceArtifact.getConsumerPort();
 			adminService.init(globalContext);
 			globalContext.bindHttpService(adminService);
+		}
+	}
+
+	public static void main(String[] args) throws Exception {
+		try (GlobalContext globalContext = new GlobalContext(java.lang.management.ManagementFactory.getPlatformMBeanServer())) {
+			attachFileSystemAndDeploy(globalContext, args[0]);
 		}
 	}
 
