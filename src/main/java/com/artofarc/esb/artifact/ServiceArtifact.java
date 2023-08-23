@@ -548,7 +548,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "serializeXop":
 			SerializeXop serializeXop = (SerializeXop) actionElement.getValue();
-			addAction(list, new XOPSerializeAction(serializeXop.getContentType()), location);
+			addAction(list, new XOPSerializeAction(serializeXop.getThreshold(), serializeXop.getContentType()), location);
 			break;
 		case "suspend":
 			Suspend suspend = (Suspend) actionElement.getValue();

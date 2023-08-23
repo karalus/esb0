@@ -657,6 +657,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase" >
+					<attribute name="threshold" type="int" default="0" />
 					<attribute name="contentType" type="tns:string1" default="application/octet-stream" />
 				</extension>
 			</complexContent>

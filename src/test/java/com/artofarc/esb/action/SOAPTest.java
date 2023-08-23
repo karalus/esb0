@@ -490,7 +490,7 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
 	consumerPort.setStartAction(
 //			new TransformAction("."),
-			new XOPSerializeAction("application/octet-stream"),
+			new XOPSerializeAction(0, "application/octet-stream"),
 			new XOPDeserializeAction(),
 			new DumpAction());
       consumerPort.process(context, message);

@@ -21,7 +21,7 @@ import java.util.Base64;
 import java.util.UUID;
 
 import javax.mail.MessagingException;
-import javax.xml.XMLConstants;
+import static javax.xml.XMLConstants.*;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
@@ -29,44 +29,50 @@ import org.xml.sax.helpers.AttributesImpl;
 
 import com.artofarc.util.CharArrayWriter;
 import com.artofarc.util.TypeAwareXMLFilter;
-import com.artofarc.util.W3CConstants;
+import static com.artofarc.util.W3CConstants.*;
 
 public final class XOPSerializer extends TypeAwareXMLFilter {
 
 	private final ESBMessage _message;
+	private final int _threshold;
 	private final String _defaultContentType;
 	private CharArrayWriter _builder;
 	private String _contentType;
 
-	public XOPSerializer(ESBMessage message, String contentType) throws SAXException {
+	public XOPSerializer(ESBMessage message, int threshold, String contentType) throws SAXException {
 		super(message.getSchema());
 		_message = message;
+		_threshold = threshold;
 		_defaultContentType = contentType;
 	}
 
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-		_contentType = atts.getValue(W3CConstants.URI_NS_XMLMIME, W3CConstants.NAME_CONTENT_TYPE);
+		_contentType = atts.getValue(URI_NS_XMLMIME, NAME_CONTENT_TYPE);
 		super.startElement(uri, localName, qName, atts);
 	}
 
 	@Override
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		if (_builder != null) {
-			String cid = UUID.randomUUID().toString();
-			ByteBuffer byteBuffer = Base64.getMimeDecoder().decode(StandardCharsets.US_ASCII.encode(_builder.toCharBuffer()));
-			try {
-				_message.addAttachment(cid, _contentType != null ? _contentType : _defaultContentType, byteBuffer.array(), null);
-			} catch (MessagingException e) {
-				throw new SAXException(e);
+			if (_builder.size() < _threshold) {
+				_builder.sendTo(getContentHandler());
+			} else {
+				String cid = UUID.randomUUID().toString();
+				ByteBuffer byteBuffer = Base64.getMimeDecoder().decode(StandardCharsets.US_ASCII.encode(_builder.toCharBuffer()));
+				try {
+					_message.addAttachment(cid, _contentType != null ? _contentType : _defaultContentType, byteBuffer.array(), null);
+				} catch (MessagingException e) {
+					throw new SAXException(e);
+				}
+				AttributesImpl atts = new AttributesImpl();
+				atts.addAttribute(NULL_NS_URI, NAME_HREF, NAME_HREF, "CDATA", "cid:" + cid);
+				getReceiverContentHandler().startPrefixMapping(DEFAULT_NS_PREFIX, URI_NS_XOP);
+				getReceiverContentHandler().startElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE, atts);
+				getReceiverContentHandler().endElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE);
+				getReceiverContentHandler().endPrefixMapping(DEFAULT_NS_PREFIX);
 			}
 			_builder = null;
-			AttributesImpl atts = new AttributesImpl();
-			atts.addAttribute(XMLConstants.NULL_NS_URI, W3CConstants.NAME_HREF, W3CConstants.NAME_HREF, "CDATA", "cid:" + cid);
-			getReceiverContentHandler().startPrefixMapping(XMLConstants.DEFAULT_NS_PREFIX, W3CConstants.URI_NS_XOP);
-			getReceiverContentHandler().startElement(W3CConstants.URI_NS_XOP, W3CConstants.NAME_INCLUDE, W3CConstants.NAME_INCLUDE, atts);
-			getReceiverContentHandler().endElement(W3CConstants.URI_NS_XOP, W3CConstants.NAME_INCLUDE, W3CConstants.NAME_INCLUDE);
-			getReceiverContentHandler().endPrefixMapping(XMLConstants.DEFAULT_NS_PREFIX);
 		}
 		super.endElement(uri, localName, qName);
 	}

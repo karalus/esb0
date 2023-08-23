@@ -27,9 +27,11 @@ import com.artofarc.util.XMLFilterBase;
 
 public class XOPSerializeAction extends SAXAction {
 
+	private final int _threshold;
 	private final String _contentType;
 
-	public XOPSerializeAction(String contentType) {
+	public XOPSerializeAction(int threshold, String contentType) {
+		_threshold = threshold;
 		_contentType = contentType;
 	}
 
@@ -38,7 +40,7 @@ public class XOPSerializeAction extends SAXAction {
 		if (message.getSchema() == null) {
 			throw new ExecutionException(this, "No schema specified");
 		}
-		XOPSerializer xopSerializer = new XOPSerializer(message, _contentType);
+		XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, _contentType);
 		xopSerializer.setParent(new XQJFilter(item));
 		return new SAXSource(xopSerializer, null);
 	}
@@ -48,7 +50,7 @@ public class XOPSerializeAction extends SAXAction {
 		if (message.getSchema() == null) {
 			throw new ExecutionException(this, "No schema specified");
 		}
-		XOPSerializer xopSerializer = new XOPSerializer(message, _contentType);
+		XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, _contentType);
 		if (parent != null) {
 			xopSerializer.setParent(parent);
 		} else {
