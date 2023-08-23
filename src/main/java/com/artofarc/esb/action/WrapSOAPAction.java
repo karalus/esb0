@@ -19,7 +19,7 @@ import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.ESBMessage;
-import static com.artofarc.util.WSDL4JUtil.*;
+import static com.artofarc.util.W3CConstants.*;
 
 public class WrapSOAPAction extends TransformAction {
 

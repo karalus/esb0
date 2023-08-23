@@ -20,9 +20,9 @@ package com.artofarc.esb.action;
  *   
  * @see <a href="https://www.w3.org/TR/xop10/">XOP</a>
  */
-public class MtomXopDeserializeAction extends TransformAction {
+public class XOPDeserializeAction extends TransformAction {
 
-	public MtomXopDeserializeAction() {
+	public XOPDeserializeAction() {
 		super("declare function local:copy-xop($element as element(), $attachments as element()) as element() {\n" +
 					"element {node-name($element)}\n" +
 						"{ $element/@*,\n" +
@@ -35,7 +35,7 @@ public class MtomXopDeserializeAction extends TransformAction {
 						"}\n" +
 				"};\n" +
 				"declare variable $attachments as document-node() external;" +
-				"local:copy-xop(., $attachments/*)");
+				"local:copy-xop(if (. instance of element()) then . else *, $attachments/*)");
 	}
 
 }

@@ -46,6 +46,9 @@
 			<xsl:apply-templates select="@*|node()" />
 		</parameter>
 	</xsl:template>
+	<xsl:template match="ns:deserializeMtomXop">
+		<deserializeXop/>
+	</xsl:template>
 	<xsl:template match="ns:dataSource">
 		<jndiObjectFactory name="{@name}" classLoader="/esb0-utils/esb0-utils" type="javax.sql.DataSource" esb0Factory="com.artofarc.esb.utils.artifact.HikariDataSourceFactory" adminPostAction="hikariPoolMXBean.softEvictConnections">
 			<xsl:apply-templates select="node()" />

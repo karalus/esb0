@@ -10,7 +10,15 @@
 			<xs:element name="logMessage" type="xs:string"/>
 			<xs:element name="logTimestamp" type="xs:dateTime"/>
 			<xs:element ref="ei:messageHeader"/>
-			<xs:element name="message" type="xs:string" minOccurs="0"/>
+			<xs:element name="message" minOccurs="0" maxOccurs="9">
+				<xs:complexType>
+					<xs:simpleContent>
+						<xs:extension base="xs:base64Binary">
+							<xs:anyAttribute processContents="lax"/>
+						</xs:extension>
+					</xs:simpleContent>
+				</xs:complexType>
+			</xs:element>
 		</xs:sequence>
 	</xs:complexType>
 	<!-- ****************************************************************** -->

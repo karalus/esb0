@@ -39,16 +39,6 @@ import javax.xml.namespace.QName;
 
 public final class WSDL4JUtil {
 
-	/**
-	 * The namespace identifier for the SOAP 1.1 envelope.
-	 */
-	public static final String URI_NS_SOAP_1_1_ENVELOPE = "http://schemas.xmlsoap.org/soap/envelope/";
-
-	/**
-	 * The namespace identifier for the SOAP 1.2 envelope.
-	 */
-	public static final String URI_NS_SOAP_1_2_ENVELOPE = "http://www.w3.org/2003/05/soap-envelope";
-
 	private static final WSDLFactory wsdlFactory;
 
 	static {

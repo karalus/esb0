@@ -543,8 +543,12 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			addAction(list, branchOnPathAction, location);
 			break;
 		}
-		case "deserializeMtomXop":
-			addAction(list, new MtomXopDeserializeAction(), location);
+		case "deserializeXop":
+			addAction(list, new XOPDeserializeAction(), location);
+			break;
+		case "serializeXop":
+			SerializeXop serializeXop = (SerializeXop) actionElement.getValue();
+			addAction(list, new XOPSerializeAction(serializeXop.getContentType()), location);
 			break;
 		case "suspend":
 			Suspend suspend = (Suspend) actionElement.getValue();

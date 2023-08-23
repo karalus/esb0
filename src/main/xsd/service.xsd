@@ -646,10 +646,19 @@
 			</complexContent>
 		</complexType>
 	</element>
-	<element name="deserializeMtomXop" substitutionGroup="tns:action">
+	<element name="deserializeXop" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase" />
+			</complexContent>
+		</complexType>
+	</element>
+	<element name="serializeXop" substitutionGroup="tns:action">
+		<complexType>
+			<complexContent>
+				<extension base="tns:ActionBase" >
+					<attribute name="contentType" type="tns:string1" default="application/octet-stream" />
+				</extension>
 			</complexContent>
 		</complexType>
 	</element>

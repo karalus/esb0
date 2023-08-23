@@ -20,6 +20,7 @@ import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.Directory;
 import com.artofarc.esb.artifact.FileSystem;
+import com.artofarc.esb.artifact.SchemaArtifact;
 import com.artofarc.esb.artifact.WSDLArtifact;
 import com.artofarc.esb.artifact.XMLProcessingArtifact;
 import com.artofarc.esb.artifact.XQueryArtifact;
@@ -445,6 +446,53 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(createUnwrapSOAPAction(false, true));
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
       action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+   }
+   
+   @Test
+   public void testFastinfosetBlob() throws Exception {
+      closeContext();
+      createContext("src/test/resources");
+      FileSystem fileSystem = getGlobalContext().getFileSystem();
+      fileSystem.init(getGlobalContext()).getServiceArtifacts();
+      SchemaArtifact schemaArtifact = fileSystem.getArtifact("/example/de.aoa.ei.lms.v1.xsd");
+
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/de.aoa.ei.lms.v1.xml"));
+      message.setContentType("text/xml; charset=\"utf-8\"");
+      message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
+      message.setSchema(schemaArtifact.getSchema());
+      
+      @SuppressWarnings("unchecked")
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      SetMessageAction setMessageAction = new SetMessageAction(null, null, null, null);
+      setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_CONTENT_TYPE, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null, null);
+      consumerPort.setStartAction(setMessageAction);
+//	Action action = setMessageAction.setNextAction(createValidateAction(schemaArtifact));
+//	 action = setMessageAction.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+      message.writeTo(System.out, context);
+   }
+   
+   @Test
+   public void testXOPSerialize() throws Exception {
+      closeContext();
+      createContext("src/test/resources");
+      FileSystem fileSystem = getGlobalContext().getFileSystem();
+      fileSystem.init(getGlobalContext()).getServiceArtifacts();
+      SchemaArtifact schemaArtifact = fileSystem.getArtifact("/example/de.aoa.ei.lms.v1.xsd");
+
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/de.aoa.ei.lms.v1.xml"));
+      message.setContentType("text/xml; charset=\"utf-8\"");
+      message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
+      message.setSchema(schemaArtifact.getSchema());
+      
+      @SuppressWarnings("unchecked")
+      ConsumerPort consumerPort = new ConsumerPort(null);
+	consumerPort.setStartAction(
+//			new TransformAction("."),
+			new XOPSerializeAction("application/octet-stream"),
+			new XOPDeserializeAction(),
+			new DumpAction());
       consumerPort.process(context, message);
    }
    

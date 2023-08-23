@@ -112,6 +112,10 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 		}
 
 		private boolean isXSType(String type) {
+			return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_EXTENSION);
+		}
+
+		private boolean isXSTypeOrList(String type) {
 			return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_EXTENSION | TypeInfo.DERIVATION_LIST);
 		}
 
@@ -152,7 +156,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 							eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value, false, RestrictedAlphabet.NUMERIC_CHARACTERS);
 						} else if (value.length() > 9 && value.indexOf('+', 10) < 0 && isXSType("date")) {
 							eatts.addAttribute(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), atts.getType(i), value, false, RestrictedAlphabet.DATE_TIME_CHARACTERS);
-						} else if (value.length() > 2 && isXSType("boolean")) {
+						} else if (value.length() > 2 && isXSTypeOrList("boolean")) {
 							Object booleans = BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm.convertFromCharacters(value.toCharArray(), 0, value.length());
 							eatts.addAttributeWithBuiltInAlgorithmData(atts.getURI(i), atts.getLocalName(i), atts.getQName(i), EncodingAlgorithmIndexes.BOOLEAN, booleans);
 						} else {
@@ -181,7 +185,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 					saxDocumentSerializer.numericCharacters(ch, start, length);
 				} else if (length > 9 && notContains(ch, start + 10, length - 10, '+') && isXSType("date")) {
 					saxDocumentSerializer.dateTimeCharacters(ch, start, length);
-				} else if (length > 2 && isXSType("boolean")) {
+				} else if (length > 2 && isXSTypeOrList("boolean")) {
 					boolean[] booleans = (boolean[]) BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm.convertFromCharacters(ch, start, length);
 					saxDocumentSerializer.booleans(booleans, 0, booleans.length);
 				} else if (length > 7 && isXSType("base64Binary")) {

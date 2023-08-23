@@ -31,6 +31,7 @@ import com.artofarc.esb.message.BodyType;
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.DataStructures;
+import static com.artofarc.util.W3CConstants.*;
 import static com.artofarc.util.WSDL4JUtil.*;
 
 public class UnwrapSOAPAction extends TransformAction {

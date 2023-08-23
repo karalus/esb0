@@ -27,7 +27,6 @@ import javax.xml.xquery.XQResultSequence;
 import org.xml.sax.ContentHandler;
 
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.XopAwareValidatorHandler;
 
 public class ValidateAction extends AssignAction {
@@ -35,7 +34,7 @@ public class ValidateAction extends AssignAction {
 	private final Schema _schema;
 
 	public ValidateAction(Schema schema, String expression, Collection<Map.Entry<String, String>> namespaces, String contextItem) {
-		super(null, expression, namespaces, Collections.<XQDecl>emptyList(), contextItem);
+		super(null, expression, namespaces, Collections.emptyList(), contextItem);
 		_schema = schema;
 	}
 
@@ -43,6 +42,7 @@ public class ValidateAction extends AssignAction {
 	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws ExecutionException {
 		try {
 			checkNext(resultSequence, "expression");
+//			Boolean xopAware = (Boolean) eval("${attachments.empty}", null, message);
 			ContentHandler saxhdlr = message.getAttachments().isEmpty() ? _schema.newValidatorHandler() : new XopAwareValidatorHandler(_schema, message.getAttachments().keySet());
 			resultSequence.writeItemToResult(new SAXResult(saxhdlr));
 		} catch (XQException e) {
