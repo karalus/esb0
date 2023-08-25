@@ -634,12 +634,13 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Long getOutputLength() throws IOException {
-		final long length;
+		Long length = null;
 		if (_bodyType == BodyType.BYTES) {
-			length = ((byte[]) _body).length;
-		} else if (_bodyType == BodyType.INPUT_STREAM && _body instanceof IOUtils.PredictableInputStream) {
-			length = ((IOUtils.PredictableInputStream) _body).length();
-		} else {
+			length = Long.valueOf(((byte[]) _body).length);
+		} else if (_bodyType == BodyType.INPUT_STREAM) {
+			length = IOUtils.getLength((InputStream) _body);
+		}
+		if (length == null) {
 			return isEmpty() ? 0L : null;
 		}
 		if (length > 0 && (isSinkEncodingdifferent() || isFastInfoset(getHeader(HTTP_HEADER_CONTENT_TYPE))) || isOutputCompressed()) {

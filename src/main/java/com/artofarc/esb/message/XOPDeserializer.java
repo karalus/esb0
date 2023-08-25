@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Andre Karalus
+ * Copyright 2023 Andre Karalus
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,30 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.artofarc.util;
+package com.artofarc.esb.message;
 
-import java.util.Set;
+import java.io.IOException;
+import java.io.InputStream;
 
-import javax.xml.validation.Schema;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeBodyPart;
+import javax.xml.parsers.SAXParser;
 
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
+import com.artofarc.util.W3CConstants;
+import com.artofarc.util.XMLFilterBase;
 
-	private final Set<String> _cids;
+public final class XOPDeserializer extends XMLFilterBase {
 
-	public XopAwareValidatorHandler(Schema schema, Set<String> cids) {
-		super(schema);
-		_cids = cids;
+	private final ESBMessage _message;
+	private SAXParser _saxParser;
+
+	public XOPDeserializer(ESBMessage message) {
+		_message = message;
 	}
 
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
 		if (W3CConstants.isXOPInclude(uri, localName)) {
-			if (typeInfo == null || !isXSType("base64Binary")) {
-				reportError("Enclosing element not of type xs:base64Binary");
-			}
 			String href = atts.getValue(W3CConstants.NAME_HREF);
 			if (href == null) {
 				reportError("Missing required attribute href");
@@ -44,8 +48,15 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 			if (!href.startsWith("cid:")) {
 				reportError("href must have schema cid, but is " + href);
 			}
-			if (!_cids.contains(href.substring(4))) {
+			String cid = href.substring(4);
+			MimeBodyPart attachment = _message.getAttachments().remove(cid);
+			if (attachment == null) {
 				reportError("Not found in attachments " + href);
+			}
+			try (InputStream is = attachment.getInputStream()) {
+				base64Characters(is, attachment.getSize());
+			} catch (IOException | MessagingException e) {
+				throw new SAXException(e);
 			}
 		} else {
 			super.startElement(uri, localName, qName, atts);
@@ -54,10 +65,24 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 
 	@Override
 	public void endElement(String uri, String localName, String qName) throws SAXException {
-		typeInfo = null;
 		if (!W3CConstants.isXOPInclude(uri, localName)) {
 			super.endElement(uri, localName, qName);
 		}
 	}
 
+	public final void setParent(SAXParser saxParser) throws SAXException {
+		_saxParser = saxParser;
+		setParent(saxParser.getXMLReader());
+	}
+
+	@Override
+	public final void parse(InputSource input) throws SAXException, IOException {
+		try {
+			super.parse(input);
+		} finally {
+			if (_saxParser != null) {
+				_saxParser.reset();
+			}
+		}
+	}
 }

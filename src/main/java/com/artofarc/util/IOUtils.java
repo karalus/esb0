@@ -76,6 +76,16 @@ public final class IOUtils {
 		}
 	}
 
+	public static Long getLength(InputStream is) {
+		if (is instanceof PredictableInputStream) {
+			return ((PredictableInputStream) is).length();
+		}
+		if (is instanceof java.io.ByteArrayInputStream) {
+			return Long.valueOf(((java.io.ByteArrayInputStream) is).available());
+		}
+		return null;
+	}
+
 	public static void copy(InputStream is, OutputStream os) throws IOException {
 		if (is instanceof ByteArrayInputStream) {
 			ByteArrayInputStream bis = (ByteArrayInputStream) is;

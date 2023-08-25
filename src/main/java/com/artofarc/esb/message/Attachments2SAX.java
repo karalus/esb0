@@ -23,13 +23,11 @@ import java.util.Map.Entry;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeBodyPart;
 import javax.xml.XMLConstants;
-import javax.xml.bind.DatatypeConverter;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
-import com.artofarc.util.IOUtils;
 import com.artofarc.util.URLUtils;
 import com.artofarc.util.XMLFilterBase;
 
@@ -72,8 +70,8 @@ public final class Attachments2SAX extends XMLFilterBase {
 			if (_consume) {
 				try (InputStream is = entry.getValue().getInputStream()) {
 					_iterator.remove();
+					base64Characters(is, entry.getValue().getSize());
 					entry = null;
-					characters(DatatypeConverter.printBase64Binary(IOUtils.toByteArray(is)));
 				} catch (MessagingException e) {
 					throw new SAXException(e);
 				}

@@ -15,13 +15,18 @@
  */
 package com.artofarc.util;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 
+import javax.xml.bind.DatatypeConverter;
+
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.SAXNotSupportedException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLFilterImpl;
 
@@ -64,7 +69,15 @@ public class XMLFilterBase extends XMLFilterImpl {
 		}
 	}
 
-	public final void characters(String str) throws SAXException {
+	protected final void reportError(String message) throws SAXException {
+		if (getErrorHandler() != null) {
+			getErrorHandler().error(new SAXParseException(message, null));
+		} else {
+			throw new SAXException(message);
+		}
+	}
+
+	protected final void characters(String str) throws SAXException {
 		if (str.length() > 0) {
 			if (VALUE != null) {
 				// Avoid copying to reduce GC overhead
@@ -76,6 +89,30 @@ public class XMLFilterBase extends XMLFilterImpl {
 			} else {
 				characters(str.toCharArray(), 0, str.length());
 			}
+		}
+	}
+
+	protected final void base64Characters(InputStream inputStream, int size) throws SAXException, IOException {
+		final int chunkSize = IOUtils.MTU / 4 * 3;
+		if (size < 0 || size > chunkSize) {
+			final byte[] chunk = new byte[chunkSize];
+			for (int pos = 0;; pos = 0) {
+				do {
+					final int len = inputStream.read(chunk, pos, chunkSize - pos);
+					if (len < 0) {
+						if (pos > 0) {
+							final byte[] ba = new byte[pos];
+							System.arraycopy(chunk, 0, ba, 0, pos);
+							characters(DatatypeConverter.printBase64Binary(ba));
+						}
+						return;
+					}
+					pos += len;
+				} while (pos < chunkSize);
+				characters(DatatypeConverter.printBase64Binary(chunk));
+			}
+		} else {
+			characters(DatatypeConverter.printBase64Binary(IOUtils.toByteArray(inputStream)));
 		}
 	}
 

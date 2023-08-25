@@ -34,6 +34,7 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.DataStructures;
+import com.artofarc.util.TimeGauge;
 import com.artofarc.util.WSDL4JUtil;
 import com.artofarc.util.XQuerySource;
 
@@ -490,10 +491,34 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
 	consumerPort.setStartAction(
 //			new TransformAction("."),
-			new XOPSerializeAction(0, "application/octet-stream"),
-			new XOPDeserializeAction(),
-			new DumpAction());
+			new XOPSerializeAction(0, "application/octet-stream")
+			,new XOPDeserializeAction()
+//			,new TransformAction("declare function local:copy-xop($element as element(), $attachments as element()) as element() {\n" +
+//					"element {node-name($element)}\n" +
+//					"{ $element/@*,\n" +
+//					"for $child in $element/node()\n" +
+//						"return if ($child instance of element())\n" +
+//							"then if ($child/local-name() = 'Include' and $child/namespace-uri() = 'http://www.w3.org/2004/08/xop/include')\n" +
+//								"then $attachments/*[@cid=$child/@href]/text()\n" +
+//								"else local:copy-xop($child, $attachments)\n" +
+//							"else $child\n" +
+//					"}\n" +
+//			"};\n" +
+//			"declare variable $attachments as document-node() external;" +
+//			"local:copy-xop(if (. instance of element()) then . else *, $attachments/*)")
+//			,new TerminalAction() {}
+			,new DumpAction()
+			);
       consumerPort.process(context, message);
+	
+//		TimeGauge timeGauge = new TimeGauge(Action.logger, 0L, false);
+//		timeGauge.startTimeMeasurement();
+//		int count = 100000;
+//		for (int i = 0; i < count; ++i) {
+//			consumerPort.process(context, message);
+//		}
+//		long measurement = timeGauge.stopTimeMeasurement("Performance", false);
+//		System.out.println("Average in µs: " + measurement * 1000 / count);
    }
    
    @Test

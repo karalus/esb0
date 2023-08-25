@@ -31,6 +31,10 @@ public interface W3CConstants {
 	String NAME_INCLUDE = "Include";
 	String NAME_HREF = "href";
 
+	static boolean isXOPInclude(String uri, String localName) {
+		return NAME_INCLUDE.equals(localName) && URI_NS_XOP.equals(uri);
+	}
+
 	String URI_NS_XMLMIME = "http://www.w3.org/2005/05/xmlmime";
 	String NAME_CONTENT_TYPE = "contentType";
 

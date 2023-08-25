@@ -43,7 +43,7 @@ public final class Closer implements AutoCloseable {
 	public static void closeQuietly(AutoCloseable closeable) {
 		try {
 			closeable.close();
-			logger.debug("Closed " + closeable);
+			logger.debug("Closed %s", closeable);
 		} catch (Exception e) {
 			logger.warn("Possible resource leak: Exception while closing " + closeable, e);
 		}

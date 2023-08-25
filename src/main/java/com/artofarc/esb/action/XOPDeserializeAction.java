@@ -15,27 +15,39 @@
  */
 package com.artofarc.esb.action;
 
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.xquery.XQItem;
+
+import org.xml.sax.XMLReader;
+
+import com.artofarc.esb.context.Context;
+import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.XOPDeserializer;
+import com.artofarc.util.XMLFilterBase;
+
 /**
  * Deserialize XOP package.
- *   
+ *
  * @see <a href="https://www.w3.org/TR/xop10/">XOP</a>
  */
-public class XOPDeserializeAction extends TransformAction {
+public class XOPDeserializeAction extends SAXAction {
 
-	public XOPDeserializeAction() {
-		super("declare function local:copy-xop($element as element(), $attachments as element()) as element() {\n" +
-					"element {node-name($element)}\n" +
-						"{ $element/@*,\n" +
-						"for $child in $element/node()\n" +
-							"return if ($child instance of element())\n" +
-								"then if ($child/local-name() = 'Include' and $child/namespace-uri() = 'http://www.w3.org/2004/08/xop/include')\n" +
-									"then $attachments/*[@cid=$child/@href]/text()\n" +
-									"else local:copy-xop($child, $attachments)\n" +
-								"else $child\n" +
-						"}\n" +
-				"};\n" +
-				"declare variable $attachments as document-node() external;" +
-				"local:copy-xop(if (. instance of element()) then . else *, $attachments/*)");
+	@Override
+	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception {
+		XOPDeserializer xopDeserializer = new XOPDeserializer(message);
+		xopDeserializer.setParent(new XQJFilter(item));
+		return new SAXSource(xopDeserializer, null);
+	}
+
+	@Override
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception {
+		XOPDeserializer xopDeserializer = new XOPDeserializer(message);
+		if (parent != null) {
+			xopDeserializer.setParent(parent);
+		} else {
+			xopDeserializer.setParent(context.getSAXParser());
+		}
+		return xopDeserializer;
 	}
 
 }
