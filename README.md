@@ -90,7 +90,7 @@ From version 1.4 on Java 8 is required at runtime. From version 1.11 on Java 11 
 
 ### How to deploy ###
 
-ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API, i.e. Java EE 7 and Java/Jakarta EE 8. to Jakarta EE 9
+ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API, i.e. Java EE 7 and Java/Jakarta EE 8.
  
 It has been tested with Tomcat 8, 8.5, 9, Wildfly, Jetty 9 and JBoss EAP 7.x.
 For Tomcat 10.x (Jakarta EE 9) you must make use of the migration tool (by deploying the WAR to *webapps-javaee* instead of *webapps*).
