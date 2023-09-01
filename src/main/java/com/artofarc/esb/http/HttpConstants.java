@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
+import java.util.regex.Pattern;
 
 import com.artofarc.util.DataStructures;
 import com.artofarc.util.WeakCache;
@@ -145,9 +146,11 @@ public class HttpConstants {
 		return httpHeader != null ? parseValueFromHttpHeader(httpHeader, key, key.length() - 1) : null;
 	}
 
+	private static final Pattern CRLFTAB = Pattern.compile("\r\n\t", Pattern.LITERAL);
+
 	public static String unfoldHttpHeader(String httpHeader) {
 		// https://datatracker.ietf.org/doc/html/rfc2616
-		return httpHeader.replace("\r\n\t", " ");
+		return CRLFTAB.matcher(httpHeader).replaceAll(" ");
 	}
 
 	public static String parseContentType(String contentType) {
