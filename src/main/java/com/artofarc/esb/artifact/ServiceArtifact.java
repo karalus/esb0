@@ -604,7 +604,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 	}
 
 	private static List<JDBCParameter> createJDBCParameters(List<Parameter> jdbcParameters, boolean[] posUsed) {
-		List<JDBCParameter> params = new ArrayList<>(jdbcParameters.size());
+		List<JDBCParameter> params = DataStructures.createList(jdbcParameters.size());
 		for (Parameter jdbcParameter : jdbcParameters) {
 			if (jdbcParameter.getPos() != null) {
 				params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),

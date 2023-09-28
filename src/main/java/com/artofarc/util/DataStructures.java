@@ -31,6 +31,10 @@ import java.util.stream.Stream;
 
 public final class DataStructures {
 
+	public static <T> List<T> createList(int size) {
+		return size == 0 ? Collections.emptyList() : new ArrayList<>(size);
+	}
+
 	public static <K, V> Map.Entry<K, V> createEntry(final K key, final V value) {
 		return new AbstractMap.SimpleImmutableEntry<>(key, value);
 	}
@@ -77,7 +81,7 @@ public final class DataStructures {
 	}
 
 	public static <T extends Comparable<? super T>> List<T> asSortedList(Collection<T> coll) {
-		List<T> list = new ArrayList<T>(coll);
+		List<T> list = new ArrayList<>(coll);
 		Collections.sort(list);
 		return list;
 	}

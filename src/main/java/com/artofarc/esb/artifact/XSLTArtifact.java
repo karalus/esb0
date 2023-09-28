@@ -15,7 +15,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.transform.Templates;
@@ -28,6 +27,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.XMLProcessorFactory;
 
 public class XSLTArtifact extends XMLProcessingArtifact {
@@ -83,7 +83,7 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 		// determine parameters
 		XPath xPath = XMLProcessorFactory.getXPathFactory().newXPath();
 		NodeList params = (NodeList) xPath.evaluate("*/*[local-name()='param']/@name", new InputSource(getContentAsStream()), XPathConstants.NODESET);
-		_params = new ArrayList<>(params.getLength());
+		_params = DataStructures.createList(params.getLength());
 		for (int i = 0; i < params.getLength(); ++ i) {
 			_params.add(params.item(i).getNodeValue());
 		}

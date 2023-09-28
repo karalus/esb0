@@ -44,6 +44,7 @@ import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.esb.resource.ResourceFactory;
 import com.artofarc.util.Closer;
+import com.artofarc.util.DataStructures;
 
 public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionProvider.JMSConnectionGuard, JMSConnectionData, Void, RuntimeException> {
 
@@ -342,6 +343,14 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			List<String> result = new ArrayList<>();
 			for (Map.Entry<String, Integer> entry : map.entrySet()) {
 				result.add(entry.getKey() + "=" + entry.getValue());
+			}
+			return result;
+		}
+
+		public List<String> getConsumerDestinationCount() {
+			List<String> result = DataStructures.createList(_jmsConsumers.size());
+			for (JMSConsumer jmsConsumer : _jmsConsumers.keySet()) {
+				result.add(jmsConsumer.getKey() + "=" + jmsConsumer.getWorkerCount());
 			}
 			return result;
 		}
