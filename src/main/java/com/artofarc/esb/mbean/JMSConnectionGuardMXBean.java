@@ -19,6 +19,8 @@ import java.util.List;
 
 public interface JMSConnectionGuardMXBean {
 
+	String getConnectionData();
+
 	boolean isConnected();
 
 	void reconnect();
