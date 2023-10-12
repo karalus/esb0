@@ -80,6 +80,8 @@ public abstract class Evaluator<E extends Exception> {
 		if (value == null) {
 			if ("contentType".equals(name)) {
 				value = message.getContentType();
+			} if ("contentLength".equals(name)) {
+				value = message.getLength();
 			} else {
 				value = message.getHeader(name);
 			}

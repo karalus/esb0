@@ -633,17 +633,32 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public Long getOutputLength() throws IOException {
-		Long length = null;
-		if (_bodyType == BodyType.BYTES) {
-			length = Long.valueOf(((byte[]) _body).length);
-		} else if (_bodyType == BodyType.INPUT_STREAM) {
-			length = IOUtils.getLength((InputStream) _body);
+	public Long getLength() {
+		switch (_bodyType) {
+		case STRING:
+			return Long.valueOf(((String) _body).length());
+		case BYTES:
+			return Long.valueOf(((byte[]) _body).length);
+		case INPUT_STREAM:
+			Long length = IOUtils.getLength((InputStream) _body);
+			if (length == null) {
+				String contentLength = getHeader(HTTP_HEADER_CONTENT_LENGTH);
+				if (contentLength != null) {
+					length = Long.valueOf(contentLength);
+				}
+			}
+			return length;
+		default:
+			return null;
 		}
+	}
+
+	public Long getOutputLength() throws IOException {
+		Long length = getLength();
 		if (length == null) {
 			return isEmpty() ? 0L : null;
 		}
-		if (length > 0 && (isSinkEncodingdifferent() || isFastInfoset(getHeader(HTTP_HEADER_CONTENT_TYPE))) || isOutputCompressed()) {
+		if (length > 0 && (_bodyType == BodyType.STRING || isSinkEncodingdifferent() || isFastInfoset(getHeader(HTTP_HEADER_CONTENT_TYPE))) || isOutputCompressed()) {
 			return null;
 		}
 		return length;
