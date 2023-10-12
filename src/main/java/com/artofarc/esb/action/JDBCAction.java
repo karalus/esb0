@@ -15,10 +15,9 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.ByteArrayInputStream;
-import java.io.StringReader;
 import java.sql.*;
 import static java.sql.Types.*;
+
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
@@ -230,11 +229,7 @@ public abstract class JDBCAction extends Action {
 						if (message.getBodyType() == BodyType.INVALID) {
 							ps.setNull(param.getPos(), CLOB);
 						} else {
-							if (param.getTruncate() == null) {
-								ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
-							} else {
-								ps.setCharacterStream(param.getPos(), new StringReader(param.truncate(message.getBodyAsString(context))));
-							}
+							ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
 						}
 					}
 					break;
@@ -249,12 +244,7 @@ public abstract class JDBCAction extends Action {
 						if (message.getBodyType() == BodyType.INVALID) {
 							ps.setNull(param.getPos(), BLOB);
 						} else {
-							Long length = message.getOutputLength();
-							if (param.getTruncate() == null || length != null && length <= param.getTruncate()) {
-								ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
-							} else {
-								ps.setBinaryStream(param.getPos(), new ByteArrayInputStream(message.getBodyAsByteArray(context), 0, param.getTruncate()));
-							}
+							ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
 						}
 					}
 					break;

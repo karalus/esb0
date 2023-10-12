@@ -120,7 +120,7 @@ public final class JDBCParameter {
 				break;
 			case CHAR:
 			case VARCHAR:
-				ps.setString(_pos, _truncate != null ? truncate((String) value) : (String) value);
+				ps.setString(_pos, truncate((String) value));
 				break;
 			case CLOB:
 				Clob clob = conn.createClob();
@@ -146,8 +146,8 @@ public final class JDBCParameter {
 		}
 	}
 
-	public String truncate(String s) {
-		return s.length() > _truncate ? s.substring(0, _truncate) : s;
+	private String truncate(String s) {
+		return _truncate != null && s.length() > _truncate ? s.substring(0, _truncate) : s;
 	}
 
 }
