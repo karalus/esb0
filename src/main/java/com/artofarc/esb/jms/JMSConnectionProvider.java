@@ -269,7 +269,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 				try {
 					logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey() + " in state " + entry.getValue());
 					jmsConsumer.suspend();
-				} catch (Exception e) {
+				} catch (JMSException e) {
 					logger.warn("Suspend failed for " + jmsConsumer.getKey(), e);
 				}
 			}

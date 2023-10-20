@@ -142,8 +142,8 @@ Optional
 __1.11__ (Q4 2023):
 - Optimized for Java 11 and later (deprecate support for Java 8)
 - Offer new JDK HTTP Client thus facilitate asynchronous HTTP and HTTP/2 outbound
-- divide source into modules using parent POM
 
 __Backlog:__
+- divide source into modules using parent POM
 - make use of virtual threads (requires Java 21 minimum)
 - migrate to Jakarta EE 9 (at least when Tomcat 9.0 and JBoss 7.4 reached EOL)

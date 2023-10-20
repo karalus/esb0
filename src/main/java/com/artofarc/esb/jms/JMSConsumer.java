@@ -38,6 +38,7 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
+import com.artofarc.util.ReflectionUtils;
 
 public final class JMSConsumer extends SchedulingConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
@@ -176,7 +177,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 				try {
 					jmsWorker.open();
 					jmsWorker.startListening();
-				} catch (Exception e) {
+				} catch (JMSException e) {
 					logger.error("Could not add JMSWorker", e);
 				}
 			});
@@ -189,7 +190,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			_control = _workerPool.getExecutorService().submit(() -> {
 				try {
 					jmsWorker.close();
-				} catch (Exception e) {
+				} catch (JMSException e) {
 					logger.debug("Could not close JMSWorker", e);
 				}
 				jmsWorker._context.close();
@@ -263,7 +264,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		}
 	}
 
-	void suspend() throws Exception {
+	void suspend() throws JMSException {
 		enable(false);
 		for (int i = 0; i < _workerCount;) {
 			JMSWorker jmsWorker = _jmsWorker[i++];
@@ -272,7 +273,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	@Override
-	public void close() throws Exception {
+	public void close() throws JMSException {
 		for (int i = 0; i < _workerCount;) {
 			JMSWorker jmsWorker = _jmsWorker[i++];
 			// close silently
@@ -364,13 +365,15 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		void stopListening() {
 			if (_messageConsumer != null) {
 				try {
+					// IBM MQ sometimes fails to close and continues to deliver messages
+					_messageConsumer.setMessageListener(null);
 					if (JMSConnectionProvider.closeWithTimeout > 0) {
 						// Oracle AQ sometimes waits forever in close()
 						Closer.closeWithTimeout(_messageConsumer, _workerPool.getExecutorService(), JMSConnectionProvider.closeWithTimeout, getKey(), JMSException.class);
 					} else {
 						_messageConsumer.close();
 					}
-				} catch (Exception e) {
+				} catch (JMSException e) {
 					// ignore
 					logger.debug(getKey(), e);
 				} finally {
@@ -379,13 +382,17 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			}
 		}
 
-		final void close() throws Exception {
+		final void close() throws JMSException {
 			stopListening();
 			_session = null;
 			JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
 			jmsConnectionProvider.unregisterJMSSessionFactory(_jmsConnectionData, jmsSessionFactory);
-			jmsSessionFactory.close(_jmsConnectionData);
+			try {
+				jmsSessionFactory.close(_jmsConnectionData);
+			} catch (Exception e) {
+				throw ReflectionUtils.convert(e, JMSException.class);
+			}
 		}
 
 		@Override
@@ -393,15 +400,15 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			// monitor threads not started by us but by the JMS provider 
 			_workerPool.addThread(Thread.currentThread(), getDestinationName());
 			try {
+				long receiveTimestamp = processMessage(message);
+				commit(receiveTimestamp, receiveTimestamp - message.getJMSTimestamp());
+			} catch (Exception e) {
+				logger.info("Rolling back for " + getKey(), e);
 				try {
-					long receiveTimestamp = processMessage(message);
-					commit(receiveTimestamp, receiveTimestamp - message.getJMSTimestamp());
-				} catch (Exception e) {
-					logger.info("Rolling back for " + getKey(), e);
 					rollback();
+				} catch (JMSException je) {
+					throw new RuntimeException(je); 
 				}
-			} catch (JMSException e) {
-				throw new RuntimeException(e); 
 			}
 		}
 
