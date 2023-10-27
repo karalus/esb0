@@ -85,78 +85,84 @@ public final class JsonSchemaGenerator {
 	private void generateObject(XSOMHelper xsomHelper, JsonGenerator jsonGenerator) throws SAXException {
 		List<String> required = new ArrayList<>();
 		boolean any = false, mixed = xsomHelper.getComplexType().isMixed();
-		jsonGenerator.write("type", "object");
 		generateDescription(xsomHelper.getComplexType(), jsonGenerator);
-		if (xsomHelper.getAttributeWildcard() != null) {
-			jsonGenerator.writeStartObject("patternProperties");
-			jsonGenerator.writeStartObject("^" + attributePrefix);
-			jsonGenerator.write("type", "string");
-			jsonGenerator.writeEnd();
-			jsonGenerator.writeEnd();
-		}
-		jsonGenerator.writeStartObject("properties");
-		for (XSAttributeUse attributeUse : xsomHelper.getComplexType().getAttributeUses()) {
-			XSAttributeDecl decl = attributeUse.getDecl();
-			String attr = attributePrefix + decl.getName();
-			jsonGenerator.writeStartObject(attr);
-			generateType(decl.getType(), decl.getDefaultValue(), false, jsonGenerator);
-			jsonGenerator.writeEnd();
-			if (attributeUse.isRequired()) {
-				required.add(attr);
-			}
-		}
-		XSSimpleType simpleType = xsomHelper.getSimpleType();
-		if (simpleType != null) {
-			jsonGenerator.writeStartObject(valueWrapper);
-			jsonGenerator.write("type", XSOMHelper.getJsonType(simpleType));
-			jsonGenerator.writeEnd();
-			required.add(valueWrapper);
+		if (xsomHelper.getWrappedElement() != null) {
+			XSTerm term = xsomHelper.nextElement();
+			generateType(xsomHelper, term.asElementDecl().getDefaultValue(), term.asElementDecl().isNillable(), jsonGenerator);
 		} else {
-			for (int level = xsomHelper.getLevel();;) {
-				XSTerm term = xsomHelper.nextElement();
-				if (term == null || level >= xsomHelper.getLevel()) {
-					if (term != null) {
-						xsomHelper.push(term);
-					}
-					break;
+			jsonGenerator.write("type", "object");
+			if (xsomHelper.getAttributeWildcard() != null) {
+				jsonGenerator.writeStartObject("patternProperties");
+				jsonGenerator.writeStartObject("^" + attributePrefix);
+				jsonGenerator.write("type", "string");
+				jsonGenerator.writeEnd();
+				jsonGenerator.writeEnd();
+			}
+			jsonGenerator.writeStartObject("properties");
+			for (XSAttributeUse attributeUse : xsomHelper.getComplexType().getAttributeUses()) {
+				XSAttributeDecl decl = attributeUse.getDecl();
+				String attr = attributePrefix + decl.getName();
+				jsonGenerator.writeStartObject(attr);
+				generateType(decl.getType(), decl.getDefaultValue(), false, jsonGenerator);
+				jsonGenerator.writeEnd();
+				if (attributeUse.isRequired()) {
+					required.add(attr);
 				}
-				if (xsomHelper.isLastElementAny()) {
-					any = true;
-					xsomHelper.endAny();
-				} else {
-					String name = term.apply(XSOMHelper.GetName);
-					if (_namespaceMap != null) {
-						String prefix = _namespaceMap.getPrefix(term.apply(XSOMHelper.GetNamespace));
-						if (prefix != null && prefix.length() > 0) {
-							name = prefix + '.' + name;
+			}
+			XSSimpleType simpleType = xsomHelper.getSimpleType();
+			if (simpleType != null) {
+				jsonGenerator.writeStartObject(valueWrapper);
+				jsonGenerator.write("type", XSOMHelper.getJsonType(simpleType));
+				jsonGenerator.writeEnd();
+				required.add(valueWrapper);
+			} else {
+				for (int level = xsomHelper.getLevel();;) {
+					XSTerm term = xsomHelper.nextElement();
+					if (term == null || level >= xsomHelper.getLevel()) {
+						if (term != null) {
+							xsomHelper.push(term);
 						}
+						break;
 					}
-					jsonGenerator.writeStartObject(name);
-					if (xsomHelper.isLastElementRequired()) {
-						required.add(name);
+					if (xsomHelper.isLastElementAny()) {
+						any = true;
+						xsomHelper.endAny();
+					} else {
+						String name = term.apply(XSOMHelper.GetName);
+						if (_namespaceMap != null) {
+							String prefix = _namespaceMap.getPrefix(term.apply(XSOMHelper.GetNamespace));
+							if (prefix != null && prefix.length() > 0) {
+								name = prefix + '.' + name;
+							}
+						}
+						jsonGenerator.writeStartObject(name);
+						if (xsomHelper.isLastElementRequired()) {
+							required.add(name);
+						}
+						generateType(xsomHelper, term.asElementDecl().getDefaultValue(), term.asElementDecl().isNillable(), jsonGenerator);
+						generateDescription(term, jsonGenerator);
+						jsonGenerator.writeEnd(); // name
 					}
-					generateType(xsomHelper, term.asElementDecl().getDefaultValue(), term.asElementDecl().isNillable(), jsonGenerator);
-					jsonGenerator.writeEnd(); // name
 				}
 			}
-		}
-		if (mixed) {
-			jsonGenerator.writeStartObject("value");
-			jsonGenerator.write("type", "array");
-			jsonGenerator.writeStartObject("items");
-			jsonGenerator.write("type", "string");
-			jsonGenerator.writeEnd();
-			jsonGenerator.writeEnd();
-		}
-		jsonGenerator.writeEnd(); // properties
-		if (required.size() > 0) {
-			jsonGenerator.writeStartArray("required");
-			for (String string : required) {
-				jsonGenerator.write(string);
+			if (mixed) {
+				jsonGenerator.writeStartObject("value");
+				jsonGenerator.write("type", "array");
+				jsonGenerator.writeStartObject("items");
+				jsonGenerator.write("type", "string");
+				jsonGenerator.writeEnd();
+				jsonGenerator.writeEnd();
 			}
-			jsonGenerator.writeEnd();
+			jsonGenerator.writeEnd(); // properties
+			if (required.size() > 0) {
+				jsonGenerator.writeStartArray("required");
+				for (String string : required) {
+					jsonGenerator.write(string);
+				}
+				jsonGenerator.writeEnd();
+			}
+			jsonGenerator.write("additionalProperties", any);
 		}
-		jsonGenerator.write("additionalProperties", any);
 	}
 
 	private void generateType(XSOMHelper xsomHelper, XmlString defaultValue, boolean nillable, JsonGenerator jsonGenerator) throws SAXException {
@@ -324,15 +330,17 @@ public final class JsonSchemaGenerator {
 		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 		xsomParser.setAnnotationParser(new DomAnnotationParserFactory());
 		xsomParser.setErrorHandler(new ErrorHandler() {
-			
+
 			@Override
 			public void warning(SAXParseException exception) throws SAXException {
 				throw exception;
 			}
+
 			@Override
 			public void fatalError(SAXParseException exception) throws SAXException {
 				throw exception;
 			}
+
 			@Override
 			public void error(SAXParseException exception) throws SAXException {
 				throw exception;
