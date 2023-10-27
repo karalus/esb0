@@ -168,6 +168,7 @@ public class TransformAction extends Action {
 		}
 		if (_contextItem == null) {
 			message.reset(BodyType.XQ_SEQUENCE, resultSequence);
+			message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 			if (_newContentType != null) {
 				message.setContentType((String) eval(_newContentType, context, message));
 			}

@@ -44,7 +44,7 @@ public class XML2JsonAction extends Action {
 			throw new ExecutionException(this, "Unexpected Content-Type: " + contentType);
 		}
 		message.removeHeader(HTTP_HEADER_CONTENT_LENGTH);
-		message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
+		message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 		message.setContentType(HTTP_HEADER_CONTENT_TYPE_JSON);
 		return null;
 	}

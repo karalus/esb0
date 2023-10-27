@@ -52,7 +52,7 @@ public class Json2XMLAction extends SAXAction {
 		contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType == null || isNotXML(contentType)) {
 			// target Content-Type is not XML, set default XML Content-Type
-			message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_XML);
 			contentType = HTTP_HEADER_CONTENT_TYPE_XML;
 		}
 		message.setContentType(contentType);
