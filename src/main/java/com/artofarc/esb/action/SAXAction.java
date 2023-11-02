@@ -97,7 +97,7 @@ public abstract class SAXAction extends Action {
 			message.reset(BodyType.XQ_ITEM, sequence.getItem());
 			// nobreak
 		case XQ_ITEM:
-			source = createSAXSource(context, message, message.<XQItem> getBody());
+			source = createSAXSource(context, message, context.getXQDataFactory().createItem(message.getBody()));
 			break;
 		default:
 			source = createSAXSource(context, message, message.getBodyAsSource(context));
