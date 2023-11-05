@@ -132,12 +132,16 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 					throw new ValidationException(this, "With at only one worker is allowed");
 				}
 				int minWorkerCount = jmsBinding.getMinWorkerCount() != null ? jmsBinding.getMinWorkerCount() : jmsBinding.getWorkerCount();
-				for (JMSConnectionData jmsConnectionData : JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword())) {
-					JMSConsumer consumerPort = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, jmsBinding.getJndiDestination(),
+				List<JMSConnectionData> jmsConnectionDataList = JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
+				JMSConsumer[] group = new JMSConsumer[jmsConnectionDataList.size()];
+				for (int i = 0; i < jmsConnectionDataList.size(); ++i) {
+					JMSConnectionData jmsConnectionData = jmsConnectionDataList.get(i);
+					JMSConsumer jmsConsumer = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, group, jmsBinding.getJndiDestination(),
 							jmsBinding.getQueueName(), jmsBinding.getTopicName(), jmsBinding.getSubscription(), jmsBinding.isNoLocal(), jmsBinding.isShared(), jmsBinding.getMessageSelector(),
 							jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getBatchSize(), jmsBinding.getBatchTime(), jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt());
-					globalContext.checkBindJmsConsumer(consumerPort);
-					_consumerPorts.add(consumerPort);
+					globalContext.checkBindJmsConsumer(jmsConsumer);
+					_consumerPorts.add(jmsConsumer);
+					group[i] = jmsConsumer;
 				}
 				break;
 			case TIMER:

@@ -43,6 +43,7 @@ import com.artofarc.util.ReflectionUtils;
 public final class JMSConsumer extends SchedulingConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final JMSConnectionData _jmsConnectionData;
+	private final JMSConsumer[] _group;
 	private Destination _destination;
 	private final String _queueName;
 	private final String _topicName;
@@ -65,11 +66,12 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	private volatile long _lastChangeOfState;
 	private Future<?> _control;
 
-	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName, String subscription,
+	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, JMSConsumer[] group, String jndiDestination, String queueName, String topicName, String subscription,
 			boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, int batchSize, int batchTime, long pollInterval, String timeUnit, XMLGregorianCalendar at) throws NamingException, JMSException {
 
 		super(uri, workerPool, at, timeUnit, pollInterval, false);
 		_jmsConnectionData = jmsConnectionData;
+		_group = group;
 		_messageSelector = globalContext.bindProperties(messageSelector);
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
@@ -122,7 +124,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 	@Override
 	public String getMBeanPostfix() {
-		return ",consumerType=" + getClass().getSimpleName() + ",key=" + ObjectName.quote(getKey());
+		return super.getMBeanPostfix() + ",key=" + ObjectName.quote(getKey());
 	}
 
 	public int getWorkerCount() {
@@ -135,6 +137,10 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 	public long getCurrentSentReceiveDelay() {
 		return _sentReceiveDelay.getCurrent();
+	}
+
+	public JMSConsumer[] getGroup() {
+		return _group;
 	}
 
 	@Override
@@ -280,6 +286,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			jmsWorker.close();
 			jmsWorker._context.close();
 		}
+		_workerCount = 0;
 		JMSConnectionProvider jmsConnectionProvider = _workerPool.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 		jmsConnectionProvider.unregisterJMSConsumer(_jmsConnectionData, this);
 	}

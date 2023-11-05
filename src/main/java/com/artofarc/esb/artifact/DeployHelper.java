@@ -15,7 +15,7 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.util.List;
+import java.util.Collection;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.FileWatchEventConsumer;
@@ -46,7 +46,7 @@ public final class DeployHelper {
 	}
 
 	public static int deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet changeSet) throws ValidationException {
-		List<ServiceArtifact> serviceArtifacts = changeSet.getServiceArtifacts();
+		Collection<ServiceArtifact> serviceArtifacts = changeSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
 		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).forEach(service -> {
 			switch (service.getProtocol()) {
@@ -151,12 +151,16 @@ public final class DeployHelper {
 			case JMS:
 				for (ConsumerPort consumer : service.getConsumerPorts()) {
 					JMSConsumer jmsConsumer = (JMSConsumer) consumer;
-					oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumer);
-					if (oldConsumerPort != null) {
-						try {
-							oldConsumerPort.close();
-						} catch (Exception e) {
-							// ignore
+					Collection<ConsumerPort> oldConsumerPorts = globalContext.bindJmsConsumer(jmsConsumer);
+					for (ConsumerPort consumerPort : oldConsumerPorts) {
+						if (consumerPort instanceof JMSConsumer) {
+							try {
+								consumerPort.close();
+							} catch (Exception e) {
+								// ignore
+							}
+						} else {
+							closer.closeAsync(consumerPort);
 						}
 					}
 					try {

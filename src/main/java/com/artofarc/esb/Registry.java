@@ -18,7 +18,9 @@ package com.artofarc.esb;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -227,23 +229,47 @@ public class Registry extends AbstractContext {
 		unbindInternalServiceAndUnregisterMBean(httpConsumer.isPathMapping() ? _mappedHttpServices.remove(httpConsumer.getBindPath()) : _httpServices.remove(httpConsumer.getBindPath()));
 	}
 
-	public final ConsumerPort checkBindJmsConsumer(JMSConsumer jmsConsumer) {
-		ConsumerPort oldConsumerPort = _jmsConsumer.get(jmsConsumer.getKey());
+	public final JMSConsumer checkBindJmsConsumer(JMSConsumer jmsConsumer) {
+		JMSConsumer oldConsumerPort = _jmsConsumer.get(jmsConsumer.getKey());
 		if (oldConsumerPort != null && !oldConsumerPort.getUri().equals(jmsConsumer.getUri())) {
 			throw new IllegalArgumentException("A different service is already bound: " + oldConsumerPort.getUri());
 		}
 		return oldConsumerPort;
 	}
 
-	public final ConsumerPort bindJmsConsumer(JMSConsumer jmsConsumer) {
-		ConsumerPort oldConsumerPort = checkBindJmsConsumer(jmsConsumer);
-		if (oldConsumerPort == null) {
-			oldConsumerPort = getInternalService(jmsConsumer.getUri());
+	public final Set<ConsumerPort> bindJmsConsumer(JMSConsumer jmsConsumer) {
+		Set<ConsumerPort> oldConsumerPorts = new HashSet<>();
+		JMSConsumer[] group = jmsConsumer.getGroup();
+		for (JMSConsumer consumer : group) {
+			JMSConsumer oldConsumerPort = checkBindJmsConsumer(consumer);
+			if (oldConsumerPort != null) {
+				if (oldConsumerPort.getGroup() == group) {
+					// This group is already bound
+					return Collections.emptySet();
+				}
+				oldConsumerPorts.add(oldConsumerPort);
+			}
+		}
+		ConsumerPort oldConsumerPort = getInternalService(jmsConsumer.getUri());
+		if (oldConsumerPort instanceof JMSConsumer) {
+			for (JMSConsumer consumer : ((JMSConsumer) oldConsumerPort).getGroup()) {
+				if (oldConsumerPorts.add(consumer)) {
+					unbindService(consumer);
+				}
+			}
+		} else if (oldConsumerPort != null) {
+			oldConsumerPorts.add(oldConsumerPort);
 			unbindService(oldConsumerPort);
 		}
-		rebindInternalServiceAndMBean(jmsConsumer, oldConsumerPort);
-		_jmsConsumer.put(jmsConsumer.getKey(), jmsConsumer);
-		return oldConsumerPort;
+		for (ConsumerPort consumerPort : oldConsumerPorts) {
+			unregisterMBean(consumerPort.getMBeanPostfix());
+		}
+		for (JMSConsumer consumer : group) {
+			registerMBean(consumer, consumer.getMBeanPostfix());
+			_jmsConsumer.put(consumer.getKey(), consumer);
+		}
+		_services.put(jmsConsumer.getUri(), jmsConsumer);
+		return oldConsumerPorts;
 	}
 
 	public final void unbindJmsConsumer(JMSConsumer jmsConsumer) {
