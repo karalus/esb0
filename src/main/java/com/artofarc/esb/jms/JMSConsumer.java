@@ -38,7 +38,6 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
-import com.artofarc.util.ReflectionUtils;
 
 public final class JMSConsumer extends SchedulingConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
 
@@ -194,11 +193,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			// remove Worker
 			final JMSWorker jmsWorker = _jmsWorker[--_workerCount];
 			_control = _workerPool.getExecutorService().submit(() -> {
-				try {
-					jmsWorker.close();
-				} catch (JMSException e) {
-					logger.debug("Could not close JMSWorker", e);
-				}
+				jmsWorker.close();
 				jmsWorker._context.close();
 			});
 			_jmsWorker[_workerCount] = null;
@@ -270,8 +265,12 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 		}
 	}
 
-	void suspend() throws JMSException {
-		enable(false);
+	void suspend() {
+		try {
+			enable(false);
+		} catch (JMSException e) {
+			// ignore
+		}
 		for (int i = 0; i < _workerCount;) {
 			JMSWorker jmsWorker = _jmsWorker[i++];
 			jmsWorker.close();
@@ -279,10 +278,9 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 	}
 
 	@Override
-	public void close() throws JMSException {
+	public void close() {
 		for (int i = 0; i < _workerCount;) {
 			JMSWorker jmsWorker = _jmsWorker[i++];
-			// close silently
 			jmsWorker.close();
 			jmsWorker._context.close();
 		}
@@ -389,7 +387,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			}
 		}
 
-		final void close() throws JMSException {
+		final void close() {
 			stopListening();
 			_session = null;
 			JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
@@ -398,7 +396,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 			try {
 				jmsSessionFactory.close(_jmsConnectionData);
 			} catch (Exception e) {
-				throw ReflectionUtils.convert(e, JMSException.class);
+				logger.debug("Could not close JMSSession", e);
 			}
 		}
 

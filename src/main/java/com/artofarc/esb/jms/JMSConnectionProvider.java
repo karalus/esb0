@@ -70,7 +70,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		return connectionGuard;
 	}
 
-	public ExceptionListener getExceptionListener(JMSConnectionData jmsConnectionData) {
+	ExceptionListener getExceptionListener(JMSConnectionData jmsConnectionData) {
 		return getResource(jmsConnectionData);
 	}
 
@@ -78,11 +78,11 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		getResource(jmsConnectionData).removeJMSSessionFactory(jmsSessionFactory);
 	}
 
-	public void registerJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer, boolean enabled) {
+	void registerJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer, boolean enabled) {
 		getResource(jmsConnectionData).addJMSConsumer(jmsConsumer, enabled);
 	}
 
-	public void unregisterJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer) {
+	void unregisterJMSConsumer(JMSConnectionData jmsConnectionData, JMSConsumer jmsConsumer) {
 		getResource(jmsConnectionData).removeJMSConsumer(jmsConsumer);
 	}
 
@@ -91,11 +91,11 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		return new JMSSession(this, jmsConnectionData, connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE));
 	}
 
-	public boolean isConnected(JMSConnectionData jmsConnectionData) {
+	boolean isConnected(JMSConnectionData jmsConnectionData) {
 		return getResource(jmsConnectionData).isConnected();
 	}
 
-	public ConnectionMetaData getConnectionMetaData(JMSConnectionData jmsConnectionData) {
+	ConnectionMetaData getConnectionMetaData(JMSConnectionData jmsConnectionData) {
 		return getResource(jmsConnectionData).getConnectionMetaData();
 	}
 
@@ -266,12 +266,8 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 				JMSConsumer jmsConsumer = entry.getKey();
 				// save current state
 				entry.setValue(jmsConsumer.isToBeEnabled());
-				try {
-					logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey() + " in state " + entry.getValue());
-					jmsConsumer.suspend();
-				} catch (JMSException e) {
-					logger.warn("Suspend failed for " + jmsConsumer.getKey(), e);
-				}
+				logger.info("Suspending JMSConsumer for " + jmsConsumer.getKey() + " in state " + entry.getValue());
+				jmsConsumer.suspend();
 			}
 			for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
 				try {

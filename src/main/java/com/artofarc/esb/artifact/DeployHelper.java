@@ -60,11 +60,7 @@ public final class DeployHelper {
 					JMSConsumer jmsConsumer = (JMSConsumer) consumer;
 					globalContext.unbindJmsConsumer(jmsConsumer);
 					jmsConsumer.unsubscribe();
-					try {
-						jmsConsumer.close();
-					} catch (Exception e) {
-						// ignore
-					}
+					jmsConsumer.close();
 				}
 				break;
 			case FILE:
@@ -154,11 +150,7 @@ public final class DeployHelper {
 					Collection<ConsumerPort> oldConsumerPorts = globalContext.bindJmsConsumer(jmsConsumer);
 					for (ConsumerPort consumerPort : oldConsumerPorts) {
 						if (consumerPort instanceof JMSConsumer) {
-							try {
-								consumerPort.close();
-							} catch (Exception e) {
-								// ignore
-							}
+							((JMSConsumer) consumerPort).close();
 						} else {
 							closer.closeAsync(consumerPort);
 						}
