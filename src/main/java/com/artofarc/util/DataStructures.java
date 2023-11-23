@@ -20,6 +20,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -83,6 +84,12 @@ public final class DataStructures {
 	public static <T extends Comparable<? super T>> List<T> asSortedList(Collection<T> coll) {
 		List<T> list = new ArrayList<>(coll);
 		Collections.sort(list);
+		return list;
+	}
+
+	public static <T> List<T> asSortedList(Collection<T> coll, Comparator<T> comp) {
+		List<T> list = new ArrayList<>(coll);
+		Collections.sort(list, comp);
 		return list;
 	}
 

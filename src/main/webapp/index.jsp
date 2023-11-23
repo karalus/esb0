@@ -100,7 +100,7 @@ input[type="submit"][value="false"] {
 <br>JMSServices:
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>Worker count</b></td><td><b>Completed tasks</b></td><td><b>Execution time</b></td><td><b>Current sent/receive delay</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
-			for (JMSConsumer jmsConsumer : DataStructures.asSortedList(globalContext.getJMSConsumers())) {
+			for (JMSConsumer jmsConsumer : DataStructures.asSortedList(globalContext.getJMSConsumers(), (c1, c2) -> c1.getKey().compareTo(c2.getKey()))) {
 				%>
 				<tr>
 					<td><%=jmsConsumer.getKey()%></td>
@@ -113,7 +113,8 @@ input[type="submit"][value="false"] {
 					<td>
 						<form method="post" action="<%=adminPath + jmsConsumer.getUri()%>?JMSServices">
 							<input type="submit" value="<%=jmsConsumer.isEnabled()%>"/>
-							<input type="hidden" name="enable" value="<%=!jmsConsumer.isEnabled()%>"/> 
+							<input type="hidden" name="key" value="<%=jmsConsumer.getKey()%>"/>
+							<input type="hidden" name="enable" value="<%=!jmsConsumer.isEnabled()%>"/>
 						</form>
 					</td>
 					<td><form action="<%=adminPath + jmsConsumer.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=jmsConsumer.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="JMSServices"/></form></td>

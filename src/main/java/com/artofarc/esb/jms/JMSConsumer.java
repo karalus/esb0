@@ -39,7 +39,7 @@ import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
 
-public final class JMSConsumer extends SchedulingConsumerPort implements Comparable<JMSConsumer>, com.artofarc.esb.mbean.JMSConsumerMXBean {
+public final class JMSConsumer extends SchedulingConsumerPort implements com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final JMSConnectionData _jmsConnectionData;
 	private final JMSConsumer[] _group;
@@ -140,11 +140,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements Compara
 
 	public JMSConsumer[] getGroup() {
 		return _group;
-	}
-
-	@Override
-	public int compareTo(JMSConsumer o) {
-		return getKey().compareTo(o.getKey());
 	}
 
 	public synchronized void init(GlobalContext globalContext) throws JMSException {

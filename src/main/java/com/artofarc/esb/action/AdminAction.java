@@ -26,6 +26,7 @@ import static javax.servlet.http.HttpServletResponse.*;
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.*;
 import com.artofarc.esb.context.*;
+import com.artofarc.esb.jms.JMSConsumer;
 
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.*;
@@ -171,12 +172,22 @@ public class AdminAction extends Action {
 				throwHttpError(message, SC_UNSUPPORTED_MEDIA_TYPE, new ExecutionException(this, contentType));
 			}
 		} else {
-			String enable = (String) resolve(message, "enable", true);
-			if (enable != null || message.isEmpty()) {
+			String enableStr = (String) resolve(message, "enable", true);
+			if (enableStr != null || message.isEmpty()) {
 				ConsumerPort consumerPort = globalContext.getInternalService(resource);
 				if (consumerPort != null) {
 					// if header is missing just toggle state
-					consumerPort.enable(enable != null ? Boolean.parseBoolean(enable) : !consumerPort.isEnabled());
+					boolean enable = enableStr != null ? Boolean.parseBoolean(enableStr) : !consumerPort.isEnabled();
+					if (consumerPort instanceof JMSConsumer) {
+						String key = (String) resolve(message, "key", true);
+						for (JMSConsumer jmsConsumer : ((JMSConsumer) consumerPort).getGroup()) {
+							if (key == null || jmsConsumer.getKey().equals(key)) {
+								jmsConsumer.enable(enable);
+							}
+						}
+					} else {
+						consumerPort.enable(enable);
+					}
 				} else {
 					Artifact artifact = globalContext.getFileSystem().getArtifact(resource);
 					if (artifact instanceof JNDIObjectFactoryArtifact) {
