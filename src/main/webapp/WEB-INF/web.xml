@@ -23,12 +23,22 @@
 	<listener>
 		<listener-class>com.artofarc.esb.servlet.ESBServletContextListener</listener-class>
 	</listener>
-	<deny-uncovered-http-methods/>
 	<security-constraint>
 		<web-resource-collection>
 			<web-resource-name>File download</web-resource-name>
 			<url-pattern>/admin/deploy/*</url-pattern>
 			<http-method>GET</http-method>
+		</web-resource-collection>
+	</security-constraint>
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>File download</web-resource-name>
+			<url-pattern>/admin/deploy/*</url-pattern>
+			<http-method>GET</http-method>
+			<http-method>TRACE</http-method>
+			<http-method>HEAD</http-method>
+			<http-method>OPTIONS</http-method>
+			<http-method>CONNECT</http-method>
 		</web-resource-collection>
 	</security-constraint>
 	<security-constraint>
@@ -40,6 +50,7 @@
 			<web-resource-name>File upload</web-resource-name>
 			<url-pattern>/admin/deploy/*</url-pattern>
 			<http-method>POST</http-method>
+			<http-method>PUT</http-method>
 			<http-method>DELETE</http-method>
 		</web-resource-collection>
 		<auth-constraint>
