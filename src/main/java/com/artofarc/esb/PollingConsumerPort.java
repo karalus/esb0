@@ -46,13 +46,14 @@ public abstract class PollingConsumerPort extends ConsumerPort implements Runnab
 
 	@Override
 	public boolean isEnabled() {
-		return _future != null && !_future.isDone();
+		Future<?> future = _future;
+		return future != null && !future.isDone();
 	}
 
 	@Override
 	public void enable(boolean enable) {
 		if (enable) {
-			if (_future == null || _future.isDone()) {
+			if (!isEnabled()) {
 				_future = _workerPool.getExecutorService().submit(this);
 			}
 		} else {
@@ -62,8 +63,9 @@ public abstract class PollingConsumerPort extends ConsumerPort implements Runnab
 
 	@Override
 	public void close() {
-		if (_future != null) {
-			_future.cancel(true);
+		Future<?> future = _future;
+		if (future != null) {
+			future.cancel(true);
 			_future = null;
 		}
 	}

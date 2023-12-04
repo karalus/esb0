@@ -198,7 +198,6 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		Action nextAction = context.getStackErrorHandler().poll();
 		if (nextAction != null) {
 			nextAction.process(context, message);
-			nextAction = null;
 		} else {
 			nextAction = context.getExecutionStack().poll();
 			if (nextAction != null) {

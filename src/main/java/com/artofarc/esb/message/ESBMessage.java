@@ -397,6 +397,7 @@ public final class ESBMessage implements Cloneable {
 			charset = _sinkEncoding;
 			break;
 		case READER:
+		case EXCEPTION:
 			getBodyAsString(context);
 			// nobreak
 		case STRING:

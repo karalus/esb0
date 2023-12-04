@@ -357,7 +357,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		public String getJMSProvider() throws JMSException {
 			ConnectionMetaData connectionMetaData = _connectionMetaData;
-			return connectionMetaData != null ? connectionMetaData.getJMSProviderName() + ' ' + connectionMetaData.getProviderVersion() : null;
+			return connectionMetaData != null ? connectionMetaData.getJMSProviderName() + ' ' + connectionMetaData.getClass().getPackage().getImplementationVersion() : null;
 		}
 	}
 
