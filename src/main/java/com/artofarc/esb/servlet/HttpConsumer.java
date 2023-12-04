@@ -37,7 +37,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	private final String _bindPath;
 	private final String _requiredRole;
 	private final int _minPoolSize, _maxPoolSize;
-	private final long _keepAlive;
+	private final long _keepAlive, _asyncTimeout;
 	private final int _resourceLimit;
 	private final HttpResponseAction _terminalAction;
 	private ContextPool _contextPool;
@@ -45,12 +45,13 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	private volatile long _lastPoolLimitExceeded;
 	private final AtomicLong _poolLimitExceededCount = new AtomicLong();
 
-	public HttpConsumer(String uri, int resourceLimit, String bindPath, String overwriteContentType, String requiredRole, int minPoolSize, int maxPoolSize, long keepAlive, boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
+	public HttpConsumer(String uri, int resourceLimit, String bindPath, String overwriteContentType, String requiredRole, long asyncTimeout, int minPoolSize, int maxPoolSize, long keepAlive, boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
 		super(uri);
 		_pathMapping = bindPath.charAt(bindPath.length() - 1) == '*';
 		_bindPath = _pathMapping ? bindPath.substring(0, bindPath.length() - 1) : bindPath;
 		_overwriteContentType = overwriteContentType;
 		_requiredRole = requiredRole;
+		_asyncTimeout = asyncTimeout;
 		_minPoolSize = minPoolSize;
 		_maxPoolSize = maxPoolSize;
 		_keepAlive = keepAlive;
@@ -72,6 +73,10 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 
 	public String getRequiredRole() {
 		return _requiredRole;
+	}
+
+	public long getAsyncTimeout() {
+		return _asyncTimeout;
 	}
 
 	public Context acquireContext() {

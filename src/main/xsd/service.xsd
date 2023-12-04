@@ -748,6 +748,7 @@
 								<extension base="tns:URI1">
 									<attribute name="overwriteContentType" type="tns:string1" />
 									<attribute name="requiredRole" type="tns:globalExpression" />
+									<attribute name="asyncTimeout" type="long" default="60000" />
 									<attribute name="supportCompression" type="boolean" default="false" />
 									<attribute name="multipartSubtype" type="tns:multipartSubtype" />
 									<attribute name="multipartResponse" type="tns:string1" />
