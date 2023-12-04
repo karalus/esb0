@@ -96,11 +96,21 @@ input[type="submit"][value="false"] {
 			<%
 			break;
 		case "JMSServices":
+			Map<JMSConsumer, Boolean> serviceStates = new TreeMap<>((c1, c2) -> c1.getKey().compareTo(c2.getKey()));
+			int enabledCount = 0;
+			for (JMSConsumer jmsConsumer : globalContext.getJMSConsumers()) {
+				boolean enabled = jmsConsumer.isEnabled();
+				serviceStates.put(jmsConsumer, enabled);
+				if (enabled) ++enabledCount; 
+			}
 			%>
-<br>JMSServices:
+<br>
+<p style="float:left">JMSServices:</p>
+<p style="float:right;background-color:#EEEEEE">total=<%=serviceStates.size()%>, enabled=<%=enabledCount%>, disabled=<%=serviceStates.size()-enabledCount%></p>
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>Worker count</b></td><td><b>Completed tasks</b></td><td><b>Execution time</b></td><td><b>Current sent/receive delay</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
-			for (JMSConsumer jmsConsumer : DataStructures.asSortedList(globalContext.getJMSConsumers(), (c1, c2) -> c1.getKey().compareTo(c2.getKey()))) {
+			for (Map.Entry<JMSConsumer, Boolean> serviceState : serviceStates.entrySet()) {
+				JMSConsumer jmsConsumer = serviceState.getKey();
 				%>
 				<tr>
 					<td><%=jmsConsumer.getKey()%></td>
@@ -112,9 +122,9 @@ input[type="submit"][value="false"] {
 					<td><%=jmsConsumer.getLastChangeOfState()%></td>
 					<td>
 						<form method="post" action="<%=adminPath + jmsConsumer.getUri()%>?JMSServices">
-							<input type="submit" value="<%=jmsConsumer.isEnabled()%>"/>
+							<input type="submit" value="<%=serviceState.getValue()%>"/>
 							<input type="hidden" name="key" value="<%=jmsConsumer.getKey()%>"/>
-							<input type="hidden" name="enable" value="<%=!jmsConsumer.isEnabled()%>"/>
+							<input type="hidden" name="enable" value="<%=!serviceState.getValue()%>"/>
 						</form>
 					</td>
 					<td><form action="<%=adminPath + jmsConsumer.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=jmsConsumer.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="JMSServices"/></form></td>
