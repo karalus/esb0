@@ -104,9 +104,7 @@ input[type="submit"][value="false"] {
 				if (enabled) ++enabledCount; 
 			}
 			%>
-<br>
-<p style="float:left">JMSServices:</p>
-<p style="float:right;background-color:#EEEEEE">total=<%=serviceStates.size()%>, enabled=<%=enabledCount%>, disabled=<%=serviceStates.size()-enabledCount%></p>
+<br>JMSServices (total=<%=serviceStates.size()%>, enabled=<%=enabledCount%>, disabled=<%=serviceStates.size()-enabledCount%>):
 <table border="1"><tr bgcolor="#EEEEEE"><td><b>Key</b></td><td><b>Uri</b></td><td><b>Worker count</b></td><td><b>Completed tasks</b></td><td><b>Execution time</b></td><td><b>Current sent/receive delay</b></td><td><b>LastChangeOfState</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 			for (Map.Entry<JMSConsumer, Boolean> serviceState : serviceStates.entrySet()) {
