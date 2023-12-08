@@ -51,6 +51,9 @@ public class ForkAction extends Action {
 				} catch (Exception e) {
 					logger.error("Exception in forked action pipeline", e);
 				} finally {
+					workerContext.getExecutionStack().clear();
+					workerContext.getStackErrorHandler().clear();
+					workerContext.getStackPos().clear();
 					workerPool.releaseContext(workerContext);
 				}
 			}

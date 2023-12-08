@@ -109,13 +109,8 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 			context.getExecutionStack().clear();
 			throw new IllegalStateException("ExecutionStack not empty");
 		}
-		if (context.getStackErrorHandler().size() > 0 || context.getStackPos().size() > 0) {
-			logger.error("StackErrorHandler not empty: " + context.getStackErrorHandler());
-			logger.error("StackPos not empty: " + context.getStackPos());
-			context.getStackErrorHandler().clear();
-			context.getStackPos().clear();
-			throw new IllegalStateException("StackErrorHandler not empty");
-		}
+		context.getStackErrorHandler().clear();
+		context.getStackPos().clear();
 		return _completedTaskCount.incrementAndGet();
 	}
 

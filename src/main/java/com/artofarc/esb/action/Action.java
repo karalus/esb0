@@ -129,7 +129,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 			boolean closeSilently = false;
 			try {
 				while (action != null) {
-					if (action.getErrorHandler() != null) {
+					if (action != this && action.getErrorHandler() != null) {
 						stackErrorHandler.push(action.getErrorHandler());
 						context.pushStackPos();
 					}
@@ -173,7 +173,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 					ExecutionContext exContext = resources.get(i);
 					try {
 						action.close(context, exContext, closeSilently);
-						if (action.getErrorHandler() != null) {
+						if (action != this && action.getErrorHandler() != null) {
 							context.getStackPos().pop();
 							stackErrorHandler.pop();
 						}

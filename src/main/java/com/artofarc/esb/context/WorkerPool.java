@@ -60,16 +60,16 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 			}
 			_executorService = new ThreadPoolExecutor(minThreads, maxThreads, 60L, TimeUnit.SECONDS, workQueue, _threadFactory, this);
 			_executorService.allowCoreThreadTimeOut(allowCoreThreadTimeOut);
+			_asyncProcessingPool = new AsyncProcessingPool(this);
 		} else {
 			_executorService = null;
+			_asyncProcessingPool = null;
 		}
 		if (scheduledThreads > 0) {
 			_scheduledExecutorService = Executors.newScheduledThreadPool(scheduledThreads, _threadFactory);
 			_scheduledExecutorService.scheduleAtFixedRate(this, 60L, 60L, TimeUnit.SECONDS);
-			_asyncProcessingPool = new AsyncProcessingPool(this);
 		} else {
 			_scheduledExecutorService = null;
-			_asyncProcessingPool = null;
 		}
 	}
 

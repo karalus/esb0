@@ -65,6 +65,9 @@ public final class JMSCompletionListener implements CompletionListener {
 				} catch (Exception e) {
 					logger.error("Exception while completing JMS send", e);
 				} finally {
+					context.getExecutionStack().clear();
+					context.getStackErrorHandler().clear();
+					context.getStackPos().clear();
 					_workerPool.releaseContext(context);
 				}
 			}
@@ -83,6 +86,9 @@ public final class JMSCompletionListener implements CompletionListener {
 				Action action = asyncProcessingPool.restoreContext(JMSCompletionListener.this, context, esbMessage);
 				try {
 					if (action != null) {
+						if (!context.getStackPos().isEmpty()) {
+							context.unwindStack();
+						}
 						Action.processException(context, esbMessage);
 					} else {
 						logger.error("No AsyncContext found for JMSCompletionListener " + JMSCompletionListener.this);
@@ -90,6 +96,9 @@ public final class JMSCompletionListener implements CompletionListener {
 				} catch (Exception e) {
 					logger.error("Exception while completing JMS send", e);
 				} finally {
+					context.getExecutionStack().clear();
+					context.getStackErrorHandler().clear();
+					context.getStackPos().clear();
 					_workerPool.releaseContext(context);
 				}
 			}

@@ -128,6 +128,9 @@ public class SpawnAction extends Action {
 					try {
 						_nextAction.process(workerContext, message);
 					} finally {
+						workerContext.getExecutionStack().clear();
+						workerContext.getStackErrorHandler().clear();
+						workerContext.getStackPos().clear();
 						workerPool.releaseContext(workerContext);
 					}
 					return message;

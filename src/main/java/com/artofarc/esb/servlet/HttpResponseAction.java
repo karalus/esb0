@@ -58,7 +58,11 @@ public class HttpResponseAction extends Action {
 		ExecutionContext executionContext = new ExecutionContext(asyncContext);
 		String redirect = message.getVariable(ESBConstants.redirect);
 		if (message.getBodyType() == BodyType.EXCEPTION) {
-			throw message.<Exception> getBody();
+			if (context.isTransacted()) {
+				throw message.<Exception> getBody();
+			} else {
+				GenericHttpListener.sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message.<Exception> getBody());
+			}
 		} else if (redirect != null && !redirect.isEmpty()) {
 			response.sendRedirect(redirect);
 		} else if (checkContentType(message, response)) {

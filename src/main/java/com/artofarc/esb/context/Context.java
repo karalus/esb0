@@ -43,6 +43,7 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.artofarc.esb.action.Action;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.util.NamespaceBeautifier;
 import com.artofarc.util.TimeGauge;
 import com.artofarc.util.XMLProcessorFactory;
@@ -181,6 +182,10 @@ public final class Context extends AbstractContext {
 	@SuppressWarnings("unchecked")
 	public <T> T removeResource(String key) {
 		return (T) _resources.remove(key);
+	}
+
+	public boolean isTransacted() {
+		return _resources.containsKey(ESBConstants.JDBCConnections);
 	}
 
 	@Override
