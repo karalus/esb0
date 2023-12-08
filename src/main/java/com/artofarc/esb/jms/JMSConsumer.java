@@ -369,8 +369,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 						// Oracle AQ sometimes waits forever in close()
 						Closer.closeWithTimeout(_messageConsumer, _workerPool.getExecutorService(), JMSConnectionProvider.closeWithTimeout, getKey(), JMSException.class);
 					} else {
-						// IBM MQ sometimes fails to close and continues to deliver messages
-						_messageConsumer.setMessageListener(null);
 						_messageConsumer.close();
 					}
 				} catch (JMSException e) {
