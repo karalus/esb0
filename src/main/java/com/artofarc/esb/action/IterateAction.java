@@ -18,6 +18,7 @@ package com.artofarc.esb.action;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -49,6 +50,8 @@ public class IterateAction extends Action {
 				iterator = ((List<?>) iterable).listIterator();
 			} else if (iterable instanceof Iterable) {
 				iterator = ((Iterable<?>) iterable).iterator();
+			} else if (iterable instanceof Stream<?>) {
+				iterator = ((Stream<?>) iterable).iterator();
 			} else {
 				throw new ExecutionException(this, _iterExp + " is not an Iterable, but " + iterable.getClass());
 			}
@@ -65,8 +68,9 @@ public class IterateAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) {
-		Iterator<?> iterator = execContext.getResource();
-		if (iterator.hasNext()) {
+		boolean hasNext = execContext.getResource2();
+		if (hasNext) {
+			Iterator<?> iterator = execContext.getResource();
 			if ("body".equals(_varName)) {
 				message.reset(null, iterator.next());
 			} else {
@@ -85,7 +89,11 @@ public class IterateAction extends Action {
 	@Override
 	protected Action nextAction(ExecutionContext execContext) {
 		Iterator<?> iterator = execContext.getResource();
-		return iterator.hasNext() ? _action : _nextAction;
+		boolean hasNext = iterator.hasNext();
+		// Save hasNext result because of buggy iterator implementations that are not idempotent (e.g. org.glassfish.json.JsonParserImpl::getArrayStream)
+		// Note: nextAction is called before execute!
+		execContext.setResource2(hasNext);
+		return hasNext ? _action : _nextAction;
 	}
 
 }

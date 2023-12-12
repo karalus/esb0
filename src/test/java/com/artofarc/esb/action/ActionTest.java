@@ -2,6 +2,7 @@ package com.artofarc.esb.action;
 
 import static org.junit.Assert.*;
 
+import java.io.FileInputStream;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
@@ -341,6 +342,27 @@ public class ActionTest extends AbstractESBTest {
 		action = action.setNextAction(new DumpAction());
 		processJsonAction.process(context, message);
 		assertEquals(2, (message.<List> getVariable("result")).size());
+	}
+
+	@Test
+	public void testJsonStream() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.INPUT_STREAM, new FileInputStream("src/test/resources/JSONFile1.json"));
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
+		action.addAssignment("_jfh", false, "", "com.artofarc.util.JsonFactoryHelper", null, "JSON_PARSER_FACTORY");
+		action.addAssignment("_jp", false, "${_jfh.createParser(rawBody)}", null, null, null);
+		action.addAssignment("_event", false, "${_jp.next}", null, null, null);
+		action.addAssignment("_event", false, "${_jp.next}", null, null, null);
+		action.addAssignment("_event", false, "${_jp.next}", null, null, null);
+		action.setErrorHandler(action);
+		Action action2 = action.setNextAction(new IterateAction("${_jp.arrayStream}", "_iterator", false, "jo", null, null, new DumpAction()));
+		SetMessageAction actionFinally = new SetMessageAction(getClass().getClassLoader(), null, null, null);
+		actionFinally.addAssignment("_jp", false, "${_jp.close}", null, null, null);
+		action2.setNextAction(actionFinally);
+		action.setErrorHandler(actionFinally);
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(action);
+		consumerPort.process(context, message);
+		assertNull(message.getVariable("_jp"));
 	}
 
 	@Test

@@ -78,12 +78,20 @@ public abstract class Evaluator<E extends Exception> {
 	public final Object resolve(ESBMessage message, String name, boolean checkAmbiguity) throws E {
 		Object value = message.getVariable(name);
 		if (value == null) {
-			if ("contentType".equals(name)) {
+			switch (name) {
+			case "contentType":
 				value = message.getContentType();
-			} if ("contentLength".equals(name)) {
+				break;
+			case "contentLength":
 				value = message.getLength();
-			} else {
+				break;
+			case "rawBody":
+				value = message.getBody();
+				message.reset(BodyType.INVALID, null);
+				break;
+			default:
 				value = message.getHeader(name);
+				break;
 			}
 		} else if (checkAmbiguity) {
 			Object header = message.getHeader(name);
