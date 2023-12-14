@@ -210,6 +210,7 @@ public abstract class Artifact {
 	}
 
 	public final void validate(GlobalContext globalContext) throws ValidationException {
+		final long startTime = System.nanoTime();
 		synchronized (this) {
 			if (isValidated()) {
 				return;
@@ -220,10 +221,11 @@ public abstract class Artifact {
 					throw ReflectionUtils.convert(e, ValidationException.class, this);
 				}
 				setValidated();
-				logger.info("Validated: " + getURI());
 			}
 		}
 		postValidateInternal(globalContext);
+		final long elapsedTime = (System.nanoTime() - startTime) / 1000000L;
+		logger.info("Validating {} took {}ms", getURI(), elapsedTime);
 	}
 
 	@Override
