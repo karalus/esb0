@@ -87,6 +87,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 								ESBMessage msg = new ESBMessage(BodyType.INVALID, null);
 								msg.getVariables().put(ESBConstants.FileEventKind, kind.toString());
 								msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
+								msg.getVariables().put(ESBConstants.filename, path.toString());
 								try (InputStream inputStream = Channels.newInputStream(fileChannel)) {
 									fillESBMessage(msg, inputStream, path.toString());
 									process(context, msg);
@@ -116,8 +117,8 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 	}
 
 	private static void fillESBMessage(ESBMessage msg, InputStream inputStream, String filename) throws Exception {
-		msg.getVariables().put(ESBConstants.filename, filename);
-		if ("zip".equals(IOUtils.getExt(filename))) {
+		String ext = IOUtils.getExt(filename);
+		if ("zip".equals(ext)) {
 			try (ZipInputStream zis = new ZipInputStream(inputStream)) {
 				ZipEntry entry;
 				while ((entry = zis.getNextEntry()) != null) {
@@ -133,6 +134,10 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 				}
 			}
 		} else {
+			if ("gz".equals(ext)) {
+				filename = IOUtils.stripExt(filename);
+				msg.setContentEncoding("gzip");
+			}
 			msg.setContentType(MimeHelper.guessContentTypeFromName(filename));
 			msg.reset(BodyType.INPUT_STREAM, inputStream);
 		}

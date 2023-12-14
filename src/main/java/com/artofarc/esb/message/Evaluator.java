@@ -86,7 +86,16 @@ public abstract class Evaluator<E extends Exception> {
 				value = message.getLength();
 				break;
 			case "rawBody":
-				value = message.getBody();
+				if (message.getBodyType() == BodyType.INPUT_STREAM) {
+					// getUncompressedInputStream
+					try {
+						value = message.getBodyAsInputStream(null);
+					} catch (Exception e) {
+						throw createException("InputStream not valid: " + e.getMessage());
+					}
+				} else {
+					value = message.getBody();
+				}
 				message.reset(BodyType.INVALID, null);
 				break;
 			default:
