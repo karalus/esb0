@@ -34,7 +34,7 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 	private final ThreadPoolExecutor _executorService;
 	private final ScheduledExecutorService _scheduledExecutorService;
 	private final AsyncProcessingPool _asyncProcessingPool;
-	private final ConcurrentHashMap<Thread, String> _threads = new ConcurrentHashMap<>();
+	private final Map<Thread, String> _threads = new ConcurrentHashMap<>();
 
 	public WorkerPool(PoolContext poolContext, String name, int minThreads, int maxThreads, int priority, int queueDepth, int scheduledThreads, boolean allowCoreThreadTimeOut, boolean retry) {
 		_name = name;
@@ -124,8 +124,8 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 	}
 
 	public void addThread(Thread thread, String info) {
-		if (_scheduledExecutorService != null && _threads.put(thread, info) == null) {
-			PoolContext.logger.debug("adding thread " + thread.getName() + " for " + info);
+		if (_scheduledExecutorService != null && _threads.putIfAbsent(thread, info) == null) {
+			PoolContext.logger.debug("adding thread {} for {}", thread.getName(), info);
 		}
 	}
 
@@ -135,21 +135,24 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 			Thread thread = entry.getKey();
 			if (!thread.isAlive()) {
 				_threads.remove(thread);
-				PoolContext.logger.debug("removing Thread " + thread.getName() + " for " + entry.getValue());
+				PoolContext.logger.debug("removing Thread {} for {}", thread.getName(), entry.getValue());
 			}
 		}
 	}
 
 	@Override
 	public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-		if (executor.isShutdown()) {
-			throw new RejectedExecutionException("Already closed " + _name);
-		}
 		if (_retry) {
 			try {
-				do {
-					PoolContext.logger.warn("Could not submit to worker pool " + _name);
-				} while (!executor.getQueue().offer(r, 60, TimeUnit.SECONDS));
+				for (;;) {
+					if (executor.isShutdown()) {
+						throw new RejectedExecutionException("Already closed " + _name);
+					}
+					if (executor.getQueue().offer(r, 1, TimeUnit.SECONDS)) {
+						break;
+					}
+					PoolContext.logger.warn("Could not submit to worker pool {}", _name);
+				}
 			} catch (InterruptedException e) {
 				throw new RejectedExecutionException("Interrupted while trying to submit to " + _name);
 			}
