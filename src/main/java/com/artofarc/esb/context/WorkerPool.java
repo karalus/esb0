@@ -123,6 +123,13 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 		_contextPool.releaseContext(context);
 	}
 
+	public Future<?> executeLongLived(Runnable task, String name) {
+		FutureTask<?> futureTask = new FutureTask<>(task, null);
+		Thread thread = new Thread(futureTask, "LongLived-" + name);
+		thread.start();
+		return futureTask;//_executorService.submit(task);
+	}
+
 	public void addThread(Thread thread, String info) {
 		if (_scheduledExecutorService != null && _threads.putIfAbsent(thread, info) == null) {
 			PoolContext.logger.debug("adding thread {} for {}", thread.getName(), info);

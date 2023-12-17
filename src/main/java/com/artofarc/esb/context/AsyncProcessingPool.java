@@ -79,7 +79,7 @@ public final class AsyncProcessingPool implements Runnable {
 		if (_cleaner == null) {
 			synchronized (this) {
 				if (_cleaner == null) {
-					_cleaner = _workerPool.getExecutorService().submit(this);
+					_cleaner = _workerPool.executeLongLived(this, "AsyncProcessingPool-" + _workerPool.getName());
 				}
 			}
 		}

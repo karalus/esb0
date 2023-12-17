@@ -54,7 +54,7 @@ public abstract class PollingConsumerPort extends ConsumerPort implements Runnab
 	public void enable(boolean enable) {
 		if (enable) {
 			if (!isEnabled()) {
-				_future = _workerPool.getExecutorService().submit(this);
+				_future = _workerPool.executeLongLived(this, getUri());
 			}
 		} else {
 			close();

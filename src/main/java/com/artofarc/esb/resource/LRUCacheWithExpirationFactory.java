@@ -151,7 +151,7 @@ public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCach
 	private final Future<?> cleaner;
 
 	public LRUCacheWithExpirationFactory(GlobalContext globalContext) {
-		cleaner = globalContext.getDefaultWorkerPool().getExecutorService().submit(this);
+		cleaner = globalContext.getDefaultWorkerPool().executeLongLived(this, getClass().getSimpleName());
 	}
 
 	@Override

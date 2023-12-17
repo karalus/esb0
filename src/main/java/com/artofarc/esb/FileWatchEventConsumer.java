@@ -75,7 +75,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 				for (WatchEvent<?> watchEvent : watchKey.pollEvents()) {
 					final WatchEvent.Kind<?> kind = watchEvent.kind();
 					if (kind == StandardWatchEventKinds.OVERFLOW) {
-						logger.error("Overflow for " + parent);
+						logger.error("Overflow (probably >512 events at once) for " + parent);
 						continue;
 					}
 					final Path path = (Path) watchEvent.context();
