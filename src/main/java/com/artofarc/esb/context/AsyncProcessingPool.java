@@ -137,6 +137,7 @@ public final class AsyncProcessingPool implements Runnable {
 					} catch (Exception e) {
 						Context.logger.debug("Exception not been processed", e);
 					}
+					context.close();
 				}
 			}
 		} catch (InterruptedException e) {
