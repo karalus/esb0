@@ -16,6 +16,7 @@
 package com.artofarc.esb.jms;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,6 +120,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		private volatile ConnectionMetaData _connectionMetaData;
 		private volatile Future<?> _future;
 		private volatile long _sequenceNumber;
+		private volatile long _lastChangeOfState;
 
 		private JMSConnectionGuard(JMSConnectionData jmsConnectionData) {
 			super(_poolContext.getWorkerPool().getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
@@ -137,7 +139,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		private Connection createConnection() throws JMSException {
 			Connection connection = _jmsConnectionData.createConnection(_poolContext.getGlobalContext(), this);
-			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Connection state changed", "connected", "boolean", false, true));
+			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, _lastChangeOfState = System.currentTimeMillis(), "Connection state changed", "connected", "boolean", false, true));
 			try {
 				_connectionMetaData = connection.getMetaData();
 				if (_clientID != null) {
@@ -168,7 +170,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 					}
 				} catch (JMSException e) {
 					logger.error("Currently cannot connect using " + _jmsConnectionData, e);
-					startReconnectThread();
+					scheduleReconnectTask();
 					throw e;
 				} finally {
 					_lock.unlock();
@@ -197,10 +199,10 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			} catch (JMSException e) {
 				// ignore
 			}
-			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Connection state changed", "connected", "boolean", true, false));
+			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, _lastChangeOfState = System.currentTimeMillis(), "Connection state changed", "connected", "boolean", true, false));
 		}
 
-		private void startReconnectThread() {
+		private void scheduleReconnectTask() {
 			logger.info("Start reconnect thread for " + _jmsConnectionData);
 			ScheduledExecutorService scheduledExecutorService = _poolContext.getWorkerPool().getScheduledExecutorService();
 			if (scheduledExecutorService == null) {
@@ -212,40 +214,31 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		@Override
 		public void onException(JMSException jmsException) {
 			logger.warn("JMSException received for " + _jmsConnectionData, jmsException);
-			reconnect();
+			scheduleReconnect();
 		}
 
 		@Override
 		public void propertyChange(String key, Object oldValue, Object newValue) {
-			if (_connection != null) {
-				_lock.lock();
-				try {
-					Connection connection = _connection;
-					if (connection != null) {
-						_connection = null;
-						shutdown(connection);
-						run();
-					}
-				} finally {
-					_lock.unlock();
-				}
-			}
+			disconnect();
+			connect();
 		}
 
-		public void reconnect() {
-			if (_connection != null) {
+		public void scheduleReconnect() {
+			if (_future == null) {
 				_lock.lock();
 				try {
-					Connection connection = _connection;
-					if (connection != null) {
+					if (_future == null) {
+						Connection connection = _connection;
 						_connection = null;
 						WorkerPool workerPool = _poolContext.getWorkerPool();
 						if (workerPool.getGuaranteedPoolSize() < 2) {
 							workerPool = _poolContext.getGlobalContext().getDefaultWorkerPool();
 						}
 						_future = workerPool.getExecutorService().submit(() -> {
-							shutdown(connection);
-							startReconnectThread();
+							if (connection != null) {
+								shutdown(connection);
+							}
+							scheduleReconnectTask();
 						});
 					}
 				} finally {
@@ -282,7 +275,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		@Override
 		public void run() {
-			logger.info("Trying to reconnect " + _jmsConnectionData);
+			logger.info("Trying to connect " + _jmsConnectionData);
 			try {
 				_connection = createConnection();
 				for (Map.Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
@@ -293,13 +286,13 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 					logger.info("Resumed " + jmsConsumer.getKey() + " to state " + entry.getValue());
 				}
 				_connection.setExceptionListener(this);
-				logger.info("Reconnected " + _jmsConnectionData);
+				logger.info("Connected " + _jmsConnectionData);
 				if (_future != null) {
 					_future.cancel(false);
 					_future = null;
 				}
 			} catch (JMSException e) {
-				logger.error("Reconnect failed for " + _jmsConnectionData, e);
+				logger.error("Connect failed for " + _jmsConnectionData, e);
 				if (_connection != null) {
 					shutdown(_connection);
 					_connection = null;
@@ -309,6 +302,34 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		public boolean isConnected() {
 			return _connection != null;
+		}
+
+		public void connect() {
+			if (_connection == null && _future == null) {
+				_lock.lock();
+				try {
+					if (_connection == null && _future == null) {
+						run();
+					}
+				} finally {
+					_lock.unlock();
+				}
+			}
+		}
+
+		public void disconnect() {
+			if (_connection != null) {
+				_lock.lock();
+				try {
+					Connection connection = _connection;
+					if (connection != null) {
+						_connection = null;
+						shutdown(connection);
+					}
+				} finally {
+					_lock.unlock();
+				}
+			}
 		}
 
 		@Override
@@ -358,6 +379,10 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		public String getJMSProvider() throws JMSException {
 			ConnectionMetaData connectionMetaData = _connectionMetaData;
 			return connectionMetaData != null ? connectionMetaData.getJMSProviderName() + ' ' + connectionMetaData.getClass().getPackage().getImplementationVersion() : null;
+		}
+
+		public Date getLastChangeOfState() {
+			return new Date(_lastChangeOfState);
 		}
 	}
 

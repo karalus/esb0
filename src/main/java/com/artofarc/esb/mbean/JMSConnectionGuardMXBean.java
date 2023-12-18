@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.mbean;
 
+import java.util.Date;
 import java.util.List;
 
 public interface JMSConnectionGuardMXBean {
@@ -23,7 +24,13 @@ public interface JMSConnectionGuardMXBean {
 
 	boolean isConnected();
 
-	void reconnect();
+	void connect();
+
+	void disconnect();
+
+	void scheduleReconnect();
+
+	Date getLastChangeOfState();
 
 	List<String> getProducerDestinationCount() throws Exception;
 
