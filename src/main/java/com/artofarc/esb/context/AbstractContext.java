@@ -28,6 +28,11 @@ public abstract class AbstractContext extends ResourceFactory<ResourceFactory<?,
 	protected final static Logger logger = LoggerFactory.getLogger(Context.class);
 
 	@SuppressWarnings("unchecked")
+	public final <RF extends ResourceFactory<?, ?, ?, ?>> RF peekResourceFactory(Class<RF> rfc) {
+		return (RF) peekResource(rfc);
+	}
+
+	@SuppressWarnings("unchecked")
 	public final <RF extends ResourceFactory<?, ?, ?, ?>> RF getResourceFactory(Class<RF> rfc) {
 		return (RF) getResource(rfc, this);
 	}

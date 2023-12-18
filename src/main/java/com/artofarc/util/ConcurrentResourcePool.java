@@ -45,6 +45,10 @@ public abstract class ConcurrentResourcePool<R, D, P, E extends Exception> {
 		_pool = pool;
 	}
 
+	public final R peekResource(D descriptor) {
+		return _pool.get(descriptor);
+	}
+
 	public final R getResource(D descriptor, P param) throws E {
 		Map<D, R> pool = _pool;
 		if (pool.containsKey(descriptor)) {
