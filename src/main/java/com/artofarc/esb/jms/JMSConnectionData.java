@@ -31,7 +31,7 @@ public final class JMSConnectionData {
 
 	private static final ObjectPool<List<JMSConnectionData>> POOL = new ObjectPool<>(new java.util.HashMap<>());
 
-	private final String _jndiConnectionFactory, _userName, _password;
+	private final String _jndiConnectionFactory, _userName, _password, _string;
 
 	@Deprecated
 	public JMSConnectionData(GlobalContext globalContext, String jndiConnectionFactory, String userName, String password) throws NamingException {
@@ -42,6 +42,7 @@ public final class JMSConnectionData {
 		_jndiConnectionFactory = jndiConnectionFactory;
 		_userName = userName;
 		_password = password;
+		_string = userName != null ? userName + '@' + jndiConnectionFactory : jndiConnectionFactory;
 	}
 
 	public static List<JMSConnectionData> create(GlobalContext globalContext, String jndiConnectionFactories, String userName, String password) throws NamingException {
@@ -91,7 +92,7 @@ public final class JMSConnectionData {
 
 	@Override
 	public String toString() {
-		return _userName != null ? _userName + '@' + _jndiConnectionFactory : _jndiConnectionFactory;
+		return _string;
 	}
 
 	Connection createConnection(GlobalContext globalContext, GlobalContext.PropertyChangeListener listener) throws JMSException {

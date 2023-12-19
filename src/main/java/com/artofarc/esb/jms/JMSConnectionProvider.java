@@ -121,6 +121,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		private volatile Future<?> _future;
 		private volatile long _sequenceNumber;
 		private volatile long _lastChangeOfState;
+		private volatile boolean _disconnected;
 
 		private JMSConnectionGuard(JMSConnectionData jmsConnectionData) {
 			super(_poolContext.getWorkerPool().getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
@@ -159,7 +160,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		Connection getConnection(JMSSessionFactory jmsSessionFactory) throws JMSException {
 			Connection connection = _connection;
-			if (connection == null && _future == null) {
+			if (connection == null && _future == null && !_disconnected) {
 				_lock.lock();
 				try {
 					connection = _connection;
@@ -177,7 +178,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 				}
 			}
 			if (connection == null) {
-				throw new JMSException("Currently reconnecting " + _jmsConnectionData);
+				throw new JMSException("Currently not connected to " + _jmsConnectionData);
 			}
 			_jmsSessionFactories.add(jmsSessionFactory);
 			return connection;
@@ -291,6 +292,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 					_future.cancel(false);
 					_future = null;
 				}
+				_disconnected = false;
 			} catch (JMSException e) {
 				logger.error("Connect failed for " + _jmsConnectionData, e);
 				if (_connection != null) {
@@ -324,6 +326,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 					Connection connection = _connection;
 					if (connection != null) {
 						_connection = null;
+						_disconnected = true;
 						shutdown(connection);
 					}
 				} finally {
