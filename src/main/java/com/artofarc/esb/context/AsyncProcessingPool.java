@@ -124,20 +124,22 @@ public final class AsyncProcessingPool implements Runnable {
 			for (;;) {
 				AsyncContext asyncContext = _asyncContexts.remove(_expiries.take().correlationID);
 				if (asyncContext != null) {
-					Context context = new Context(_workerPool.getPoolContext());
-					context.getExecutionStack().addAll(asyncContext.executionStack);
-					context.getStackErrorHandler().addAll(asyncContext.stackErrorHandler);
-					if (context.getStackPos().addAll(asyncContext.stackPos)) {
-						context.unwindStack();
-					}
-					ESBMessage message = new ESBMessage(BodyType.EXCEPTION, new TimeoutException("AsyncContext expired for correlationID " + asyncContext.correlationID));
-					message.getVariables().putAll(asyncContext.variables);
-					try {
-						Action.processException(context, message);
-					} catch (Exception e) {
-						Context.logger.debug("Exception not been processed", e);
-					}
-					context.close();
+					_workerPool.getExecutorService().submit(() -> {
+						Context context = new Context(_workerPool.getPoolContext());
+						context.getExecutionStack().addAll(asyncContext.executionStack);
+						context.getStackErrorHandler().addAll(asyncContext.stackErrorHandler);
+						if (context.getStackPos().addAll(asyncContext.stackPos)) {
+							context.unwindStack();
+						}
+						ESBMessage message = new ESBMessage(BodyType.EXCEPTION, new TimeoutException("AsyncContext expired for correlationID " + asyncContext.correlationID));
+						message.getVariables().putAll(asyncContext.variables);
+						try {
+							Action.processException(context, message);
+						} catch (Exception e) {
+							Context.logger.debug("Exception not been processed", e);
+						}
+						context.close();
+					});
 				}
 			}
 		} catch (InterruptedException e) {
