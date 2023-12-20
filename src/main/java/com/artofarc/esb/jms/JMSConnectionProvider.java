@@ -49,10 +49,10 @@ import com.artofarc.util.DataStructures;
 
 public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionProvider.JMSConnectionGuard, JMSConnectionData, Void, RuntimeException> {
 
-	protected final static Logger logger = LoggerFactory.getLogger(JMSConnectionProvider.class);
-	protected final static String instanceId = System.getProperty("esb0.jms.instanceId");
-	protected final static long closeWithTimeout = Long.parseLong(System.getProperty("esb0.jms.closeWithTimeout", "0"));
-	protected final static long reconnectInterval = Long.parseLong(System.getProperty("esb0.jms.reconnectInterval", "60"));
+	final static Logger logger = LoggerFactory.getLogger(JMSConnectionProvider.class);
+	final static String instanceId = System.getProperty("esb0.jms.instanceId");
+	final static long closeWithTimeout = Long.parseLong(System.getProperty("esb0.jms.closeWithTimeout", "0"));
+	final static long reconnectInterval = Long.parseLong(System.getProperty("esb0.jms.reconnectInterval", "60"));
 
 	private final PoolContext _poolContext;
 

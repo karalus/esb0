@@ -22,7 +22,6 @@ import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.action.Action;
-import com.artofarc.esb.action.ExecutionException;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
@@ -35,6 +34,8 @@ import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.IOUtils;
 
 public class HttpResponseAction extends Action {
+
+	private final static long thresholdCompression = Long.parseLong(System.getProperty("esb0.http.thresholdCompression", "1000"));
 
 	private final boolean _supportCompression;
 	private final String _multipartSubtype, _multipartOption;
@@ -51,9 +52,6 @@ public class HttpResponseAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		AsyncContext asyncContext = message.removeVariable(ESBConstants.AsyncContext);
-		if (asyncContext == null) {
-			throw new ExecutionException(this, ESBConstants.AsyncContext + " not set");
-		}
 		HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
 		ExecutionContext executionContext = new ExecutionContext(asyncContext);
 		String redirect = message.getVariable(ESBConstants.redirect);
@@ -94,7 +92,7 @@ public class HttpResponseAction extends Action {
 				if (inPipeline) {
 					message.reset(BodyType.OUTPUT_STREAM, new IOUtils.PreventFlushOutputStream(response.getOutputStream()));
 				} else if (message.getBodyType() != BodyType.INVALID) {
-					Long contentLength = message.getOutputLength();
+					Long contentLength = message.getLengthExact();
 					if (contentLength != null) {
 						response.setContentLengthLong(contentLength);
 						message.writeTo(response.getOutputStream(), context);
@@ -138,12 +136,15 @@ public class HttpResponseAction extends Action {
 	private static void checkCompression(ESBMessage message) {
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
-			if (isAcceptable(acceptEncoding, "gzip")) {
-				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
-				message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
-			} else if (isAcceptable(acceptEncoding, "deflate")) {
-				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "deflate");
-				message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
+			Long length = message.getLength();
+			if (length == null || length > thresholdCompression || message.getContentEncoding() != null) {
+				if (isAcceptable(acceptEncoding, "gzip")) {
+					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
+					message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
+				} else if (isAcceptable(acceptEncoding, "deflate")) {
+					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "deflate");
+					message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
+				}
 			}
 		}
 	}

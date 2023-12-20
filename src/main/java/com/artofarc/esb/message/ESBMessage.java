@@ -121,7 +121,7 @@ public final class ESBMessage implements Cloneable {
 		}
 		if (bodyType.hasCharset()) {
 			if (_bodyType.hasCharset() && _charset != null) {
-				System.err.println("Warning: old binary type had non default charset");
+				System.err.println("Warning: old binary body had non default charset");
 			}
 			init(bodyType, body, _charset);
 		} else {
@@ -246,7 +246,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void setContentEncoding(String contentEncoding) {
-		_contentEncoding = contentEncoding;
+		_contentEncoding = "identity".equals(contentEncoding) ? null : contentEncoding;
 	}
 
 	public String getContentType() {
@@ -366,8 +366,6 @@ public final class ESBMessage implements Cloneable {
 				break;
 			case "deflate":
 				inputStream = new InflaterInputStream(inputStream);
-				break;
-			case "identity":
 				break;
 			default:
 				throw new IOException("Unsupported content encoding " + contentEncoding);
@@ -654,7 +652,7 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public Long getOutputLength() throws IOException {
+	public Long getLengthExact() throws IOException {
 		Long length = getLength();
 		if (length == null) {
 			return isEmpty() ? 0L : null;

@@ -93,12 +93,12 @@ public class HttpOutboundAction extends Action {
 			}
 			return null;
 		} else {
-			Long contentLength = inPipeline ? null : message.getOutputLength();
+			Long contentLength = inPipeline ? null : message.getLengthExact();
 			HttpUrlConnection httpUrlConnection = createHttpURLConnection(context, message, contentLength);
 			try {
 				if (inPipeline) {
 					message.reset(BodyType.OUTPUT_STREAM, httpUrlConnection.getOutputStream());
-				} else if (!message.isEmpty()) {
+				} else if (contentLength == null || contentLength > 0) {
 					message.writeTo(httpUrlConnection.getOutputStream(), context);
 				}
 			} catch (Exception e) {
