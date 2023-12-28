@@ -43,6 +43,7 @@ public class HttpResponseAction extends Action {
 
 	public HttpResponseAction(boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
 		_pipelineStop = true;
+		_offeringSink = true;
 		_supportCompression = supportCompression;
 		_multipartSubtype = multipartSubtype;
 		_multipartOption = multipartOption;
@@ -90,7 +91,7 @@ public class HttpResponseAction extends Action {
 				}
 				// prevent flushing to avoid "transfer encoding chunked" on small responses
 				if (inPipeline) {
-					message.reset(BodyType.OUTPUT_STREAM, new IOUtils.PreventFlushOutputStream(response.getOutputStream()));
+					message.reset(BodyType.OUTPUT_STREAM, message.getCompressedOutputStream(new IOUtils.PreventFlushOutputStream(response.getOutputStream())));
 				} else if (message.getBodyType() != BodyType.INVALID) {
 					Long contentLength = message.getLengthExact();
 					if (contentLength != null) {

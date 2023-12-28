@@ -87,10 +87,9 @@ public abstract class Evaluator<E extends Exception> {
 				break;
 			case "rawBody":
 				if (message.getBodyType() == BodyType.INPUT_STREAM) {
-					// getUncompressedInputStream
 					try {
-						value = message.getBodyAsInputStream(null);
-					} catch (Exception e) {
+						value = message.getUncompressedInputStream(message.getBody());
+					} catch (java.io.IOException e) {
 						throw createException("InputStream not valid: " + e.getMessage());
 					}
 				} else {

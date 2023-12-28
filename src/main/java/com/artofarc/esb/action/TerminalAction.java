@@ -25,6 +25,7 @@ public abstract class TerminalAction extends Action {
 
 	protected TerminalAction() {
 		_pipelineStop = true;
+		_offeringSink = true;
 	}
 
 	@Override

@@ -55,8 +55,8 @@ public class CacheAction extends Action {
 	}
 
 	@Override
-	protected boolean isPipelineStop() {
-		return _indexBody >= 0 || _nextAction == null || _nextAction.isPipelineStop() || _cacheAction.isPipelineStop();
+	protected boolean isPipelineStop(Action nextAction) {
+		return _indexBody >= 0 || _nextAction == null || _nextAction.isPipelineStop(null) || _cacheAction.isPipelineStop(null);
 	}
 
 	@Override
