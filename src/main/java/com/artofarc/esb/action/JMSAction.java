@@ -83,6 +83,7 @@ public class JMSAction extends Action {
 			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String replyQueue,
 			String receiveSelector, String multipartSubtype, String multipart) throws NamingException {
 		_pipelineStop = true;
+		_offeringSink = true;
 		_queueName = globalContext.bindProperties(queueName);
 		_topicName = globalContext.bindProperties(topicName);
 		if (jndiDestination != null) {

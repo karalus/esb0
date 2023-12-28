@@ -41,7 +41,6 @@ public class SetMessageAction extends ForwardAction {
 		_classLoader = cl;
 		_body = bodyExpr != null ? new Assignment("body", false, bodyExpr, javaType, method, null) : null;
 		_pipelineStop = bodyExpr != null;
-		_pipelineStart = false;
 	}
 
 	public final void addAssignment(String name, boolean header, String expr, String javaType, String method, String field) throws ReflectiveOperationException {

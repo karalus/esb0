@@ -53,7 +53,7 @@ public class IterateAction extends Action {
 			} else if (iterable instanceof Stream<?>) {
 				iterator = ((Stream<?>) iterable).iterator();
 			} else {
-				throw new ExecutionException(this, _iterExp + " is not an Iterable, but " + iterable.getClass());
+				throw new ExecutionException(this, _iterExp + " is not an Iterable, but " + iterable);
 			}
 			message.putVariable(_iterName, iterator);
 			if (_collectorName != null) {

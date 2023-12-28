@@ -49,6 +49,8 @@ public abstract class JDBCAction extends Action {
 
 	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) {
 		_pipelineStop = true;
+		_offeringSink = isOfferingSink(params);
+		_streamingToSink = true;
 		_dsName = dsName != null ? dsName.intern() : null;
 		_sql = sql;
 		_params = params;
@@ -79,6 +81,22 @@ public abstract class JDBCAction extends Action {
 				throw new IllegalArgumentException("When using parameter type STRUCT, a schema is mandatory");
 			}
 		}
+	}
+
+	private static boolean isOfferingSink(List<JDBCParameter> params) {
+		for (JDBCParameter param : params) {
+			if (param.isBody()) {
+				switch (param.getType()) {
+				case SQLXML:
+				case CLOB:
+				case BLOB:
+					return true;
+				default:
+					return false;
+				}
+			}
+		}
+		return false;
 	}
 
 	@Override

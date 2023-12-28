@@ -124,11 +124,10 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		TimeGauge timeGauge = new TimeGauge(loggerTimeGauge, timeGaugeThreshold, false);
 		timeGauge.startTimeMeasurement();
 		for (Action nextAction = this; nextAction != null;) {
-			boolean isPipeline = false;
 			Action action = nextAction;
 			boolean closeSilently = false;
 			try {
-				while (action != null) {
+				for (boolean isPipeline = false; action != null; action = nextAction) {
 					if (action != this && action.getErrorHandler() != null) {
 						stackErrorHandler.push(action.getErrorHandler());
 						context.pushStackPos();
@@ -138,11 +137,13 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 					pipeline.add(action);
 					resources.add(execContext);
 					nextAction = action.nextAction(execContext);
-					isPipeline |= action.isPipelineStart();
-					if (!isPipeline || action.isPipelineStop()) {
+					if (nextAction == null) {
+						nextAction = context.getExecutionStack().poll();
+					}
+					if (action.isPipelineStop(nextAction) && !(action.isStreamingToSink() && nextAction != null && nextAction.isOfferingSink(context))) {
 						break;
 					}
-					action = nextAction != null ? nextAction : context.getExecutionStack().poll();
+					isPipeline = true;
 				}
 				// process pipeline fragment
 				int secondLast = pipeline.size() - 2;
@@ -151,9 +152,6 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 					ExecutionContext exContext = resources.get(i);
 					action.execute(context, exContext, message, i == secondLast);
 					timeGauge.stopTimeMeasurement("Execute: %s", true, action);
-				}
-				if (nextAction == null) {
-					nextAction = context.getExecutionStack().poll();
 				}
 			} catch (Exception e) {
 				if (e instanceof ExecutionException) {
@@ -210,14 +208,30 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 	}
 
 	// pipelining
-	protected boolean _pipelineStop, _pipelineStart = true;
+	protected boolean _pipelineStop, _offeringSink, _streamingToSink;
 
-	protected boolean isPipelineStop() {
+	/**
+	 * @param nextAction The next Action that will be processed in the flow, may be null
+	 * @return true if the {@link #execute(Context, ExecutionContext, ESBMessage, boolean) execute()} method must be called before the next {@link #Action} instance can be processed
+	 */
+	protected boolean isPipelineStop(Action nextAction) {
 		return _pipelineStop;
 	}
 
-	protected final boolean isPipelineStart() {
-		return _pipelineStart;
+	/**
+	 * @param context
+	 * @return true if {@link #prepare(Context, ESBMessage, boolean) prepare} will turn the ESBMessage into a sink when in pipeline
+	 */
+	protected boolean isOfferingSink(Context context) {
+		return _offeringSink;
+	}
+
+	/**
+	 * @return true if the {@link #execute(Context, ExecutionContext, ESBMessage, boolean) execute()} method can stream into a sink.
+	 * Allows to append an {@link #isOfferingSink(Context) sink offering} {@link #Action} instance to the pipeline.
+	 */
+	protected final boolean isStreamingToSink() {
+		return _streamingToSink;
 	}
 
 	protected Action nextAction(ExecutionContext execContext) {

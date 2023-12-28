@@ -47,6 +47,7 @@ public class HttpOutboundAction extends Action {
 		_multipartSubtype = multipartSubtype;
 		_multipartOption = multipartOption;
 		_pipelineStop = true;
+		_offeringSink = true;
 	}
 
 	private HttpUrlSelector.HttpUrlConnection createHttpURLConnection(Context context, ESBMessage message, Long contentLength) throws Exception {

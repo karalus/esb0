@@ -79,6 +79,7 @@ public class TransformAction extends Action {
 		_contextItem = contextItem;
 		_newContentType = newContentType;
 		_pipelineStop = contextItem != null;
+		_streamingToSink = true;
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem, String newContentType) {

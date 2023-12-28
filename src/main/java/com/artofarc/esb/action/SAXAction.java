@@ -71,6 +71,10 @@ public abstract class SAXAction extends Action {
 		return streamSource;
 	}
 
+	public SAXAction() {
+		_streamingToSink = true;
+	}
+
 	protected abstract SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception;
 
 	protected abstract XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception;
