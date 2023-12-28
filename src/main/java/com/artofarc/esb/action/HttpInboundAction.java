@@ -27,6 +27,10 @@ import com.artofarc.util.ByteArrayOutputStream;
 
 public class HttpInboundAction extends Action {
 
+	public HttpInboundAction() {
+		_streamingToSink = true;
+	}
+
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		HttpUrlConnection httpUrlConnection = context.removeResource(ESBConstants.HttpURLConnection);

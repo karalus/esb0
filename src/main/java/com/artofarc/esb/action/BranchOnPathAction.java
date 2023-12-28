@@ -46,18 +46,8 @@ public class BranchOnPathAction extends Action {
 	}	
 
 	@Override
-	protected boolean isPipelineStop() {
-		boolean pipelineStop = _nextAction == null || _nextAction.isPipelineStop();
-		if (_defaultAction != null) {
-			pipelineStop |= _defaultAction.isPipelineStop();
-		}
-		if (!pipelineStop) {
-			for (Action action : _branchMap.values()) {
-				if (pipelineStop |= action.isPipelineStop()) {
-					break;
-				}
-			}
-		}
+	protected boolean isPipelineStop(Action nextAction) {
+		boolean pipelineStop = nextAction == null || nextAction.isPipelineStop(null);
 		return pipelineStop;
 	}
 

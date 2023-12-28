@@ -338,7 +338,7 @@ public final class ESBMessage implements Cloneable {
 		return contentEncoding != null && !contentEncoding.equals(getContentEncoding());
 	}
 
-	private OutputStream getCompressedOutputStream(OutputStream outputStream) throws IOException {
+	public OutputStream getCompressedOutputStream(OutputStream outputStream) throws IOException {
 		final String contentEncoding = getHeader(HTTP_HEADER_CONTENT_ENCODING);
 		if (contentEncoding != null) {
 			if (contentEncoding.equals(getContentEncoding()) && !isSinkEncodingdifferent()) {
@@ -357,7 +357,7 @@ public final class ESBMessage implements Cloneable {
 		return outputStream;
 	}
 
-	private InputStream getUncompressedInputStream(InputStream inputStream) throws IOException {
+	InputStream getUncompressedInputStream(InputStream inputStream) throws IOException {
 		final String contentEncoding = getContentEncoding();
 		if (contentEncoding != null) {
 			switch (contentEncoding) {

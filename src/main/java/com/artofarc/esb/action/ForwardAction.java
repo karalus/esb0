@@ -22,8 +22,20 @@ import com.artofarc.esb.message.ESBMessage;
 public abstract class ForwardAction extends Action {
 
 	@Override
-	protected boolean isPipelineStop() {
-		return _pipelineStop || _nextAction == null || _nextAction.isPipelineStop();
+	protected boolean isPipelineStop(Action nextAction) {
+		return _pipelineStop || _nextAction != null && _nextAction.isPipelineStop(nextAction) || nextAction == null || nextAction.isPipelineStop(null);
+	}
+
+	@Override
+	protected boolean isOfferingSink(Context context) {
+		if (_nextAction != null) {
+			return _nextAction.isOfferingSink(context);
+		}
+		Action nextAction = context.getExecutionStack().peek();
+		if (nextAction != null) {
+			return nextAction.isOfferingSink(context);
+		}
+		return false;
 	}
 
 	@Override
@@ -31,10 +43,10 @@ public abstract class ForwardAction extends Action {
 		if (inPipeline && !_pipelineStop) {
 			Action nextAction;
 			if (_nextAction != null) {
-				nextAction = _nextAction.isPipelineStop() ? _nextAction : null;
+				nextAction = _nextAction.isPipelineStop(null) ? _nextAction : null;
 			} else {
 				nextAction = context.getExecutionStack().poll();
-				if (nextAction != null && !nextAction.isPipelineStop()) {
+				if (nextAction != null && !nextAction.isPipelineStop(null)) {
 					// We cannot forward pipeline for more than one hop because isPipelineStop() will return false
 					context.getExecutionStack().push(nextAction);
 					nextAction = null;
