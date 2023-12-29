@@ -64,21 +64,7 @@ public class BranchOnVariableAction extends Action {
 
 	@Override
 	protected boolean isPipelineStop(Action nextAction) {
-		boolean pipelineStop = _varName == "body" || _nextAction == null || _nextAction.isPipelineStop(null);
-		if (_defaultAction != null) {
-			pipelineStop |= _defaultAction.isPipelineStop(null);
-		}
-		if (_nullAction != null) {
-			pipelineStop |= _nullAction.isPipelineStop(null);
-		}
-		if (!pipelineStop) {
-			for (Action action : _branchMap.values()) {
-				if (action != null && (pipelineStop |= action.isPipelineStop(null))) {
-					break;
-				}
-			}
-		}
-		return pipelineStop;
+		return _varName == "body" || nextAction == null || nextAction.isPipelineStop(null);
 	}
 
 	@Override
