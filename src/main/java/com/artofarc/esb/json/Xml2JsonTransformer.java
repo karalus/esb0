@@ -15,11 +15,9 @@
  */
 package com.artofarc.esb.json;
 
-import java.io.OutputStream;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -68,16 +66,12 @@ public final class Xml2JsonTransformer {
 		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
 	}
 
+	public ContentHandler createTransformerHandler(JsonGenerator jsonGenerator) {
+		return new TransformerHandler(jsonGenerator);
+	}
+
 	public ContentHandler createTransformerHandler(Writer writer) {
 		return new TransformerHandler(JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(writer));
-	}
-
-	public ContentHandler createTransformerHandler(OutputStream outputStream) {
-		return new TransformerHandler(JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(outputStream));
-	}
-
-	public ContentHandler createTransformerHandler(OutputStream outputStream, Charset charset) {
-		return new TransformerHandler(JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(outputStream, charset));
 	}
 
 	private final class TransformerHandler extends PrefixHandler {
