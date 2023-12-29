@@ -17,6 +17,8 @@ package com.artofarc.esb.action;
 
 import java.util.Map;
 
+import javax.json.stream.JsonGenerator;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.json.Xml2JsonTransformer;
@@ -34,6 +36,7 @@ public class XML2JsonAction extends Action {
 
 	public XML2JsonAction(XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, Boolean wrapperAsArrayName, Map<String, String> prefixMap) {
 		_pipelineStop = true;
+		_streamingToSink = true;
 		_xml2JsonTransformer = new Xml2JsonTransformer(schemaSet, type, jsonIncludeRoot, wrapperAsArrayName != null ? wrapperAsArrayName : wrapperAsArrayNameDefault, prefixMap);
 	}
 
@@ -46,14 +49,28 @@ public class XML2JsonAction extends Action {
 		message.removeHeader(HTTP_HEADER_CONTENT_LENGTH);
 		message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_JSON);
 		message.setContentType(HTTP_HEADER_CONTENT_TYPE_JSON);
-		return null;
+		ExecutionContext execContext = new ExecutionContext(message.getBodyType(), message.getBody());
+		if (message.getBodyType().hasCharset()) {
+			execContext.setResource3(message.getCharset().name());
+		}
+		return execContext;
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		StringBuilderWriter sw = new StringBuilderWriter();
-		message.writeToSAX(_xml2JsonTransformer.createTransformerHandler(sw), context);
-		message.reset(BodyType.READER, sw.getReader());
+		if (message.isSink()) {
+			JsonGenerator jsonGenerator = message.createJsonGeneratorFromBodyAsSink();
+			if (execContext.getResource3() != null) {
+				message.reset(execContext.getResource(), execContext.getResource2(), execContext.getResource3());
+			} else {
+				message.reset(execContext.getResource(), execContext.getResource2());
+			}
+			message.writeToSAX(_xml2JsonTransformer.createTransformerHandler(jsonGenerator), context);
+		} else {
+			StringBuilderWriter sw = new StringBuilderWriter();
+			message.writeToSAX(_xml2JsonTransformer.createTransformerHandler(sw), context);
+			message.reset(BodyType.READER, sw.getReader());
+		}
 	}
 
 }
