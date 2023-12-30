@@ -86,7 +86,7 @@ public final class Json2XmlTransformer {
 	}
 
 	public XMLParserBase createStreamingParser() {
-		return _type.isSimpleType() ? new Parser() : new StreamingParser();
+		return _type instanceof XSSimpleType ? new Parser() : new StreamingParser();
 	}
 
 	public XMLParserBase createParser() {
