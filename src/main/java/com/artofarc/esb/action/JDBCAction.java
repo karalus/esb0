@@ -53,15 +53,17 @@ public abstract class JDBCAction extends Action {
 		_streamingToSink = true;
 		_dsName = dsName != null ? dsName.intern() : null;
 		_sql = sql;
-		_params = params;
+		checkParameters(_params = params);
 		_maxRows = maxRows;
 		_timeout = timeout;
 		_keepConnection = keepConnection.intern();
 		_schemaSet = schemaSet;
-		checkParameters(params);
 	}
 
 	protected final void checkParameters(List<JDBCParameter> params) {
+		if (_sql == null && params.size() > 0) {
+			throw new IllegalArgumentException("sql is mandatory if parameters are used");
+		}
 		boolean body = false, attachments = false;
 		for (JDBCParameter jdbcParameter : params) {
 			if (jdbcParameter.isBody()) {
@@ -138,7 +140,9 @@ public abstract class JDBCAction extends Action {
 			}
 		}
 		ExecutionContext execContext = new ExecutionContext(connection, keepConnection);
-		if (inPipeline) {
+		if (_sql == null) {
+			execContext.setResource3(message.getBodyAsString(context));
+		} else if (inPipeline) {
 			for (JDBCParameter param : _params) {
 				if (param.isBody()) {
 					try {
@@ -179,7 +183,7 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		String sql = (String) eval(_sql != null ? _sql : message.getBodyAsString(context), context, message); 
+		String sql = (String) eval(_sql != null ? _sql : execContext.getResource3(), context, message); 
 		logger.debug("JDBCAction sql={}", sql);
 		if (sql.length() > 0) {
 			try (JDBCResult result = executeStatement(context, execContext, message, sql)) {
