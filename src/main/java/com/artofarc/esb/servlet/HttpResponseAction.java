@@ -71,7 +71,7 @@ public class HttpResponseAction extends Action {
 				response.setStatus(httpResponseCode.intValue());
 			}
 			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
-			if (_supportCompression) checkCompression(message);
+			if (_supportCompression) checkCompression(message, inPipeline);
 			checkFastInfoSet(message);
 			if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 				if (inPipeline) {
@@ -134,11 +134,11 @@ public class HttpResponseAction extends Action {
 		return true;
 	}
 
-	private static void checkCompression(ESBMessage message) {
+	private static void checkCompression(ESBMessage message, boolean inPipeline) {
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
 			Long length = message.getLength();
-			if (length == null || length > thresholdCompression || message.getContentEncoding() != null) {
+			if (inPipeline || length == null || length > thresholdCompression || message.getContentEncoding() != null) {
 				if (isAcceptable(acceptEncoding, "gzip")) {
 					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
 					message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
