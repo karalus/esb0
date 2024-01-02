@@ -41,10 +41,11 @@ public class SpawnAction extends Action {
 	private final boolean _usePipe, _join;
 
 	public SpawnAction(String workerPool, boolean usePipe, boolean join) {
+		_pipelineStop = true;
+		_offeringSink = true;
 		_workerPool = workerPool;
 		_usePipe = usePipe;
 		_join = join;
-		_pipelineStop = true;
 	}
 
 	@Override
