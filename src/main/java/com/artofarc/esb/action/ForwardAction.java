@@ -32,7 +32,7 @@ public abstract class ForwardAction extends Action {
 			return _nextAction.isOfferingSink(context);
 		}
 		Action nextAction = context.getExecutionStack().peek();
-		if (nextAction != null) {
+		if (nextAction != null && nextAction != this) {
 			return nextAction.isOfferingSink(context);
 		}
 		return false;
