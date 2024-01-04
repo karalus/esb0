@@ -308,7 +308,7 @@ public class SOAPTest extends AbstractESBTest {
       Directory queries = new Directory(null, root, "queries");
       Directory staticData = new Directory(null, root, "data");
 		XQueryArtifact xqueryArtifact = new XQueryArtifact(null, queries, null);
-      String strContent = "declare variable $request as element() external; (doc('/data/static.xml')/*[1]/text(), $request)";
+      String strContent = "declare variable $request as element() external; (doc('/data/static.xml')/*[1]/text())";
 		xqueryArtifact.setContent(strContent.getBytes());
 		XMLProcessingArtifact staticXML = new XMLProcessingArtifact(null, staticData, "static.xml");
 		staticXML.setContent("<root>Hello World!</root>".getBytes());
