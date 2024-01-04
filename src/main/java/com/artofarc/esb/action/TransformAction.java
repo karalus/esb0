@@ -76,10 +76,9 @@ public class TransformAction extends Action {
 		_doNullCheck = doNullCheck;
 		_clearSchema = clearSchema;
 		_baseURI = baseURI;
-		_contextItem = contextItem;
+		_contextItem = contextItem != null ? contextItem.intern() : null;
 		_newContentType = newContentType;
-		_pipelineStop = contextItem != null;
-		_streamingToSink = true;
+		_streamingToSink = _contextItem == null;
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem, String newContentType) {
@@ -264,16 +263,21 @@ public class TransformAction extends Action {
 
 	@Override
 	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (nextActionIsPipelineStop && execContext != null && _contextItem == null) {
-			XQResultSequence resultSequence = execContext.getResource();
-			checkNext(resultSequence, "body");
-			context.getTimeGauge().startTimeMeasurement();
-			if (message.isSink()) {
-				message.writeItemToSink(resultSequence.getItem(), context);
-				context.getTimeGauge().stopTimeMeasurement("XQItem::writeItem", false);
-			} else {
-				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
-				context.getTimeGauge().stopTimeMeasurement("XQDataFactory::createItem", false);
+		if (nextActionIsPipelineStop) {
+			if (_contextItem == null) {
+				XQResultSequence resultSequence = execContext.getResource();
+				checkNext(resultSequence, "body");
+				if (message.isSink()) {
+					context.getTimeGauge().startTimeMeasurement();
+					message.writeItemToSink(resultSequence.getItem(), context);
+					context.getTimeGauge().stopTimeMeasurement("XQItem::writeItem", false);
+				} else {
+					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
+				}
+			} else if (message.getBodyType() == BodyType.XQ_SEQUENCE) {
+				XQSequence sequence = message.getBody();
+				checkNext(sequence, "body");
+				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(sequence.getItem()));
 			}
 		}
 	}
@@ -282,7 +286,7 @@ public class TransformAction extends Action {
 	protected final void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
 		if (execContext != null) {
 			XQResultSequence resultSequence = execContext.getResource();
-			if (resultSequence.next() && _contextItem == null) {
+			if (!exception && resultSequence.next()) {
 				logger.warn("XQResultSequence not fully consumed");
 				if (logger.isDebugEnabled()) {
 					resultSequence.writeItem(System.err, null);
