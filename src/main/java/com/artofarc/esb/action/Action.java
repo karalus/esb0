@@ -37,7 +37,6 @@ import com.artofarc.util.TimeGauge;
 public abstract class Action extends Evaluator<ExecutionException> implements Cloneable {
 
 	protected final static Logger logger = LoggerFactory.getLogger(Action.class);
-
 	private final static Logger loggerTimeGauge = LoggerFactory.getLogger(Action.class.getName() + "TimeGauge");
 	private final static long timeGaugeThreshold = Long.parseLong(System.getProperty("esb0.timeGauge.threshold", "250"));
 
@@ -114,25 +113,26 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 	 * The ESB0 execution engine. TODO: Increase comprehensibility.
 	 */
 	public final void process(Context context, ESBMessage message) throws Exception {
-		List<Action> pipeline = new ArrayList<>();
-		List<ExecutionContext> resources = new ArrayList<>();
-		Deque<Action> stackErrorHandler = context.getStackErrorHandler();
+		final List<Action> pipeline = new ArrayList<>();
+		final List<ExecutionContext> resources = new ArrayList<>();
+		final Deque<Action> stackErrorHandler = context.getStackErrorHandler();
 		if (getErrorHandler() != null) {
 			stackErrorHandler.push(getErrorHandler());
 		}
 		context.pushStackPos();
-		TimeGauge timeGauge = new TimeGauge(loggerTimeGauge, timeGaugeThreshold, false);
+		final TimeGauge timeGauge = new TimeGauge(loggerTimeGauge, timeGaugeThreshold, false);
 		timeGauge.startTimeMeasurement();
 		for (Action nextAction = this; nextAction != null;) {
 			Action action = nextAction;
 			boolean closeSilently = false;
 			try {
-				for (boolean isPipeline = false; action != null; action = nextAction) {
+				for (;; action = nextAction) {
 					if (action != this && action.getErrorHandler() != null) {
 						stackErrorHandler.push(action.getErrorHandler());
 						context.pushStackPos();
 					}
-					ExecutionContext execContext = action.prepare(context, message, isPipeline);
+					final boolean isPipeline = pipeline.size() > 0;
+					final ExecutionContext execContext = action.prepare(context, message, isPipeline);
 					timeGauge.stopTimeMeasurement("Prepare (isPipeline=%b): %s", true, isPipeline, action);
 					pipeline.add(action);
 					resources.add(execContext);
@@ -140,17 +140,19 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 					if (nextAction == null) {
 						nextAction = context.getExecutionStack().poll();
 					}
-					if (action.isPipelineStop(nextAction) && !(action.isStreamingToSink() && nextAction != null && nextAction.isOfferingSink(context))) {
+					final boolean nextActionOffersSink;
+					// the nextAction can only be added if it is not offering a sink or if the current action does not stop or can write to a sink
+					if (nextAction == null || (nextActionOffersSink = nextAction.isOfferingSink(context)) && !action.isStreamingToSink()
+							|| action.isPipelineStop(nextAction) && !(nextActionOffersSink && action.isStreamingToSink())) {
 						break;
 					}
-					isPipeline = true;
 				}
-				// process pipeline fragment
-				int secondLast = pipeline.size() - 2;
+				logger.debug("Pipeline fragment: {}", pipeline);
+				// pipeline fragment execution phase
+				final int secondLast = pipeline.size() - 2;
 				for (int i = 0; i < pipeline.size(); ++i) {
 					action = pipeline.get(i);
-					ExecutionContext exContext = resources.get(i);
-					action.execute(context, exContext, message, i == secondLast);
+					action.execute(context, resources.get(i), message, i == secondLast);
 					timeGauge.stopTimeMeasurement("Execute: %s", true, action);
 				}
 			} catch (Exception e) {
@@ -168,9 +170,8 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 			} finally {
 				for (int i = pipeline.size(); i > 0;) {
 					action = pipeline.get(--i);
-					ExecutionContext exContext = resources.get(i);
 					try {
-						action.close(context, exContext, closeSilently);
+						action.close(context, resources.get(i), closeSilently);
 						if (action != this && action.getErrorHandler() != null) {
 							context.getStackPos().pop();
 							stackErrorHandler.pop();

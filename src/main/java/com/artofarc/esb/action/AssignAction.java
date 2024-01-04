@@ -18,6 +18,7 @@ package com.artofarc.esb.action;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -36,7 +37,10 @@ public class AssignAction extends TransformAction {
 	}
 
 	public AssignAction(List<Assignment> assignments, boolean doNullCheck, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders) {
-		super(createXQuery(assignments, doNullCheck, namespaces, bindNames, bodyExpr != null ? bodyExpr : "."), createCheckNotNull(bindNames), assignments,	doNullCheck, bodyExpr != null, null, contextItem, null);
+		super(createXQuery(assignments, doNullCheck, namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	doNullCheck, bodyExpr != null, null, contextItem, null);
+		if (contextItem != null && bodyExpr != null) {
+			throw new IllegalArgumentException("when a contextItem is used the body cannot be assigned");
+		}
 		_clearHeaders = clearHeaders;
 	}
 
@@ -66,7 +70,8 @@ public class AssignAction extends TransformAction {
 		}
 		if (flwor) builder.append("return ");
 		builder.append('(');
-		for (Assignment assignment : assignments) {
+		for (Iterator<Assignment> iter = assignments.iterator(); iter.hasNext();) {
+			Assignment assignment = iter.next();
 			boolean hasAtomicType = assignment.type != null && !assignment.list && assignment.type.startsWith("xs:");
 			if (doNullCheck || assignment.nullable || assignment.list) {
 				builder.append("count(").append(assignment.expr).append("), ");
@@ -74,11 +79,16 @@ public class AssignAction extends TransformAction {
 			if (hasAtomicType) builder.append(assignment.type).append('(');
 			builder.append(assignment.expr);
 			if (hasAtomicType) builder.append(')');
-			builder.append(", ");
+			if (iter.hasNext()) {
+				builder.append(", ");
+			}
 			// save some bytes memory
 			assignment.expr = null;
 		}
-		builder.append(bodyExpr).append(')');
+		if (bodyExpr != null) {
+			builder.append(", ").append(bodyExpr);
+		}
+		builder.append(')');
 		return XQuerySource.create(builder.toString());
 	}
 
