@@ -294,14 +294,14 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			JdbcProcedure jdbcProcedure = (JdbcProcedure) actionElement.getValue();
 			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getParameter().size() + jdbcProcedure.getOut().getParameter().size()];
 			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getParameter(), posUsed), createJDBCParameters(jdbcProcedure.getOut().getParameter(), posUsed),
-					jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.getKeepConnection(), resolveSchemaSet(globalContext, jdbcProcedure.getSchemaURI())), location);
+					jdbcProcedure.isMoreThanOneResult(), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.getKeepConnection(), resolveSchemaSet(globalContext, jdbcProcedure.getSchemaURI())), location);
 			break;
 		}
 		case "jdbc": {
 			Jdbc jdbc = (Jdbc) actionElement.getValue();
 			boolean[] posUsed = new boolean[jdbc.getParameter().size()];
 			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getParameter(), posUsed),
-					jdbc.getGeneratedKeys(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.getKeepConnection()), location);
+					jdbc.getGeneratedKeys(), jdbc.isMoreThanOneResult(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.getKeepConnection()), location);
 			break;
 		}
 		case "update": {

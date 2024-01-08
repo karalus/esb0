@@ -40,8 +40,8 @@ public class JDBCProcedureAction extends JDBCAction {
 
 	private final List<JDBCParameter> _outParams;
 
-	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) {
-		super(globalContext, dsName, sql, inParams, maxRows, timeout, keepConnection, schemaSet);
+	public JDBCProcedureAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> inParams, List<JDBCParameter> outParams, Boolean moreThanOneResult, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) {
+		super(globalContext, dsName, sql, inParams, moreThanOneResult != null ? moreThanOneResult : false, maxRows, timeout, keepConnection, schemaSet);
 		checkParameters(outParams);
 		_outParams = outParams;
 	}

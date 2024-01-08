@@ -32,8 +32,8 @@ public class JDBCSQLAction extends JDBCAction {
 
 	private final String[] _generatedKeys;
 
-	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, List<String> generatedKeys, int maxRows, int timeout, String keepConnection) {
-		super(globalContext, dsName, sql, params, maxRows, timeout, keepConnection, null);
+	public JDBCSQLAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, List<String> generatedKeys, Boolean moreThanOneResult, int maxRows, int timeout, String keepConnection) {
+		super(globalContext, dsName, sql, params, moreThanOneResult != null ? moreThanOneResult : true, maxRows, timeout, keepConnection, null);
 		_generatedKeys = generatedKeys.isEmpty() ? null : generatedKeys.toArray(new String[generatedKeys.size()]);
 		if (sql != null) {
 			int count = 0;
