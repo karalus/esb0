@@ -65,7 +65,7 @@ public final class JDBCResult implements AutoCloseable {
 		}
 	}
 
-	public boolean next() throws SQLException {
+	private boolean next() throws SQLException {
 		if (readAhead != null) {
 			boolean next = readAhead;
 			readAhead = null;
@@ -93,7 +93,7 @@ public final class JDBCResult implements AutoCloseable {
 		return currentResultSet;
 	}
 
-	public boolean hasComplexContent() {
+	public boolean hasMoreThanOneResult() {
 		return currentResultSet != null || readAhead;
 	}
 

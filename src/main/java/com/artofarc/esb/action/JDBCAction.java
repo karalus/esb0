@@ -47,10 +47,10 @@ public abstract class JDBCAction extends Action {
 	private final String _keepConnection;
 	protected final XSSchemaSet _schemaSet;
 
-	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) {
+	JDBCAction(GlobalContext globalContext, String dsName, String sql, List<JDBCParameter> params, boolean moreThanOneResult, int maxRows, int timeout, String keepConnection, XSSchemaSet schemaSet) {
 		_pipelineStop = true;
 		_offeringSink = isOfferingSink(params);
-		_streamingToSink = true;
+		_streamingToSink = moreThanOneResult;
 		_dsName = dsName != null ? dsName.intern() : null;
 		_sql = sql;
 		_params = params;
@@ -183,7 +183,7 @@ public abstract class JDBCAction extends Action {
 		logger.debug("JDBCAction sql={}", sql);
 		if (sql.length() > 0) {
 			try (JDBCResult result = executeStatement(context, execContext, message, sql)) {
-				if (result.hasComplexContent()) {
+				if (result.hasMoreThanOneResult()) {
 					message.clearHeaders();
 					if (message.isSink()) {
 						try (JsonGenerator jsonGenerator = message.createJsonGeneratorFromBodyAsSink()) {
