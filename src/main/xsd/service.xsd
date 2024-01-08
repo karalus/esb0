@@ -184,6 +184,7 @@
 					<element name="sql" type="tns:expression" minOccurs="0" />
 				</sequence>
 				<attribute name="dataSource" type="tns:expression" />
+				<attribute name="moreThanOneResult" type="boolean" />
 				<attribute name="maxRows" type="int" default="0" />
 				<attribute name="timeout" type="int" default="60000" />
 				<attribute name="keepConnection" type="tns:expression" default="false" />
