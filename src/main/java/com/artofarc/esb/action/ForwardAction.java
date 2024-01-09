@@ -28,6 +28,9 @@ public abstract class ForwardAction extends Action {
 
 	@Override
 	protected boolean isOfferingSink(Context context) {
+		if (_pipelineStop) {
+			return false;
+		}
 		if (_nextAction != null) {
 			return _nextAction.isOfferingSink(context);
 		}
