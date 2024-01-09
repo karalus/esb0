@@ -174,7 +174,7 @@ public final class XSOMHelper {
 	static {
 		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 		try {
-			xsomParser.parse(new StringReader("<schema xmlns='http://www.w3.org/2001/XMLSchema'><element name='root' type='anyType'/></schema>"));
+			xsomParser.parse(new StringReader("<schema xmlns='http://www.w3.org/2001/XMLSchema'><element name='root'/></schema>"));
 			anySchema = xsomParser.getResult();
 		} catch (SAXException e) {
 			throw new RuntimeException(e);
