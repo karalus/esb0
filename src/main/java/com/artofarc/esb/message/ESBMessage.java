@@ -172,7 +172,7 @@ public final class ESBMessage implements Cloneable {
 		String key = normalize(headerName);
 		Map.Entry<String, Object> entry = _headers.get(key);
 		if (entry != null) {
-			_headers.put(key, DataStructures.createEntry(entry.getKey(), entry.getValue() + ", " + value));
+			_headers.replace(key, DataStructures.createEntry(entry.getKey(), entry.getValue() + ", " + value));
 		} else {
 			_headers.put(key, DataStructures.createEntry(headerName, value));
 		}
@@ -270,12 +270,13 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void determineSinkContentType() {
-		String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (contentType == null && _contentType != null) {
-			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType = _contentType);
+		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
+		String sinkContentType = contentType != null ? contentType : _contentType;
+		if (needsCharset(sinkContentType)) {
+			sinkContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + getSinkEncoding(); 
 		}
-		if (needsCharset(contentType)) {
-			putHeader(HTTP_HEADER_CONTENT_TYPE, contentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + getSinkEncoding());
+		if (contentType != sinkContentType) {
+			putHeader(HTTP_HEADER_CONTENT_TYPE, sinkContentType);
 		}
 	}
 
