@@ -50,7 +50,7 @@ public class PreSOAPHttpAction extends WrapSOAPAction {
 		String soapAction = _mapOperation2SoapActionURI.get(message.<String> getVariable(ESBConstants.SOAP_OPERATION));
 		if (_soap12) {
 			if (soapAction != null && soapAction.length() > 0) {
-				message.setContentType(message.getContentType() + ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + '"' + soapAction + '"');
+				message.putHeader(HTTP_HEADER_CONTENT_TYPE, message.getHeader(HTTP_HEADER_CONTENT_TYPE) + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + '"' + soapAction + '"');
 			}
 			message.putHeader(HTTP_HEADER_ACCEPT, ACCEPT_SOAP12);
 		} else {
