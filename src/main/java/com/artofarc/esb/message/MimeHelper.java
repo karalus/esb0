@@ -74,7 +74,8 @@ public final class MimeHelper {
 	}
 
 	public static boolean isMimeMultipart(String multipartSubtype, ESBMessage message) {
-		return multipartSubtype != null && (FORCE_MIMEMULTIPART || multipartSubtype == "form-data" || message.getAttachments().size() > 0);
+		return multipartSubtype != null && (FORCE_MIMEMULTIPART || multipartSubtype == "form-data" || message.getAttachments().size() > 0
+				|| (MEDIATYPE_MULTIPART + multipartSubtype).equals(message.getVariable(HTTP_HEADER_ACCEPT)));
 	}
 
 	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
@@ -174,7 +175,7 @@ public final class MimeHelper {
 	}
 
 	static String parseContentType(ESBMessage message, String contentType) throws Exception {
-		if (contentType != null && contentType.startsWith("multipart/")) {
+		if (contentType != null && contentType.startsWith(MEDIATYPE_MULTIPART)) {
 			InputStream inputStream = message.getBodyAsInputStream(null);
 			MimeMultipart mmp = new MimeMultipart(new DataSource() {
 

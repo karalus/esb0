@@ -55,6 +55,7 @@ public class HttpResponseAction extends Action {
 		HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
 		ExecutionContext executionContext = new ExecutionContext(asyncContext);
 		String redirect = message.getVariable(ESBConstants.redirect);
+		boolean mimeMultipart;
 		if (message.getBodyType() == BodyType.EXCEPTION) {
 			if (context.isTransacted()) {
 				throw message.<Exception> getBody();
@@ -63,7 +64,7 @@ public class HttpResponseAction extends Action {
 			}
 		} else if (redirect != null && !redirect.isEmpty()) {
 			response.sendRedirect(redirect);
-		} else if (checkContentType(message, response)) {
+		} else if (checkContentType(message, response, mimeMultipart = MimeHelper.isMimeMultipart(_multipartSubtype, message))) {
 			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 			if (httpResponseCode != null) {
@@ -71,8 +72,7 @@ public class HttpResponseAction extends Action {
 			}
 			message.removeHeader(HTTP_HEADER_TRANSFER_ENCODING);
 			if (_supportCompression) checkCompression(message);
-			checkFastInfoSet(message);
-			if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+			if (mimeMultipart) {
 				if (inPipeline) {
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -108,27 +108,36 @@ public class HttpResponseAction extends Action {
 		return executionContext;
 	}
 
-	private static boolean checkContentType(ESBMessage message, HttpServletResponse response) throws Exception {
-		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
-		if (contentType == null) {
-			contentType = message.getContentType();
-			if (contentType != null) {
-				message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
+	private boolean checkContentType(ESBMessage message, HttpServletResponse response, boolean mimeMultipart) throws Exception {
+		final String accept = message.getVariable(HTTP_HEADER_ACCEPT);
+		final String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		String contentTypeInner = contentType != null ? contentType : message.getContentType();
+		if (contentTypeInner != null && accept != null) {
+			// try upgrade to FastInfoset
+			if (accept.contains(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11)) {
+				contentTypeInner = HTTP_HEADER_CONTENT_TYPE_FI_SOAP11;
+			} else if (accept.contains(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12) && !contentTypeInner.startsWith(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12)) {
+				contentTypeInner = HTTP_HEADER_CONTENT_TYPE_FI_SOAP12;
+				String soapAction = getValueFromHttpHeader(contentTypeInner, HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION);
+				if (soapAction != null) {
+					contentTypeInner += ';' + HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION + '"' + soapAction + '"';
+				}
 			}
 		}
-		if (contentType != null) {
-			String accept = message.getVariable(HTTP_HEADER_ACCEPT);
-			if (accept != null && !isAcceptable(accept, contentType)) {
-				GenericHttpListener.sendError(response, HttpServletResponse.SC_NOT_ACCEPTABLE, contentType + " does not match " + accept);
-				return false;
+		final String contentTypeOuter = mimeMultipart ? MEDIATYPE_MULTIPART + _multipartSubtype : contentTypeInner;
+		if (contentTypeOuter != null && accept != null && !isAcceptable(accept, contentTypeOuter)) {
+			GenericHttpListener.sendError(response, HttpServletResponse.SC_NOT_ACCEPTABLE, contentTypeOuter + " does not match " + accept);
+			return false;
+		}
+		if (needsCharset(contentTypeInner)) {
+			String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
+			if (acceptCharset != null) {
+				message.setSinkEncoding(getBestQualityValue(acceptCharset));
 			}
-			if (needsCharset(contentType)) {
-				String acceptCharset = message.getVariable(HTTP_HEADER_ACCEPT_CHARSET);
-				if (acceptCharset != null) {
-					message.setSinkEncoding(getBestQualityValue(acceptCharset));
-				}
-				message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType + "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding());
-			}
+			contentTypeInner += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + message.getSinkEncoding();
+		}
+		if (contentType != contentTypeInner) {
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentTypeInner);
 		}
 		return true;
 	}
@@ -145,17 +154,6 @@ public class HttpResponseAction extends Action {
 					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "deflate");
 					message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
 				}
-			}
-		}
-	}
-
-	private static void checkFastInfoSet(ESBMessage message) {
-		final String accept = message.getVariable(HTTP_HEADER_ACCEPT);
-		if (accept != null) {
-			if (accept.contains(HTTP_HEADER_CONTENT_TYPE_FI_SOAP11)) {
-				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_FI_SOAP11);
-			} else if (accept.contains(HTTP_HEADER_CONTENT_TYPE_FI_SOAP12)) {
-				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_FI_SOAP12);
 			}
 		}
 	}

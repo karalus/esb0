@@ -93,6 +93,8 @@ public class HttpConstants {
 
 	public static final String MEDIATYPE_TEXT = "text/";
 
+	public static final String MEDIATYPE_MULTIPART = "multipart/";
+
 	private static int findNextDelim(String s, int i) {
 		for (; i < s.length(); ++i) {
 			final char c = s.charAt(i);
