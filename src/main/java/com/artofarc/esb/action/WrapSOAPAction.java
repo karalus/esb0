@@ -52,11 +52,9 @@ public class WrapSOAPAction extends TransformAction {
 		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 		message.clearHeaders();
 		if (_soap12) {
-			if (contentType == null || isNotSOAP12(contentType)) {
-				message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_SOAP12);
-			}
-		} else if (contentType == null || isNotSOAP11(contentType)) {
-			message.putHeader(HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_SOAP11);
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType == null || isNotSOAP12(contentType) ? HTTP_HEADER_CONTENT_TYPE_SOAP12 : contentType);
+		} else {
+			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType == null || isNotSOAP11(contentType) ? HTTP_HEADER_CONTENT_TYPE_SOAP11 : contentType);
 		}
 		return super.prepare(context, message, inPipeline);
 	}
