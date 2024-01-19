@@ -124,7 +124,7 @@ public class HttpResponseAction extends Action {
 				}
 			}
 		}
-		final String contentTypeOuter = mimeMultipart ? MEDIATYPE_MULTIPART + _multipartSubtype : contentTypeInner;
+		final String contentTypeOuter = mimeMultipart ? MEDIATYPE_MULTIPART + _multipartSubtype : parseContentType(contentTypeInner);
 		if (contentTypeOuter != null && accept != null && !isAcceptable(accept, contentTypeOuter)) {
 			GenericHttpListener.sendError(response, HttpServletResponse.SC_NOT_ACCEPTABLE, contentTypeOuter + " does not match " + accept);
 			return false;
