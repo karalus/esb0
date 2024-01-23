@@ -699,6 +699,7 @@ public final class ESBMessage implements Cloneable {
 	public JsonGenerator createJsonGeneratorFromBodyAsSink() throws IOException {
 		switch (_bodyType) {
 		case OUTPUT_STREAM:
+			_body = getCompressedOutputStream((OutputStream) _body);
 			return JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator((OutputStream) _body, getSinkEncodingCharset());
 		case WRITER:
 			return JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator((Writer) _body);
