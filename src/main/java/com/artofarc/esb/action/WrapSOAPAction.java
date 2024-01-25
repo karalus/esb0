@@ -49,7 +49,7 @@ public class WrapSOAPAction extends TransformAction {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		String contentType = parseContentType(message.getHeader(HTTP_HEADER_CONTENT_TYPE));
 		message.clearHeaders();
 		if (_soap12) {
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, contentType == null || isNotSOAP12(contentType) ? HTTP_HEADER_CONTENT_TYPE_SOAP12 : contentType);
