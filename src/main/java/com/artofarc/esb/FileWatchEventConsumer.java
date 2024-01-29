@@ -81,6 +81,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 					final Path path = (Path) watchEvent.context();
 					submit(() -> {
 						Path absolutePath = parent.resolve(path);
+						logger.debug("WatchEvent with path {}", path);
 						try (FileChannel fileChannel = FileChannel.open(absolutePath, _options)) {
 							if (dontLockFiles || fileChannel.tryLock() != null) {
 								Context context = _workerPool.getContext();
@@ -92,8 +93,8 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 									fillESBMessage(msg, inputStream, path.toString());
 									process(context, msg);
 									moveFile(context, msg, absolutePath, _move);
-								} catch (Exception e) {
-									logger.error("Exception processing file " + absolutePath, e);
+								} catch (Throwable e) {
+									logger.error("Error processing file " + absolutePath, e);
 									moveFile(context, msg, absolutePath, _moveOnError);
 								} finally {
 									_workerPool.releaseContext(context);
