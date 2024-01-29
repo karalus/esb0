@@ -46,8 +46,8 @@ public class BranchOnPathAction extends Action {
 	}	
 
 	@Override
-	protected boolean isPipelineStop(Action nextAction) {
-		return nextAction == null || nextAction.isPipelineStop(null);
+	protected boolean isPipelineStop(ExecutionContext execContext, Action nextAction) {
+		return nextAction == null || nextAction.isPipelineStop(null, null);
 	}
 
 	@Override

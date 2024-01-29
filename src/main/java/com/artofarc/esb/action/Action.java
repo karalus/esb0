@@ -143,7 +143,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 					final boolean nextActionOffersSink;
 					// the nextAction can only be added if it is not offering a sink or if the current action does not stop or can write to a sink
 					if (nextAction == null || (nextActionOffersSink = nextAction.isOfferingSink(context)) && !action.isStreamingToSink()
-							|| action.isPipelineStop(nextAction) && !(nextActionOffersSink && action.isStreamingToSink())) {
+							|| action.isPipelineStop(execContext, nextAction) && !(nextActionOffersSink && action.isStreamingToSink())) {
 						break;
 					}
 				}
@@ -215,12 +215,11 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 	 * @param nextAction The next Action that will be processed in the flow, may be null
 	 * @return true if the {@link #execute(Context, ExecutionContext, ESBMessage, boolean) execute()} method must be called before the next {@link #Action} instance can be processed
 	 */
-	protected boolean isPipelineStop(Action nextAction) {
+	protected boolean isPipelineStop(ExecutionContext execContext, Action nextAction) {
 		return _pipelineStop;
 	}
 
 	/**
-	 * @param context
 	 * @return true if {@link #prepare(Context, ESBMessage, boolean) prepare} will turn the ESBMessage into a sink when in pipeline
 	 */
 	protected boolean isOfferingSink(Context context) {
@@ -235,6 +234,9 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 		return _streamingToSink;
 	}
 
+	/**
+	 * @return The next Action to be processed
+	 */
 	protected Action nextAction(ExecutionContext execContext) {
 		return _nextAction;
 	}
@@ -243,8 +245,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 	 * Prepare pipeline. Header and variable will be evaluated and must be copied
 	 * if needed for further processing in execute.
 	 * 
-	 * @param inPipeline
-	 *           true if this is in the middle of a pipeline
+	 * @param inPipeline true if this is in the middle of a pipeline
 	 */
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		return null;

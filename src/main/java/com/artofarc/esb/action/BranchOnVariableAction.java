@@ -63,8 +63,8 @@ public class BranchOnVariableAction extends Action {
 	}
 
 	@Override
-	protected boolean isPipelineStop(Action nextAction) {
-		return _varName == "body" || nextAction == null || nextAction.isPipelineStop(null);
+	protected boolean isPipelineStop(ExecutionContext execContext, Action nextAction) {
+		return _varName == "body" || nextAction == null || nextAction.isPipelineStop(null, null);
 	}
 
 	@Override

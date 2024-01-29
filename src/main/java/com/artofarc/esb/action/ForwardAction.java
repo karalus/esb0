@@ -22,8 +22,16 @@ import com.artofarc.esb.message.ESBMessage;
 public abstract class ForwardAction extends Action {
 
 	@Override
-	protected boolean isPipelineStop(Action nextAction) {
-		return _pipelineStop || _nextAction != null && _nextAction.isPipelineStop(nextAction) || nextAction == null || nextAction.isPipelineStop(null);
+	protected boolean isPipelineStop(ExecutionContext execContext, Action nextAction) {
+		if (_pipelineStop || _nextAction != null && _nextAction.isPipelineStop(null, nextAction)) {
+			return true;
+		}
+		if (execContext != null) {
+			Action nextAction1 = execContext.getResource();
+			ExecutionContext nextContext = execContext.getResource2();
+			return nextAction1.isPipelineStop(nextContext, nextAction);
+		}
+		return nextAction == null || nextAction.isPipelineStop(null, null);
 	}
 
 	@Override
@@ -46,10 +54,10 @@ public abstract class ForwardAction extends Action {
 		if (inPipeline && !_pipelineStop) {
 			Action nextAction;
 			if (_nextAction != null) {
-				nextAction = _nextAction.isPipelineStop(null) ? _nextAction : null;
+				nextAction = _nextAction.isPipelineStop(null, null) ? _nextAction : null;
 			} else {
 				nextAction = context.getExecutionStack().poll();
-				if (nextAction != null && !nextAction.isPipelineStop(null)) {
+				if (nextAction != null && !nextAction.isPipelineStop(null, null)) {
 					// We cannot forward pipeline for more than one hop because isPipelineStop() will return false
 					context.getExecutionStack().push(nextAction);
 					nextAction = null;
