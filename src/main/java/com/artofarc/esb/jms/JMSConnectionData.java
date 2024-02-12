@@ -102,7 +102,7 @@ public final class JMSConnectionData {
 			globalContext.addPropertyChangeListener(_jndiConnectionFactory, listener);
 			return connection;
 		} catch (NamingException e) {
-			throw new JMSException(e.getMessage());
+			throw new JMSException(e.getClass().getName() + ": " + e.getMessage());
 		}
 	}
 

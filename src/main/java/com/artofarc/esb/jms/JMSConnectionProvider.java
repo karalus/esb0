@@ -136,6 +136,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		void removeJMSConsumer(JMSConsumer jmsConsumer) {
 			_jmsConsumers.remove(jmsConsumer);
+			checkClose();
 		}
 
 		private Connection createConnection() throws JMSException {
@@ -186,6 +187,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		void removeJMSSessionFactory(JMSSessionFactory jmsSessionFactory) {
 			_jmsSessionFactories.remove(jmsSessionFactory);
+			checkClose();
 		}
 
 		private void closeConnection(Connection connection) {
@@ -343,6 +345,13 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			}
 			if (_connection != null) {
 				_connection.close();
+			}
+		}
+
+		private void checkClose() {
+			if (_jmsConsumers.isEmpty() && _jmsSessionFactories.isEmpty()) {
+				removeResource(_jmsConnectionData);
+				Closer.closeQuietly(this);
 			}
 		}
 
