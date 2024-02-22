@@ -174,6 +174,18 @@ public class ActionTest extends AbstractESBTest {
 	}
 
 	@Test
+	public void testStartPipelineWithSetMessageBody() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+		Action action = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("<dummy/>"), null, null);
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(action);
+		String xquery = ".";
+		action = action.setNextAction(new TransformAction(xquery));
+		action = action.setNextAction(new DumpAction());
+		consumerPort.process(context, message);
+	}
+
+	@Test
 	public void testSetMessageOverloading() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
 		message.putVariable("cal", new GregorianCalendar());

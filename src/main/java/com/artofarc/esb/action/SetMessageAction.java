@@ -19,8 +19,8 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -35,7 +35,7 @@ public class SetMessageAction extends ForwardAction {
 	private final ClassLoader _classLoader;
 	private final ArrayList<Assignment> _assignments = new ArrayList<>();
 	private final Assignment _body; 
-	private Collection<String> _clearHeadersExcept;
+	private Set<String> _clearHeadersExcept;
 
 	public SetMessageAction(ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ReflectiveOperationException {
 		_classLoader = cl;
@@ -51,7 +51,7 @@ public class SetMessageAction extends ForwardAction {
 		}
 	}
 
-	public final void setClearHeadersExcept(Collection<String> clearHeadersExcept) {
+	public final void setClearHeadersExcept(Set<String> clearHeadersExcept) {
 		_clearHeadersExcept = clearHeadersExcept;
 	}
 

@@ -94,11 +94,11 @@ public class HttpResponseAction extends Action {
 					message.reset(BodyType.OUTPUT_STREAM, message.getCompressedOutputStream(new IOUtils.PreventFlushOutputStream(response.getOutputStream())));
 				} else if (message.getBodyType() != BodyType.INVALID) {
 					Long contentLength = message.getLengthExact();
-					if (contentLength != null) {
+					if (contentLength == null) {
+						message.writeTo(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), context);
+					} else if (contentLength > 0) {
 						response.setContentLengthLong(contentLength);
 						message.writeTo(response.getOutputStream(), context);
-					} else {
-						message.writeTo(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), context);
 					}
 				}
 				if (message.getAttachments().size() > 0) {

@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -137,7 +138,7 @@ public final class ESBMessage implements Cloneable {
 		_headers.clear();
 	}
 
-	public void clearHeadersExcept(Collection<String> normalizedHeaderNames) {
+	public void clearHeadersExcept(Set<String> normalizedHeaderNames) {
 		if (normalizedHeaderNames.isEmpty()) {
 			_headers.clear();
 		} else {
@@ -911,8 +912,8 @@ public final class ESBMessage implements Cloneable {
 
 	public ESBMessage copy(Context context, boolean withBody, boolean withHeaders, boolean withAttachments) throws Exception {
 		final ESBMessage clone;
+		Object newBody = cloneBody(context, true);
 		if (withBody) {
-			Object newBody = cloneBody(context, true);
 			clone = new ESBMessage(_bodyType, newBody, _charset);
 			clone.setContentType(_contentType);
 		} else {
