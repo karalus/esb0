@@ -16,6 +16,7 @@
 package com.artofarc.util.saxon;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
@@ -49,6 +50,7 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
+	private final static Random functionRandom = new Random();
 
 	private final URIResolver _uriResolver;
 	private final SaxonXQDataSource _dataSource;
@@ -59,6 +61,7 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 		Configuration configuration = ((TransformerFactoryImpl) _saxTransformerFactory).getConfiguration();
 		configuration.registerExtensionFunction(functionUUID);
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
+		configuration.registerExtensionFunction(functionRandom);
 		configuration.registerExtensionFunction(new Evaluate(configuration));
 		configuration.setModuleURIResolver(this);
 		// Avoid concurrency bug in Saxon by eager initializing
@@ -132,6 +135,41 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 			@Override
 			public Sequence<?> call(XPathContext context, @SuppressWarnings("rawtypes") Sequence[] arguments) {
 				return Int64Value.makeDerived(System.currentTimeMillis(), BuiltInAtomicType.LONG);
+			}
+		};
+
+		@Override
+		public StructuredQName getFunctionQName() {
+			return FUNCTION_QNAME;
+		}
+
+		@Override
+		public SequenceType[] getArgumentTypes() {
+			return ARGUMENT_TYPES;
+		}
+
+		@Override
+		public SequenceType getResultType(SequenceType[] suppliedArgumentTypes) {
+			return BuiltInAtomicType.LONG.one();
+		}
+
+		@Override
+		public ExtensionFunctionCall makeCallExpression() {
+			return EXTENSION_FUNCTION_CALL;
+		}
+	}
+
+	private static class Random extends ExtensionFunctionDefinition {
+
+		private static final StructuredQName FUNCTION_QNAME = new StructuredQName(XPATH_EXTENSION_NS_PREFIX, XPATH_EXTENSION_NS_URI, "random-next-long");
+		private static final SequenceType[] ARGUMENT_TYPES = new SequenceType[] { BuiltInAtomicType.INTEGER.one(), BuiltInAtomicType.INTEGER.one() };
+		private static final ExtensionFunctionCall EXTENSION_FUNCTION_CALL = new ExtensionFunctionCall() {
+
+			@Override
+			public Sequence<?> call(XPathContext context, @SuppressWarnings("rawtypes") Sequence[] arguments) throws XPathException {
+				Int64Value origin = (Int64Value) arguments[0].head();
+				Int64Value bound = (Int64Value) arguments[1].head();
+				return Int64Value.makeDerived(ThreadLocalRandom.current().nextLong(origin.longValue(), bound.longValue()), BuiltInAtomicType.LONG);
 			}
 		};
 

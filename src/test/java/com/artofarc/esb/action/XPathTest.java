@@ -88,7 +88,7 @@ public class XPathTest extends AbstractESBTest {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
       LinkedHashMap<String, String> ns = new LinkedHashMap<>();
       ns.put("fn-bea", "http://artofarc.com/xpath-extension");
-      Action action = createAssignAction(createAssignments(false, "result", "<result>{fn-bea:uuid(), fn-artofarc:uuid()}</result>", "result2", "data(<url>http://localhost/nix/ep</url>)"), null, ns);
+      Action action = createAssignAction(createAssignments(false, "result", "<result>{fn-bea:uuid(), fn-artofarc:uuid(), fn-artofarc:random-next-long(0,10) * 100 + 60000}</result>", "result2", "data(<url>http://localhost/nix/ep</url>)"), null, ns);
       action.setNextAction(new DumpAction());
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action, new DumpAction());
