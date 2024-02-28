@@ -50,7 +50,6 @@ import com.artofarc.util.DataStructures;
 public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionProvider.JMSConnectionGuard, JMSConnectionData, Void, RuntimeException> {
 
 	final static Logger logger = LoggerFactory.getLogger(JMSConnectionProvider.class);
-	final static String instanceId = System.getProperty("esb0.jms.instanceId");
 	final static long closeWithTimeout = Long.parseLong(System.getProperty("esb0.jms.closeWithTimeout", "0"));
 	final static long reconnectInterval = Long.parseLong(System.getProperty("esb0.jms.reconnectInterval", "60"));
 
@@ -115,7 +114,6 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		private final Map<JMSConsumer, Boolean> _jmsConsumers = new ConcurrentHashMap<>();
 		private final Set<JMSSessionFactory> _jmsSessionFactories = ConcurrentHashMap.newKeySet();
 		private final JMSConnectionData _jmsConnectionData;
-		private final String _clientID; 
 		private volatile Connection _connection;
 		private volatile ConnectionMetaData _connectionMetaData;
 		private volatile Future<?> _future;
@@ -127,7 +125,6 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			super(_poolContext.getWorkerPool().getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
 					AttributeChangeNotification.class.getName(), "A JMS Connection of " + jmsConnectionData + " changes its state"));
 			_jmsConnectionData = jmsConnectionData;
-			_clientID = instanceId != null ? instanceId + "-" + jmsConnectionData + "-" + _poolContext.getWorkerPool().getName() : null;
 		}
 
 		void addJMSConsumer(JMSConsumer jmsConsumer, boolean enabled) {
@@ -144,9 +141,6 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, _lastChangeOfState = System.currentTimeMillis(), "Connection state changed", "connected", "boolean", false, true));
 			try {
 				_connectionMetaData = connection.getMetaData();
-				if (_clientID != null) {
-					connection.setClientID(_clientID);
-				}
 				connection.start();
 			} catch (JMSException e) {
 				closeConnection(connection);

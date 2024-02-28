@@ -902,6 +902,7 @@
 		<attribute name="jndiConnectionFactory" type="tns:globalExpression" use="required" />
 		<attribute name="userName" type="tns:globalExpression" />
 		<attribute name="password" type="tns:globalExpression" />
+		<attribute name="clientID" type="tns:globalExpression" />
 	</attributeGroup>
 	<group name="JMSDestination">
 		<choice>

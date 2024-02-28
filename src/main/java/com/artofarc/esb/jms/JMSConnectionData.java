@@ -17,6 +17,7 @@ package com.artofarc.esb.jms;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.StringTokenizer;
 
 import javax.jms.Connection;
@@ -31,26 +32,27 @@ public final class JMSConnectionData {
 
 	private static final ObjectPool<List<JMSConnectionData>> POOL = new ObjectPool<>(new java.util.HashMap<>());
 
-	private final String _jndiConnectionFactory, _userName, _password, _string;
+	private final String _jndiConnectionFactory, _userName, _password, _clientID, _string;
 
-	@Deprecated
-	public JMSConnectionData(GlobalContext globalContext, String jndiConnectionFactory, String userName, String password) throws NamingException {
-		this(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password));
-	}
-
-	private JMSConnectionData(String jndiConnectionFactory, String userName, String password) {
+	private JMSConnectionData(String jndiConnectionFactory, String userName, String password, String clientID) {
 		_jndiConnectionFactory = jndiConnectionFactory;
 		_userName = userName;
 		_password = password;
-		_string = userName != null ? userName + '@' + jndiConnectionFactory : jndiConnectionFactory;
+		_clientID = clientID;
+		String s = userName != null ? userName + '@' + jndiConnectionFactory : jndiConnectionFactory;
+		_string = clientID == null ? s : clientID.contains(s) ? clientID : s + '#' + clientID;
 	}
 
 	public static List<JMSConnectionData> create(GlobalContext globalContext, String jndiConnectionFactories, String userName, String password) throws NamingException {
+		return create(globalContext, jndiConnectionFactories, userName, password, null);
+	}
+
+	public static List<JMSConnectionData> create(GlobalContext globalContext, String jndiConnectionFactories, String userName, String password, String clientID) throws NamingException {
 		List<JMSConnectionData> result = new ArrayList<>();
 		StringTokenizer tokenizer = new StringTokenizer(jndiConnectionFactories, ",");
 		while (tokenizer.hasMoreTokens()) {
 			String jndiConnectionFactory = tokenizer.nextToken();
-			JMSConnectionData jmsConnectionData = new JMSConnectionData(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password));
+			JMSConnectionData jmsConnectionData = new JMSConnectionData(jndiConnectionFactory, globalContext.bindProperties(userName), globalContext.bindProperties(password), globalContext.bindProperties(clientID));
 			if (result.contains(jmsConnectionData)) {
 				throw new IllegalArgumentException("jndiConnectionFactories must not contain duplicates");
 			}
@@ -68,6 +70,9 @@ public final class JMSConnectionData {
 		if (_userName != null) {
 			result ^= _userName.hashCode();
 		}
+		if (_clientID != null) {
+			result ^= _clientID.hashCode();
+		}
 		return result;
 	}
 
@@ -80,14 +85,11 @@ public final class JMSConnectionData {
 		JMSConnectionData other = (JMSConnectionData) obj;
 		if (!_jndiConnectionFactory.equals(other._jndiConnectionFactory))
 			return false;
-		if (_userName == null) {
-			if (other._userName != null)
-				return false;
-		} else if (!_userName.equals(other._userName))
+		if (!Objects.equals(_userName, other._userName))
 			return false;
-		if (_password == null) {
-			return other._password == null;
-		} else return _password.equals(other._password);
+		if (!Objects.equals(_password, other._password))
+			return false;
+		return Objects.equals(_clientID, other._clientID);
 	}
 
 	@Override
@@ -99,6 +101,9 @@ public final class JMSConnectionData {
 		try {
 			ConnectionFactory connectionFactory = (ConnectionFactory) globalContext.getProperty(_jndiConnectionFactory);
 			Connection connection = _userName != null ? connectionFactory.createConnection(_userName, _password) : connectionFactory.createConnection();
+			if (_clientID != null) {
+				connection.setClientID(_clientID);
+			}
 			globalContext.addPropertyChangeListener(_jndiConnectionFactory, listener);
 			return connection;
 		} catch (NamingException e) {

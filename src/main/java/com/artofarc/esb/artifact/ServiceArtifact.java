@@ -132,7 +132,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 					throw new ValidationException(this, "With at only one worker is allowed");
 				}
 				int minWorkerCount = jmsBinding.getMinWorkerCount() != null ? jmsBinding.getMinWorkerCount() : jmsBinding.getWorkerCount();
-				List<JMSConnectionData> jmsConnectionDataList = JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword());
+				List<JMSConnectionData> jmsConnectionDataList = JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword(), jmsBinding.getClientID());
 				JMSConsumer[] group = new JMSConsumer[jmsConnectionDataList.size()];
 				for (int i = 0; i < jmsConnectionDataList.size(); ++i) {
 					JMSConnectionData jmsConnectionData = jmsConnectionDataList.get(i);
@@ -248,7 +248,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "jms": {
 			Jms jms = (Jms) actionElement.getValue();
-			List<JMSConnectionData> jmsConnectionData = JMSConnectionData.create(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword());
+			List<JMSConnectionData> jmsConnectionData = JMSConnectionData.create(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword(), jms.getClientID());
 			String multipartSubtype = jms.getMultipartSubtype() != null ? jms.getMultipartSubtype().value() : jms.getMultipart() != null ? "related" : null;
 			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), resolveWorkerPool(jms.getWorkerPool()), jms.isBytesMessage(),
 					jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.getExpiryQueue(),

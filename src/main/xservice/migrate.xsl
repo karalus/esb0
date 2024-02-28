@@ -60,4 +60,16 @@
 	<xsl:template match="ns:body[contains(text(),'${body.toString}')]">
 		<xsl:copy><xsl:value-of select="replace(text(),'\{body\.toString\}','{body}')" /></xsl:copy>
 	</xsl:template>
+	<xsl:template match="ns:jmsBinding[@subscription='receiveDeployments' and not(@clientID)]">
+		<xsl:copy>
+			<xsl:attribute name="clientID">${esb0.jms.instanceId}-<xsl:value-of select="@userName"/>@<xsl:value-of select="@jndiConnectionFactory"/>-default</xsl:attribute>
+			<xsl:apply-templates select="@*|node()" />
+		</xsl:copy>
+	</xsl:template>
+	<xsl:template match="ns:deserializeXop[local-name(following-sibling::*[1]) != 'transform']">
+		<deserializeXop/>
+		<transform>
+			<xquery>*</xquery>
+		</transform>
+	</xsl:template>
 </xsl:stylesheet>
