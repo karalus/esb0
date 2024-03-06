@@ -85,8 +85,13 @@ public final class WorkerPool implements AutoCloseable, Runnable, RejectedExecut
 		if (maxThreads > 0 && getMaximumPoolSize() < 0 || queueDepth != _queueDepth || scheduledThreads != _scheduledThreads || allowCoreThreadTimeOut != _allowCoreThreadTimeOut) {
 			return false;
 		}
-		setCorePoolSize(minThreads);
-		setMaximumPoolSize(maxThreads);
+		if (minThreads > getMaximumPoolSize()) {
+			setMaximumPoolSize(maxThreads);
+			setCorePoolSize(minThreads);
+		} else {
+			setCorePoolSize(minThreads);
+			setMaximumPoolSize(maxThreads);
+		}
 		_retry = retry;
 		return true;
 	}
