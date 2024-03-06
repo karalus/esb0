@@ -53,11 +53,11 @@ public abstract class JDBCAction extends Action {
 		_streamingToSink = moreThanOneResult;
 		_dsName = dsName != null ? dsName.intern() : null;
 		_sql = sql;
-		checkParameters(_params = params);
 		_maxRows = maxRows;
 		_timeout = timeout;
 		_keepConnection = keepConnection.intern();
 		_schemaSet = schemaSet;
+		checkParameters(_params = params);
 	}
 
 	protected final void checkParameters(List<JDBCParameter> params) {
