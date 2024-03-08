@@ -331,11 +331,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 						continue;
 					}
 				}
-				try {
-					action.addAssignment(hov.getName(), header, hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
-				} catch (LinkageError e) {
-					throw new ValidationException(this, hov.sourceLocation().getLineNumber(), e.getCause() != null ? e.getCause() : e);
-				}
+				action.addAssignment(hov.getName(), header, hov.getValue(), hov.getJavaType(), hov.getMethod(), hov.getField());
 			}
 			if (update.isClearHeaders()) {
 				action.setClearHeadersExcept(retainHeaders.isEmpty() ? Collections.emptySet() : retainHeaders);

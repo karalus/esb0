@@ -103,18 +103,22 @@ public class SetMessageAction extends ForwardAction {
 			_expr = expr;
 			_needsBody = expr.getString().contains("${body") || expr.getString().contains("${rawBody");
 			if (javaType != null) {
-				Class<?> cls = Class.forName(javaType, true, _classLoader);
-				if (method != null) {
-					_methodHandles = ReflectionUtils.findStaticMethods(cls, method, _expr.isEmpty() ? 0 : 1);
-				} else if (field != null) {
-					if (!expr.isEmpty()) {
-						throw new IllegalArgumentException("Field must not have an expression");
+				try {
+					Class<?> cls = Class.forName(javaType, true, _classLoader);
+					if (method != null) {
+						_methodHandles = ReflectionUtils.findStaticMethods(cls, method, _expr.isEmpty() ? 0 : 1);
+					} else if (field != null) {
+						if (!expr.isEmpty()) {
+							throw new IllegalArgumentException("Field must not have an expression");
+						}
+						Field _field = cls.getField(field);
+						ReflectionUtils.checkStatic(_field);
+						_methodHandles = DataStructures.toSingletonArray(DataStructures.createEntry(null, MethodHandles.publicLookup().unreflectGetter(_field)));
+					} else {
+						_methodHandles = ReflectionUtils.findConstructors(cls, _expr.isEmpty() ? 0 : 1);
 					}
-					Field _field = cls.getField(field);
-					ReflectionUtils.checkStatic(_field);
-					_methodHandles = DataStructures.toSingletonArray(DataStructures.createEntry(null, MethodHandles.publicLookup().unreflectGetter(_field)));
-				} else {
-					_methodHandles = ReflectionUtils.findConstructors(cls, _expr.isEmpty() ? 0 : 1);
+				} catch (LinkageError e) {
+					throw new IllegalStateException("Could not load Java class " + javaType, e);
 				}
 			} else {
 				_methodHandles = null;
