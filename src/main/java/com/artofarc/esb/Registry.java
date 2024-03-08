@@ -94,8 +94,10 @@ public class Registry extends AbstractContext {
 	public final void unregisterMBean(String postfix) {
 		if (_mbs != null) {
 			try {
-				ObjectName remove = _registered.remove(OBJECT_NAME + postfix);
-				_mbs.unregisterMBean(remove);
+				ObjectName name = _registered.remove(OBJECT_NAME + postfix);
+				if (name != null) {
+					_mbs.unregisterMBean(name);
+				}
 			} catch (JMException e) {
 				logger.error("unregisterMBean failed", e);
 			}
