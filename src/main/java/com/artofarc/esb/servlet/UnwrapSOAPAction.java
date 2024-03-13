@@ -21,7 +21,6 @@ import javax.wsdl.BindingOperation;
 import javax.xml.validation.Schema;
 
 import com.artofarc.esb.action.Action;
-import com.artofarc.esb.action.ExecutionException;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.message.ESBConstants.*;
@@ -43,8 +42,6 @@ public class UnwrapSOAPAction extends com.artofarc.esb.action.UnwrapSOAPAction {
 			if ("wsdl".equals(queryString) || "WSDL".equals(queryString)) {
 				message.getVariables().put(redirect, message.getVariable(ContextPath) + ESBServletContextListener.ADMIN_SERVLET_PATH + _wsdlUrl);
 				return null;
-			} else if (!_soap12) {
-				throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));
 			}
 		}
 		return super.prepare(context, message, inPipeline);
