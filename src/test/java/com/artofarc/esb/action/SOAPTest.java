@@ -432,6 +432,7 @@ public class SOAPTest extends AbstractESBTest {
       WSDLArtifact wsdlArtifact = fileSystem.getArtifact("/example/example.wsdl");
 
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+      message.putVariable(ESBConstants.HttpMethod, "POST");
       message.setContentType("text/xml; charset=\"utf-8\"");
       message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
       

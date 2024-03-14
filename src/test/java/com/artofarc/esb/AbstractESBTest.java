@@ -35,9 +35,11 @@ import org.junit.BeforeClass;
 import com.artofarc.esb.action.*;
 import com.artofarc.esb.artifact.*;
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.IOUtils;
@@ -161,7 +163,12 @@ public abstract class AbstractESBTest {
 				}
 				return super.determineOperation(message);
 			}
-			
+
+			@Override
+			protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+				message.putVariable(ESBConstants.HttpMethod, "POST");
+				return super.prepare(context, message, inPipeline);
+			}
 		};
 	}
 

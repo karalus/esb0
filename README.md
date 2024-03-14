@@ -139,7 +139,7 @@ Optional
 
 ### Roadmap ###
 
-__1.11__ (Q4 2023):
+__1.11__ (Q1 2024):
 - Optimized for Java 11 and later (deprecate support for Java 8)
 - Offer new JDK HTTP Client thus facilitate asynchronous HTTP and HTTP/2 outbound
 
