@@ -91,10 +91,6 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		return new JMSSession(this, jmsConnectionData, connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE));
 	}
 
-	boolean isConnected(JMSConnectionData jmsConnectionData) {
-		return getResource(jmsConnectionData).isConnected();
-	}
-
 	ConnectionMetaData getConnectionMetaData(JMSConnectionData jmsConnectionData) {
 		return getResource(jmsConnectionData).getConnectionMetaData();
 	}

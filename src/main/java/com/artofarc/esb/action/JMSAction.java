@@ -288,7 +288,7 @@ public class JMSAction extends Action {
 					if (timeToLive == 0 || timeToLive > deliveryDelay) {
 						jmsSession.setDeliveryDelay(producer, jmsMessage, deliveryDelay);
 					} else if (_expiryQueue != null) {
-						producer = jmsSession.createProducer(jmsSession.createQueue(_expiryQueue));
+						producer = jmsSession.createProducer(destination = jmsSession.createQueue(_expiryQueue));
 						timeToLive = Message.DEFAULT_TIME_TO_LIVE;
 					} else {
 						throw new ExecutionException(this, "Message is about to expire");
@@ -305,7 +305,7 @@ public class JMSAction extends Action {
 							context.getStackErrorHandler(), context.getStackPos(), message.getVariables(), System.currentTimeMillis() + timeLeft);
 					completionListener.send(producer, jmsMessage, _deliveryMode, _priority, timeToLive);
 				} else {
-					producer.send(jmsMessage, _deliveryMode, _priority, timeToLive);
+					jmsSession.send(producer, jmsMessage, _deliveryMode, _priority, timeToLive);
 					message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
 				}
 			} else {

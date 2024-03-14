@@ -50,7 +50,7 @@ public final class JMSSession implements AutoCloseable {
 	}
 
 	public boolean isConnected() {
-		return _jmsConnectionProvider.isConnected(_jmsConnectionData);
+		return _jmsConnectionProvider.getResource(_jmsConnectionData).isConnected();
 	}
 
 	public Session getSession() {
@@ -122,6 +122,15 @@ public final class JMSSession implements AutoCloseable {
 			default:
 				throw new JMSException("Delivery delay not implemented for " + jmsProviderName);
 			}
+		}
+	}
+
+	public void send(MessageProducer producer, Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
+		try {
+			producer.send(message, deliveryMode, priority, timeToLive);
+		} catch (JMSException e) {
+			_jmsConnectionProvider.getResource(_jmsConnectionData).scheduleReconnect();
+			throw e;
 		}
 	}
 
