@@ -18,8 +18,8 @@ public class HttpUrlSelectorTest extends AbstractESBTest {
 		for (int i = 0; i < 6; ++i) {
 			list.add(new HttpUrl("http://localhost:" + (9001 + i), 1, true));
 		}
-		HttpEndpoint httpEndpoint = new HttpEndpoint(null, list, true, null, null, 1000, 5, 120, new HttpCheckAlive(), System.currentTimeMillis(), Proxy.NO_PROXY, null);
-		HttpUrlSelector httpUrlSelector = new HttpUrlSelector(httpEndpoint , getGlobalContext().getDefaultWorkerPool());
+		HttpEndpoint httpEndpoint = new HttpEndpoint(null, list, true, null, null, 1000, 5, 120, new HttpCheckAlive(), System.currentTimeMillis(), Proxy.NO_PROXY, null, null);
+		Http1UrlSelector httpUrlSelector = new Http1UrlSelector(httpEndpoint , getGlobalContext().getDefaultWorkerPool());
 		int oldpos = 5;
 		for (int i = 0; i < 20; ++i) {
 			int pos = httpUrlSelector.computeNextPos(httpEndpoint);
@@ -35,8 +35,8 @@ public class HttpUrlSelectorTest extends AbstractESBTest {
 		for (int i = 0; i < 6; ++i) {
 			list.add(new HttpUrl("http://localhost:" + (9001 + i), 1, true));
 		}
-		HttpEndpoint httpEndpoint = new HttpEndpoint(null, list, false, null, null, 1000, 5, 120, new HttpCheckAlive(), System.currentTimeMillis(), Proxy.NO_PROXY, null);
-		HttpUrlSelector httpUrlSelector = new HttpUrlSelector(httpEndpoint , getGlobalContext().getDefaultWorkerPool());
+		HttpEndpoint httpEndpoint = new HttpEndpoint(null, list, false, null, null, 1000, 5, 120, new HttpCheckAlive(), System.currentTimeMillis(), Proxy.NO_PROXY, null, null);
+		Http1UrlSelector httpUrlSelector = new Http1UrlSelector(httpEndpoint , getGlobalContext().getDefaultWorkerPool());
 		for (int i = 0; i < 6; i += 2) {
 			// every even position is in use
 			httpUrlSelector.new HttpUrlConnection(httpEndpoint, i, null, null);
@@ -54,8 +54,8 @@ public class HttpUrlSelectorTest extends AbstractESBTest {
 		for (int i = 0; i < 6; ++i) {
 			list.add(new HttpUrl("http://localhost:" + (9001 + i), 1, true));
 		}
-		HttpEndpoint httpEndpoint = new HttpEndpoint(null, list, false, null, null, 1000, 5, 120, new HttpCheckAlive(), System.currentTimeMillis(), Proxy.NO_PROXY, null);
-		HttpUrlSelector httpUrlSelector = new HttpUrlSelector(httpEndpoint , getGlobalContext().getDefaultWorkerPool());
+		HttpEndpoint httpEndpoint = new HttpEndpoint(null, list, false, null, null, 1000, 5, 120, new HttpCheckAlive(), System.currentTimeMillis(), Proxy.NO_PROXY, null, null);
+		Http1UrlSelector httpUrlSelector = new Http1UrlSelector(httpEndpoint , getGlobalContext().getDefaultWorkerPool());
 		for (int i = 0; i < 6; ++i) {
 			httpUrlSelector.new HttpUrlConnection(httpEndpoint, i, null, null);
 		}

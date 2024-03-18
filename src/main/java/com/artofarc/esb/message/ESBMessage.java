@@ -387,12 +387,13 @@ public final class ESBMessage implements Cloneable {
 	public byte[] getBodyAsByteArray(Context context) throws Exception {
 		byte[] ba;
 		Charset charset = _charset;
-		ByteArrayOutputStream bos;
 		switch (_bodyType) {
 		case DOM:
 		case SOURCE:
 		case JSON_VALUE:
-			writeRawTo(bos = new ByteArrayOutputStream(), context);
+		case XQ_ITEM:
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			writeRawTo(bos, context);
 			ba = bos.toByteArray();
 			charset = _sinkEncoding;
 			break;
@@ -408,12 +409,6 @@ public final class ESBMessage implements Cloneable {
 			return (byte[]) _body;
 		case INPUT_STREAM:
 			ba = IOUtils.toByteArray(getUncompressedInputStream((InputStream) _body));
-			break;
-		case XQ_ITEM:
-			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(bos = new ByteArrayOutputStream(), getSinkProperties());
-			ba = bos.toByteArray();
-			charset = _sinkEncoding;
 			break;
 		case INVALID:
 			throw new IllegalStateException("Message is invalid");

@@ -23,19 +23,23 @@ import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
-import java.net.CookieStore;
 import java.net.HttpCookie;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
 import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 
-public final class HttpGlobalContext implements CookiePolicy {
+public final class HttpGlobalContext extends ProxySelector implements CookiePolicy {
 
+	private final static List<Proxy> NO_PROXY_LIST = List.of(Proxy.NO_PROXY);
 	private final static CookiePolicy defaultCookiePolicy;
 
 	static {
@@ -57,6 +61,7 @@ public final class HttpGlobalContext implements CookiePolicy {
 	private final CookieManager _cookieManager;
 	private final ConcurrentHashMap<URI, CookiePolicy> _policies;
 	private final HashMap<String, SSLContext> _keyStores = new HashMap<>();
+	private final ConcurrentHashMap<String, List<Proxy>> _proxies = new ConcurrentHashMap<>();
 
 	public HttpGlobalContext() {
 		// In Java 11 there is Authenticator::getDefault
@@ -84,12 +89,12 @@ public final class HttpGlobalContext implements CookiePolicy {
 		}
 	}
 
-	public ProxyAuthenticator getProxyAuthenticator() {
-		return _proxyAuthenticator;
+	public CookieManager getCookieManager() {
+		return _cookieManager;
 	}
 
-	public CookieStore getCookieStore() {
-		return _cookieManager != null ? _cookieManager.getCookieStore() : null;
+	public ProxyAuthenticator getProxyAuthenticator() {
+		return _proxyAuthenticator;
 	}
 
 	@Override
@@ -126,6 +131,26 @@ public final class HttpGlobalContext implements CookiePolicy {
 			_keyStores.put(keyStore, sslContext);
 		}
 		return sslContext;
+	}
+
+	public void registerProxy(HttpEndpoint httpEndpoint) {
+		if (!httpEndpoint.getProxy().equals(Proxy.NO_PROXY)) {
+			List<Proxy> proxyList = List.of(httpEndpoint.getProxy());
+			for (HttpUrl httpUrl : httpEndpoint.getHttpUrls()) {
+				_proxies.put(httpUrl.getBaseUrl(), proxyList);
+			}
+		}
+	}
+
+	@Override
+	public List<Proxy> select(URI uri) {
+		String baseUrl = uri.getScheme() + "://" + uri.getAuthority();
+		return _proxies.getOrDefault(baseUrl, NO_PROXY_LIST);
+	}
+
+	@Override
+	public void connectFailed(URI uri, SocketAddress sa, IOException e) {
+		// ignore
 	}
 
 	public void close() {

@@ -16,7 +16,6 @@
 package com.artofarc.util;
 
 import java.io.*;
-import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -107,10 +106,6 @@ public final class IOUtils {
 		}
 	}
 
-	private final static MethodHandle BUF = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "buf");
-	private final static MethodHandle POS = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "pos");
-	private final static MethodHandle COUNT = ReflectionUtils.unreflectGetter(java.io.ByteArrayInputStream.class, "count");
-
 	static byte[] toByteArray(byte buf[], int pos, int count) {
 		if (pos == 0 && buf.length == count) {
 			return buf;
@@ -126,16 +121,20 @@ public final class IOUtils {
 			return bis.toByteArray();
 		}
 		if (is instanceof java.io.ByteArrayInputStream) {
-			return toByteArray(ReflectionUtils.invoke(BUF, is), ReflectionUtils.invoke(POS, is), ReflectionUtils.invoke(COUNT, is));
+			return toByteArray(is, is.available());
 		}
 		if (is instanceof PredictableInputStream) {
-			final byte[] ba = new byte[((PredictableInputStream) is).lengthAsInt()];
-			readFully(is, ba);
-			return ba;
+			return toByteArray(is, ((PredictableInputStream) is).lengthAsInt());
 		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		copy(is, os);
 		return os.toByteArray();
+	}
+
+	private static byte[] toByteArray(InputStream is, int length) throws IOException {
+		final byte[] ba = new byte[length];
+		readFully(is, ba);
+		return ba;
 	}
 
 	public static ByteBuffer toByteBuffer(InputStream is) throws IOException {
@@ -144,19 +143,21 @@ public final class IOUtils {
 			return bis.toByteBuffer();
 		}
 		if (is instanceof java.io.ByteArrayInputStream) {
-			int pos = ReflectionUtils.invoke(POS, is);
-			int count = ReflectionUtils.invoke(COUNT, is);
-			return ByteBuffer.wrap(ReflectionUtils.invoke(BUF, is), pos, count - pos);
+			return toByteBuffer(is, is.available());
 		}
 		if (is instanceof PredictableInputStream) {
-			ByteBuffer byteBuffer = ByteBuffer.allocate(((PredictableInputStream) is).lengthAsInt());
-			for (ReadableByteChannel channel = ((PredictableInputStream) is).getChannel(); channel.read(byteBuffer) >= 0 && byteBuffer.remaining() > 0;);
-			if (byteBuffer.remaining() > 0) throw new EOFException();
-			return (ByteBuffer) byteBuffer.rewind();
+			return toByteBuffer(is, ((PredictableInputStream) is).lengthAsInt());
 		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		copy(is, os);
 		return os.toByteBuffer();
+	}
+
+	private static ByteBuffer toByteBuffer(InputStream is, int length) throws IOException {
+		ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+		for (ReadableByteChannel channel = ((PredictableInputStream) is).getChannel(); channel.read(byteBuffer) >= 0 && byteBuffer.remaining() > 0;);
+		if (byteBuffer.remaining() > 0) throw new EOFException();
+		return (ByteBuffer) byteBuffer.rewind();
 	}
 
 	public static String toString(InputStream is, Charset charset) throws IOException {

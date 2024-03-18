@@ -23,8 +23,8 @@ import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
 
 import com.artofarc.esb.http.HttpEndpoint;
-import com.artofarc.esb.http.HttpUrlSelector;
-import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnection;
+import com.artofarc.esb.http.Http1UrlSelector;
+import com.artofarc.esb.http.Http1UrlSelector.HttpUrlConnection;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.util.ByteArrayOutputStream;
@@ -50,8 +50,8 @@ public class HttpOutboundAction extends Action {
 		_offeringSink = true;
 	}
 
-	private HttpUrlSelector.HttpUrlConnection createHttpURLConnection(Context context, ESBMessage message, Long contentLength) throws Exception {
-		HttpUrlSelector httpUrlSelector = context.getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
+	private HttpUrlConnection createHttpURLConnection(Context context, ESBMessage message, Long contentLength) throws Exception {
+		Http1UrlSelector httpUrlSelector = context.getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint, context.getGlobalContext().getDefaultWorkerPool());
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
 		String appendHttpUrl = message.getVariable(appendHttpUrlPath);

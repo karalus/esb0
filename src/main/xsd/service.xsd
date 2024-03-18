@@ -74,6 +74,14 @@
 					<attribute name="keyStore" type="tns:globalExpression" />
 					<attribute name="keyStorePassword" type="tns:globalExpression" />
 					<attribute name="cookiePolicy" type="tns:CookiePolicy" />
+					<attribute name="version">
+						<simpleType>
+							<restriction base="string">
+								<enumeration value="HTTP/1.1" />
+								<enumeration value="HTTP/2" />
+							</restriction>
+						</simpleType>
+					</attribute>
 				</extension>
 			</complexContent>
 		</complexType>

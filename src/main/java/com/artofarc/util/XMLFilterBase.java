@@ -17,9 +17,6 @@ package com.artofarc.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -31,23 +28,6 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLFilterImpl;
 
 public class XMLFilterBase extends XMLFilterImpl {
-
-	private final static MethodHandle VALUE;
-
-	static {
-		try {
-			Field value = String.class.getDeclaredField("value");
-			if (value.getType().getComponentType() == Character.TYPE) {
-				value.setAccessible(true);
-				VALUE = MethodHandles.lookup().unreflectGetter(value);
-			} else {
-				// JDK11
-				VALUE = null;
-			}
-		} catch (NoSuchFieldException | IllegalAccessException e) {
-			throw new RuntimeException(e);
-		}
-	}
 
 	public XMLFilterBase() {
 	}
@@ -77,18 +57,10 @@ public class XMLFilterBase extends XMLFilterImpl {
 		}
 	}
 
-	protected final void characters(String str) throws SAXException {
-		if (str.length() > 0) {
-			if (VALUE != null) {
-				// Avoid copying to reduce GC overhead
-				try {
-					characters((char[]) VALUE.invokeExact(str), 0, str.length());
-				} catch (Throwable e) {
-					throw ReflectionUtils.convert(e, SAXException.class);
-				}
-			} else {
-				characters(str.toCharArray(), 0, str.length());
-			}
+	public final void characters(String str) throws SAXException {
+		final int len = str.length();
+		if (len > 0) {
+			characters(str.toCharArray(), 0, len);
 		}
 	}
 

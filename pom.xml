@@ -18,7 +18,7 @@
 	<groupId>com.artofarc.eai</groupId>
 	<artifactId>esb0</artifactId>
 	<packaging>war</packaging>
-	<version>1.10.4-SNAPSHOT</version>
+	<version>1.11.0-SNAPSHOT</version>
 	<name>ESB Zero Maven Webapp</name>
 	<url>https://github.com/karalus/esb0</url>
 	<properties>
@@ -180,6 +180,8 @@
 				<!-- To build with Java 9 or newer (https://www.morling.dev/blog/bytebuffer-and-the-dreaded-nosuchmethoderror/)
 					<release>8</release>
 				-->
+					<source>1.11</source>
+					<target>1.11</target>
 				</configuration>
 			</plugin>
 			<plugin>
