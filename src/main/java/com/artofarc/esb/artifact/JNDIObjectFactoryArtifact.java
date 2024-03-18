@@ -53,10 +53,10 @@ public final class JNDIObjectFactoryArtifact extends AbstractServiceArtifact {
 		Class<?> type = classLoader.loadClass(_type);
 		_properties = createProperties(jndiObjectFactory.getProperty(), globalContext);
 		if (jndiObjectFactory.getEsb0Factory() != null) {
-			_factory = (Factory) classLoader.loadClass(jndiObjectFactory.getEsb0Factory()).newInstance();
+			_factory = (Factory) classLoader.loadClass(jndiObjectFactory.getEsb0Factory()).getConstructor().newInstance();
 			_factory.validate(type, _properties);
 		} else if (jndiObjectFactory.getFactory() != null) {
-			_objectFactory = (ObjectFactory) classLoader.loadClass(jndiObjectFactory.getFactory()).newInstance();
+			_objectFactory = (ObjectFactory) classLoader.loadClass(jndiObjectFactory.getFactory()).getConstructor().newInstance();
 		} else {
 			throw new ValidationException(this, "Either objectFactory or esb0Factory must be set");
 		}

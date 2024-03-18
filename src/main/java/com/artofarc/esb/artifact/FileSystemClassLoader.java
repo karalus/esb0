@@ -75,7 +75,7 @@ public class FileSystemClassLoader extends SecureClassLoader {
 					int pos = name.lastIndexOf('.');
 					if (pos > 0) {
 						String packageName = name.substring(0, pos);
-						if (getPackage(packageName) == null) {
+						if (getDefinedPackage(packageName) == null) {
 							String specTitle = null, specVersion = null, specVendor = null;
 							String implTitle = null, implVersion = null, implVendor = null;
 							Manifest manifest = jar.getManifest();

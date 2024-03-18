@@ -15,7 +15,6 @@
  */
 package com.artofarc.util;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +31,6 @@ import javax.xml.datatype.XMLGregorianCalendar;
  */
 public final class URLUtils {
 
-	private static final String UTF_8 = "UTF-8";
 	private static final BitSet DONT_NEED_ENCODING = new BitSet(128);
 
 	static {
@@ -89,21 +87,12 @@ public final class URLUtils {
 		return Character.isLowerCase((int) c) ? (char) (c - 32) : c;
 	}
 
-	// JDK11 allows for improvement
 	public static String encode(String s) {
-		try {
-			return URLEncoder.encode(s, UTF_8);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
+		return URLEncoder.encode(s, StandardCharsets.UTF_8);
 	}
 
 	public static String decode(String s) {
-		try {
-			return URLDecoder.decode(s, UTF_8);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
+		return URLDecoder.decode(s, StandardCharsets.UTF_8);
 	}
 
 	@SuppressWarnings("unchecked")

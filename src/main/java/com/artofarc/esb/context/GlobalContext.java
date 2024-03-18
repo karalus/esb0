@@ -153,7 +153,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.XMLProcessorFactory", "SAX_PARSER_FACTORY");
 		logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.XMLProcessorFactory", "SAX_TRANSFORMER_FACTORY");
 		if (_xqConnection != null) {
-			logVersion("XQJ", Package.getPackage("javax.xml.xquery"), _xqConnection.getClass());
+			logVersion("XQJ", _xqConnection.getClass().getClassLoader().getDefinedPackage("javax.xml.xquery"), _xqConnection.getClass());
 		} else {
 			logger.warn("XQJ not supported");
 		}
@@ -173,13 +173,14 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 				field.setAccessible(true);
 				Object factory = field.get(null);
 				if (factory instanceof Class) {
-					logVersion(capability, Package.getPackage(ifcPkg), (Class<?>) factory);
+					Class<?> factoryCls = (Class<?>) factory;
+					logVersion(capability, factoryCls.getClassLoader().getDefinedPackage(ifcPkg), factoryCls);
 				} else if (factory != null) {
 					logVersion(capability, field.getType().getPackage(), factory.getClass());
 				}
 			} else {
 				Class<?> cls = Class.forName(factoryClass, false, _classLoader);
-				logVersion(capability, Package.getPackage(ifcPkg), cls);
+				logVersion(capability, cls.getClassLoader().getDefinedPackage(ifcPkg), cls);
 			}
 		} catch (ReflectiveOperationException e) {
 			logger.error("Could not get factory for " + capability, e);
