@@ -121,7 +121,7 @@ public final class HttpEndpoint {
 		return (_retries + 1) * _connectTimeout;
 	}
 
-	public boolean isCompatible(HttpEndpoint other) {
+	boolean isCompatible(HttpEndpoint other) {
 		ListIterator<HttpUrl> i1 = _endpoints.listIterator();
 		ListIterator<HttpUrl> i2 = other._endpoints.listIterator();
 		while (i1.hasNext() && i2.hasNext()) {
@@ -132,11 +132,10 @@ public final class HttpEndpoint {
 		return !(i1.hasNext() || i2.hasNext());
 	}
 
-	public boolean hasSameConfig(HttpEndpoint other) {
+	boolean hasSameConfig(HttpEndpoint other) {
 		return _endpoints.equals(other._endpoints) && _connectTimeout == other._connectTimeout && _retries == other._retries && _multiThreaded == other._multiThreaded
-				&& Objects.equals(_checkAliveInterval, other._checkAliveInterval) && Objects.equals(_checkAlive, other._checkAlive)
-				&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && Objects.equals(_proxy, other._proxy) && Objects.equals(_sslContext, other._sslContext)
-				&& _version == other._version;
+				&& _version == other._version && Objects.equals(_checkAliveInterval, other._checkAliveInterval) && Objects.equals(_checkAlive, other._checkAlive)
+				&& Objects.equals(_basicAuthCredential, other._basicAuthCredential) && Objects.equals(_proxy, other._proxy) && Objects.equals(_sslContext, other._sslContext);
 	}
 
 }

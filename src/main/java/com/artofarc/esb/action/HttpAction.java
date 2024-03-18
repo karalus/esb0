@@ -81,9 +81,7 @@ public class HttpAction extends Action {
 	private HttpRequest.Builder createHttpRequestBuilder(Context context, ESBMessage message, int timeout, HttpRequest.BodyPublisher bodyPublisher) throws Exception {
 		HttpRequest.Builder builder = HttpRequest.newBuilder().method(message.getVariable(HttpMethod), bodyPublisher).timeout(Duration.ofMillis(timeout));
 		for (Map.Entry<String, Object> entry : message.getHeaders()) {
-			if (entry.getValue() != null) {
-				builder.header(entry.getKey(), entry.getValue().toString());
-			}
+			builder.header(entry.getKey(), entry.getValue().toString());
 		}
 		String basicAuthCredential = _httpEndpoint.getBasicAuthCredential();
 		if (basicAuthCredential != null) {
@@ -116,12 +114,12 @@ public class HttpAction extends Action {
 		if (asyncProcessingPool == null) {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + workerPool.getName());
 		}
-		// TO REVIEW
 		Object correlationID = asyncProcessingPool.saveContext(null, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()), new ArrayList<>(context.getStackErrorHandler()),
 				context.getStackPos(), message.getVariables(), _httpEndpoint.getMaxConnectTimeout() + timeout + System.currentTimeMillis());
 
 		return (httpResponse, exception) -> {
-			ESBMessage esbMessage = exception != null ? new ESBMessage(BodyType.EXCEPTION, exception.getCause()) : new ESBMessage(BodyType.INVALID, null);
+			ESBMessage esbMessage = exception == null ? new ESBMessage(BodyType.INVALID, null)
+					: new ESBMessage(BodyType.EXCEPTION, exception.getCause() != null ? exception.getCause() : exception);
 			Context workerContext = workerPool.getContext();
 			Action action = workerPool.getAsyncProcessingPool().restoreContext(correlationID, workerContext, esbMessage);
 			try {
