@@ -15,9 +15,9 @@
  */
 package com.artofarc.esb.http;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
-import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -80,7 +80,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 				}
 				_totalConnectionsCount.incrementAndGet();
 				return httpResponse;
-			} catch (ConnectException | NoRouteToHostException | HttpCheckAlive.ConnectException e) {
+			} catch (IOException e) {
 				if (httpEndpoint.getCheckAliveInterval() != null) {
 					setActive(pos, false);
 				}
@@ -129,7 +129,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 				exc = retry ? new HttpCheckAlive.ConnectException(urlStr + " is not alive. Response code " + httpResponse.statusCode()) : null;
 			} else {
 				exc = completionException.getCause();
-				retry = exc instanceof ConnectException || exc instanceof NoRouteToHostException;
+				retry = exc instanceof IOException;
 			}
 			if (retry) {
 				if (httpEndpoint.getCheckAliveInterval() != null) {

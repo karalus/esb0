@@ -64,14 +64,7 @@ public final class HttpGlobalContext extends ProxySelector implements CookiePoli
 	private final ConcurrentHashMap<String, List<Proxy>> _proxies = new ConcurrentHashMap<>();
 
 	public HttpGlobalContext() {
-		// In Java 11 there is Authenticator::getDefault
-		try {
-			Field field = Authenticator.class.getDeclaredField("theAuthenticator");
-			field.setAccessible(true);
-			_authenticator = (Authenticator) field.get(null);
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
-		}
+		_authenticator = Authenticator.getDefault();
 		Authenticator.setDefault(_proxyAuthenticator = new ProxyAuthenticator(_authenticator));
 		CookieHandler cookieHandler = CookieHandler.getDefault();
 		if (defaultCookiePolicy != null) {
