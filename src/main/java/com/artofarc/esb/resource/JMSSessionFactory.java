@@ -24,23 +24,25 @@ import com.artofarc.esb.jms.JMSSession;
 
 public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnectionData, Boolean, JMSException> {
 
-	private final Context _context;
+	private final JMSConnectionProvider _jmsConnectionProvider;
 
 	public JMSSessionFactory(Context context) {
-		_context = context;
+		_jmsConnectionProvider = context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
+	}
+
+	public JMSConnectionProvider getJMSConnectionProvider() {
+		return _jmsConnectionProvider;
 	}
 
 	@Override
 	protected JMSSession createResource(JMSConnectionData jmsConnectionData, Boolean transacted) throws JMSException {
-		JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
-		return jmsConnectionProvider.createSession(jmsConnectionData, this, transacted);
+		return new JMSSession(this, jmsConnectionData, transacted);
 	}
 
 	@Override
 	public void close() {
-		JMSConnectionProvider jmsConnectionProvider = _context.getPoolContext().getResourceFactory(JMSConnectionProvider.class);
 		for (JMSConnectionData jmsConnectionData : getResourceDescriptors()) {
-			jmsConnectionProvider.unregisterJMSSessionFactory(jmsConnectionData, this);
+			_jmsConnectionProvider.unregisterJMSSessionFactory(jmsConnectionData, this);
 		}
 		super.close();
 	}

@@ -23,6 +23,7 @@ import java.util.Map;
 import javax.jms.*;
 
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.DataStructures;
 
 /**
@@ -32,17 +33,23 @@ public final class JMSSession implements AutoCloseable {
 
 	private static final boolean checkConnection = Boolean.parseBoolean(System.getProperty("esb0.jms.producer.checkConnection"));
 
-	private final JMSConnectionProvider _jmsConnectionProvider;
 	private final JMSConnectionData _jmsConnectionData;
-	private final Session _session;
+	private final JMSConnectionProvider.JMSConnectionGuard _jmsConnection;
+	private final boolean _transacted;
 	private final Map<Destination, MessageProducer> _producers = new HashMap<>();
+	private Session _session;
 	private TemporaryQueue _temporaryQueue;
 	private MessageConsumer _consumer;
 
-	public JMSSession(JMSConnectionProvider jmsConnectionProvider, JMSConnectionData jmsConnectionData, Session session) {
-		_jmsConnectionProvider = jmsConnectionProvider;
+	public JMSSession(JMSSessionFactory jmsSessionFactory, JMSConnectionData jmsConnectionData, boolean transacted) throws JMSException {
 		_jmsConnectionData = jmsConnectionData;
-		_session = session;
+		_transacted = transacted;
+		(_jmsConnection = jmsSessionFactory.getJMSConnectionProvider().getResource(jmsConnectionData)).addJMSSessionFactory(jmsSessionFactory);;
+		createSession();
+	}
+
+	private void createSession() throws JMSException {
+		_session = _jmsConnection.getConnection().createSession(_transacted, _transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE);
 	}
 
 	public JMSConnectionData getJMSConnectionData() {
@@ -50,7 +57,7 @@ public final class JMSSession implements AutoCloseable {
 	}
 
 	public boolean isConnected() {
-		return _jmsConnectionProvider.getResource(_jmsConnectionData).isConnected();
+		return _jmsConnection.isConnected();
 	}
 
 	public Session getSession() {
@@ -96,17 +103,19 @@ public final class JMSSession implements AutoCloseable {
 	public TemporaryQueue getTemporaryQueue() throws JMSException {
 		if (_temporaryQueue == null) {
 			_temporaryQueue = _session.createTemporaryQueue();
-			_consumer = _session.createConsumer(_temporaryQueue);
 		}
 		return _temporaryQueue;
 	}
 
-	public MessageConsumer getConsumerForTemporaryQueue() {
+	public MessageConsumer getConsumerForTemporaryQueue() throws JMSException {
+		if (_consumer == null) {
+			_consumer = _session.createConsumer(_temporaryQueue);
+		}
 		return _consumer;
 	}
 
 	public void setDeliveryDelay(MessageProducer producer, Message message, long deliveryDelay) throws JMSException {
-		ConnectionMetaData connectionMetaData = _jmsConnectionProvider.getConnectionMetaData(_jmsConnectionData);
+		ConnectionMetaData connectionMetaData = _jmsConnection.getConnectionMetaData();
 		if (connectionMetaData.getJMSMajorVersion() > 1) {
 			producer.setDeliveryDelay(deliveryDelay);
 		} else if (deliveryDelay > 0) {
@@ -129,22 +138,36 @@ public final class JMSSession implements AutoCloseable {
 		try {
 			producer.send(message, deliveryMode, priority, timeToLive);
 		} catch (JMSException e) {
-			_jmsConnectionProvider.getResource(_jmsConnectionData).scheduleReconnect();
+			if ("Oracle".equals(_jmsConnection.getConnectionMetaData().getJMSProviderName())) {
+				close();
+				createSession();
+				// Alternatively
+				//_jmsConnection.scheduleReconnect();
+			}
 			throw e;
 		}
 	}
 
 	@Override
 	public void close() throws JMSException {
-		if (_consumer != null) {
-			_consumer.close();
-			_temporaryQueue.delete();
-		}
 		for (Destination destination : _producers.keySet()) {
 			JMSConnectionProvider.logger.info("Closing producer for " + getDestinationName(destination));
 		}
 		_producers.clear();
-		_jmsConnectionProvider.closeSession(_jmsConnectionData, this);
+		if (_temporaryQueue != null) {
+			try {
+				if (_consumer != null) {
+					_consumer.close();
+				}
+				_temporaryQueue.delete();
+			} catch (JMSException e) {
+				JMSConnectionProvider.logger.warn("Could not delete " + _temporaryQueue.getQueueName(), e);
+			}
+			_consumer = null;
+			_temporaryQueue = null;
+		}
+		_jmsConnection.closeSession(this);
+		_session = null;
 	}
 
 	public Collection<String> getProducerDestinations() throws JMSException {

@@ -31,7 +31,6 @@ import javax.jms.Connection;
 import javax.jms.ConnectionMetaData;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
-import javax.jms.Session;
 import javax.management.AttributeChangeNotification;
 import javax.management.MBeanNotificationInfo;
 import javax.management.NotificationBroadcasterSupport;
@@ -86,24 +85,6 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		getResource(jmsConnectionData).removeJMSConsumer(jmsConsumer);
 	}
 
-	public JMSSession createSession(JMSConnectionData jmsConnectionData, JMSSessionFactory jmsSessionFactory, boolean transacted) throws JMSException {
-		Connection connection = getResource(jmsConnectionData).getConnection(jmsSessionFactory);
-		return new JMSSession(this, jmsConnectionData, connection.createSession(transacted, transacted ? Session.SESSION_TRANSACTED : Session.AUTO_ACKNOWLEDGE));
-	}
-
-	ConnectionMetaData getConnectionMetaData(JMSConnectionData jmsConnectionData) {
-		return getResource(jmsConnectionData).getConnectionMetaData();
-	}
-
-	void closeSession(JMSConnectionData jmsConnectionData, JMSSession jmsSession) throws JMSException {
-		if (closeWithTimeout > 0) {
-			// Oracle AQ sometimes waits forever in close()
-			Closer.closeWithTimeout(jmsSession.getSession(), _poolContext.getWorkerPool().getExecutorService(), closeWithTimeout, jmsConnectionData.toString(), JMSException.class);
-		} else {
-			jmsSession.getSession().close();
-		}
-	}
-
 	final class JMSConnectionGuard extends NotificationBroadcasterSupport implements AutoCloseable, ExceptionListener, Runnable, GlobalContext.PropertyChangeListener, com.artofarc.esb.mbean.JMSConnectionGuardMXBean {
 
 		private final ReentrantLock _lock = new ReentrantLock();
@@ -149,7 +130,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			return _connectionMetaData;
 		}
 
-		Connection getConnection(JMSSessionFactory jmsSessionFactory) throws JMSException {
+		Connection getConnection() throws JMSException {
 			Connection connection = _connection;
 			if (connection == null && _future == null && !_disconnected) {
 				_lock.lock();
@@ -171,8 +152,20 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			if (connection == null) {
 				throw new JMSException("Currently not connected to " + _jmsConnectionData);
 			}
-			_jmsSessionFactories.add(jmsSessionFactory);
 			return connection;
+		}
+
+		void closeSession(JMSSession jmsSession) throws JMSException {
+			if (closeWithTimeout > 0) {
+				// Oracle AQ sometimes waits forever in close()
+				Closer.closeWithTimeout(jmsSession.getSession(), _poolContext.getWorkerPool().getExecutorService(), closeWithTimeout, getConnectionData(), JMSException.class);
+			} else {
+				jmsSession.getSession().close();
+			}
+		}
+
+		void addJMSSessionFactory(JMSSessionFactory jmsSessionFactory) {
+			_jmsSessionFactories.add(jmsSessionFactory);
 		}
 
 		void removeJMSSessionFactory(JMSSessionFactory jmsSessionFactory) {
