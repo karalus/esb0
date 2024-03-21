@@ -912,11 +912,13 @@ public final class ESBMessage implements Cloneable {
 
 	public ESBMessage copy(Context context, boolean withBody, boolean withHeaders, boolean withAttachments) throws Exception {
 		final ESBMessage clone;
-		Object newBody = cloneBody(context, true);
 		if (withBody) {
-			clone = new ESBMessage(_bodyType, newBody, _charset);
+			clone = new ESBMessage(_bodyType, cloneBody(context, true), _charset);
 			clone.setContentType(_contentType);
 		} else {
+			if (!isSink()) {
+				cloneBody(context, true);
+			}
 			clone = new ESBMessage(BodyType.INVALID, null, null);
 		}
 		if (withHeaders) {
