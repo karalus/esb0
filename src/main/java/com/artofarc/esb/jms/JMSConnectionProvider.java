@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.jms.Connection;
@@ -97,6 +98,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		private volatile long _sequenceNumber;
 		private volatile long _lastChangeOfState;
 		private volatile boolean _disconnected;
+		private final AtomicBoolean _connecting = new AtomicBoolean();
 
 		private JMSConnectionGuard(JMSConnectionData jmsConnectionData) {
 			super(_poolContext.getWorkerPool().getExecutorService(), new MBeanNotificationInfo(new String[] { AttributeChangeNotification.ATTRIBUTE_CHANGE },
@@ -197,6 +199,13 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			_future = scheduledExecutorService.scheduleAtFixedRate(this, reconnectInterval, reconnectInterval, TimeUnit.SECONDS);
 		}
 
+		private void cancelReconnectTask() {
+			Future<?> future = _future;
+			if (future != null && future.cancel(false)) {
+				_future = null;
+			}
+		}
+
 		@Override
 		public void onException(JMSException jmsException) {
 			logger.warn("JMSException received for " + _jmsConnectionData, jmsException);
@@ -261,30 +270,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 
 		@Override
 		public void run() {
-			logger.info("Trying to connect " + _jmsConnectionData);
-			try {
-				_connection = createConnection();
-				for (Map.Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
-					JMSConsumer jmsConsumer = entry.getKey();
-					jmsConsumer.resume();
-					// restore last state
-					jmsConsumer.enable(entry.getValue());
-					logger.info("Resumed " + jmsConsumer.getKey() + " to state " + entry.getValue());
-				}
-				_connection.setExceptionListener(this);
-				logger.info("Connected " + _jmsConnectionData);
-				if (_future != null) {
-					_future.cancel(false);
-					_future = null;
-				}
-				_disconnected = false;
-			} catch (JMSException e) {
-				logger.error("Connect failed for " + _jmsConnectionData, e);
-				if (_connection != null) {
-					shutdown(_connection);
-					_connection = null;
-				}
-			}
+			connect();
 		}
 
 		public boolean isConnected() {
@@ -292,26 +278,43 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		}
 
 		public void connect() {
-			if (_connection == null && _future == null) {
-				_lock.lock();
+			if (_connecting.compareAndSet(false, true)) {
 				try {
-					if (_connection == null && _future == null) {
-						run();
+					if (_connection == null) {
+						logger.info("Trying to connect " + _jmsConnectionData);
+						_connection = createConnection();
+						for (Map.Entry<JMSConsumer, Boolean> entry : _jmsConsumers.entrySet()) {
+							JMSConsumer jmsConsumer = entry.getKey();
+							jmsConsumer.resume();
+							// restore last state
+							jmsConsumer.enable(entry.getValue());
+							logger.info("Resumed " + jmsConsumer.getKey() + " to state " + entry.getValue());
+						}
+						_connection.setExceptionListener(this);
+						logger.info("Connected " + _jmsConnectionData);
+						cancelReconnectTask();
+					}
+					_disconnected = false;
+				} catch (JMSException e) {
+					logger.error("Connect failed for " + _jmsConnectionData, e);
+					if (_connection != null) {
+						shutdown(_connection);
+						_connection = null;
 					}
 				} finally {
-					_lock.unlock();
+					_connecting.set(false);
 				}
 			}
 		}
 
 		public void disconnect() {
+			_disconnected = true;
 			if (_connection != null) {
 				_lock.lock();
 				try {
 					Connection connection = _connection;
 					if (connection != null) {
 						_connection = null;
-						_disconnected = true;
 						shutdown(connection);
 					}
 				} finally {
@@ -323,9 +326,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 		@Override
 		public void close() throws JMSException {
 			_poolContext.getGlobalContext().unregisterMBean(getObjectName(_jmsConnectionData));
-			if (_future != null) {
-				_future.cancel(false);
-			}
+			cancelReconnectTask();
 			if (_connection != null) {
 				_connection.close();
 			}
