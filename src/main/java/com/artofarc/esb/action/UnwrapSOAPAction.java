@@ -78,8 +78,8 @@ public class UnwrapSOAPAction extends TransformAction {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		String method = message.getVariable(HttpMethod);
-		if (!("POST".equals(method) || _soap12 && "GET".equals(method))) {
-			throw new ExecutionException(this, "HTTP method not allowed: " + message.getVariable(HttpMethod));
+		if (method != null && !("POST".equals(method) || _soap12 && "GET".equals(method))) {
+			throw new ExecutionException(this, "HTTP method not allowed: " + method);
 		}
 		String type = parseContentType(message.getContentType());
 		if (!_soap12 && isNotSOAP11(type) || _soap12 && isNotSOAP12(type)) {
