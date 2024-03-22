@@ -143,11 +143,11 @@ public class HttpResponseAction extends Action {
 		return true;
 	}
 
-	private static void checkCompression(ESBMessage message, boolean inPipeline) {
+	private static void checkCompression(ESBMessage message, boolean inPipeline) throws Exception {
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
 			Long length = message.getLength();
-			if (inPipeline || length == null || length > thresholdCompression || message.getContentEncoding() != null) {
+			if (inPipeline || length == null && !message.isEmpty() || length != null && length > thresholdCompression || message.getContentEncoding() != null) {
 				if (isAcceptable(acceptEncoding, "gzip")) {
 					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
 					message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
