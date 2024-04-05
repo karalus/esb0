@@ -65,7 +65,14 @@ public final class JsonSchemaGenerator {
 		if (component instanceof XSComplexType) {
 			generate(new XSOMHelper((XSComplexType) component, null), jsonGenerator);
 		} else if (component instanceof XSElementDecl) {
-			generate(new XSOMHelper((XSElementDecl) component), jsonGenerator);
+			XSElementDecl element = (XSElementDecl) component;
+			if (element.getType().isComplexType()) {
+				generate(new XSOMHelper(element), jsonGenerator);
+			} else {
+				jsonGenerator.writeStartObject();
+				generateType(element.getType().asSimpleType(), element.getDefaultValue(), element.isNillable(), jsonGenerator);
+				jsonGenerator.writeEnd();
+			}
 		} else if (component instanceof XSSimpleType) {
 			jsonGenerator.writeStartObject();
 			generateType((XSSimpleType) component, null, false, jsonGenerator);

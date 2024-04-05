@@ -47,19 +47,19 @@ public final class Xml2JsonTransformer {
 	private static final Pattern whitespacePattern = Pattern.compile("\\s+");
 
 	private final XSSchemaSet _schemaSet;
-	private final XSComplexType _complexType;
+	private final XSType _type;
 	private final boolean _includeRoot, _wrapperAsArrayName;
 	private final NamespaceMap _namespaceMap;
 	private final String attributePrefix = "@";
 	private final String valueWrapper = "value";
 
-	public Xml2JsonTransformer(XSSchemaSet schemaSet, String type, boolean includeRoot, boolean wrapperAsArrayName, Map<String, String> prefixMap) {
+	public Xml2JsonTransformer(XSSchemaSet schemaSet, String typeQN, boolean includeRoot, boolean wrapperAsArrayName, Map<String, String> prefixMap) {
 		_schemaSet = schemaSet != null ? schemaSet : XSOMHelper.anySchema;
-		if (type != null) {
-			QName _type = QName.valueOf(type);
-			_complexType = schemaSet.getComplexType(_type.getNamespaceURI(), _type.getLocalPart());
+		if (typeQN != null) {
+			QName type = QName.valueOf(typeQN);
+			_type = schemaSet.getType(type.getNamespaceURI(), type.getLocalPart());
 		} else {
-			_complexType = null;
+			_type = null;
 		}
 		_includeRoot = includeRoot;
 		_wrapperAsArrayName = wrapperAsArrayName;
@@ -91,7 +91,9 @@ public final class Xml2JsonTransformer {
 
 		@Override
 		public void startDocument() {
-			jsonGenerator.writeStartObject();
+			if (_type.isComplexType()) {
+				jsonGenerator.writeStartObject();
+			}
 		}
 
 		@Override
@@ -138,7 +140,11 @@ public final class Xml2JsonTransformer {
 			int attsLength = atts.getLength();
 			if (root) {
 				root = false;
-				xsomHelper = new XSOMHelper(_complexType, _schemaSet.getElementDecl(uri, localName));
+				if (_type.isSimpleType()) {
+					primitiveType = XSOMHelper.getJsonType(_type.asSimpleType());
+				} else {
+					xsomHelper = new XSOMHelper(_type.asComplexType(), _schemaSet.getElementDecl(uri, localName));
+				}
 				if (!_includeRoot) {
 					++level;
 					return;
