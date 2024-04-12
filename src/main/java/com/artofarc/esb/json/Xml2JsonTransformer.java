@@ -91,7 +91,7 @@ public final class Xml2JsonTransformer {
 
 		@Override
 		public void startDocument() {
-			if (_type.isComplexType()) {
+			if (_type == null || _type.isComplexType()) {
 				jsonGenerator.writeStartObject();
 			}
 		}
@@ -140,10 +140,10 @@ public final class Xml2JsonTransformer {
 			int attsLength = atts.getLength();
 			if (root) {
 				root = false;
-				if (_type.isSimpleType()) {
+				if (_type != null && _type.isSimpleType()) {
 					primitiveType = XSOMHelper.getJsonType(_type.asSimpleType());
 				} else {
-					xsomHelper = new XSOMHelper(_type.asComplexType(), _schemaSet.getElementDecl(uri, localName));
+					xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, localName));
 				}
 				if (!_includeRoot) {
 					++level;
