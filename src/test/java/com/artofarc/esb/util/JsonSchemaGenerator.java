@@ -27,9 +27,8 @@ import javax.xml.XMLConstants;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
+import org.xml.sax.helpers.DefaultHandler;
 
 import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.JsonFactoryHelper;
@@ -278,6 +277,12 @@ public final class JsonSchemaGenerator {
 				if (facetMaxlength != null) {
 					jsonGenerator.write("maxLength", Integer.parseInt(facetMaxlength.getValue().value));
 				}
+				XSFacet facetLength = simpleType.getFacet(XSFacet.FACET_LENGTH);
+				if (facetLength != null) {
+					int length = Integer.parseInt(facetLength.getValue().value);
+					jsonGenerator.write("minLength", length);
+					jsonGenerator.write("maxLength", length);
+				}
 				for (XSFacet facet : simpleType.getFacets(XSFacet.FACET_PATTERN)) {
 					jsonGenerator.write("pattern", "^" + facet.getValue() + "$");
 				}
@@ -336,23 +341,7 @@ public final class JsonSchemaGenerator {
 	public static JsonSchemaGenerator createJsonSchemaGenerator(String systemId, String namespace) throws SAXException {
 		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 		xsomParser.setAnnotationParser(new DomAnnotationParserFactory());
-		xsomParser.setErrorHandler(new ErrorHandler() {
-
-			@Override
-			public void warning(SAXParseException exception) throws SAXException {
-				throw exception;
-			}
-
-			@Override
-			public void fatalError(SAXParseException exception) throws SAXException {
-				throw exception;
-			}
-
-			@Override
-			public void error(SAXParseException exception) throws SAXException {
-				throw exception;
-			}
-		});
+		xsomParser.setErrorHandler(new DefaultHandler());
 		xsomParser.parse(systemId);
 //		System.out.println("Number of parsed docs: " + xsomParser.getDocuments().size());
 		XSSchemaSet result = xsomParser.getResult();
