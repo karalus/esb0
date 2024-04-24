@@ -917,9 +917,6 @@ public final class ESBMessage implements Cloneable {
 			clone = new ESBMessage(_bodyType, newBody, _charset);
 			clone.setContentType(_contentType);
 		} else {
-			if (!isSink()) {
-				cloneBody(context, true);
-			}
 			clone = new ESBMessage(BodyType.INVALID, null, null);
 		}
 		if (withHeaders) {

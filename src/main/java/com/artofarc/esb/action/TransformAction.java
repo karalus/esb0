@@ -283,26 +283,28 @@ public class TransformAction extends Action {
 	}
 
 	@Override
-	protected final void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
-		if (execContext != null) {
-			XQResultSequence resultSequence = execContext.getResource();
-			if (!exception && resultSequence.next()) {
-				logger.warn("XQResultSequence not fully consumed");
-				if (logger.isDebugEnabled()) {
-					resultSequence.writeItem(System.err, null);
-				}
+	protected final void close(Context context, ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
+		XQResultSequence resultSequence = execContext.getResource();
+		if (message.getBody() == resultSequence) {
+			checkNext(resultSequence, "body");
+			message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
+		}
+		if (!exception && resultSequence.next()) {
+			logger.warn("XQResultSequence not fully consumed");
+			if (logger.isDebugEnabled()) {
+				resultSequence.writeItem(System.err, null);
 			}
-			resultSequence.close();
-			XQPreparedExpression xqExpression = execContext.getResource2();
-			// unbind (large) documents so that they can be garbage collected
-			xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
-			QName[] externalVariables = _xquery.getExternalVariables();
-			XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
-			for (int i = 0; i < externalVariables.length; ++i) {
-				XQItemType externalVariableType = externalVariableTypes[i];
-				if (externalVariableType != null && externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
-					xqExpression.bindString(externalVariables[i], "", null);
-				}
+		}
+		resultSequence.close();
+		XQPreparedExpression xqExpression = execContext.getResource2();
+		// unbind (large) documents so that they can be garbage collected
+		xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
+		QName[] externalVariables = _xquery.getExternalVariables();
+		XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
+		for (int i = 0; i < externalVariables.length; ++i) {
+			XQItemType externalVariableType = externalVariableTypes[i];
+			if (externalVariableType != null && externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
+				xqExpression.bindString(externalVariables[i], "", null);
 			}
 		}
 	}

@@ -73,7 +73,7 @@ public class HttpInboundAction extends Action {
 	}
 
 	@Override
-	protected void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
+	protected void close(Context context, ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 		try (InputStream inputStream = execContext.getResource()) {
 		} finally {
 			execContext.<HttpUrlConnection> getResource2().close();

@@ -124,7 +124,7 @@ public class HttpOutboundAction extends Action {
 	}
 
 	@Override
-	protected void close(Context context, ExecutionContext execContext, boolean exception) {
+	protected void close(Context context, ExecutionContext execContext, ESBMessage message, boolean exception) {
 		if (exception) {
 			HttpUrlConnection httpUrlConnection = context.removeResource(HttpURLConnection);
 			httpUrlConnection.close();

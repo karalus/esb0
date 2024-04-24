@@ -171,7 +171,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 				for (int i = pipeline.size(); i > 0;) {
 					action = pipeline.get(--i);
 					try {
-						action.close(context, resources.get(i), closeSilently);
+						action.close(context, resources.get(i), message, closeSilently);
 						if (action != this && action.getErrorHandler() != null) {
 							context.getStackPos().pop();
 							stackErrorHandler.pop();
@@ -264,7 +264,7 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 	/**
 	 * Cleanup resources.
 	 */
-	protected void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
+	protected void close(Context context, ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 	}
 
 	@Override
