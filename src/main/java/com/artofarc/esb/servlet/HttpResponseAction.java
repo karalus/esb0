@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.servlet;
 
+import java.util.List;
 import java.util.Map.Entry;
 
 import javax.mail.internet.MimeMultipart;
@@ -87,6 +88,12 @@ public class HttpResponseAction extends Action {
 						response.setIntHeader(entry.getKey(), (Integer) entry.getValue());
 					} else if (entry.getValue() instanceof Long) {
 						response.setDateHeader(entry.getKey(), (Long) entry.getValue());
+					} else if (entry.getValue() instanceof List) {
+						@SuppressWarnings("unchecked")
+						List<String> values = (List<String>) entry.getValue();
+						for (String value : values) {
+							response.addHeader(entry.getKey(), value);
+						}
 					}
 				}
 				// prevent flushing to avoid "transfer encoding chunked" on small responses

@@ -39,7 +39,8 @@ public class HttpInboundAction extends Action {
 			message.clearHeaders();
 			for (Entry<String, List<String>> entry : httpUrlConnection.getHeaders().entrySet()) {
 				if (entry.getKey() != null) {
-					message.putHeader(entry.getKey(), entry.getValue().get(0));
+					List<String> values = entry.getValue();
+					message.putHeader(entry.getKey(), values.size() > 1 ? values : values.get(0));
 				}
 			}
 			InputStream inputStream = httpUrlConnection.getInputStream();

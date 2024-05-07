@@ -21,17 +21,14 @@ import javax.xml.bind.DatatypeConverter;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import static com.artofarc.esb.http.HttpConstants.*;
-
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrlSelector;
 import com.artofarc.esb.http.HttpUrlSelector.HttpUrlConnection;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.MimeHelper;
-import com.artofarc.util.ByteArrayOutputStream;
-import com.artofarc.util.URLUtils;
-
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ByteArrayOutputStream;
 
 public class HttpOutboundAction extends Action {
 
@@ -54,12 +51,12 @@ public class HttpOutboundAction extends Action {
 		HttpUrlSelector httpUrlSelector = context.getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint);
 		String method = message.getVariable(HttpMethod);
 		// for REST append to URL
-		String appendHttpUrl = message.getVariable(appendHttpUrlPath);
+		String appendHttpUrl = message.getVariable(appendHttpUrlPath, "");
 		String queryString = message.getVariable(QueryString);
 		if (queryString == null || queryString.isEmpty()) {
 			String httpQueryParameter = message.getVariable(HttpQueryParameter);
 			if (httpQueryParameter != null) {
-				queryString = URLUtils.createURLEncodedString(message.getVariables(), httpQueryParameter, ",");
+				queryString = message.createURLEncodedString(httpQueryParameter);
 			} else {
 				queryString = null;
 			}

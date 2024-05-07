@@ -935,4 +935,8 @@ public final class ESBMessage implements Cloneable {
 		return clone;
 	}
 
+	public String createURLEncodedString(String parameters) {
+		return URLUtils.createURLEncodedString(_variables, parameters, ",");
+	}
+
 }

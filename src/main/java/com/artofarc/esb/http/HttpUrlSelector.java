@@ -262,7 +262,7 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				throw new ConnectException("No active url");
 			}
 			HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(pos);
-			URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
+			URL url = appendUrl.isEmpty() ? httpUrl.getUrl() : new URL(httpUrl.getUrlStr() + appendUrl);
 			HttpUrlConnection httpUrlConnection = null;
 			try {
 				HttpURLConnection conn = createHttpURLConnection(httpEndpoint, url);
@@ -284,7 +284,15 @@ public final class HttpUrlSelector extends NotificationBroadcasterSupport implem
 				}
 				conn.setInstanceFollowRedirects(false);
 				for (Map.Entry<String, Object> entry : headers) {
-					conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
+					if (entry.getValue() instanceof List) {
+						@SuppressWarnings("unchecked")
+						List<String> values = (List<String>) entry.getValue();
+						for (String value : values) {
+							conn.addRequestProperty(entry.getKey(), value);
+						}
+					} else {
+						conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
+					}
 				}
 				// check whether server is willing to respond (before sending data)
 				boolean checkServer = retryCount > size - activeCount;
