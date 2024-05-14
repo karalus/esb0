@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.jdbc;
 
+import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
@@ -128,9 +129,13 @@ public final class JDBCParameter {
 				ps.setClob(_pos, clob);
 				break;
 			case BLOB:
-				Blob blob = conn.createBlob();
-				blob.setBytes(1, (byte[]) value);
-				ps.setBlob(_pos, blob);
+				if (value instanceof InputStream) {
+					ps.setBinaryStream(_pos, (InputStream) value);
+				} else {
+					Blob blob = conn.createBlob();
+					blob.setBytes(1, (byte[]) value);
+					ps.setBlob(_pos, blob);
+				}
 				break;
 			case SQLXML:
 				SQLXML sqlxml = conn.createSQLXML();
