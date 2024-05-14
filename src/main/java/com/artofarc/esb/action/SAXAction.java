@@ -15,9 +15,11 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 
+import javax.xml.parsers.SAXParser;
 import javax.xml.transform.Source;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
@@ -39,10 +41,10 @@ import com.artofarc.util.XMLFilterBase;
 
 public abstract class SAXAction extends Action {
 
-	public static class XQJFilter extends XMLFilterBase {
+	static class XQJFilter extends XMLFilterBase {
 		private final XQItem _item;
 
-		public XQJFilter(XQItem item) {
+		XQJFilter(XQItem item) {
 			_item = item;
 		}
 
@@ -52,6 +54,24 @@ public abstract class SAXAction extends Action {
 				_item.writeItemToResult(new SAXResult(getContentHandler()));
 			} catch (XQException e) {
 				throw new SAXException(e);
+			}
+		}
+	}
+
+	static class ReuseParserXMLFilter extends XMLFilterBase {
+		private final SAXParser _saxParser;
+
+		ReuseParserXMLFilter(SAXParser saxParser) throws SAXException {
+			super(saxParser.getXMLReader());
+			_saxParser = saxParser;
+		}
+
+		@Override
+		public void parse(InputSource input) throws SAXException, IOException {
+			try {
+				super.parse(input);
+			} finally {
+				_saxParser.reset();
 			}
 		}
 	}

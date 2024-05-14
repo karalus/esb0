@@ -21,18 +21,21 @@ import javax.xml.xquery.XQItem;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.XOPSerializer;
+import com.artofarc.esb.service.MultipartSubtype;
 import com.artofarc.util.XMLFilterBase;
 
 public class XOPSerializeAction extends SAXAction {
 
 	private final int _threshold;
-	private final String _contentType;
+	private final String _contentType, _ifAccepts;
 
-	public XOPSerializeAction(int threshold, String contentType) {
+	public XOPSerializeAction(int threshold, String contentType, MultipartSubtype ifAccepts) {
 		_threshold = threshold;
 		_contentType = contentType;
+		_ifAccepts = ifAccepts == null ? null : (HttpConstants.MEDIATYPE_MULTIPART + ifAccepts.value()).intern();
 	}
 
 	@Override
@@ -40,9 +43,14 @@ public class XOPSerializeAction extends SAXAction {
 		if (message.getSchema() == null) {
 			throw new ExecutionException(this, "No schema specified");
 		}
-		XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, _contentType);
-		xopSerializer.setParent(new XQJFilter(item));
-		return new SAXSource(xopSerializer, null);
+		final String accept = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT);
+		if (accept == null || _ifAccepts == null || HttpConstants.isAcceptable(accept, _ifAccepts)) {
+			XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, _contentType);
+			xopSerializer.setParent(new XQJFilter(item));
+			return new SAXSource(xopSerializer, null);
+		} else {
+			return new SAXSource(new XQJFilter(item), null);
+		}
 	}
 
 	@Override
@@ -50,13 +58,18 @@ public class XOPSerializeAction extends SAXAction {
 		if (message.getSchema() == null) {
 			throw new ExecutionException(this, "No schema specified");
 		}
-		XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, _contentType);
-		if (parent != null) {
-			xopSerializer.setParent(parent);
+		final String accept = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT);
+		if (accept == null || _ifAccepts == null || HttpConstants.isAcceptable(accept, _ifAccepts)) {
+			XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, _contentType);
+			if (parent != null) {
+				xopSerializer.setParent(parent);
+			} else {
+				xopSerializer.setParent(context.getSAXParser());
+			}
+			return xopSerializer;
 		} else {
-			xopSerializer.setParent(context.getSAXParser());
+			return parent != null ? new XMLFilterBase(parent) : new ReuseParserXMLFilter(context.getSAXParser());
 		}
-		return xopSerializer;
 	}
 
 }

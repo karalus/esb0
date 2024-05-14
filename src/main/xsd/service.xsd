@@ -660,6 +660,7 @@
 				<extension base="tns:ActionBase" >
 					<attribute name="threshold" type="int" default="0" />
 					<attribute name="contentType" type="tns:string1" default="application/octet-stream" />
+					<attribute name="ifAccepts" type="tns:multipartSubtype" />
 				</extension>
 			</complexContent>
 		</complexType>

@@ -492,7 +492,7 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
 	consumerPort.setStartAction(
 //			new TransformAction("."),
-			new XOPSerializeAction(0, "application/octet-stream")
+			new XOPSerializeAction(0, "application/octet-stream", null)
 			,new XOPDeserializeAction()
 //			,new TransformAction("declare function local:copy-xop($element as element(), $attachments as element()) as element() {\n" +
 //					"element {node-name($element)}\n" +
