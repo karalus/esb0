@@ -22,6 +22,7 @@ import java.util.Map;
 
 import javax.wsdl.BindingOperation;
 import javax.xml.namespace.QName;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.validation.Schema;
 
 import com.artofarc.esb.context.Context;
@@ -31,6 +32,7 @@ import com.artofarc.esb.message.BodyType;
 import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.DataStructures;
+import com.artofarc.util.StringBuilderWriter;
 import static com.artofarc.util.W3CConstants.*;
 import static com.artofarc.util.WSDL4JUtil.*;
 
@@ -83,11 +85,17 @@ public class UnwrapSOAPAction extends TransformAction {
 		}
 		String type = parseContentType(message.getContentType());
 		if (!_soap12 && isNotSOAP11(type) || _soap12 && isNotSOAP12(type)) {
-			String error = "Unexpected Content-Type: " + type;
+			StringBuilder error = new StringBuilder("Unexpected Content-Type: ").append(type);
 			if (message.getBodyType() != BodyType.INVALID) {
-				error += "\n" + message.getBodyAsString(context);
+				error.append('\n');
+				if (isNotXML(type)) {
+					error.append(message.getBodyAsString(context));
+				} else {
+					// avoid illegal nested CDATA if error is used in DataStructures::asXMLString
+					context.transformRaw(message.getBodyAsSource(context), new StreamResult(new StringBuilderWriter(error)));
+				}
 			}
-			throw new ExecutionException(this, error);
+			throw new ExecutionException(this, error.toString());
 		}
 		ExecutionContext execContext = super.prepare(context, message, inPipeline);
 		message.putVariableIfNotNull(SOAP_OPERATION, determineOperation(message));
