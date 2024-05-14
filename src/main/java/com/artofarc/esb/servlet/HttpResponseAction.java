@@ -67,6 +67,7 @@ public class HttpResponseAction extends Action {
 		} else if (redirect != null && !redirect.isEmpty()) {
 			response.sendRedirect(redirect);
 		} else if (checkContentType(message, response, mimeMultipart = MimeHelper.isMimeMultipart(_multipartSubtype, message))) {
+			executionContext.setResource3(mimeMultipart);
 			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 			if (httpResponseCode != null) {
@@ -170,7 +171,7 @@ public class HttpResponseAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		AsyncContext asyncContext = execContext.getResource();
 		message.closeBody();
-		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+		if (Boolean.TRUE.equals(execContext.getResource3())) {
 			ByteArrayOutputStream bos = execContext.getResource2();
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
 			HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
