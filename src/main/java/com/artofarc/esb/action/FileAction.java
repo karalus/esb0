@@ -109,8 +109,16 @@ public class FileAction extends TerminalAction {
 				contentType = message.getContentType();
 			}
 			String fileExtension = contentType != null ? MimeHelper.getFileExtension(HttpConstants.parseContentType(contentType)) : null;
+			if (fileExtension != null) {
+				fileExtension = '.' + fileExtension;
+				if (filename.endsWith(fileExtension)) {
+					filename = filename.substring(0, filename.length() - fileExtension.length());
+				}
+			} else {
+				fileExtension = "";
+			}
 			boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
-			File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension == null || fileExtension.equals(IOUtils.getExt(filename)) ? "" : '.' + fileExtension));
+			File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
 			if (_mkdirs) {
 				mkdirs(file.getCanonicalFile().getParentFile());
 			}
