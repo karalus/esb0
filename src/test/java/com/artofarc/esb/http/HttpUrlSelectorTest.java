@@ -68,4 +68,11 @@ public class HttpUrlSelectorTest extends AbstractESBTest {
 		}
 	}
 
+	@Test
+	public void testHttpUrlChanged() throws Exception {
+		HttpUrl httpUrl1 = new HttpUrl("http://localhost:443", 1, true);
+		HttpUrl httpUrl2 = new HttpUrl("https://localhost", 1, true);
+		assertNotEquals(httpUrl1, httpUrl2);
+	}
+
 }
