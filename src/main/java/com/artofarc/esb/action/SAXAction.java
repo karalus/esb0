@@ -41,10 +41,10 @@ import com.artofarc.util.XMLFilterBase;
 
 public abstract class SAXAction extends Action {
 
-	static class XQJFilter extends XMLFilterBase {
+	protected static class XQJFilter extends XMLFilterBase {
 		private final XQItem _item;
 
-		XQJFilter(XQItem item) {
+		public XQJFilter(XQItem item) {
 			_item = item;
 		}
 
@@ -58,10 +58,10 @@ public abstract class SAXAction extends Action {
 		}
 	}
 
-	static class ReuseParserXMLFilter extends XMLFilterBase {
+	protected static class ReuseParserXMLFilter extends XMLFilterBase {
 		private final SAXParser _saxParser;
 
-		ReuseParserXMLFilter(SAXParser saxParser) throws SAXException {
+		public ReuseParserXMLFilter(SAXParser saxParser) throws SAXException {
 			super(saxParser.getXMLReader());
 			_saxParser = saxParser;
 		}
