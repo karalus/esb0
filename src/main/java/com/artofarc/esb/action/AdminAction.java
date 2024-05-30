@@ -117,7 +117,7 @@ public class AdminAction extends Action {
 				if (headerAccept == null || isAcceptable(headerAccept, artifact.getContentType())) {
 					InputStream contentAsStream = artifact.getContentAsStream();
 					if (artifact instanceof WSDLArtifact) {
-						String content = IOUtils.toString(contentAsStream, ESBMessage.CHARSET_DEFAULT);
+						String content = IOUtils.toString(contentAsStream, artifact.getEncoding());
 						contentAsStream.close();
 						try {
 							content = (String) eval(content, context, message);
@@ -131,6 +131,7 @@ public class AdminAction extends Action {
 					message.clearHeaders();
 					message.putHeader(HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
 					message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
+					message.setSinkEncoding(artifact.getEncoding());
 				} else {
 					throwHttpError(message, SC_NOT_ACCEPTABLE, new ExecutionException(this, headerAccept));
 				}

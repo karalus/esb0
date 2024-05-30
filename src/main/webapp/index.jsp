@@ -451,12 +451,12 @@ Upload Service-JAR:
 			if (a.getContentType().startsWith("text/")) {
 				String content;
 				try (java.io.InputStream inputStream = a.getContentAsStream()) {
-					content = com.artofarc.util.IOUtils.toString(inputStream, java.nio.charset.StandardCharsets.UTF_8).replace("&", "&amp;");
+					content = com.artofarc.util.IOUtils.toString(inputStream, a.getEncoding()).replace("&", "&amp;");
 				}
 				%>
 				<br>
 				<form action="<%=adminPath + pathInfo%>" method="POST" accept-charset="utf-8">
-					<textarea name="content" rows="50" cols="200" spellcheck="false" style="tab-size:4"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=content%></textarea>
+					<textarea name="content" rows="50" cols="200" spellcheck="false" style="tab-size:4"<%if (a.getModificationTime() == 0 || a.getEncoding() != java.nio.charset.StandardCharsets.UTF_8) {%> readonly<%}%>><%=content%></textarea>
 					<input type="submit" value="Change">
 				</form>
 				<%

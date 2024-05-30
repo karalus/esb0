@@ -19,6 +19,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 
 import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Source;
@@ -48,6 +49,7 @@ public class XMLProcessorFactory {
 	private static final boolean SECURE_PROCESSING = Boolean.parseBoolean(System.getProperty("esb0.jaxp.secure-processing", "true"));
 	private static final boolean XQ2XSL_PROCESSING_SAX = Boolean.parseBoolean(System.getProperty("esb0.xq2xsl-processing.sax"));
 
+	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
 	private static final SAXParserFactory SAX_PARSER_FACTORY = SAXParserFactory.newInstance();
 	private static final XPathFactory XPATH_FACTORY = XPathFactory.newInstance();
 	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
@@ -57,6 +59,8 @@ public class XMLProcessorFactory {
 	static {
 		try {
 			// In this millennium XML processors should be namespace aware by default.
+			DOCUMENT_BUILDER_FACTORY.setNamespaceAware(true);
+			DOCUMENT_BUILDER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 			SAX_PARSER_FACTORY.setNamespaceAware(true);
 			SAX_PARSER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -76,6 +80,10 @@ public class XMLProcessorFactory {
 		} catch (Exception e) {
 			throw ReflectionUtils.convert(e, RuntimeException.class);
 		}
+	}
+
+	public static DocumentBuilderFactory getDocumentBuilderFactory() {
+		return DOCUMENT_BUILDER_FACTORY;
 	}
 
 	public static SAXParserFactory getSAXParserFactory() {

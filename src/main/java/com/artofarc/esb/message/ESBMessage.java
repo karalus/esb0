@@ -285,6 +285,10 @@ public final class ESBMessage implements Cloneable {
 		_sinkEncoding = sinkEncoding != null ? Charset.forName(sinkEncoding) : null;
 	}
 
+	public void setSinkEncoding(Charset sinkEncoding) {
+		_sinkEncoding = sinkEncoding;
+	}
+
 	private Charset getSinkEncodingCharset() {
 		return _sinkEncoding != null ? _sinkEncoding : getCharset();
 	}

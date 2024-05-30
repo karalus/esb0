@@ -17,6 +17,7 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -153,6 +154,10 @@ public abstract class Artifact {
 
 	public String getContentType() {
 		return HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT;
+	}
+
+	public Charset getEncoding() {
+		return java.nio.charset.StandardCharsets.UTF_8;
 	}
 
 	public final <A extends Artifact> A getArtifact(String uri) {
