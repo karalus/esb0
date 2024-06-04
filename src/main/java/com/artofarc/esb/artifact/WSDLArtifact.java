@@ -50,7 +50,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	private volatile Map<QName, Binding> _allBindings;
 	private final HashMap<String, byte[]> _schemas = new HashMap<>();
-	private Charset encoding;
+	private Charset _encoding;
 	// only used during validation
 	private String latestImportURI;
 
@@ -58,14 +58,15 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		super(fileSystem, parent, name);
 	}
 
+	@Override
 	public Charset getEncoding() {
-		return encoding;
+		return _encoding;
 	}
 
 	@Override
 	protected WSDLArtifact clone(FileSystem fileSystem, Directory parent) {
 		WSDLArtifact clone = initClone(new WSDLArtifact(fileSystem, parent, getName()));
-		clone.encoding = encoding;
+		clone._encoding = _encoding;
 		clone._allBindings = _allBindings;
 		clone._schemaSet = _schemaSet;
 		clone._schemas.putAll(_schemas);
@@ -88,7 +89,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	@Override
 	protected Source[] getSourcesForSchema() throws Exception {
 		Document wsdl = XMLProcessorFactory.getDocumentBuilderFactory().newDocumentBuilder().parse(getBaseInputSource());
-		encoding = Charset.forName(wsdl.getXmlEncoding() != null ? wsdl.getXmlEncoding() : wsdl.getInputEncoding());
+		_encoding = Charset.forName(wsdl.getXmlEncoding() != null ? wsdl.getXmlEncoding() : wsdl.getInputEncoding());
 		Definition definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this, wsdl.getDocumentElement());
 		_allBindings = definition.getAllBindings();
 		_namespace.set(definition.getTargetNamespace());
@@ -169,7 +170,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	protected WSDLArtifactResourceResolver getResolver() {
 		return new WSDLArtifactResourceResolver(this);
 	}
-	
+
 	static class WSDLArtifactResourceResolver extends SchemaArtifactResolver {
 
 		WSDLArtifactResourceResolver(WSDLArtifact wsdlArtifact) {
