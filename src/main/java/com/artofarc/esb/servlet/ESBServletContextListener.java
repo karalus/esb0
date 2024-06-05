@@ -19,9 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
 
 import com.artofarc.esb.artifact.DeployHelper;
 import com.artofarc.esb.context.GlobalContext;

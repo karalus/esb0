@@ -38,7 +38,7 @@ public enum BodyType {
 			return XQ_ITEM;
 		} else if (body instanceof org.w3c.dom.Node) {
 			return DOM;
-		} else if (body instanceof javax.json.JsonValue) {
+		} else if (body instanceof jakarta.json.JsonValue) {
 			return JSON_VALUE;
 		} else if (body instanceof java.io.InputStream) {
 			return INPUT_STREAM;

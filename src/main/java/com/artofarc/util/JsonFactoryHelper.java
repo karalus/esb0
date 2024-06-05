@@ -17,15 +17,15 @@ package com.artofarc.util;
 
 import java.util.HashMap;
 
-import javax.json.Json;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonReaderFactory;
-import javax.json.JsonWriterFactory;
-import javax.json.stream.JsonGenerator;
-import javax.json.stream.JsonGeneratorFactory;
-import javax.json.stream.JsonParserFactory;
+import jakarta.json.Json;
+import jakarta.json.JsonBuilderFactory;
+import jakarta.json.JsonReaderFactory;
+import jakarta.json.JsonWriterFactory;
+import jakarta.json.stream.JsonGenerator;
+import jakarta.json.stream.JsonGeneratorFactory;
+import jakarta.json.stream.JsonParserFactory;
 
-import org.glassfish.json.api.BufferPool;
+import org.eclipse.parsson.api.BufferPool;
 
 public final class JsonFactoryHelper {
 

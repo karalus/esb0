@@ -29,8 +29,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
-import javax.mail.internet.MimeMultipart;
-import javax.xml.bind.DatatypeConverter;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.xml.bind.DatatypeConverter;
 
 import com.artofarc.esb.context.AsyncProcessingPool;
 import com.artofarc.esb.context.Context;

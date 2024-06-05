@@ -18,7 +18,7 @@ package com.artofarc.esb.action;
 import java.util.Calendar;
 import java.util.List;
 
-import javax.xml.bind.DatatypeConverter;
+import jakarta.xml.bind.DatatypeConverter;
 
 import com.artofarc.esb.SchedulingConsumerPort;
 import com.artofarc.esb.context.Context;

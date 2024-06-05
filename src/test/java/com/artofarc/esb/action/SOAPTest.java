@@ -7,11 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.jms.Message;
-import javax.jws.WebService;
-import javax.jws.soap.SOAPBinding;
-import javax.xml.soap.SOAPConstants;
-import javax.xml.ws.Endpoint;
+import jakarta.jms.Message;
+import jakarta.jws.WebService;
+import jakarta.jws.soap.SOAPBinding;
+import jakarta.xml.soap.SOAPConstants;
+import jakarta.xml.ws.Endpoint;
 
 import org.junit.Test;
 import org.w3c.dom.Node;

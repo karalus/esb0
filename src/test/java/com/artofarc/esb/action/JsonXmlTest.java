@@ -3,7 +3,7 @@ package com.artofarc.esb.action;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.json.JsonReader;
+import jakarta.json.JsonReader;
 
 import org.junit.Before;
 import org.junit.Test;

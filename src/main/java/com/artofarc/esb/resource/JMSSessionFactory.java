@@ -15,7 +15,7 @@
  */
 package com.artofarc.esb.resource;
 
-import javax.jms.JMSException;
+import jakarta.jms.JMSException;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.jms.JMSConnectionData;

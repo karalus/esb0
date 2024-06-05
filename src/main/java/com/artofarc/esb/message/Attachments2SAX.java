@@ -20,8 +20,8 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeBodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeBodyPart;
 import javax.xml.XMLConstants;
 
 import org.xml.sax.InputSource;

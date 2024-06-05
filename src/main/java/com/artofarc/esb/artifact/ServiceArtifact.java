@@ -30,7 +30,7 @@ import java.util.Properties;
 import javax.net.ssl.SSLContext;
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
-import javax.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBElement;
 
 import org.xml.sax.Locator;
 

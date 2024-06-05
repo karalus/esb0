@@ -15,10 +15,10 @@
  */
 package com.artofarc.esb.jms;
 
-import javax.jms.CompletionListener;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageProducer;
+import jakarta.jms.CompletionListener;
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+import jakarta.jms.MessageProducer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

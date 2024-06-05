@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.jms.*;
-import javax.mail.internet.MimeMultipart;
+import jakarta.jms.*;
+import jakarta.mail.internet.MimeMultipart;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.context.*;

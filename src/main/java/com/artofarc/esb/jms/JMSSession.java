@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.jms.*;
+import jakarta.jms.*;
 
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.resource.JMSSessionFactory;

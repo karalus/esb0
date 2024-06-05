@@ -2,10 +2,10 @@ package com.artofarc.esb.action;
 
 import static org.junit.Assert.*;
 
-import javax.jws.WebService;
-import javax.jws.soap.SOAPBinding;
-import javax.xml.soap.SOAPConstants;
-import javax.xml.ws.Endpoint;
+import jakarta.jws.WebService;
+import jakarta.jws.soap.SOAPBinding;
+import jakarta.xml.soap.SOAPConstants;
+import jakarta.xml.ws.Endpoint;
 
 import org.junit.Test;
 

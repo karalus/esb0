@@ -18,7 +18,7 @@ package com.artofarc.esb.action;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.json.*;
+import jakarta.json.*;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;

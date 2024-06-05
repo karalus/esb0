@@ -22,9 +22,9 @@ import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import javax.json.stream.JsonGenerator;
+import jakarta.json.stream.JsonGenerator;
 import javax.xml.XMLConstants;
-import javax.xml.bind.DatatypeConverter;
+import jakarta.xml.bind.DatatypeConverter;
 import javax.xml.namespace.QName;
 
 import org.xml.sax.Attributes;

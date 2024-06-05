@@ -37,12 +37,12 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
-import javax.json.JsonReader;
-import javax.json.JsonValue;
-import javax.json.JsonWriter;
-import javax.json.stream.JsonGenerator;
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeBodyPart;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
+import jakarta.json.JsonWriter;
+import jakarta.json.stream.JsonGenerator;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeBodyPart;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;

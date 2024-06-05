@@ -23,8 +23,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.json.*;
-import javax.json.stream.JsonParser;
+import jakarta.json.*;
+import jakarta.json.stream.JsonParser;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
 

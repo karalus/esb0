@@ -18,7 +18,7 @@ package com.artofarc.util;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.xml.bind.DatatypeConverter;
+import jakarta.xml.bind.DatatypeConverter;
 
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;

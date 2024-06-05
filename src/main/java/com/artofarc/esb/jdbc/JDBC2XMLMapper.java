@@ -25,7 +25,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 import javax.xml.XMLConstants;
-import javax.xml.bind.DatatypeConverter;
+import jakarta.xml.bind.DatatypeConverter;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;

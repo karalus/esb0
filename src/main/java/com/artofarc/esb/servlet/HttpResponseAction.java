@@ -18,9 +18,9 @@ package com.artofarc.esb.servlet;
 import java.util.List;
 import java.util.Map.Entry;
 
-import javax.mail.internet.MimeMultipart;
-import javax.servlet.AsyncContext;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.context.Context;

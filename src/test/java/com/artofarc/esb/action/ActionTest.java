@@ -138,7 +138,7 @@ public class ActionTest extends AbstractESBTest {
 		action.addAssignment("_id", false, "", "java.util.UUID", "randomUUID", null);
 		action.addAssignment("id", true, "${_id.toString}", null, null, null);
 		action.addAssignment("id2", true, "${id.substring(2)}", null, null, null);
-		action.addAssignment("_calendar", false, "2018-11-20T16:00:41", "javax.xml.bind.DatatypeConverter", "parseDateTime", null);
+		action.addAssignment("_calendar", false, "2018-11-20T16:00:41", "jakarta.xml.bind.DatatypeConverter", "parseDateTime", null);
 		action.addAssignment("timeInMillis", false, "${_calendar.getTimeInMillis}", null, null, null);
 		action.addAssignment("_addr", false, "", "java.net.InetAddress", "getLocalHost", null);
 		action.addAssignment("hostname", false, "${_addr.getHostName}", null, null, null);
@@ -168,7 +168,7 @@ public class ActionTest extends AbstractESBTest {
 	public void testSetMessageBody() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
 		message.putVariable("string", "Hello");
-		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("${string}"), "javax.json.Json", "createValue");
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("${string}"), "jakarta.json.Json", "createValue");
 		action.process(context, message);
 		assertEquals(BodyType.JSON_VALUE, message.getBodyType());
 	}
@@ -258,7 +258,7 @@ public class ActionTest extends AbstractESBTest {
 		ProcessJsonAction processJsonAction = new ProcessJsonAction(null);
 		processJsonAction.addVariable("foes", "/foo/0");
 		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
-		action.addAssignment("_builder", false, "", "javax.json.Json", "createArrayBuilder", null);
+		action.addAssignment("_builder", false, "", "jakarta.json.Json", "createArrayBuilder", null);
 		action.addAssignment("_builder", false, "${_builder.add(foes)}", null, null, null);
 		action.addAssignment("test", false, "Str: ${_builder.build.toString}", null, null, null);
 	      BranchOnVariableAction branchOnVariableAction = new BranchOnVariableAction("foes", null, null);

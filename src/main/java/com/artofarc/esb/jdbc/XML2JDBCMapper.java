@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import javax.xml.XMLConstants;
-import javax.xml.bind.DatatypeConverter;
+import jakarta.xml.bind.DatatypeConverter;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.sax.TransformerHandler;

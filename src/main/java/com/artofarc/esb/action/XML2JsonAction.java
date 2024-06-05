@@ -17,7 +17,7 @@ package com.artofarc.esb.action;
 
 import java.util.Map;
 
-import javax.json.stream.JsonGenerator;
+import jakarta.json.stream.JsonGenerator;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;

@@ -149,7 +149,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 	private void logDependenciesVersion() {
 		logVersion("SLF4J", "org.slf4j", "com.artofarc.esb.context.AbstractContext", "logger");
-		logVersion("JAXB", "javax.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
+		logVersion("JAXB", "jakarta.xml.bind", "com.artofarc.esb.artifact.AbstractServiceArtifact", "jaxbContext");
 		logVersion("SAX Parser", "javax.xml.parsers", "com.artofarc.util.XMLProcessorFactory", "SAX_PARSER_FACTORY");
 		logVersion("SAX Transformer", "javax.xml.transform", "com.artofarc.util.XMLProcessorFactory", "SAX_TRANSFORMER_FACTORY");
 		if (_xqConnection != null) {
@@ -158,8 +158,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			logger.warn("XQJ not supported");
 		}
 		logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
-		logVersion("JSON", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
-		logVersion("JavaMail", "javax.mail.internet", "javax.mail.internet.MimeMultipart", null);
+		logVersion("JSON", "jakarta.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
+		logVersion("JavaMail", "jakarta.mail.internet", "jakarta.mail.internet.MimeMultipart", null);
 		logVersion("metro-fi", "com.sun.xml.fastinfoset", "com.sun.xml.fastinfoset.Encoder", null);
 		logVersion("XSOM", "com.sun.xml.xsom", "com.artofarc.util.XSOMHelper", "anySchema");
 		logVersion("OJDBC", "oracle.jdbc", "com.artofarc.esb.jdbc.JDBCConnection", "ifcOracleConnection");

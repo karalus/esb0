@@ -18,8 +18,8 @@ package com.artofarc.esb.message;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeBodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeBodyPart;
 import javax.xml.parsers.SAXParser;
 
 import org.xml.sax.Attributes;

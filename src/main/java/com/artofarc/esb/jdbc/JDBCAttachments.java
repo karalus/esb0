@@ -24,8 +24,8 @@ import java.sql.SQLException;
 import java.sql.Struct;
 import java.util.Iterator;
 
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeBodyPart;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeBodyPart;
 
 import org.xml.sax.SAXException;
 

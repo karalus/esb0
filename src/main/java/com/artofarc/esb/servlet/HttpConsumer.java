@@ -105,7 +105,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	void processWithServletResponse(Context context, ESBMessage message) throws Exception {
 		if (_resourceLimit > 0 && getCompletedTaskCount() >= _resourceLimit) {
 			message.reset(BodyType.STRING, "Resource limit exhausted");
-			message.getVariables().put(ESBConstants.HttpResponseCode, javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+			message.getVariables().put(ESBConstants.HttpResponseCode, jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE);
 			message.clearHeaders();
 			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT);
 			ScheduledFuture<?> scheduledFuture = _scheduledFuture;

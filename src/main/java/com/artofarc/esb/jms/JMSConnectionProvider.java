@@ -28,10 +28,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionMetaData;
-import javax.jms.ExceptionListener;
-import javax.jms.JMSException;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionMetaData;
+import jakarta.jms.ExceptionListener;
+import jakarta.jms.JMSException;
 import javax.management.AttributeChangeNotification;
 import javax.management.MBeanNotificationInfo;
 import javax.management.NotificationBroadcasterSupport;

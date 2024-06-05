@@ -15,7 +15,7 @@
  */
 package com.artofarc.esb.artifact;
 
-import javax.json.stream.JsonParser;
+import jakarta.json.stream.JsonParser;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.util.JsonFactoryHelper;

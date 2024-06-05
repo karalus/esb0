@@ -22,8 +22,8 @@ import static java.sql.Types.*;
 import java.util.Calendar;
 import java.util.HashMap;
 
-import javax.json.stream.JsonGenerator;
-import javax.xml.bind.DatatypeConverter;
+import jakarta.json.stream.JsonGenerator;
+import jakarta.xml.bind.DatatypeConverter;
 
 public final class JDBCResult implements AutoCloseable {
 

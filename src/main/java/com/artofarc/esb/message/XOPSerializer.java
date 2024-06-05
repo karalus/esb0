@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
 
-import javax.mail.MessagingException;
+import jakarta.mail.MessagingException;
 import static javax.xml.XMLConstants.*;
 
 import org.xml.sax.Attributes;

@@ -24,16 +24,16 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonString;
-import javax.json.JsonValue;
-import javax.json.JsonValue.ValueType;
-import javax.mail.MessagingException;
-import javax.mail.internet.InternetHeaders;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMultipart;
-import javax.xml.bind.DatatypeConverter;
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
+import jakarta.json.JsonValue.ValueType;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.xml.bind.DatatypeConverter;
 
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.util.IOUtils;

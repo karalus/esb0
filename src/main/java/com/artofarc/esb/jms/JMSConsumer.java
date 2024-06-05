@@ -23,7 +23,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import javax.jms.*;
+import jakarta.jms.*;
 import javax.management.ObjectName;
 import javax.naming.NamingException;
 import javax.xml.datatype.XMLGregorianCalendar;

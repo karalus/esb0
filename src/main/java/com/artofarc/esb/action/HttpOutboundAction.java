@@ -15,8 +15,8 @@
  */
 package com.artofarc.esb.action;
 
-import javax.mail.internet.MimeMultipart;
-import javax.xml.bind.DatatypeConverter;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.xml.bind.DatatypeConverter;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;

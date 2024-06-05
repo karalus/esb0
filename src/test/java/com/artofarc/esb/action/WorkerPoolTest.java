@@ -11,11 +11,11 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.jms.Connection;
-import javax.jms.Message;
-import javax.jms.Queue;
-import javax.jms.QueueBrowser;
-import javax.jms.Session;
+import jakarta.jms.Connection;
+import jakarta.jms.Message;
+import jakarta.jms.Queue;
+import jakarta.jms.QueueBrowser;
+import jakarta.jms.Session;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ActiveMQSslConnectionFactory;

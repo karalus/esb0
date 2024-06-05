@@ -20,7 +20,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.json.JsonArrayBuilder;
+import jakarta.json.JsonArrayBuilder;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.artifact.*;

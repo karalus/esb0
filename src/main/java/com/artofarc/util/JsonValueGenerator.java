@@ -19,11 +19,11 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonException;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
-import javax.json.stream.JsonGenerator;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonException;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
+import jakarta.json.stream.JsonGenerator;
 
 public final class JsonValueGenerator implements JsonGenerator {
 

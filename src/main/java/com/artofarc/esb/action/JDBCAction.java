@@ -22,7 +22,7 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.json.stream.JsonGenerator;
+import jakarta.json.stream.JsonGenerator;
 import javax.sql.DataSource;
 import javax.xml.transform.dom.DOMResult;
 

@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.json.JsonArrayBuilder;
-import javax.mail.internet.MimeBodyPart;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.mail.internet.MimeBodyPart;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.http.HttpConstants;

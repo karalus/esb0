@@ -17,8 +17,8 @@ package com.artofarc.esb.resource;
 
 import java.util.Properties;
 
-import javax.mail.Authenticator;
-import javax.mail.Session;
+import jakarta.mail.Authenticator;
+import jakarta.mail.Session;
 
 public class MailSessionFactory extends ResourceFactory<MailSessionFactory.MailSession, Properties, Authenticator, RuntimeException> {
 

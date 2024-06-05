@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.StringTokenizer;
 
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
 import javax.naming.NamingException;
 
 import com.artofarc.esb.context.GlobalContext;

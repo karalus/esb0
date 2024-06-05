@@ -22,12 +22,12 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
-import javax.activation.DataSource;
-import javax.mail.Header;
-import javax.mail.MessagingException;
-import javax.mail.internet.InternetHeaders;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMultipart;
+import jakarta.activation.DataSource;
+import jakarta.mail.Header;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.InternetHeaders;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMultipart;
 
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;

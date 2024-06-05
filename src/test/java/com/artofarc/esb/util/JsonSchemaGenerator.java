@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import javax.json.stream.JsonGenerator;
+import jakarta.json.stream.JsonGenerator;
 import javax.xml.XMLConstants;
 
 import org.w3c.dom.Element;
