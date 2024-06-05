@@ -15,7 +15,9 @@
 				</update>
 			</default>
 			<null>
-				<update clearHeaders="true"/>
+				<update clearHeaders="true">
+					<variable name="redirect">${ContextPath}/admin${appendHttpUrlPath}</variable>
+				</update>
 			</null>
 		</branchOnVariable>
 	</actionPipeline>
@@ -40,20 +42,15 @@
 							</update>
 						</branch>
 						<default>
-							<branchOnVariable variable="body">
-								<branch regEx="(?s)content=(.*)\r\n">
+							<branchOnVariable variable="content">
+								<default>
 									<update>
-										<body>${body#1}</body>
+										<header name="Content-Type">text/plain</header>
+										<body>${content}</body>
 									</update>
-									<admin resourceExp="${appendHttpUrlPath}"/>
-									<update clearHeaders="true">
-										<variable name="redirect">${ContextPath}/admin${appendHttpUrlPath}</variable>
-									</update>
-								</branch>
-								<defaultOrNull>
-									<actionPipelineRef ref="createUpdateDelete"/>
-								</defaultOrNull>
+								</default>
 							</branchOnVariable>
+							<actionPipelineRef ref="createUpdateDelete"/>
 						</default>
 					</branchOnVariable>
 				</branch>

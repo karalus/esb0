@@ -17,6 +17,7 @@ package com.artofarc.esb.artifact;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +35,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.dom.DOMSource;
 
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
@@ -48,6 +50,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	private volatile Map<QName, Binding> _allBindings;
 	private final HashMap<String, byte[]> _schemas = new HashMap<>();
+	private Charset _encoding;
 	// only used during validation
 	private String latestImportURI;
 
@@ -56,8 +59,14 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
+	public Charset getEncoding() {
+		return _encoding;
+	}
+
+	@Override
 	protected WSDLArtifact clone(FileSystem fileSystem, Directory parent) {
 		WSDLArtifact clone = initClone(new WSDLArtifact(fileSystem, parent, getName()));
+		clone._encoding = _encoding;
 		clone._allBindings = _allBindings;
 		clone._schemaSet = _schemaSet;
 		clone._schemas.putAll(_schemas);
@@ -79,7 +88,9 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	@SuppressWarnings("unchecked")
 	@Override
 	protected Source[] getSourcesForSchema() throws Exception {
-		Definition definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this);
+		Document wsdl = XMLProcessorFactory.getDocumentBuilderFactory().newDocumentBuilder().parse(getBaseInputSource());
+		_encoding = Charset.forName(wsdl.getXmlEncoding() != null ? wsdl.getXmlEncoding() : wsdl.getInputEncoding());
+		Definition definition = WSDL4JUtil.createWSDLReader(false).readWSDL(this, wsdl.getDocumentElement());
 		_allBindings = definition.getAllBindings();
 		_namespace.set(definition.getTargetNamespace());
 		latestImportURI = null;
@@ -159,7 +170,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	protected WSDLArtifactResourceResolver getResolver() {
 		return new WSDLArtifactResourceResolver(this);
 	}
-	
+
 	static class WSDLArtifactResourceResolver extends SchemaArtifactResolver {
 
 		WSDLArtifactResourceResolver(WSDLArtifact wsdlArtifact) {

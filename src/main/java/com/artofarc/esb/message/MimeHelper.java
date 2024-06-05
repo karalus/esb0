@@ -74,12 +74,18 @@ public final class MimeHelper {
 	}
 
 	public static boolean isMimeMultipart(String multipartSubtype, ESBMessage message) {
-		return multipartSubtype != null && (FORCE_MIMEMULTIPART || multipartSubtype == "form-data" || message.getAttachments().size() > 0
-				|| (MEDIATYPE_MULTIPART + multipartSubtype).equals(message.getVariable(HTTP_HEADER_ACCEPT)));
+		if (multipartSubtype == null) return false;
+		if (FORCE_MIMEMULTIPART || multipartSubtype == "form-data" || message.getAttachments().size() > 0) return true;
+		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (contentType != null) {
+			String accept = message.getVariable(HTTP_HEADER_ACCEPT);
+			if (accept != null && !isAcceptable(accept, contentType)) return true;
+		}
+		return false;
 	}
 
 	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
-		byte[] body = bos != null ? bos.toByteArray() : message.getBodyAsByteArray(context);
+		byte[] body = bos != null ? bos.toByteArray() : message.getBodyType() == BodyType.INVALID ? new byte[0] : message.getBodyAsByteArray(context);
 		return createMimeMultipart(context, message, multipartSubtype, multipartContentType, body, true, true);
 	}
 
@@ -130,10 +136,10 @@ public final class MimeHelper {
 				mmp.addBodyPart(part);
 			}
 		} else {
-			if (contentType == null) {
-				throw new NullPointerException("Content-Type is null");
-			}
 			if (multipartSubtype == "related") {
+				if (contentType == null) {
+					throw new NullPointerException("Content-Type is null");
+				}
 				String mediaType = getValueFromHttpHeader(contentType);
 				if (multipartContentType == null) {
 					multipartContentType = mediaType;

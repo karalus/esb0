@@ -37,12 +37,28 @@ public abstract class Evaluator<E extends Exception> {
 			String path = exp.substring(i + 2, j);
 			int k = path.indexOf('.');
 			String name = k < 0 ? path : path.substring(0, k);
-			Object value = "rawBody".equals(name) ? k > 0 ? message.getBody() : message.cloneBody(context, false) : "body".equals(name) ? message.getBodyAsString(context)
-					: "attachments".equals(name) ? message.getAttachments() : resolve(message, name, true);
-			if (value == null && (k >= 0 || name.indexOf('_') >= 0 || name.startsWith("java:"))) {
-				// interpret dots as separators
-				value = context.getGlobalContext().getProperty(path);
-				k = -1;
+			Object value;
+			switch (name) {
+			case "esbMessage":
+				value = message;
+				break;
+			case "rawBody":
+				value = k > 0 ? message.getBody() : message.cloneBody(context, false);
+				break;
+			case "body":
+				value = message.getBodyAsString(context);
+				break;
+			case "attachments":
+				value = message.getAttachments();
+				break;
+			default:
+				value = resolve(message, name, true);
+				if (value == null && (k >= 0 || name.indexOf('_') >= 0 || name.startsWith("java:"))) {
+					// interpret dots as separators
+					value = context.getGlobalContext().getProperty(path);
+					k = -1;
+				}
+				break;
 			}
 			boolean standalone = ++j == exp.length() && pos == 0 && i == 0;
 			if (value == null && !standalone) {

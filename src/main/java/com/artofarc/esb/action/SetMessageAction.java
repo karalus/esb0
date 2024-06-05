@@ -101,7 +101,8 @@ public class SetMessageAction extends ForwardAction {
 			_name = name.intern();
 			_header = header;
 			_expr = expr;
-			_needsBody = expr.getString().contains("${body") || expr.getString().contains("${rawBody");
+			String exprString = expr.getString();
+			_needsBody = exprString.contains("${body") || exprString.contains("${rawBody");
 			if (javaType != null) {
 				try {
 					Class<?> cls = Class.forName(javaType, true, _classLoader);

@@ -136,13 +136,13 @@ input[type="submit"][value="false"] {
 		case "TimerServices":
 			%>
 <br>TimerServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Delay</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Delay</b></td><td><b>Uri</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 			for (TimerService consumerPort : globalContext.getTimerServices()) {
 				%>
 				<tr>
-					<td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 					<td><%=consumerPort.getDelay() != null ? consumerPort.getDelay() + " " + consumerPort.getTimeUnit().name().toLowerCase(Locale.ROOT) : "N/A"%></td>
+					<td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 					<td><%=consumerPort.getCompletedTaskCount()%></td>
 					<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?TimerServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
 					<td><form action="<%=adminPath + consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="TimerServices"/></form></td>
@@ -156,13 +156,13 @@ input[type="submit"][value="false"] {
 		case "FileWatchEventConsumer":
 			%>
 <br>FileWatchEventConsumer:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Dirs</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Dirs</b></td><td><b>Uri</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 		for (FileWatchEventConsumer consumerPort : globalContext.getFileWatchEventConsumers()) {
 			%>
 			<tr>
-				<td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 				<td><%=consumerPort.getDirs()%></td>
+				<td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 				<td><%=consumerPort.getCompletedTaskCount()%></td>
 				<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?FileWatchEventConsumer"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
 				<td><form action="<%=adminPath + consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="FileWatchEventConsumer"/></form></td>
@@ -176,14 +176,14 @@ input[type="submit"][value="false"] {
 		case "KafkaConsumerServices":
 			%>
 <br>KafkaConsumerServices:
-<table border="1"><tr bgcolor="#EEEEEE"><td><b>Uri</b></td><td><b>Config</b></td><td><b>Topics</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
+<table border="1"><tr bgcolor="#EEEEEE"><td><b>Topics</b></td><td><b>Config</b></td><td><b>Uri</b></td><td><b>Completed tasks</b></td><td><b>Enabled</b></td><td><b>Delete</b></td></tr>
 <%
 		for (KafkaConsumerPort consumerPort : globalContext.getKafkaConsumers()) {
 			%>
 			<tr>
-				<td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
-				<td><%=consumerPort.getConfig()%></td>
 				<td><%=consumerPort.getTopics()%></td>
+				<td><%=consumerPort.getConfig()%></td>
+				<td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
 				<td><%=consumerPort.getCompletedTaskCount()%></td>
 				<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?KafkaConsumerServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
 				<td><form action="<%=adminPath + consumerPort.getUri()%>" onsubmit="return confirm('Are you sure to delete \'<%=consumerPort.getUri()%>\'?');"><input type="submit" value="delete"/><input type="hidden" name="DELETE" value="KafkaConsumerServices"/></form></td>
@@ -378,7 +378,7 @@ Upload Service-JAR:
 			if (!a.getURI().isEmpty()) {
 %>
 
-<form action="<%=adminPath + a.getURI()%>?wsdl" enctype="text/plain" method="POST">
+<form action="<%=adminPath + a.getURI()%>" enctype="multipart/form-data" method="POST">
 	<input type="file" name="file">
 	<input type="submit" value="Upload">
 </form>
@@ -452,12 +452,12 @@ Upload Service-JAR:
 			if (a.getContentType().startsWith("text/")) {
 				String content;
 				try (java.io.InputStream inputStream = a.getContentAsStream()) {
-					content = com.artofarc.util.IOUtils.toString(inputStream, java.nio.charset.StandardCharsets.UTF_8).replace("&", "&amp;");
+					content = com.artofarc.util.IOUtils.toString(inputStream, a.getEncoding()).replace("&", "&amp;");
 				}
 				%>
 				<br>
-				<form action="<%=adminPath + pathInfo%>" enctype="text/plain" method="POST" accept-charset="utf-8">
-					<textarea name="content" rows="50" cols="200" spellcheck="false" style="tab-size:4"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=content%></textarea>
+				<form action="<%=adminPath + pathInfo%>" method="POST" accept-charset="utf-8">
+					<textarea name="content" rows="50" cols="200" spellcheck="false" style="tab-size:4"<%if (a.getModificationTime() == 0 || a.getEncoding() != java.nio.charset.StandardCharsets.UTF_8) {%> readonly<%}%>><%=content%></textarea>
 					<input type="submit" value="Change">
 				</form>
 				<%

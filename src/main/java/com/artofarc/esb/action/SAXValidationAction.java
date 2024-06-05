@@ -15,8 +15,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.io.IOException;
-
 import javax.xml.parsers.SAXParser;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.validation.Schema;
@@ -24,7 +22,6 @@ import javax.xml.validation.ValidatorHandler;
 import javax.xml.xquery.XQItem;
 
 import org.xml.sax.ContentHandler;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
@@ -54,23 +51,12 @@ public class SAXValidationAction extends SAXAction {
 		}
 	}
 
-	class ReuseParserXMLFilter extends XMLFilterBase {
+	class ValidatingReuseParserXMLFilter extends ReuseParserXMLFilter {
 		private final ValidatorHandler _validatorHandler = _schema.newValidatorHandler();
-		private final SAXParser _saxParser;
 
-		ReuseParserXMLFilter(SAXParser saxParser) throws SAXException {
-			super(saxParser.getXMLReader());
-			_saxParser = saxParser;
+		ValidatingReuseParserXMLFilter(SAXParser saxParser) throws SAXException {
+			super(saxParser);
 			super.setContentHandler(_validatorHandler);
-		}
-
-		@Override
-		public void parse(InputSource input) throws SAXException, IOException {
-			try {
-				super.parse(input);
-			} finally {
-				_saxParser.reset();
-			}
 		}
 
 		@Override
@@ -93,7 +79,7 @@ public class SAXValidationAction extends SAXAction {
 			xmlFilter.setContentHandler(_schema.newValidatorHandler());
 			return xmlFilter;
 		}
-		return new ReuseParserXMLFilter(context.getSAXParser());
+		return new ValidatingReuseParserXMLFilter(context.getSAXParser());
 	}
 
 }

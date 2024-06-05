@@ -24,6 +24,7 @@ public final class HttpUrl {
 
 	private final String _urlStr;
 	private final URL _url;
+	private final String _protocol;
 	private final String _host;
 	private final int _port;
 	private final String _path;
@@ -32,7 +33,8 @@ public final class HttpUrl {
 
 	public HttpUrl(String url, int weight, boolean active) throws MalformedURLException {
 		_url = new URL(_urlStr = url);
-		_host = _url.getHost();
+		_protocol = _url.getProtocol().intern();
+		_host = _url.getHost().intern();
 		_port = _url.getPort() < 0 ? _url.getDefaultPort() : _url.getPort();
 		_path = _url.getPath();
 		_weight = weight;
@@ -40,7 +42,7 @@ public final class HttpUrl {
 	}
 
 	public String getBaseUrl() {
-		String s = _url.getProtocol() + "://" + _host;
+		String s = _protocol + "://" + _host;
 		return _port == _url.getDefaultPort() ? s : s + ':' + _port;
 	}
 
@@ -65,12 +67,12 @@ public final class HttpUrl {
 	}
 
 	public boolean isCompatible(HttpUrl other) {
-		return _port == other._port && _host.equals(other._host);
+		return _host == other._host && _port == other._port && _protocol == other._protocol;
 	}
 
 	@Override
 	public int hashCode() {
-		return _host.hashCode() + _port ^ _path.hashCode() + _weight;
+		return _host.hashCode() + _port ^ _path.hashCode();
 	}
 
 	@Override
@@ -80,7 +82,7 @@ public final class HttpUrl {
 		if (!(obj instanceof HttpUrl))
 			return false;
 		HttpUrl other = (HttpUrl) obj;
-		return _port == other._port && _host.equals(other._host) && _path.equals(other._path) && _weight == other._weight;
+		return _host == other._host && _port == other._port && _protocol == other._protocol && _path.equals(other._path) && _weight == other._weight;
 	}
 
 	@Override

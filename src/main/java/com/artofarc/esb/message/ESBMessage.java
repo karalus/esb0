@@ -285,6 +285,10 @@ public final class ESBMessage implements Cloneable {
 		_sinkEncoding = sinkEncoding != null ? Charset.forName(sinkEncoding) : null;
 	}
 
+	public void setSinkEncoding(Charset sinkEncoding) {
+		_sinkEncoding = sinkEncoding;
+	}
+
 	private Charset getSinkEncodingCharset() {
 		return _sinkEncoding != null ? _sinkEncoding : getCharset();
 	}
@@ -907,8 +911,8 @@ public final class ESBMessage implements Cloneable {
 
 	public ESBMessage copy(Context context, boolean withBody, boolean withHeaders, boolean withAttachments) throws Exception {
 		final ESBMessage clone;
-		Object newBody = cloneBody(context, true);
 		if (withBody) {
+			Object newBody = cloneBody(context, true);
 			clone = new ESBMessage(_bodyType, newBody, _charset);
 			clone.setContentType(_contentType);
 		} else {
@@ -928,6 +932,10 @@ public final class ESBMessage implements Cloneable {
 			}
 		}
 		return clone;
+	}
+
+	public String createURLEncodedString(String parameters) {
+		return URLUtils.createURLEncodedString(_variables, parameters, ",");
 	}
 
 }

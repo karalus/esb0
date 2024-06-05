@@ -162,6 +162,8 @@ public final class XmlSampleGenerator extends XMLParserBase {
 			return "2020-08-05";
 		case "time":
 			return "07:54:45Z";
+		case "base64Binary":
+			return "YmluYXJ5";
 		default:
 			return facets.isEmpty() ? "string" : facets.get(0).getValue().value;
 		}

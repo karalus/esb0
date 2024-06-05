@@ -17,7 +17,15 @@ package com.artofarc.util;
 
 public final class StringBuilderWriter extends java.io.Writer {
 
-	private final StringBuilder builder = new StringBuilder(IOUtils.MTU);
+	private final StringBuilder builder;
+
+	public StringBuilderWriter(StringBuilder stringBuilder) {
+		builder = stringBuilder;
+	}
+
+	public StringBuilderWriter() {
+		builder = new StringBuilder(IOUtils.MTU);
+	}
 
 	@Override
 	public void write(int c) {

@@ -207,7 +207,7 @@ public abstract class JDBCAction extends Action {
 	}
 
 	@Override
-	protected void close(Context context, ExecutionContext execContext, boolean exception) throws Exception  {
+	protected void close(Context context, ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception  {
 		JDBCConnection connection = execContext.getResource();
 		boolean connectionKept = execContext.getResource2();
 		if (!connectionKept) {

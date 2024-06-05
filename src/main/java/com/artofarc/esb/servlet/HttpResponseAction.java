@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.servlet;
 
+import java.util.List;
 import java.util.Map.Entry;
 
 import javax.mail.internet.MimeMultipart;
@@ -66,6 +67,7 @@ public class HttpResponseAction extends Action {
 		} else if (redirect != null && !redirect.isEmpty()) {
 			response.sendRedirect(redirect);
 		} else if (checkContentType(message, response, mimeMultipart = MimeHelper.isMimeMultipart(_multipartSubtype, message))) {
+			executionContext.setResource3(mimeMultipart);
 			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 			if (httpResponseCode != null) {
@@ -87,6 +89,12 @@ public class HttpResponseAction extends Action {
 						response.setIntHeader(entry.getKey(), (Integer) entry.getValue());
 					} else if (entry.getValue() instanceof Long) {
 						response.setDateHeader(entry.getKey(), (Long) entry.getValue());
+					} else if (entry.getValue() instanceof List) {
+						@SuppressWarnings("unchecked")
+						List<String> values = (List<String>) entry.getValue();
+						for (String value : values) {
+							response.addHeader(entry.getKey(), value);
+						}
 					}
 				}
 				// prevent flushing to avoid "transfer encoding chunked" on small responses
@@ -143,11 +151,11 @@ public class HttpResponseAction extends Action {
 		return true;
 	}
 
-	private static void checkCompression(ESBMessage message, boolean inPipeline) {
+	private static void checkCompression(ESBMessage message, boolean inPipeline) throws Exception {
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
 			Long length = message.getLength();
-			if (inPipeline || length == null || length > thresholdCompression || message.getContentEncoding() != null) {
+			if (inPipeline || length == null && !message.isEmpty() || length != null && length > thresholdCompression || message.getContentEncoding() != null) {
 				if (isAcceptable(acceptEncoding, "gzip")) {
 					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
 					message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
@@ -163,7 +171,7 @@ public class HttpResponseAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		AsyncContext asyncContext = execContext.getResource();
 		message.closeBody();
-		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+		if (Boolean.TRUE.equals(execContext.getResource3())) {
 			ByteArrayOutputStream bos = execContext.getResource2();
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
 			HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();

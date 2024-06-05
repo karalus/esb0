@@ -174,7 +174,7 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 
 	protected abstract boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl) throws Exception;
 
-	protected final synchronized int computeNextPos(HttpEndpoint httpEndpoint) {
+	synchronized int computeNextPos(HttpEndpoint httpEndpoint) {
 		for (int i = 0;; ++pos) {
 			if (pos == size) {
 				pos = 0;

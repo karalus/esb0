@@ -42,7 +42,7 @@ public class AdminAction extends Action {
 	public static final int SC_BAD_REQUEST = 400;
 	public static final int SC_NOT_FOUND = 404;
 	public static final int SC_METHOD_NOT_ALLOWED = 405;
-    public static final int SC_NOT_ACCEPTABLE = 406;
+	public static final int SC_NOT_ACCEPTABLE = 406;
 	public static final int SC_UNSUPPORTED_MEDIA_TYPE = 415;
 	public static final int SC_INTERNAL_SERVER_ERROR = 500;
 	public static final int SC_GATEWAY_TIMEOUT = 504;
@@ -117,7 +117,7 @@ public class AdminAction extends Action {
 				if (headerAccept == null || isAcceptable(headerAccept, artifact.getContentType())) {
 					InputStream contentAsStream = artifact.getContentAsStream();
 					if (artifact instanceof WSDLArtifact) {
-						String content = IOUtils.toString(contentAsStream, ESBMessage.CHARSET_DEFAULT);
+						String content = IOUtils.toString(contentAsStream, artifact.getEncoding());
 						contentAsStream.close();
 						try {
 							content = (String) eval(content, context, message);
@@ -131,6 +131,7 @@ public class AdminAction extends Action {
 					message.clearHeaders();
 					message.putHeader(HTTP_HEADER_CONTENT_TYPE, artifact.getContentType());
 					message.putHeader(HTTP_HEADER_CONTENT_DISPOSITION, "filename=\"" + artifact.getName() + '"');
+					message.setSinkEncoding(artifact.getEncoding());
 				} else {
 					throwHttpError(message, SC_NOT_ACCEPTABLE, new ExecutionException(this, headerAccept));
 				}
@@ -148,7 +149,7 @@ public class AdminAction extends Action {
 				FileSystem newFileSystem = changeSet.getFileSystem();
 				globalContext.setFileSystem(newFileSystem);
 				newFileSystem.writeBackChanges();
-				logger.info("Artifact " +  resource + " deleted by " + message.getVariable(ESBConstants.RemoteUser));
+				logger.info("Artifact " + resource + " deleted by " + message.getVariable(ESBConstants.RemoteUser));
 				message.putVariable(ESBConstants.HttpResponseCode, SC_NO_CONTENT);
 				message.reset(BodyType.INVALID, null);
 			} catch (ValidationException e) {

@@ -39,7 +39,8 @@ public class HttpInboundAction extends Action {
 			message.clearHeaders();
 			for (Entry<String, List<String>> entry : httpUrlConnection.getHeaders().entrySet()) {
 				if (entry.getKey() != null) {
-					message.putHeader(entry.getKey(), entry.getValue().get(0));
+					List<String> values = entry.getValue();
+					message.putHeader(entry.getKey(), values.size() > 1 ? values : values.get(0));
 				}
 			}
 			InputStream inputStream = httpUrlConnection.getInputStream();
@@ -73,8 +74,12 @@ public class HttpInboundAction extends Action {
 	}
 
 	@Override
-	protected void close(Context context, ExecutionContext execContext, boolean exception) throws Exception {
+	protected void close(Context context, ExecutionContext execContext, ESBMessage message, boolean exception) throws Exception {
 		try (InputStream inputStream = execContext.getResource()) {
+			// if inputStream was not consumed materialize it to avoid stream is closed exception
+			if (inputStream != null && message.getBody() == inputStream) {
+				message.getBodyAsByteArray(context);
+			}
 		} finally {
 			execContext.<HttpUrlConnection> getResource2().close();
 		}

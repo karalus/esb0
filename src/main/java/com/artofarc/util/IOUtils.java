@@ -161,7 +161,31 @@ public final class IOUtils {
 	}
 
 	public static String toString(InputStream is, Charset charset) throws IOException {
-		return charset.decode(toByteBuffer(is)).toString();
+		try (StringBuilderWriter writer = new StringBuilderWriter()) {
+			copy(new InputStreamReader(is, charset), writer);
+			return writer.toString();
+		}
+	}
+
+	public static int indexOf(CharSequence chars, String str, int fromIndex) {
+		final char first = str.charAt(0);
+		final int max = chars.length() - str.length();
+		for (int i = fromIndex; i <= max; ++i) {
+			// Look for first character
+			if (chars.charAt(i) != first) {
+				while (++i <= max && chars.charAt(i) != first);
+			}
+			if (i <= max) {
+				// now look at the rest
+				int j = i + 1;
+				int end = i + str.length();
+				for (int k = 1; j < end && chars.charAt(j) == str.charAt(k); j++, k++);
+				if (j == end) {
+					return i;
+				}
+			}
+		}
+		return -1;
 	}
 
 	public static void readFully(InputStream is, byte ba[]) throws IOException {
