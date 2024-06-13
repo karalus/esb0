@@ -65,7 +65,7 @@ public class HttpAction extends Action {
 		_pipelineStop = true;
 	}
 
-	private static void fillESBMessage(ESBMessage message, HttpResponse<InputStream> httpResponse) throws Exception {
+	private static void fillESBMessage(Context context, ESBMessage message, HttpResponse<InputStream> httpResponse) throws Exception {
 		message.getVariables().put(HttpURLOutbound, httpResponse.uri().toString());
 		message.getVariables().put(HttpResponseCode, httpResponse.statusCode());
 		for (Map.Entry<String, List<String>> entry : httpResponse.headers().map().entrySet()) {
@@ -73,7 +73,7 @@ public class HttpAction extends Action {
 		}
 		InputStream inputStream = httpResponse.body();
 		message.reset(null, inputStream);
-		if (message.prepareContent()) {
+		if (message.prepareContent(context)) {
 			inputStream.close();
 		}
 	}
@@ -124,7 +124,7 @@ public class HttpAction extends Action {
 			Action action = workerPool.getAsyncProcessingPool().restoreContext(correlationID, workerContext, esbMessage);
 			try {
 				if (httpResponse != null) {
-					fillESBMessage(esbMessage, httpResponse);
+					fillESBMessage(context, esbMessage, httpResponse);
 					action.process(workerContext, esbMessage);
 				} else {
 					processException(workerContext, esbMessage);
@@ -141,7 +141,7 @@ public class HttpAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		message.determineSinkContentType();
-		boolean async = message.getVariables().containsKey(AsyncContext);
+		boolean async = context.getResource(AsyncContext) != null;
 		ExecutionContext executionContext = new ExecutionContext(async);
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			if (inPipeline) {
@@ -254,7 +254,7 @@ public class HttpAction extends Action {
 		}
 		message.clearHeaders();
 		if (httpResponse != null) {
-			fillESBMessage(message, httpResponse);
+			fillESBMessage(context, message, httpResponse);
 		} else {
 			message.reset(BodyType.INVALID, null);
 		}

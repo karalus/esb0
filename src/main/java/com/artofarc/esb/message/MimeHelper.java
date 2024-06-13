@@ -180,9 +180,9 @@ public final class MimeHelper {
 		return mmp;
 	}
 
-	static String parseContentType(ESBMessage message, String contentType) throws Exception {
+	static String parseContentType(Context context, ESBMessage message, String contentType) throws Exception {
 		if (contentType != null && contentType.startsWith(MEDIATYPE_MULTIPART)) {
-			InputStream inputStream = message.getBodyAsInputStream(null);
+			InputStream inputStream = message.getBodyAsInputStream(context);
 			MimeMultipart mmp = new MimeMultipart(new DataSource() {
 
 				@Override
@@ -239,7 +239,7 @@ public final class MimeHelper {
 			}
 			return newContentType;
 		} else if (HTTP_HEADER_CONTENT_TYPE_FORM_URLENCODED.equals(contentType)) {
-			URLUtils.parseURLEncodedString(message.getBodyAsString(null), message.getVariables(), null);
+			URLUtils.parseURLEncodedString(message.getBodyAsString(context), message.getVariables(), null);
 			message.reset(BodyType.INVALID, null);
 			return null;
 		}

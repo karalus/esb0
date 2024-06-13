@@ -53,7 +53,7 @@ public class HttpResponseAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		AsyncContext asyncContext = message.removeVariable(ESBConstants.AsyncContext);
+		AsyncContext asyncContext = context.removeResource(ESBConstants.AsyncContext);
 		HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
 		ExecutionContext executionContext = new ExecutionContext(asyncContext);
 		String redirect = message.getVariable(ESBConstants.redirect);

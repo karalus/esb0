@@ -35,11 +35,9 @@ import com.artofarc.esb.Registry;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBConstants;
+import static com.artofarc.esb.message.ESBConstants.*;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.DataStructures;
-
-import static com.artofarc.esb.message.ESBConstants.*;
 
 /**
  * This servlet is the one and only HTTP endpoint for all services.
@@ -80,34 +78,32 @@ public class GenericHttpListener extends HttpServlet {
 			}
 			if (secure) {
 				if (consumerPort.isEnabled()) {
-					try {
-						ESBMessage message = createESBMessage(request, pathInfo, consumerPort);
-						AsyncContext asyncContext = null;
+					Context context = consumerPort.acquireContext();
+					if (context != null) {
 						try {
-							Context context = consumerPort.acquireContext();
-							if (context != null) {
-								message.getVariables().put(AsyncContext, asyncContext = request.startAsync());
-								asyncContext.setTimeout(consumerPort.getAsyncTimeout());
-								try {
-									consumerPort.processWithServletResponse(context, message);
-								} finally {
-									consumerPort.releaseContext(context);
+							ESBMessage message = createESBMessage(context, request, pathInfo, consumerPort);
+							AsyncContext asyncContext = request.startAsync();
+							asyncContext.setTimeout(consumerPort.getAsyncTimeout());
+							context.putResource(AsyncContext, asyncContext);
+							try {
+								consumerPort.processWithServletResponse(context, message);
+							} catch (Exception e) {
+								if (!response.isCommitted()) {
+									response.reset();
+									Number httpResponseCode = message.getVariable(HttpResponseCode, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+									sendError(response, httpResponseCode.intValue() < HttpServletResponse.SC_BAD_REQUEST ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : httpResponseCode.intValue(), e);
 								}
-							} else {
-								sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
+								asyncContext.complete();
+							} finally {
+								context.removeResource(AsyncContext);
 							}
 						} catch (Exception e) {
-							if (!response.isCommitted()) {
-								response.reset();
-								Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-								sendError(response, httpResponseCode.intValue() < HttpServletResponse.SC_BAD_REQUEST ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : httpResponseCode.intValue(), e);
-							}
-							if (asyncContext != null) {
-								asyncContext.complete();
-							}
+							sendError(response, HttpServletResponse.SC_BAD_REQUEST, e);
+						} finally {
+							consumerPort.releaseContext(context);
 						}
-					} catch (Exception e) {
-						sendError(response, HttpServletResponse.SC_BAD_REQUEST, e);
+					} else {
+						sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
 					}
 				} else {
 					sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
@@ -116,7 +112,7 @@ public class GenericHttpListener extends HttpServlet {
 		}
 	}
 
-	private static ESBMessage createESBMessage(HttpServletRequest request, String pathInfo, HttpConsumer httpConsumer) throws Exception {
+	private static ESBMessage createESBMessage(Context context, HttpServletRequest request, String pathInfo, HttpConsumer httpConsumer) throws Exception {
 		// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
 		final boolean bodyPresent = request.getHeader(HTTP_HEADER_CONTENT_LENGTH) != null || request.getHeader(HTTP_HEADER_TRANSFER_ENCODING) != null;
 		final ESBMessage message = bodyPresent ? new ESBMessage(BodyType.INPUT_STREAM, request.getInputStream()) : new ESBMessage(BodyType.INVALID, null);
@@ -144,7 +140,7 @@ public class GenericHttpListener extends HttpServlet {
 			if (httpConsumer.getOverwriteContentType() != null) {
 				message.putHeader(HTTP_HEADER_CONTENT_TYPE, httpConsumer.getOverwriteContentType());
 			}
-			message.prepareContent();
+			message.prepareContent(context);
 		}
 		// copy into variable for HttpServletResponseAction
 		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));

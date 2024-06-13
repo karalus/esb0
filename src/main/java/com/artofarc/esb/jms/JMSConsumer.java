@@ -298,7 +298,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		return false;
 	}
 
-	public static void fillESBMessage(ESBMessage esbMessage, Message message) throws Exception {
+	public static void fillESBMessage(Context context, ESBMessage esbMessage, Message message) throws Exception {
 		for (@SuppressWarnings("unchecked")
 		Enumeration<String> propertyNames = message.getPropertyNames(); propertyNames.hasMoreElements();) {
 			String propertyName = propertyNames.nextElement();
@@ -306,12 +306,12 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		}
 		if (message instanceof BytesMessage) {
 			esbMessage.reset(BodyType.INPUT_STREAM, new BytesMessageInputStream((BytesMessage) message), message.getStringProperty(ESBConstants.Charset));
-			esbMessage.prepareContent();
+			esbMessage.prepareContent(context);
 		} else if (message instanceof TextMessage) {
 			TextMessage textMessage = (TextMessage) message;
 			esbMessage.reset(BodyType.STRING, textMessage.getText());
 			message.clearBody();
-			esbMessage.prepareContent();
+			esbMessage.prepareContent(context);
 		}
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
 		esbMessage.putVariable(ESBConstants.JMSTimestamp, message.getJMSTimestamp());
@@ -414,7 +414,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 			ESBMessage esbMessage = new ESBMessage(BodyType.INVALID, null);
 			esbMessage.putVariable("JMSConnectionData", _jmsConnectionData.toString());
 			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
-			fillESBMessage(esbMessage, message);
+			fillESBMessage(_context, esbMessage, message);
 			processInternal(_context, esbMessage);
 			return esbMessage.getVariable(ESBConstants.initialTimestamp);
 		}
