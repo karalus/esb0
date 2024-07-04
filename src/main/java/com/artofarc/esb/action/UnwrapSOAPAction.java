@@ -115,6 +115,9 @@ public class UnwrapSOAPAction extends TransformAction {
 		if (soapAction != null) {
 			String operation = _mapAction2Operation.get(soapAction);
 			if (operation != null) {
+				if (!_operations.get(operation).equals(message.getVariable(SOAP_ELEMENT_NAME))) {
+					throw new ExecutionException(this, "Input element does not match to operation: " + operation);
+				}
 				return operation;
 			}
 		}
