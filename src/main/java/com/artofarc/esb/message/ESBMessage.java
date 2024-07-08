@@ -120,14 +120,7 @@ public final class ESBMessage implements Cloneable {
 		} else if (bodyType == null) {
 			bodyType = BodyType.detect(body);
 		}
-		if (bodyType.hasCharset()) {
-			if (_bodyType.hasCharset() && _charset != null) {
-				System.err.println("Warning: old binary body had non default charset");
-			}
-			init(bodyType, body, _charset);
-		} else {
-			init(bodyType, body, null);
-		}
+		init(bodyType, body, bodyType.hasCharset() ? _charset : null);
 	}
 
 	public Collection<Map.Entry<String, Object>> getHeaders() {
@@ -234,12 +227,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void setCharset(String charsetName) {
-		if (charsetName != null) {
-			Charset charset = Charset.forName(charsetName);
-			_charset = charset != CHARSET_DEFAULT ? charset : null;
-		} else {
-			_charset = null;
-		}
+		_charset = charsetName != null ? Charset.forName(charsetName) : null;
 	}
 
 	public String getContentEncoding() {
@@ -258,10 +246,10 @@ public final class ESBMessage implements Cloneable {
 		_contentType = contentType;
 	}
 
-	public boolean prepareContent() throws Exception {
+	public boolean prepareContent(Context context) throws Exception {
 		setContentEncoding(removeHeader(HTTP_HEADER_CONTENT_ENCODING));
 		String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
-		_contentType = MimeHelper.parseContentType(this, contentType);
+		_contentType = MimeHelper.parseContentType(context, this, contentType);
 		if (_bodyType.hasCharset()) {
 			setCharset(determineCharset(_contentType));
 		} else {
@@ -428,6 +416,7 @@ public final class ESBMessage implements Cloneable {
 		switch (_bodyType) {
 		case DOM:
 			_body = new DOMSource((Node) _body);
+			// nobreak
 		case SOURCE:
 			context.transform((Source) _body, new StreamResult(sw = new StringBuilderWriter()), getVariable(ESBConstants.serializationParameters));
 			str = sw.toString();
@@ -759,6 +748,7 @@ public final class ESBMessage implements Cloneable {
 		switch (_bodyType) {
 		case DOM:
 			_body = new DOMSource((Node) _body);
+			// nobreak
 		case SOURCE:
 			try (Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
 				context.transform((Source) _body, new StreamResult(writer), getVariable(ESBConstants.serializationParameters));

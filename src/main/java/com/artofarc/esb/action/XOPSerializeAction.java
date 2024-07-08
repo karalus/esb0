@@ -45,7 +45,7 @@ public class XOPSerializeAction extends SAXAction {
 		}
 		final String accept = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT);
 		if (accept == null || _ifAccepts == null || HttpConstants.isAcceptable(accept, _ifAccepts)) {
-			XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, _contentType);
+			XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, (String) eval(_contentType, context, message));
 			xopSerializer.setParent(new XQJFilter(item));
 			return new SAXSource(xopSerializer, null);
 		} else {
@@ -60,7 +60,7 @@ public class XOPSerializeAction extends SAXAction {
 		}
 		final String accept = message.getVariable(HttpConstants.HTTP_HEADER_ACCEPT);
 		if (accept == null || _ifAccepts == null || HttpConstants.isAcceptable(accept, _ifAccepts)) {
-			XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, _contentType);
+			XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, (String) eval(_contentType, context, message));
 			if (parent != null) {
 				xopSerializer.setParent(parent);
 			} else {

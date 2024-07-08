@@ -156,7 +156,7 @@ public abstract class AbstractESBTest {
 			decl.setValue(bindName);
 			decls.add(decl);
 		}
-		return new AssignAction(assignments, true, expression, namespaces != null ? namespaces.entrySet() : null, decls, null, false);
+		return new AssignAction(assignments, expression, namespaces != null ? namespaces.entrySet() : null, decls, null, false);
 	}
 
 	protected static List<AssignAction.Assignment> createAssignments(boolean header, String... tuples) {
@@ -164,7 +164,7 @@ public abstract class AbstractESBTest {
 		for (int i = 0; i < tuples.length; ++i) {
 			String varName = tuples[i];
 			String expression = tuples[++i];
-			assignments.add(new AssignAction.Assignment(varName, header, expression, false, null));
+			assignments.add(new AssignAction.Assignment(varName, header, expression, null, null));
 		}
 		return assignments;
 	}
@@ -197,7 +197,7 @@ public abstract class AbstractESBTest {
 		for (String varName : varNames) {
 			assignments.add(new AssignAction.Assignment(varName, false));
 		}
-		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), null, assignments, false, true, xqueryArtifact.getParent().getURI(), null, null);
+		return new TransformAction(XQuerySource.create(xqueryArtifact.getContent()), null, assignments, true, xqueryArtifact.getParent().getURI(), null, null);
 	}
 
 }

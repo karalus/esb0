@@ -80,7 +80,7 @@ public class SetMessageAction extends ForwardAction {
 		}
 		if (_body != null) {
 			message.reset(null, _body.convert(eval(_body._expr.getString(), context, message)));
-			message.prepareContent();
+			message.prepareContent(context);
 			message.setSchema(null);
 			if (_clearHeadersExcept == null) {
 				message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);

@@ -42,7 +42,6 @@ public class ValidateAction extends AssignAction {
 	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws ExecutionException {
 		try {
 			checkNext(resultSequence, "expression");
-//			Boolean xopAware = (Boolean) eval("${attachments.empty}", null, message);
 			ContentHandler saxhdlr = message.getAttachments().isEmpty() ? _schema.newValidatorHandler() : new XopAwareValidatorHandler(_schema, message.getAttachments().keySet());
 			resultSequence.writeItemToResult(new SAXResult(saxhdlr));
 		} catch (XQException e) {

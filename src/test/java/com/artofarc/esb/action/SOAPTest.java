@@ -98,7 +98,7 @@ public class SOAPTest extends AbstractESBTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBConstants.HttpMethod, "POST");
-      message.getVariables().put(ESBConstants.AsyncContext, true);
+      context.putResource(ESBConstants.AsyncContext, this);
       message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.putHeader(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
       consumerPort.process(context, message);
@@ -569,7 +569,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = createValidateAction(wsdlArtifact);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new AssignAction(createAssignments(true, HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"), false, null, null, java.util.Collections.<XQDecl> emptyList(), null, true));
+      action = action.setNextAction(new AssignAction(createAssignments(true, HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"), null, null, java.util.Collections.<XQDecl> emptyList(), null, true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }
