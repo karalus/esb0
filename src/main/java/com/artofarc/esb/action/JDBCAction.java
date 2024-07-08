@@ -243,6 +243,7 @@ public abstract class JDBCAction extends Action {
 				case CLOB:
 					Clob clob = execContext.getResource3();
 					if (clob != null) {
+						message.closeBody();
 						if (param.getTruncate() != null) {
 							clob.truncate(param.getTruncate());
 						}
@@ -258,6 +259,7 @@ public abstract class JDBCAction extends Action {
 				case BLOB:
 					Blob blob = execContext.getResource3();
 					if (blob != null) {
+						message.closeBody();
 						if (param.getTruncate() != null) {
 							blob.truncate(param.getTruncate());
 						}
