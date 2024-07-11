@@ -472,6 +472,9 @@ public final class Json2XmlTransformer {
 						_atts.clear();
 						if (any < 0) {
 							endPrefixMapping("xsi");
+							if (xsomHelper.getComplexType() != null) {
+								xsomHelper.endComplex();
+							}
 						}
 					}
 					if (!xsomHelper.isInArray()) {
