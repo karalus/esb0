@@ -90,13 +90,6 @@ public final class Xml2JsonTransformer {
 		}
 
 		@Override
-		public void startDocument() {
-			if (_type == null || _type.isComplexType()) {
-				jsonGenerator.writeStartObject();
-			}
-		}
-
-		@Override
 		public void endDocument() {
 			if (_includeRoot) jsonGenerator.writeEnd();
 			jsonGenerator.close();
@@ -144,9 +137,15 @@ public final class Xml2JsonTransformer {
 					primitiveType = XSOMHelper.getJsonType(_type.asSimpleType());
 				} else {
 					xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, localName));
+					if (!_includeRoot && _wrapperAsArrayName && xsomHelper.getWrappedElement() != null) {
+						jsonGenerator.writeStartArray();
+						ignoreLevel.push(1);
+					} else {
+						jsonGenerator.writeStartObject();
+					}
 				}
 				if (!_includeRoot) {
-					++level;
+					level = 1;
 					return;
 				}
 				complex = true;
@@ -216,7 +215,7 @@ public final class Xml2JsonTransformer {
 				--attsLength;
 			}
 			++level;
-			if (attsLength > 0 || complex && anyLevel < 0) {
+			if (attsLength > 0 || complex && anyLevel < 0 && primitiveType != "nil") {
 				if (openKey != null) {
 					if (_wrapperAsArrayName && xsomHelper.getWrappedElement() != null) {
 						jsonGenerator.writeStartArray(openKey);
@@ -295,6 +294,11 @@ public final class Xml2JsonTransformer {
 				}
 				if (anyLevel < 0 || level == anyLevel) {
 					xsomHelper.endComplex();
+					if (xsomHelper.isInArray() && level > 1 && level == xsomHelper.getLevel()) {
+						jsonGenerator.writeEnd();
+						xsomHelper.endArray();
+						xsomHelper.endAny();
+					}
 				}
 			}
 			if (complex || primitiveType == null) {
