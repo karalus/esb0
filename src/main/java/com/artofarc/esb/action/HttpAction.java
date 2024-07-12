@@ -141,7 +141,7 @@ public class HttpAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		message.determineSinkContentType();
-		boolean async = context.getResource(AsyncContext) != null;
+		boolean async = message.getVariables().containsKey(AsyncContext);
 		ExecutionContext executionContext = new ExecutionContext(async);
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			if (inPipeline) {

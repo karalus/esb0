@@ -40,7 +40,7 @@ public interface ESBConstants {
 
 	String appendHttpUrlPath = "appendHttpUrlPath";
 
-	String AsyncContext = "ServletAsyncContext";
+	String AsyncContext = "_ServletAsyncContext";
 
 	String redirect = "redirect";
 

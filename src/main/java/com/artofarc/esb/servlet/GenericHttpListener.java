@@ -84,7 +84,7 @@ public class GenericHttpListener extends HttpServlet {
 							ESBMessage message = createESBMessage(context, request, pathInfo, consumerPort);
 							AsyncContext asyncContext = request.startAsync();
 							asyncContext.setTimeout(consumerPort.getAsyncTimeout());
-							context.putResource(AsyncContext, asyncContext);
+							message.getVariables().put(AsyncContext, asyncContext);
 							try {
 								consumerPort.processWithServletResponse(context, message);
 							} catch (Exception e) {
@@ -94,8 +94,6 @@ public class GenericHttpListener extends HttpServlet {
 									sendError(response, httpResponseCode.intValue() < HttpServletResponse.SC_BAD_REQUEST ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : httpResponseCode.intValue(), e);
 								}
 								asyncContext.complete();
-							} finally {
-								context.removeResource(AsyncContext);
 							}
 						} catch (Exception e) {
 							sendError(response, HttpServletResponse.SC_BAD_REQUEST, e);
