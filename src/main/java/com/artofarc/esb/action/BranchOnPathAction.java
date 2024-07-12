@@ -117,8 +117,9 @@ public class BranchOnPathAction extends Action {
 				final String item = _list.get(i++);
 				final boolean isTemplate = (i & 1) == 0;
 				if (isTemplate) {
-					final int j = path.indexOf('/', pos);
 					final boolean isLast = i == _list.size();
+					final char terminator = isLast ? '/' : _list.get(i).charAt(0);
+					final int j = path.indexOf(terminator, pos);
 					if (isLast) {
 						if (j >= 0) {
 							// path is longer
