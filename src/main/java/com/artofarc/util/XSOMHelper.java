@@ -477,7 +477,7 @@ public final class XSOMHelper {
 	public XSTerm getWrappedElement() {
 		if (_nextGroup != null && _nextGroup.modelGroup.getSize() == 1) {
 			final XSParticle child = _nextGroup.modelGroup.getChild(0);
-			if ((_nextGroup.repeated || child.isRepeated()) && !_nextGroup.owner.isMixed() && _nextGroup.owner.getAttributeUses().isEmpty()) {
+			if ((_nextGroup.repeated || child.isRepeated() && !child.getTerm().isWildcard()) && !_nextGroup.owner.isMixed() && _nextGroup.owner.getAttributeUses().isEmpty()) {
 				return child.getTerm();
 			}
 		}

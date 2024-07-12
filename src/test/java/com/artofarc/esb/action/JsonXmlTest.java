@@ -3,8 +3,6 @@ package com.artofarc.esb.action;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.json.JsonReader;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,9 +13,6 @@ import com.artofarc.esb.artifact.XSDArtifact;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.DataStructures;
-import com.artofarc.util.JsonFactoryHelper;
-import com.artofarc.util.TimeGauge;
 import com.sun.xml.xsom.XSSchemaSet;
 
 public class JsonXmlTest extends AbstractESBTest {
@@ -156,6 +151,17 @@ public class JsonXmlTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "true");
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "application/json; charset=\"utf-8\"");
 		Json2XMLAction action = new Json2XMLAction(null, null, false, null, null, true);
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(action);
+		action.setNextAction(new DumpAction());
+		consumerPort.process(context, message);
+	}
+
+	@Test
+	public void testSOAPFault2Json() throws Exception {
+		XSDArtifact xsd = fileSystem.getArtifact("/xmlcatalog/soap11.xsd");
+		ESBMessage message = new ESBMessage(BodyType.BYTES, SOAPTest.readFile("src/test/resources/SOAP_Fault1.xml"));
+		XML2JsonAction action = new XML2JsonAction(xsd.getXSSchemaSet(), "{http://schemas.xmlsoap.org/soap/envelope/}detail", false, null, null);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		action.setNextAction(new DumpAction());
