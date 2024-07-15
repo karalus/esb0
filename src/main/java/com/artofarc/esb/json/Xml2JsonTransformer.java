@@ -294,9 +294,11 @@ public final class Xml2JsonTransformer {
 				}
 				if (anyLevel < 0 || level == anyLevel) {
 					xsomHelper.endComplex();
-					if (xsomHelper.isInArray() && level > 1 && level == xsomHelper.getLevel()) {
-						jsonGenerator.writeEnd();
-						xsomHelper.endArray();
+					if (level == xsomHelper.getLevel()) {
+						if (level > 1 && xsomHelper.isInArray()) {
+							jsonGenerator.writeEnd();
+							xsomHelper.endArray();
+						}
 						xsomHelper.endAny();
 					}
 				}
