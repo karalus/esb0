@@ -15,7 +15,6 @@
  */
 package com.artofarc.util;
 
-import java.io.StringReader;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -174,7 +173,6 @@ public final class XSOMHelper {
 	static {
 		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 		try {
-			xsomParser.parse(new StringReader("<schema xmlns='http://www.w3.org/2001/XMLSchema'><element name='root'/></schema>"));
 			anySchema = xsomParser.getResult();
 		} catch (SAXException e) {
 			throw new RuntimeException(e);

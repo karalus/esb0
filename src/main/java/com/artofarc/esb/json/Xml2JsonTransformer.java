@@ -59,7 +59,7 @@ public final class Xml2JsonTransformer {
 			QName type = QName.valueOf(typeQN);
 			_type = schemaSet.getType(type.getNamespaceURI(), type.getLocalPart());
 		} else {
-			_type = null;
+			_type = schemaSet != null ? null : _schemaSet.getType(XMLConstants.W3C_XML_SCHEMA_NS_URI, "anyType");
 		}
 		_includeRoot = includeRoot;
 		_wrapperAsArrayName = wrapperAsArrayName;
@@ -150,6 +150,9 @@ public final class Xml2JsonTransformer {
 				}
 				complex = true;
 			} else {
+				if (xsomHelper == null) {
+					throw new SAXException("Expecting text, but got element " + localName);
+				}
 				xsomHelper.matchElement(uri, localName);
 				final String type = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
 				if (type != null) {

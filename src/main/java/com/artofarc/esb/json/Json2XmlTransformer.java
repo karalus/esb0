@@ -56,9 +56,15 @@ public final class Json2XmlTransformer {
 	public Json2XmlTransformer(XSSchemaSet schemaSet, boolean createDocumentEvents, String rootElement, String typeName, boolean includeRoot, Map<String, String> prefixMap) {
 		if (schemaSet == null) {
 			_schemaSet = XSOMHelper.anySchema;
-			_rootUri = XMLConstants.NULL_NS_URI;
-			_rootName = "root";
-			_type = _schemaSet.getElementDecl(_rootUri, _rootName).getType();
+			_type = _schemaSet.getType(XMLConstants.W3C_XML_SCHEMA_NS_URI, "anyType");
+			if (rootElement != null) {
+				QName _rootElement = QName.valueOf(rootElement);
+				_rootUri = _rootElement.getNamespaceURI();
+				_rootName = _rootElement.getLocalPart();
+			} else {
+				_rootUri = XMLConstants.NULL_NS_URI;
+				_rootName = "root";
+			}
 		} else {
 			_schemaSet = schemaSet;
 			if (rootElement != null) {
@@ -416,7 +422,9 @@ public final class Json2XmlTransformer {
 						term = xsomHelper.matchElement(e.uri, e.localName);
 					} else {
 						term = xsomHelper.matchElement(uri, keyName);
-						uri = term.apply(XSOMHelper.GetNamespace);
+						if (uri == null) {
+							uri = term.apply(XSOMHelper.GetNamespace);
+						}
 						e = new Element(uri, keyName, createQName(uri, keyName));
 					}
 					if (xsomHelper.isLastElementAny()) {
