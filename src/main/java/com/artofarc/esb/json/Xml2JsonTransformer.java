@@ -66,6 +66,16 @@ public final class Xml2JsonTransformer {
 		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
 	}
 
+	private String prependPrefix(String uri, String localName) {
+		if (_namespaceMap != null) {
+			String prefix = _namespaceMap.getPrefix(uri);
+			if (prefix != null && prefix.length() > 0) {
+				return prefix + '.' + localName;
+			}
+		}
+		return localName;
+	}
+
 	public ContentHandler createTransformerHandler(JsonGenerator jsonGenerator) {
 		return new TransformerHandler(jsonGenerator);
 	}
@@ -146,6 +156,7 @@ public final class Xml2JsonTransformer {
 				}
 				if (!_includeRoot) {
 					level = 1;
+					writeAttributes(atts);
 					return;
 				}
 				complex = true;
@@ -187,20 +198,13 @@ public final class Xml2JsonTransformer {
 					}
 				}
 			}
-			String key = localName;
-			if (_namespaceMap != null) {
-				String prefix = _namespaceMap.getPrefix(uri);
-				if (prefix != null && prefix.length() > 0) {
-					key = prefix + '.' + localName;
-				}
-			}
 			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
 				jsonGenerator.writeEnd();
 				xsomHelper.endArray();
 			}
 			if (anyLevel < 0 && xsomHelper.isStartArray()) {
 				if (!isWrapped()) {
-					jsonGenerator.writeStartArray(openKey != null ? openKey : key);
+					jsonGenerator.writeStartArray(openKey != null ? openKey : prependPrefix(uri, localName));
 				}
 				openKey = null;
 			} else {
@@ -209,13 +213,16 @@ public final class Xml2JsonTransformer {
 					openKey = null;
 				}
 				if (anyLevel >= 0 || !xsomHelper.isMiddleOfArray()) {
-					openKey = key;
+					openKey = prependPrefix(uri, localName);
 				}
 			}
 			final String nil = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
 			if (nil != null && DatatypeConverter.parseBoolean(nil)) {
 				primitiveType = "nil";
-				--attsLength;
+				if (--attsLength > 0) {
+					// https://stackoverflow.com/questions/27555077/specify-attributes-on-a-nil-xml-element
+					throw new SAXException("A complex element being nil should not have additional attributes " + localName);
+				}
 			}
 			++level;
 			if (attsLength > 0 || complex && anyLevel < 0 && primitiveType != "nil") {
@@ -231,11 +238,7 @@ public final class Xml2JsonTransformer {
 				} else {
 					jsonGenerator.writeStartObject();
 				}
-				for (int i = 0; i < attsLength; ++i) {
-					XSAttributeUse attributeUse = xsomHelper.getAttributeUse(atts.getURI(i), atts.getLocalName(i));
-					String type = attributeUse != null ? XSOMHelper.getJsonType(attributeUse.getDecl().getType()) : "string";
-					writeKeyValue(attributePrefix + atts.getLocalName(i), atts.getValue(i), type);
-				}
+				writeAttributes(atts);
 				if (primitiveType != null) {
 					openKey = valueWrapper;
 				}
@@ -325,6 +328,14 @@ public final class Xml2JsonTransformer {
 		@Override
 		public void characters(char[] ch, int start, int length) {
 			_builder.append(ch, start, length);
+		}
+
+		private void writeAttributes(Attributes atts) {
+			for (int i = 0; i < atts.getLength(); ++i) {
+				XSAttributeUse attributeUse = xsomHelper.getAttributeUse(atts.getURI(i), atts.getLocalName(i));
+				String type = attributeUse != null ? XSOMHelper.getJsonType(attributeUse.getDecl().getType()) : "string";
+				writeKeyValue(attributePrefix + prependPrefix(atts.getURI(i), atts.getLocalName(i)), atts.getValue(i), type);
+			}
 		}
 
 		private void writeKeyValue(String key, String s, String primitiveType) {
