@@ -55,11 +55,7 @@ public class HttpOutboundAction extends Action {
 		String queryString = message.getVariable(QueryString);
 		if (queryString == null || queryString.isEmpty()) {
 			String httpQueryParameter = message.getVariable(HttpQueryParameter);
-			if (httpQueryParameter != null) {
-				queryString = message.createURLEncodedString(httpQueryParameter);
-			} else {
-				queryString = null;
-			}
+			queryString = httpQueryParameter != null ? createURLEncodedString(context, message, httpQueryParameter) : null;
 		}
 		if (queryString != null) {
 			appendHttpUrl += "?" + queryString;

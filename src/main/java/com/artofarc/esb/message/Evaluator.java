@@ -15,8 +15,11 @@
  */
 package com.artofarc.esb.message;
 
+import java.util.StringTokenizer;
+
 import com.artofarc.esb.context.Context;
 import com.artofarc.util.ReflectionUtils;
+import com.artofarc.util.URLUtils.URLEncodedStringBuilder;
 
 public abstract class Evaluator<E extends Exception> {
 
@@ -124,6 +127,24 @@ public abstract class Evaluator<E extends Exception> {
 			}
 		}
 		return value;
+	}
+
+	public final String createURLEncodedString(Context context, ESBMessage message, String parameters) throws Exception {
+		URLEncodedStringBuilder builder = new URLEncodedStringBuilder();
+		StringTokenizer st = new StringTokenizer(parameters, ",");
+		while (st.hasMoreTokens()) {
+			String varName = st.nextToken();
+			Object value;
+			int i = varName.indexOf('=');
+			if (i > 0) {
+				value = eval(varName.substring(i + 1), context, message);
+				varName = varName.substring(0, i);
+			} else {
+				value = message.getVariable(varName);
+			}
+			builder.add(varName, value);
+		}
+		return builder.toString();
 	}
 
 }

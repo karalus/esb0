@@ -135,35 +135,49 @@ public final class URLUtils {
 		}
 	}
 
-	public static String createURLEncodedString(Map<String, Object> variables, String parameters, String delim) {
-		StringBuilder sb = new StringBuilder();
-		StringTokenizer st = new StringTokenizer(parameters, delim);
+	public static String createURLEncodedString(Map<String, Object> variables, String parameters) {
+		URLEncodedStringBuilder builder = new URLEncodedStringBuilder();
+		StringTokenizer st = new StringTokenizer(parameters, ",");
 		while (st.hasMoreTokens()) {
 			String varName = st.nextToken();
-			Object value = variables.get(varName);
-			if (value != null) {
-				varName = encode(varName);
-				if (value instanceof Iterable) {
-					for (Object object : (Iterable<?>) value) {
-						append(sb, varName, object);
-					}
-				} else {
-					append(sb, varName, value);
-				}
-			}
+			builder.add(varName, variables.get(varName));
 		}
-		return sb.length() > 0 ? sb.toString() : null;
+		return builder.toString();
 	}
 
-	private static void append(StringBuilder sb, String key, Object value) {
-		if (value instanceof XMLGregorianCalendar) {
-			// omit time zone from Date
-			((XMLGregorianCalendar) value).setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+	public final static class URLEncodedStringBuilder {
+		private final StringBuilder sb = new StringBuilder();
+
+		public void add(String key, Object value) {
+			if (value != null) {
+				key = encode(key);
+				if (value instanceof Iterable) {
+					for (Object object : (Iterable<?>) value) {
+						append(key, object);
+					}
+				} else {
+					append(key, value);
+				}
+			} else {
+				sb.append(key);
+			}
 		}
-		if (sb.length() > 0) {
-			sb.append('&');
+
+		private void append(String key, Object value) {
+			if (value instanceof XMLGregorianCalendar) {
+				// omit time zone from Date
+				((XMLGregorianCalendar) value).setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+			}
+			if (sb.length() > 0) {
+				sb.append('&');
+			}
+			sb.append(key).append('=').append(encode(value.toString()));
 		}
-		sb.append(key).append('=').append(encode(value.toString()));
+
+		@Override
+		public String toString() {
+			return sb.length() > 0 ? sb.toString() : null;
+		}
 	}
 
 }

@@ -47,7 +47,6 @@ import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.DataStructures;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.ReflectionUtils;
-import com.artofarc.util.URLUtils;
 
 public class HttpAction extends Action {
 
@@ -91,17 +90,13 @@ public class HttpAction extends Action {
 		return builder;
 	}
 
-	private static String createAppendHttpUrl(ESBMessage message) {
+	private String createAppendHttpUrl(ESBMessage message) throws Exception {
 		// for REST append to URL
 		String appendHttpUrl = message.getVariable(appendHttpUrlPath, "");
 		String queryString = message.getVariable(QueryString);
 		if (queryString == null || queryString.isEmpty()) {
 			String httpQueryParameter = message.getVariable(HttpQueryParameter);
-			if (httpQueryParameter != null) {
-				queryString = URLUtils.createURLEncodedString(message.getVariables(), httpQueryParameter, ",");
-			} else {
-				queryString = null;
-			}
+			queryString = httpQueryParameter != null ? createURLEncodedString(null, message, httpQueryParameter) : null;
 		}
 		if (queryString != null) {
 			appendHttpUrl += "?" + queryString;
