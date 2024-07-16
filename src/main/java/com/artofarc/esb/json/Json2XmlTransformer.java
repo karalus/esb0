@@ -41,7 +41,6 @@ import com.sun.xml.xsom.*;
 
 public final class Json2XmlTransformer {
 
-	private static final boolean VALIDATE_PREFIXES = false;
 	private static final char[] WHITESPACE = { ' ' };
 
 	private final XSSchemaSet _schemaSet;
@@ -54,37 +53,26 @@ public final class Json2XmlTransformer {
 	private final String valueWrapper = "value";
 
 	public Json2XmlTransformer(XSSchemaSet schemaSet, boolean createDocumentEvents, String rootElement, String typeName, boolean includeRoot, Map<String, String> prefixMap) {
-		if (schemaSet == null) {
-			_schemaSet = XSOMHelper.anySchema;
-			_type = _schemaSet.getType(XMLConstants.W3C_XML_SCHEMA_NS_URI, "anyType");
-			if (rootElement != null) {
-				QName _rootElement = QName.valueOf(rootElement);
-				_rootUri = _rootElement.getNamespaceURI();
-				_rootName = _rootElement.getLocalPart();
-			} else {
-				_rootUri = XMLConstants.NULL_NS_URI;
-				_rootName = "root";
-			}
+		_schemaSet = schemaSet != null ? schemaSet : XSOMHelper.anySchema;
+		if (rootElement != null) {
+			QName qName = QName.valueOf(rootElement);
+			_rootUri = qName.getNamespaceURI();
+			_rootName = qName.getLocalPart();
+		} else if (schemaSet != null) {
+			_rootUri = null;
+			_rootName = null;
 		} else {
-			_schemaSet = schemaSet;
-			if (rootElement != null) {
-				QName _rootElement = QName.valueOf(rootElement);
-				_rootUri = _rootElement.getNamespaceURI();
-				_rootName = _rootElement.getLocalPart();
-				XSElementDecl elementDecl = schemaSet.getElementDecl(_rootUri, _rootName);
-				if (elementDecl != null) {
-					_type = elementDecl.getType();
-				} else if (typeName != null) {
-					QName type = QName.valueOf(typeName);
-					_type = schemaSet.getType(type.getNamespaceURI(), type.getLocalPart());
-				} else {
-					_type = null;
-				}
-			} else {
-				_rootUri = null;
-				_rootName = null;
-				_type = null;
-			}
+			_rootUri = XMLConstants.NULL_NS_URI;
+			_rootName = "root";
+		}
+		XSElementDecl elementDecl = schemaSet != null && rootElement != null ? schemaSet.getElementDecl(_rootUri, _rootName) : null;
+		if (elementDecl != null) {
+			_type = elementDecl.getType();
+		} else if (typeName != null) {
+			QName type = QName.valueOf(typeName);
+			_type = _schemaSet.getType(type.getNamespaceURI(), type.getLocalPart());
+		} else {
+			_type = schemaSet != null ? null : _schemaSet.getType(XMLConstants.W3C_XML_SCHEMA_NS_URI, "anyType");
 		}
 		_includeRoot = includeRoot;
 		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
@@ -362,14 +350,14 @@ public final class Json2XmlTransformer {
 							_atts.clear();
 							e = null;
 						}
-						final int i = keyName.indexOf('.');
-						if (i >= 0) {
-							if (_namespaceMap != null) {
+						if (_namespaceMap != null) {
+							int i = keyName.indexOf('.');
+							if (i >= 0) {
 								uri = _namespaceMap.getNamespaceURI(keyName.substring(0, i));
-							} else if (VALIDATE_PREFIXES) {
-								throw new SAXException("No prefix map provided, but found " + keyName);
+								if (uri != null) {
+									keyName = keyName.substring(i + 1);
+								}
 							}
-							keyName = keyName.substring(i + 1);
 						}
 						break;
 					case VALUE_STRING:
