@@ -158,8 +158,6 @@ public final class URLUtils {
 				} else {
 					append(key, value);
 				}
-			} else {
-				sb.append(key);
 			}
 		}
 
