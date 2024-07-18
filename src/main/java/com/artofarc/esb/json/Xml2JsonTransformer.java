@@ -101,6 +101,10 @@ public final class Xml2JsonTransformer {
 
 		@Override
 		public void endDocument() {
+			if (_builder.length() > 0) {
+				// XML is invalid but this avoids "Generating incomplete JSON"
+				jsonGenerator.write(_builder.toString());
+			}
 			if (_includeRoot) jsonGenerator.writeEnd();
 			jsonGenerator.close();
 		}
