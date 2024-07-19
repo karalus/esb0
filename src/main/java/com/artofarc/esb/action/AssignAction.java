@@ -56,6 +56,8 @@ public class AssignAction extends TransformAction {
 			builder.append("declare variable $").append(bindName.getValue());
 			if (bindName.getType() != null) {
 				builder.append(" as ").append(bindName.getType());
+			} else if (Boolean.TRUE == bindName.isNullable()) {
+				builder.append(" as item()?");
 			}
 			builder.append(" external;\n");
 			variables.add("$" + bindName.getValue());

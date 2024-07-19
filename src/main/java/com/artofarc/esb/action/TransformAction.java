@@ -108,7 +108,7 @@ public class TransformAction extends Action {
 		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery, _baseURI);
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
 		if (_contextItem != null) {
-			bind(context, xqExpression, XQConstants.CONTEXT_ITEM, null, resolve(message, _contextItem, true));
+			bind(context, xqExpression, XQConstants.CONTEXT_ITEM, null, true, _contextItem != "none" ? resolve(message, _contextItem, true) : "");
 		} else {
 			if (message.isEmpty()) {
 				// Nothing to bind, but we need a context item
@@ -142,6 +142,7 @@ public class TransformAction extends Action {
 		}
 		QName[] externalVariables = _xquery.getExternalVariables();
 		XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
+		boolean[] externalVariableRequired = _xquery.getExternalVariableRequired();
 		for (int i = 0; i < externalVariables.length; ++i) {
 			QName name = externalVariables[i];
 			Object value;
@@ -155,7 +156,7 @@ public class TransformAction extends Action {
 					throw new ExecutionException(this, "Must not be null: " + name);
 				}
 			}
-			bind(context, xqExpression, name, externalVariableTypes[i], value);
+			bind(context, xqExpression, name, externalVariableTypes[i], externalVariableRequired[i], value);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
 		XQResultSequence resultSequence = xqExpression.executeQuery();
@@ -179,13 +180,12 @@ public class TransformAction extends Action {
 		return new ExecutionContext(resultSequence, xqExpression);
 	}
 
-	private void bind(Context context, XQPreparedExpression xqExpression, QName qName, XQItemType type, Object value) throws ExecutionException {
+	private void bind(Context context, XQPreparedExpression xqExpression, QName qName, XQItemType type, boolean required, Object value) throws ExecutionException {
 		try {
 			if (value instanceof XQItem) {
 				xqExpression.bindItem(qName, (XQItem) value);
 			} else if (value instanceof Iterable) {
-				XQSequence xqSequence = context.getXQDataFactory().createSequence(((Iterable<?>) value).iterator());
-				xqExpression.bindSequence(qName, xqSequence);
+				xqExpression.bindSequence(qName, context.getXQDataFactory().createSequence(((Iterable<?>) value).iterator()));
 			} else if (value instanceof Exception) {
 				xqExpression.bindDocument(qName, DataStructures.asXMLString((Exception) value), null, type);
 			} else if (type != null && type.getItemKind() == XQItemType.XQITEMKIND_DOCUMENT) {
@@ -194,9 +194,12 @@ public class TransformAction extends Action {
 				xqExpression.bindNode(qName, (Node) value, type);
 			} else if (value != null) {
 				xqExpression.bindObject(qName, value, type);
-			} else {
-				// Workaround: XQuery has no NULL value
+			} else if (required) {
+				logger.info("Value is null but XQuery requires it for " + qName);
 				xqExpression.bindString(qName, "", null);
+			} else {
+				// XQuery has no NULL value but the empty sequence
+				xqExpression.bindSequence(qName, context.getXQEmptySequence());
 			}
 		} catch (XQException e) {
 			throw new ExecutionException(this, "binding " + qName + (type != null ? " to " + type : "") + " failed", e);

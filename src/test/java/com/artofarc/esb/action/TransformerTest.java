@@ -1,5 +1,6 @@
 package com.artofarc.esb.action;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.junit.Assert;
@@ -203,6 +204,32 @@ public class TransformerTest extends AbstractESBTest {
 		message.setContentType("text/xml");
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), createTransformAction(xQueryArtifact), new DumpAction());
+		consumerPort.process(context, message);
+	}
+
+	@Test
+	public void testTransformXQueryWithParam() throws Exception {
+		XQueryArtifact xQueryArtifact = new XQueryArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "transform2.xqy");
+		xQueryArtifact.setContent(readFile("src/test/resources/transform2.xqy"));
+		xQueryArtifact.validateInternal(getGlobalContext());
+		ESBMessage message = new ESBMessage(BodyType.STRING, "");
+		message.putVariable("id", Arrays.asList("23", "37"));
+		message.putVariable("opt", "optional");
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(createTransformAction(xQueryArtifact), new DumpAction());
+		consumerPort.process(context, message);
+	}
+
+	@Test
+	public void testTransformXQueryWithParamNull() throws Exception {
+		XQueryArtifact xQueryArtifact = new XQueryArtifact(getGlobalContext().getFileSystem(), getGlobalContext().getFileSystem().getRoot(), "transform2.xqy");
+		xQueryArtifact.setContent(readFile("src/test/resources/transform2.xqy"));
+		xQueryArtifact.validateInternal(getGlobalContext());
+		ESBMessage message = new ESBMessage(BodyType.STRING, "");
+//		message.putVariable("id", Arrays.asList("23", "37"));
+//		message.putVariable("opt", "optional");
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(createTransformAction(xQueryArtifact), new DumpAction());
 		consumerPort.process(context, message);
 	}
 
