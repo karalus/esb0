@@ -79,7 +79,7 @@ public final class Context extends AbstractContext {
 		try {
 			// With Saxon connections are not limited so we will never get an Exception
 			_xqConnection = poolContext.getGlobalContext().getXMLProcessorFactory().getConnection();
-			_xqSequence = _xqConnection.createSequence(Collections.emptyIterator());
+			_xqSequence = _xqConnection != null ? _xqConnection.createSequence(Collections.emptyIterator()) : null;
 		} catch (XQException e) {
 			throw new RuntimeException(e);
 		}
