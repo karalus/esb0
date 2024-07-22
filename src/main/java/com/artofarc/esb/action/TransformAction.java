@@ -39,41 +39,40 @@ import com.artofarc.util.XQuerySource;
 
 public class TransformAction extends Action {
 
+	protected static final boolean ASSIGN_NULL_CHECK = Boolean.parseBoolean(System.getProperty("esb0.assignNullCheck"));
+
 	public final static class Assignment {
 		final String name, type;
-		final boolean header, nullable, list;
+		final boolean header, list;
+		final Boolean nullable;
 		String expr;
 
-		public Assignment(String name, boolean header, String expr, boolean nullable, String type) {
+		public Assignment(String name, boolean header, String expr, Boolean nullable, String type) {
 			this.name = name != null ? name.intern() : null;
 			this.type = type != null ? type.intern() : null;
 			this.header = header;
 			this.nullable = nullable;
 			list = type != null && (type.endsWith("+") || type.endsWith("*"));
-			if (list && header) {
-				throw new IllegalArgumentException("header must not be a list");
-			}
 			this.expr = expr;
 		}
 
 		public Assignment(String name, boolean nullable) {
-			this(name, false, null, nullable, null);
+			this(name, false, null, nullable ? Boolean.TRUE : null, null);
 		}
 	}
 
 	private final XQuerySource _xquery;
 	private final Set<String> _checkNotNull;
 	private final List<Assignment> _assignments;
-	private final boolean _doNullCheck, _clearSchema;
+	private final boolean _clearSchema;
 	private final String _baseURI; 
 	protected final String _contextItem;
 	private final String _newContentType;
 
-	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, boolean doNullCheck, boolean clearSchema, String baseURI, String contextItem, String newContentType) {
+	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, boolean clearSchema, String baseURI, String contextItem, String newContentType) {
 		_xquery = xquery;
 		_checkNotNull = checkNotNull != null ? checkNotNull : Collections.emptySet();
 		_assignments = assignments;
-		_doNullCheck = doNullCheck;
 		_clearSchema = clearSchema;
 		_baseURI = baseURI;
 		_contextItem = contextItem != null ? contextItem.intern() : null;
@@ -82,15 +81,15 @@ public class TransformAction extends Action {
 	}
 
 	public TransformAction(XQuerySource xquery, String baseURI, String contextItem, String newContentType) {
-		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), false, true, baseURI, contextItem, newContentType);
+		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), true, baseURI, contextItem, newContentType);
 	}
 
 	protected TransformAction(String xquery, List<Assignment> varNames, String newContentType) {
-		this(XQuerySource.create(xquery), null, varNames, false, false, null, null, newContentType);
+		this(XQuerySource.create(xquery), null, varNames, false, null, null, newContentType);
 	}
 
 	protected TransformAction(String xquery) {
-		this(XQuerySource.create(xquery), null, Collections.emptyList(), false, false, null, null, null);
+		this(XQuerySource.create(xquery), null, Collections.emptyList(), false, null, null, null);
 	}
 
 	public final XQuerySource getXQuery() {
@@ -192,11 +191,6 @@ public class TransformAction extends Action {
 			} else if (type != null && type.getItemKind() == XQItemType.XQITEMKIND_DOCUMENT) {
 				xqExpression.bindDocument(qName, (Source) value, type);
 			} else if (type != null && type.getItemKind() == XQItemType.XQITEMKIND_ELEMENT) {
-				QName nodeName = type.getNodeName();
-				if (nodeName != null) {
-					// For Saxon a named ElementType must be cloned
-					type = context.getXQDataFactory().createElementType(nodeName, type.getBaseType());
-				}
 				xqExpression.bindNode(qName, (Node) value, type);
 			} else if (value != null) {
 				xqExpression.bindObject(qName, value, type);
@@ -213,13 +207,13 @@ public class TransformAction extends Action {
 		for (Assignment assignment : _assignments) {
 			try {
 				int count = 1;
-				if (_doNullCheck || assignment.nullable || assignment.list) {
+				if (ASSIGN_NULL_CHECK || assignment.nullable != null || assignment.list) {
 					checkNext(resultSequence, assignment.name);
 					count = resultSequence.getInt();
 				}
 				switch (count) {
 				case 0:
-					if (!assignment.nullable) {
+					if (Boolean.TRUE != assignment.nullable) {
 						if (assignment.list) {
 							message.getVariables().put(assignment.name, Collections.EMPTY_LIST);
 						} else {

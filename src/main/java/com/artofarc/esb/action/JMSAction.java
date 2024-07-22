@@ -251,7 +251,7 @@ public class JMSAction extends Action {
 			if (replyMessage == null) {
 				throw new ExecutionException(this, "No reply message received within given timeout");
 			}
-			JMSConsumer.fillESBMessage(message, replyMessage);
+			JMSConsumer.fillESBMessage(context, message, replyMessage);
 		} else if (_replyQueue != null) {
 			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
 			context.getTimeGauge().stopTimeMeasurement("JMS send", true);
@@ -266,7 +266,7 @@ public class JMSAction extends Action {
 				if (replyMessage == null) {
 					throw new ExecutionException(this, "No reply message received within given timeout");
 				}
-				JMSConsumer.fillESBMessage(message, replyMessage);
+				JMSConsumer.fillESBMessage(context, message, replyMessage);
 			} finally {
 				messageConsumer.close();
 			}

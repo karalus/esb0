@@ -33,18 +33,18 @@ public class AssignAction extends TransformAction {
 	private final boolean _clearHeaders;
 
 	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
-		this(Collections.singletonList(new Assignment(varName, false, expression, false, null)), false, null, namespaces, bindNames, contextItem, false);
+		this(Collections.singletonList(new Assignment(varName, false, expression, null, null)), null, namespaces, bindNames, contextItem, false);
 	}
 
-	public AssignAction(List<Assignment> assignments, boolean doNullCheck, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders) {
-		super(createXQuery(assignments, doNullCheck, namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	doNullCheck, bodyExpr != null, null, contextItem, null);
+	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders) {
+		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	bodyExpr != null, null, contextItem, null);
 		if (contextItem != null && bodyExpr != null) {
 			throw new IllegalArgumentException("when a contextItem is used the body cannot be assigned");
 		}
 		_clearHeaders = clearHeaders;
 	}
 
-	private static XQuerySource createXQuery(List<Assignment> assignments, boolean doNullCheck, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
+	private static XQuerySource createXQuery(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
 		StringBuilder builder = new StringBuilder();
 		if (namespaces != null) {
 			for (Map.Entry<String, String> entry : namespaces) {
@@ -73,7 +73,7 @@ public class AssignAction extends TransformAction {
 		for (Iterator<Assignment> iter = assignments.iterator(); iter.hasNext();) {
 			Assignment assignment = iter.next();
 			boolean hasAtomicType = assignment.type != null && !assignment.list && assignment.type.startsWith("xs:");
-			if (doNullCheck || assignment.nullable || assignment.list) {
+			if (ASSIGN_NULL_CHECK || assignment.nullable != null || assignment.list) {
 				builder.append("count(").append(assignment.expr).append("), ");
 			}
 			if (hasAtomicType) builder.append(assignment.type).append('(');
@@ -100,9 +100,9 @@ public class AssignAction extends TransformAction {
 	private static HashSet<String> createCheckNotNull(List<XQDecl> bindNames) {
 		HashSet<String> result = null;
 		for (XQDecl bindName : bindNames) {
-			if (!bindName.isNullable()) {
+			if (Boolean.TRUE != bindName.isNullable()) {
 				if (result == null) {
-					result = new HashSet<>();					
+					result = new HashSet<>();
 				}
 				result.add(bindName.getValue());
 			}

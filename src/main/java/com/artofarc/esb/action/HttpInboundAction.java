@@ -45,7 +45,7 @@ public class HttpInboundAction extends Action {
 			}
 			InputStream inputStream = httpUrlConnection.getInputStream();
 			message.reset(null, inputStream);
-			if (message.prepareContent()) {
+			if (message.prepareContent(context)) {
 				inputStream.close();
 				inputStream = message.getBody();
 			}

@@ -106,6 +106,7 @@ public class UnwrapSOAPAction extends TransformAction {
 	}
 
 	protected String determineOperation(ESBMessage message) throws ExecutionException {
+		QName inputElementName = message.getVariable(SOAP_ELEMENT_NAME);
 		String soapAction = message.getHeader(HTTP_HEADER_SOAP_ACTION);
 		if (soapAction != null) {
 			soapAction = soapAction.isEmpty() ? null : soapAction.substring(1, soapAction.length() - 1);
@@ -115,11 +116,13 @@ public class UnwrapSOAPAction extends TransformAction {
 		if (soapAction != null) {
 			String operation = _mapAction2Operation.get(soapAction);
 			if (operation != null) {
+				if (inputElementName != null && !inputElementName.equals(_operations.get(operation))) {
+					throw new ExecutionException(this, "Input element does not match to operation: " + operation);
+				}
 				return operation;
 			}
 		}
 		if (_operations != null) {
-			QName inputElementName = message.getVariable(SOAP_ELEMENT_NAME);
 			if (_operations.containsKey(inputElementName.getLocalPart())) {
 				// document literal wrapped style
 				return inputElementName.getLocalPart();

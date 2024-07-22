@@ -245,7 +245,7 @@
 	<complexType name="XQDecl">
 		<simpleContent>
 			<extension base="tns:string1">
-				<attribute name="nullable" type="boolean" default="false" />
+				<attribute name="nullable" type="boolean" />
 				<attribute name="type" type="tns:string1" />
 			</extension>
 		</simpleContent>

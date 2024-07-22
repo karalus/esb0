@@ -283,8 +283,10 @@ public final class JsonSchemaGenerator {
 					jsonGenerator.write("minLength", length);
 					jsonGenerator.write("maxLength", length);
 				}
-				for (XSFacet facet : simpleType.getFacets(XSFacet.FACET_PATTERN)) {
-					jsonGenerator.write("pattern", "^" + facet.getValue() + "$");
+				List<XSFacet> patterns = simpleType.getFacets(XSFacet.FACET_PATTERN);
+				if (patterns.size() > 0) {
+					// Only one pattern is supported. Workaround: https://groups.google.com/g/json-schema/c/8FQqL6P0UhI
+					jsonGenerator.write("pattern", "^" + patterns.get(0).getValue() + "$");
 				}
 			} else if ((jsonType.equals("integer") || jsonType.equals("number")) && format == null) {
 				// if a format is given then we omit the given minimum & maximum
@@ -340,10 +342,11 @@ public final class JsonSchemaGenerator {
 
 	public static JsonSchemaGenerator createJsonSchemaGenerator(String systemId, String namespace) throws SAXException {
 		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
-		xsomParser.setAnnotationParser(new DomAnnotationParserFactory());
-		xsomParser.setErrorHandler(new DefaultHandler());
-		xsomParser.parse(systemId);
-//		System.out.println("Number of parsed docs: " + xsomParser.getDocuments().size());
+		if (systemId != null) {
+			xsomParser.setAnnotationParser(new DomAnnotationParserFactory());
+			xsomParser.setErrorHandler(new DefaultHandler());
+			xsomParser.parse(systemId);
+		}
 		XSSchemaSet result = xsomParser.getResult();
 		if (result.getSchema(namespace) == null) {
 			throw new IllegalArgumentException(namespace + " not found in " + systemId);
