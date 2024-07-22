@@ -135,35 +135,47 @@ public final class URLUtils {
 		}
 	}
 
-	public static String createURLEncodedString(Map<String, Object> variables, String parameters, String delim) {
-		StringBuilder sb = new StringBuilder();
-		StringTokenizer st = new StringTokenizer(parameters, delim);
+	public static String createURLEncodedString(Map<String, Object> variables, String parameters) {
+		URLEncodedStringBuilder builder = new URLEncodedStringBuilder();
+		StringTokenizer st = new StringTokenizer(parameters, ",");
 		while (st.hasMoreTokens()) {
 			String varName = st.nextToken();
-			Object value = variables.get(varName);
+			builder.add(varName, variables.get(varName));
+		}
+		return builder.toString();
+	}
+
+	public final static class URLEncodedStringBuilder {
+		private final StringBuilder sb = new StringBuilder();
+
+		public void add(String key, Object value) {
 			if (value != null) {
-				varName = encode(varName);
+				key = encode(key);
 				if (value instanceof Iterable) {
 					for (Object object : (Iterable<?>) value) {
-						append(sb, varName, object);
+						append(key, object);
 					}
 				} else {
-					append(sb, varName, value);
+					append(key, value);
 				}
 			}
 		}
-		return sb.length() > 0 ? sb.toString() : null;
-	}
 
-	private static void append(StringBuilder sb, String key, Object value) {
-		if (value instanceof XMLGregorianCalendar) {
-			// omit time zone from Date
-			((XMLGregorianCalendar) value).setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+		private void append(String key, Object value) {
+			if (value instanceof XMLGregorianCalendar) {
+				// omit time zone from Date
+				((XMLGregorianCalendar) value).setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+			}
+			if (sb.length() > 0) {
+				sb.append('&');
+			}
+			sb.append(key).append('=').append(encode(value.toString()));
 		}
-		if (sb.length() > 0) {
-			sb.append('&');
+
+		@Override
+		public String toString() {
+			return sb.length() > 0 ? sb.toString() : null;
 		}
-		sb.append(key).append('=').append(encode(value.toString()));
 	}
 
 }

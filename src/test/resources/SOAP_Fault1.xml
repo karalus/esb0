@@ -1,0 +1,8 @@
+<detail>
+   <timestamp>2024-07-12T09:43:47.253+00:00</timestamp>
+   <status xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+           xsi:type="xsd:integer">500</status>
+   <error>Internal Server Error</error>
+   <path>/app/vorgaenge</path>
+</detail>

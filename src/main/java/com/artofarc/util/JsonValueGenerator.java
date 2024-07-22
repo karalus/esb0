@@ -324,7 +324,7 @@ public final class JsonValueGenerator implements JsonGenerator {
 		Builder builder = _stack.poll();
 		if (builder == null) {
 			if (_result == null) {
-				throw new JsonException("not nested");				
+				throw new JsonException("not nested");
 			} else {
 				throw new JsonException("below base level");
 			}

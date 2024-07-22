@@ -22,7 +22,6 @@ import java.sql.Struct;
 import java.util.List;
 
 import javax.xml.transform.sax.SAXSource;
-import javax.xml.xquery.XQItem;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
@@ -65,8 +64,7 @@ public class JDBCProcedureAction extends JDBCAction {
 				switch (param.getType()) {
 				case SQLXML:
 					SQLXML sqlxml = cs.getSQLXML(param.getPos());
-					XQItem xqItem = context.getXQDataFactory().createItemFromDocument(sqlxml.getSource(SAXSource.class), null);
-					message.reset(BodyType.XQ_ITEM, xqItem);
+					message.materializeBodyFromSource(context, sqlxml.getSource(SAXSource.class));
 					sqlxml.free();
 					break;
 				case CLOB:
@@ -79,8 +77,7 @@ public class JDBCProcedureAction extends JDBCAction {
 					break;
 				case STRUCT:
 					JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
-					SAXSource saxSource = new SAXSource(mapper.createParser(context, conn, (Struct) cs.getObject(param.getPos())), null);
-					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(saxSource, null));
+					message.materializeBodyFromSource(context, new SAXSource(mapper.createParser(context, conn, (Struct) cs.getObject(param.getPos())), null));
 					break;
 				default:
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getType());

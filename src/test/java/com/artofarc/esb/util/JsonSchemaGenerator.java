@@ -341,13 +341,14 @@ public final class JsonSchemaGenerator {
 	}
 
 	public static JsonSchemaGenerator createJsonSchemaGenerator(String systemId, String namespace) throws SAXException {
-		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
+		XSSchemaSet result = XSOMHelper.anySchema;
 		if (systemId != null) {
+			XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 			xsomParser.setAnnotationParser(new DomAnnotationParserFactory());
 			xsomParser.setErrorHandler(new DefaultHandler());
 			xsomParser.parse(systemId);
+			result = xsomParser.getResult();
 		}
-		XSSchemaSet result = xsomParser.getResult();
 		if (result.getSchema(namespace) == null) {
 			throw new IllegalArgumentException(namespace + " not found in " + systemId);
 		}

@@ -861,6 +861,15 @@ public final class ESBMessage implements Cloneable {
 		return (ESBMessage) super.clone();
 	}
 
+	public Object materializeBodyFromSource(Context context, Source source) throws Exception {
+		if (context.getXQDataFactory() != null) {
+			return init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(source, null), null);
+		}
+		DOMResult result = new DOMResult();
+		context.transformRaw(source, result);
+		return init(BodyType.DOM, result.getNode(), null);
+	}
+
 	public Object cloneBody(Context context, boolean singleUse) throws Exception {
 		final Object newBody;
 		switch (_bodyType) {
@@ -879,7 +888,7 @@ public final class ESBMessage implements Cloneable {
 			}
 			break;
 		case SOURCE:
-			newBody = init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument((Source) _body, null), null);
+			newBody = materializeBodyFromSource(context, (Source) _body);
 			break;
 		case XQ_SEQUENCE:
 			extractItemFromSequence();
@@ -925,7 +934,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public String createURLEncodedString(String parameters) {
-		return URLUtils.createURLEncodedString(_variables, parameters, ",");
+		return URLUtils.createURLEncodedString(_variables, parameters);
 	}
 
 }

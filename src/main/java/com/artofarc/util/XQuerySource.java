@@ -31,6 +31,7 @@ public final class XQuerySource {
 
 	private volatile QName[] _externalVariables;
 	private volatile XQItemType[] _externalVariableTypes;
+	private volatile boolean[] _externalVariableRequired;
 
 	private XQuerySource(byte[] data) {
 		if (data == null) throw new NullPointerException();
@@ -99,14 +100,18 @@ public final class XQuerySource {
 		if (_externalVariables == null) {
 			_externalVariables = preparedExpression.getAllExternalVariables();
 			XQItemType[] types = new XQItemType[_externalVariables.length];
+			boolean[] required = new boolean[types.length];
 			for (int i = 0; i < types.length; ++i) {
-				XQItemType itemType = preparedExpression.getStaticVariableType(_externalVariables[i]).getItemType();
+				XQSequenceType sequenceType = preparedExpression.getStaticVariableType(_externalVariables[i]);
+				XQItemType itemType = sequenceType.getItemType();
 				// Only store type when it is concrete enough
 				if (itemType.getItemKind() != XQItemType.XQITEMKIND_ITEM) {
 					types[i] = itemType;
 				}
+				required[i] = sequenceType.getItemOccurrence() == XQSequenceType.OCC_EXACTLY_ONE || sequenceType.getItemOccurrence() == XQSequenceType.OCC_ONE_OR_MORE;
 			}
 			_externalVariableTypes = types;
+			_externalVariableRequired = required;
 		}
 		return preparedExpression;
 	}
@@ -120,6 +125,10 @@ public final class XQuerySource {
 	 */
 	public XQItemType[] getExternalVariableTypes() {
 		return _externalVariableTypes;
+	}
+
+	public boolean[] getExternalVariableRequired() {
+		return _externalVariableRequired;
 	}
 
 }

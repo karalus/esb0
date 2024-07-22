@@ -154,12 +154,17 @@ public abstract class SchemaArtifact extends Artifact {
 			}
 			try {
 				URI uri = URI.create(systemId);
-				XSDArtifact artifact = schemaArtifact.getArtifact(uri.getPath());
-				if (artifact == null) {
-					uri = lastUri.resolve(uri);
-					artifact = schemaArtifact.loadArtifact(uri.getPath());
+				XSDArtifact artifact;
+				if (FILE_SCHEMA.startsWith(uri.getScheme())) {
+					artifact = schemaArtifact.getArtifact(uri.getPath());
+					if (artifact == null) {
+						uri = lastUri.resolve(uri);
+						artifact = schemaArtifact.loadArtifact(uri.getPath());
+					}
+					lastUri = uri;
+				} else {
+					artifact = XMLCatalog.get(schemaArtifact, publicId);
 				}
-				lastUri = uri;
 				InputSource is = new InputSource(artifact.getContentAsStream());
 				is.setSystemId(systemId);
 				return is;

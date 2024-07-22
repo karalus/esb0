@@ -17,6 +17,7 @@ package com.artofarc.esb.context;
 
 import java.io.Writer;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +38,7 @@ import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQDataFactory;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQPreparedExpression;
+import javax.xml.xquery.XQSequence;
 
 import org.jvnet.fastinfoset.sax.FastInfosetReader;
 import org.w3c.dom.Node;
@@ -56,6 +58,7 @@ public final class Context extends AbstractContext {
 	private final PoolContext _poolContext;
 	private final Transformer _transformer;
 	private final XQConnection _xqConnection;
+	private final XQSequence _xqSequence;
 	private final Map<XQuerySource, XQPreparedExpression> _mapXQ = new HashMap<>();
 	private final TimeGauge _timeGauge = new TimeGauge(logger);
 	private final Deque<Action> _executionStack = new ArrayDeque<>();
@@ -76,6 +79,7 @@ public final class Context extends AbstractContext {
 		try {
 			// With Saxon connections are not limited so we will never get an Exception
 			_xqConnection = poolContext.getGlobalContext().getXMLProcessorFactory().getConnection();
+			_xqSequence = _xqConnection != null ? _xqConnection.createSequence(Collections.emptyIterator()) : null;
 		} catch (XQException e) {
 			throw new RuntimeException(e);
 		}
@@ -158,6 +162,10 @@ public final class Context extends AbstractContext {
 
 	public XQDataFactory getXQDataFactory() {
 		return _xqConnection;
+	}
+
+	public XQSequence getXQEmptySequence() {
+		return _xqSequence;
 	}
 
 	public XQPreparedExpression getXQPreparedExpression(XQuerySource xquery, String baseURI) throws XQException {

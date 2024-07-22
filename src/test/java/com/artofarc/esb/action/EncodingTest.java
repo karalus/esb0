@@ -79,4 +79,12 @@ public class EncodingTest extends AbstractESBTest {
 		determineCharset("application/json; UTF-8");
 	}
 
+	@Test
+	public void testCreateURLEncodedString() {
+		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+		message.putVariable("k1", "Hello ");
+		message.putVariable("k2", "World!");
+		assertEquals("k1=Hello+&k2=World%21", message.createURLEncodedString("k1,k2"));
+	}
+
 }
