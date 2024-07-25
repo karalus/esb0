@@ -11,6 +11,7 @@ Features:
 - For accessing data inside of JSON we use [JSON Pointer](https://tools.ietf.org/html/rfc6901) (Message transformation with JSON data can be done with XSLT or XQuery)
 - Java code can be invoked dynamically if necessary e.g. for special transformations
 - Supports HTTP(S), JMS, JDBC, SMTP, Files and [Kafka](https://kafka.apache.org/)
+- Can use new JDK HTTP Client thus facilitate asynchronous HTTP and HTTP/2 outbound
 - Can map between synchronous and asynchronous messages exchange patterns
 - Supports GZIP and [Fast Infoset](https://en.wikipedia.org/wiki/Fast_Infoset) encoding/decoding and MTOM/XOP
 - Uses resource- and thread pools for effective resource utilization, thus supporting QoS per service.
@@ -22,13 +23,14 @@ Features:
 - Simple REST admin services to deploy and control service flows
 - JMX support, i.e. MBeans for remote monitoring & management
 - JMS Providers and JDBC DataSources can be created and updated on the fly
-- Offers JMS outbound loadbalancing supporting HA and active/active, asynchronous JMS send is supported with JMS 2.0 capable providers
+- Asynchronous JMS send is supported with JMS 2.0 capable providers
+- Offers vendor independent JMS outbound loadbalancing supporting HA and active/active
 
 ### Fitness for production ###
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.10.1.
+Current stable version is 1.10.4.
 
 ### Design goals ###
 
@@ -93,7 +95,7 @@ From version 1.4 on Java 8 is required at runtime. From version 1.11 on Java 11 
 ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API, i.e. Java EE 7 and Java/Jakarta EE 8.
  
 It has been tested with Tomcat 8, 8.5, 9, Wildfly, Jetty 9 and JBoss EAP 7.x.
-For Tomcat 10.x (Jakarta EE 9) you must make use of the migration tool (by deploying the WAR to *webapps-javaee* instead of *webapps*).
+For Tomcat 10.x (Jakarta EE 9) you must make use of the migration tool (by deploying the WAR to *webapps-javaee* instead of *webapps*) or use JakartaEE9 branch from git repository.
 
 ESB Zero is built with Java 8 and has been tested with Oracle JDK8 and OpenJDK 11.
 
@@ -124,7 +126,7 @@ Modern IDEs typically recognize maven projects and create a project based on the
 ### On which projects/technology does ESB Zero depend on? ###
 There are only very few dependencies:
 
-It is written in Java 8 and implements a servlet based on 3.1 API.
+It is written in Java 11 and implements a servlet based on 3.1 API.
 
 - For WSDL parsing [WSDL4J](https://sourceforge.net/projects/wsdl4j/) is used.
 - For XML processing we use the XQJ implementation in [Saxon-HE](https://sourceforge.net/projects/saxon/files/Saxon-HE/)
@@ -139,11 +141,10 @@ Optional
 
 ### Roadmap ###
 
-__1.11__ (Q1 2024):
-- Optimized for Java 11 and later (deprecate support for Java 8)
-- Offer new JDK HTTP Client thus facilitate asynchronous HTTP and HTTP/2 outbound
+__1.11__ (Q3 2024):
+- Is going to reach production quality soon
 
 __Backlog:__
+- migrate to Jakarta EE 9 (at least when Tomcat 9.0 and JBoss 7.4 reached EOL)
 - divide source into modules using parent POM
 - make use of virtual threads (requires Java 21 minimum)
-- migrate to Jakarta EE 9 (at least when Tomcat 9.0 and JBoss 7.4 reached EOL)
