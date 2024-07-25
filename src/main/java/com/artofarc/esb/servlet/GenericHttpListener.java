@@ -70,7 +70,15 @@ public class GenericHttpListener extends HttpServlet {
 			}
 			boolean secure = true;
 			if (consumerPort.getRequiredRole() != null && !preflight) {
-				secure = request.authenticate(response);
+				try {
+					secure = request.authenticate(response);
+				} catch (ServletException e) {
+					// Undertow with Elytron does not challenge but throws "UT010032: Authenticationfailed"
+					getServletContext().log("Non pre-emptive auth attempt for path " + pathInfo);
+					secure = false;
+					response.addHeader("WWW-Authenticate", "Basic realm=\"ESB0\"");
+					sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Authentication required");
+				}
 				if (secure && !request.isUserInRole(consumerPort.getRequiredRole())) {
 					secure = false;
 					sendError(response, HttpServletResponse.SC_FORBIDDEN, "User not in role " + consumerPort.getRequiredRole());
