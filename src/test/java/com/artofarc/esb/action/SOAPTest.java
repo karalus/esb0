@@ -280,7 +280,22 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }
-   
+
+   @Test
+   public void testValidateIsLastAction() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+      message.setContentType("text/xml; charset=\"utf-8\"");
+      Action action = createUnwrapSOAPAction(false, true);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      action = action.setNextAction(new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"));
+      XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
+      xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
+      xsdArtifact.validateInternal(getGlobalContext());
+      action = action.setNextAction(createValidateAction(xsdArtifact));
+      consumerPort.process(context, message);
+   }
+
    @Test
    public void testValidateDirect() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));

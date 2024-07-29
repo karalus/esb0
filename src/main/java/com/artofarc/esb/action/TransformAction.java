@@ -261,7 +261,11 @@ public class TransformAction extends Action {
 	@Override
 	protected final void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
-			if (_contextItem == null) {
+			if (message.getBodyType() == BodyType.XQ_SEQUENCE) {
+				XQSequence sequence = message.getBody();
+				checkNext(sequence, "body");
+				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(sequence.getItem()));
+			} else if (_contextItem == null) {
 				XQResultSequence resultSequence = execContext.getResource();
 				checkNext(resultSequence, "body");
 				if (message.isSink()) {
@@ -271,10 +275,6 @@ public class TransformAction extends Action {
 				} else {
 					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
 				}
-			} else if (message.getBodyType() == BodyType.XQ_SEQUENCE) {
-				XQSequence sequence = message.getBody();
-				checkNext(sequence, "body");
-				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(sequence.getItem()));
 			}
 		}
 	}
