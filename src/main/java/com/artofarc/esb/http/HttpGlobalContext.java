@@ -69,7 +69,7 @@ public final class HttpGlobalContext extends ProxySelector implements CookiePoli
 		CookieHandler cookieHandler = CookieHandler.getDefault();
 		if (defaultCookiePolicy != null) {
 			if (cookieHandler != null) {
-				HttpEndpointRegistry.logger.warn("System-wide CookieHandler already set");
+				HttpEndpointRegistry.logger.warn("System-wide CookieHandler already set with: {}", cookieHandler.getClass().getName());
 			}
 			CookieHandler.setDefault(_cookieManager = new CookieManager(null, this));
 			_policies = new ConcurrentHashMap<>();
