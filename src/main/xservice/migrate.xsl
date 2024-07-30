@@ -72,4 +72,7 @@
 			<xquery>*</xquery>
 		</transform>
 	</xsl:template>
+	<xsl:template match="ns:assignment[@variable='messageHeader']">
+		<assignment variable="messageHeader"><xsl:value-of select="replace(text(),'\(\$([^=]+)=''''\)','(string-length(\$$1)=0)')" /></assignment>
+	</xsl:template>
 </xsl:stylesheet>
