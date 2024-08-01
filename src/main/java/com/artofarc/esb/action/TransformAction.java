@@ -108,7 +108,7 @@ public class TransformAction extends Action {
 		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery, _baseURI);
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
 		if (_contextItem != null) {
-			bind(context, xqExpression, XQConstants.CONTEXT_ITEM, null, true, _contextItem != "none" ? resolve(message, _contextItem, true) : "");
+			bind(context, xqExpression, XQConstants.CONTEXT_ITEM, null, XQSequenceType.OCC_EXACTLY_ONE, _contextItem != "none" ? resolve(message, _contextItem, true) : "");
 		} else {
 			if (message.isEmpty()) {
 				// Nothing to bind, but we need a context item
@@ -142,7 +142,7 @@ public class TransformAction extends Action {
 		}
 		QName[] externalVariables = _xquery.getExternalVariables();
 		XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
-		boolean[] externalVariableRequired = _xquery.getExternalVariableRequired();
+		int[] externalVariableItemOccurrences = _xquery.getExternalVariableItemOccurrences();
 		for (int i = 0; i < externalVariables.length; ++i) {
 			QName name = externalVariables[i];
 			Object value;
@@ -156,7 +156,7 @@ public class TransformAction extends Action {
 					throw new ExecutionException(this, "Must not be null: " + name);
 				}
 			}
-			bind(context, xqExpression, name, externalVariableTypes[i], externalVariableRequired[i], value);
+			bind(context, xqExpression, name, externalVariableTypes[i], externalVariableItemOccurrences[i], value);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
 		XQResultSequence resultSequence = xqExpression.executeQuery();
@@ -180,7 +180,7 @@ public class TransformAction extends Action {
 		return new ExecutionContext(resultSequence, xqExpression);
 	}
 
-	private void bind(Context context, XQPreparedExpression xqExpression, QName qName, XQItemType type, boolean required, Object value) throws ExecutionException {
+	private void bind(Context context, XQPreparedExpression xqExpression, QName qName, XQItemType type, int itemOccurrence, Object value) throws ExecutionException {
 		try {
 			if (value instanceof XQItem) {
 				xqExpression.bindItem(qName, (XQItem) value);
@@ -194,7 +194,7 @@ public class TransformAction extends Action {
 				xqExpression.bindNode(qName, (Node) value, type);
 			} else if (value != null) {
 				xqExpression.bindObject(qName, value, type);
-			} else if (required) {
+			} else if (itemOccurrence == XQSequenceType.OCC_EXACTLY_ONE || itemOccurrence == XQSequenceType.OCC_ONE_OR_MORE) {
 				logger.info("Value is null but XQuery requires it for " + qName);
 				xqExpression.bindString(qName, "", null);
 			} else {
@@ -298,10 +298,12 @@ public class TransformAction extends Action {
 		xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 		QName[] externalVariables = _xquery.getExternalVariables();
 		XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
+		int[] externalVariableItemOccurrences = _xquery.getExternalVariableItemOccurrences();
 		for (int i = 0; i < externalVariables.length; ++i) {
 			XQItemType externalVariableType = externalVariableTypes[i];
-			if (externalVariableType != null && externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC) {
-				xqExpression.bindString(externalVariables[i], "", null);
+			int itemOccurrence = externalVariableItemOccurrences[i];
+			if (externalVariableType != null && externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC || itemOccurrence == XQSequenceType.OCC_ONE_OR_MORE) {
+				xqExpression.bindSequence(externalVariables[i], context.getXQEmptySequence());
 			}
 		}
 	}
