@@ -68,7 +68,8 @@ public class HttpAction extends Action {
 		message.getVariables().put(HttpURLOutbound, httpResponse.uri().toString());
 		message.getVariables().put(HttpResponseCode, httpResponse.statusCode());
 		for (Map.Entry<String, List<String>> entry : httpResponse.headers().map().entrySet()) {
-			message.putHeader(entry.getKey(), entry.getValue().get(0));
+			List<String> values = entry.getValue();
+			message.putHeader(entry.getKey(), values.size() > 1 ? values : values.get(0));
 		}
 		InputStream inputStream = httpResponse.body();
 		message.reset(null, inputStream);
@@ -80,7 +81,15 @@ public class HttpAction extends Action {
 	private HttpRequest.Builder createHttpRequestBuilder(Context context, ESBMessage message, int timeout, HttpRequest.BodyPublisher bodyPublisher) throws Exception {
 		HttpRequest.Builder builder = HttpRequest.newBuilder().method(message.getVariable(HttpMethod), bodyPublisher).timeout(Duration.ofMillis(timeout));
 		for (Map.Entry<String, Object> entry : message.getHeaders()) {
-			builder.header(entry.getKey(), entry.getValue().toString());
+			if (entry.getValue() instanceof List) {
+				@SuppressWarnings("unchecked")
+				List<String> values = (List<String>) entry.getValue();
+				for (String value : values) {
+					builder.header(entry.getKey(), value);
+				}
+			} else {
+				builder.header(entry.getKey(), entry.getValue().toString());
+			}
 		}
 		String basicAuthCredential = _httpEndpoint.getBasicAuthCredential();
 		if (basicAuthCredential != null) {

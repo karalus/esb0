@@ -142,7 +142,15 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 				}
 				conn.setInstanceFollowRedirects(false);
 				for (Map.Entry<String, Object> entry : headers) {
-					conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
+					if (entry.getValue() instanceof List) {
+						@SuppressWarnings("unchecked")
+						List<String> values = (List<String>) entry.getValue();
+						for (String value : values) {
+							conn.addRequestProperty(entry.getKey(), value);
+						}
+					} else {
+						conn.setRequestProperty(entry.getKey(), entry.getValue().toString());
+					}
 				}
 				// check whether server is willing to respond (before sending data)
 				boolean checkServer = retryCount > size - activeCount;
