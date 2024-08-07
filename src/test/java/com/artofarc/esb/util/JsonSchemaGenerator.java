@@ -28,6 +28,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.artofarc.util.XMLProcessorFactory;
@@ -345,7 +346,13 @@ public final class JsonSchemaGenerator {
 		if (systemId != null) {
 			XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 			xsomParser.setAnnotationParser(new DomAnnotationParserFactory());
-			xsomParser.setErrorHandler(new DefaultHandler());
+			xsomParser.setErrorHandler(new DefaultHandler() {
+
+				@Override
+				public void error(SAXParseException e) throws SAXException {
+					throw e;
+				}
+			});
 			xsomParser.parse(systemId);
 			result = xsomParser.getResult();
 		}

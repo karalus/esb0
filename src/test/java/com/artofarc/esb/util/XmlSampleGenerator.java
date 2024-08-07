@@ -24,12 +24,16 @@ import javax.xml.namespace.QName;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.helpers.AttributesImpl;
+import org.xml.sax.helpers.DefaultHandler;
 
 import com.artofarc.util.XMLParserBase;
+import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.*;
+import com.sun.xml.xsom.parser.XSOMParser;
 
 public final class XmlSampleGenerator extends XMLParserBase {
 
@@ -167,6 +171,19 @@ public final class XmlSampleGenerator extends XMLParserBase {
 		default:
 			return facets.isEmpty() ? "string" : facets.get(0).getValue().value;
 		}
+	}
+
+	public static XmlSampleGenerator createXmlSampleGenerator(String systemId, String rootElement, String typeName) throws SAXException {
+		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
+		xsomParser.setErrorHandler(new DefaultHandler() {
+
+			@Override
+			public void error(SAXParseException e) throws SAXException {
+				throw e;
+			}
+		});
+		xsomParser.parse(systemId);
+		return new XmlSampleGenerator(xsomParser.getResult(), rootElement, typeName);
 	}
 
 }
