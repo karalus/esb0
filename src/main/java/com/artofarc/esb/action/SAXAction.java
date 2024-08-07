@@ -34,6 +34,7 @@ import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
@@ -128,6 +129,7 @@ public abstract class SAXAction extends Action {
 			break;
 		}
 		message.reset(BodyType.SOURCE, source);
+		message.removeHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
 		return new ExecutionContext(source);
 	}
 

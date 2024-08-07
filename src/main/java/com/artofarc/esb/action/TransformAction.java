@@ -172,7 +172,6 @@ public class TransformAction extends Action {
 			if (_newContentType != null) {
 				message.setContentType((String) eval(_newContentType, context, message));
 			}
-			message.setCharset(null);
 			if (_clearSchema) {
 				message.setSchema(null);
 			}
