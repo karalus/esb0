@@ -415,6 +415,9 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			addReference(wsdlArtifact);
 			wsdlArtifact.validate(globalContext);
 			Binding binding = WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), unwrapSOAP.getBinding(), unwrapSOAP.getTransport());
+			if (binding == null) {
+				logger.warn("No unique binding in " + unwrapSOAP.getWsdlURI());
+			}
 			@SuppressWarnings("unchecked")
 			List<BindingOperation> bindingOperations = binding != null ? binding.getBindingOperations() : Collections.emptyList();
 			UnwrapSOAPAction unwrapSOAPAction;
@@ -436,6 +439,9 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			addReference(wsdlArtifact);
 			wsdlArtifact.validate(globalContext);
 			Binding binding = WSDL4JUtil.getBinding(wsdlArtifact.getAllBindings(), preSOAPHttp.getBinding(), preSOAPHttp.getTransport());
+			if (binding == null) {
+				logger.warn("No unique binding in " + preSOAPHttp.getWsdlURI());
+			}
 			PreSOAPHttpAction preSOAPHttpAction = new PreSOAPHttpAction(preSOAPHttp.isSoap12(), preSOAPHttp.isHeader(), preSOAPHttp.isSinglePart(), wsdlArtifact.getSchema(), binding);
 			addAction(list, preSOAPHttpAction, location);
 			break;

@@ -115,15 +115,21 @@ public final class WSDL4JUtil {
 	}
 
 	public static Binding getBinding(Map<QName, Binding> allBindings, String bindingName, String transport) {
+		Binding result = null;
 		for (Map.Entry<QName, Binding> entry : allBindings.entrySet()) {
 			if (bindingName == null || bindingName.equals(entry.getKey().getLocalPart())) {
 				Binding binding = entry.getValue();
 				if (transport == null || transport.equals(getSOAPBindingTransportURI(binding))) {
-					return binding;
+					if (result != null) {
+						// Not unique -> no result
+						result = null;
+						break;
+					}
+					result = binding;
 				}
 			}
 		}
-		return null;
+		return result;
 	}
 
 	public static Map<String, String> getMapOperation2SoapActionURI(List<BindingOperation> bindingOperations) {
