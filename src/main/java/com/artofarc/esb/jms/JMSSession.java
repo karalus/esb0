@@ -44,7 +44,7 @@ public final class JMSSession implements AutoCloseable {
 	public JMSSession(JMSSessionFactory jmsSessionFactory, JMSConnectionData jmsConnectionData, boolean transacted) throws JMSException {
 		_jmsConnectionData = jmsConnectionData;
 		_transacted = transacted;
-		(_jmsConnection = jmsSessionFactory.getJMSConnectionProvider().getResource(jmsConnectionData)).addJMSSessionFactory(jmsSessionFactory);;
+		(_jmsConnection = jmsSessionFactory.getJMSConnectionProvider().getResource(jmsConnectionData)).addJMSSessionFactory(jmsSessionFactory);
 		createSession();
 	}
 
@@ -94,6 +94,7 @@ public final class JMSSession implements AutoCloseable {
 		}
 		MessageProducer producer = _producers.get(destination);
 		if (producer == null) {
+			JMSConnectionProvider.logger.info("Creating new producer for " + getDestinationName(destination).getValue());
 			producer = _session.createProducer(destination);
 			_producers.put(destination, producer);
 		}

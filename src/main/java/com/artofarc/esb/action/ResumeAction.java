@@ -48,7 +48,7 @@ public class ResumeAction extends Action {
 		if (action == null) {
 			throw new ExecutionException(this, "No AsyncContext found for " + correlationID);
 		}
-		return new ExecutionContext(action);		
+		return new ExecutionContext(action);
 	}
 
 	@Override

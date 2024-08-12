@@ -259,7 +259,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			}
 			for (JMSSessionFactory jmsSessionFactory : _jmsSessionFactories) {
 				try {
-					logger.info("Closing JMSSessionFactory");
+					logger.info("Closing JMSSession");
 					jmsSessionFactory.close(_jmsConnectionData);
 				} catch (Exception e) {
 					// ignore
