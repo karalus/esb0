@@ -104,11 +104,14 @@ public class FileAction extends TerminalAction {
 				message.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFileInputStream(file));
 			}
 		} else {
-			String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
-			if (contentType == null) {
-				contentType = message.getContentType();
+			String fileExtension = IOUtils.getExt(filename);
+			if (fileExtension.isEmpty()) {
+				String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+				if (contentType == null) {
+					contentType = message.getContentType();
+				}
+				fileExtension = contentType != null ? MimeHelper.getFileExtension(HttpConstants.parseContentType(contentType)) : null;
 			}
-			String fileExtension = contentType != null ? MimeHelper.getFileExtension(HttpConstants.parseContentType(contentType)) : null;
 			if (fileExtension != null) {
 				fileExtension = '.' + fileExtension;
 				if (filename.endsWith(fileExtension)) {
