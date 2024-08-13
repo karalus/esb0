@@ -163,6 +163,10 @@ public final class Json2XmlTransformer {
 			super(_createDocumentEvents, _namespaceMap);
 		}
 
+		void initXSOMHelper() {
+			xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
+		}
+
 		void addAttribute(String value) throws SAXException {
 			XSAttributeUse attributeUse = xsomHelper.getAttributeUse(uri, keyName);
 			if (attributeUse != null) {
@@ -208,7 +212,7 @@ public final class Json2XmlTransformer {
 							} else {
 								keyName = _rootName;
 								uri = _rootUri;
-								xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
+								initXSOMHelper();
 							}
 						} else {
 							if (_includeRoot && _objects.isEmpty()) {
@@ -220,7 +224,7 @@ public final class Json2XmlTransformer {
 								} else {
 									uri = getDefaultUri();
 								}
-								xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
+								initXSOMHelper();
 							} else {
 								if (keyName == null) {
 									e = _arrays.peek();
@@ -285,6 +289,9 @@ public final class Json2XmlTransformer {
 							e = new Element(uri, keyName, null);
 						} else {
 							if (keyName != null) {
+								if (xsomHelper == null) {
+									initXSOMHelper();
+								}
 								XSTerm term = xsomHelper.matchElement(uri, keyName);
 								if (term.isElementDecl()) {
 									// potentially a wrapped array
@@ -294,7 +301,7 @@ public final class Json2XmlTransformer {
 							} else {
 								keyName = _rootName;
 								uri = _rootUri;
-								xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
+								initXSOMHelper();
 							}
 							if (!xsomHelper.isLastElementRepeated()) {
 								XSTerm term = xsomHelper.getWrappedElement();
@@ -331,6 +338,7 @@ public final class Json2XmlTransformer {
 							simpleList = false;
 						} else if (any < 0) {
 							xsomHelper.endArray();
+							xsomHelper.endAny();
 						}
 						if (e.container != null && e.localName != e.container.localName) {
 							// element wrapper
@@ -395,7 +403,7 @@ public final class Json2XmlTransformer {
 				if (keyName == null && xsomHelper == null) {
 					keyName = _rootName;
 					uri = _rootUri;
-					xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
+					initXSOMHelper();
 				}
 				if ((simpleContent || any >= 0 && type == null) && valueWrapper.equals(keyName)) {
 					simpleContent = true;
@@ -538,7 +546,7 @@ public final class Json2XmlTransformer {
 				xsomHelper = new XSOMHelper((XSSimpleType) _type);
 				parse(e, _jsonValue);
 			} else {
-				xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, keyName));
+				initXSOMHelper();
 				parse(e, _jsonValue, null);
 			}
 			endDocument();
