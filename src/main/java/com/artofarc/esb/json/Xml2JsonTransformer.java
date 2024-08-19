@@ -30,6 +30,7 @@ import javax.xml.namespace.QName;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
 
 import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.NamespaceMap;
@@ -59,7 +60,7 @@ public final class Xml2JsonTransformer {
 			QName type = QName.valueOf(typeQN);
 			_type = schemaSet.getType(type.getNamespaceURI(), type.getLocalPart());
 		} else {
-			_type = schemaSet != null ? null : _schemaSet.getType(XMLConstants.W3C_XML_SCHEMA_NS_URI, "anyType");
+			_type = schemaSet != null ? null : _schemaSet.getAnyType();
 		}
 		_includeRoot = includeRoot;
 		_wrapperAsArrayName = wrapperAsArrayName;
@@ -91,7 +92,7 @@ public final class Xml2JsonTransformer {
 		final ArrayDeque<Integer> ignoreLevel = new ArrayDeque<>();
 
 		XSOMHelper xsomHelper;
-		boolean root = true, complex, simpleList;
+		boolean root = true, complex, simpleList, unopened;
 		String primitiveType, openKey;
 		int level, anyLevel = -1;
 
@@ -144,14 +145,16 @@ public final class Xml2JsonTransformer {
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
 			_builder.setLength(0);
-			int attsLength = atts.getLength();
 			if (root) {
 				root = false;
 				if (_type != null && _type.isSimpleType()) {
 					primitiveType = XSOMHelper.getJsonType(_type.asSimpleType());
 				} else {
 					xsomHelper = new XSOMHelper((XSComplexType) _type, _schemaSet.getElementDecl(uri, localName));
-					if (!_includeRoot && _wrapperAsArrayName && xsomHelper.getWrappedElement() != null) {
+					if (xsomHelper.getComplexType() == _schemaSet.getAnyType()) {
+						anyLevel = 0;
+						unopened = true;
+					} else if (!_includeRoot && _wrapperAsArrayName && xsomHelper.getWrappedElement() != null) {
 						jsonGenerator.writeStartArray();
 						ignoreLevel.push(1);
 					} else {
@@ -160,6 +163,7 @@ public final class Xml2JsonTransformer {
 				}
 				if (!_includeRoot) {
 					level = 1;
+					atts = extractType(atts);
 					writeAttributes(atts);
 					return;
 				}
@@ -168,14 +172,12 @@ public final class Xml2JsonTransformer {
 				if (xsomHelper == null) {
 					throw new SAXException("Expecting text, but got element " + localName);
 				}
-				xsomHelper.matchElement(uri, localName);
-				final String type = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
-				if (type != null) {
-					primitiveType = getJsonType(type);
-					--attsLength;
-				} else {
-					primitiveType = null;
+				if (unopened) {
+					jsonGenerator.writeStartObject();
+					unopened = false;
 				}
+				xsomHelper.matchElement(uri, localName);
+				atts = extractType(atts);
 				if (xsomHelper.isLastElementAny()) {
 					if (anyLevel < 0) {
 						if (!_includeRoot && level == 1) {
@@ -220,16 +222,9 @@ public final class Xml2JsonTransformer {
 					openKey = prependPrefix(uri, localName);
 				}
 			}
-			final String nil = atts.getValue(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
-			if (nil != null && DatatypeConverter.parseBoolean(nil)) {
-				primitiveType = "nil";
-				if (--attsLength > 0) {
-					// https://stackoverflow.com/questions/27555077/specify-attributes-on-a-nil-xml-element
-					throw new SAXException("A complex element being nil should not have additional attributes " + localName);
-				}
-			}
+			atts = extractNil(atts);
 			++level;
-			if (attsLength > 0 || complex && anyLevel < 0 && primitiveType != "nil") {
+			if (atts.getLength() > 0 || complex && anyLevel < 0 && primitiveType != "nil") {
 				if (openKey != null) {
 					if (_wrapperAsArrayName && xsomHelper.getWrappedElement() != null) {
 						jsonGenerator.writeStartArray(openKey);
@@ -297,8 +292,14 @@ public final class Xml2JsonTransformer {
 							jsonGenerator.writeEnd();
 						}
 					} else {
-						if (_builder.toString().trim().length() > 0) {
-							jsonGenerator.write(valueWrapper, _builder.toString());
+						String text = _builder.toString();
+						if (text.trim().length() > 0) {
+							if (unopened) {
+								jsonGenerator.write(text);
+								primitiveType = "string";
+							} else {
+								jsonGenerator.write(valueWrapper, text);
+							}
 						}
 					}
 				}
@@ -332,6 +333,35 @@ public final class Xml2JsonTransformer {
 		@Override
 		public void characters(char[] ch, int start, int length) {
 			_builder.append(ch, start, length);
+		}
+
+		private Attributes extractType(Attributes atts) throws SAXException {
+			int i = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
+			if (i >= 0) {
+				primitiveType = getJsonType(atts.getValue(i));
+				AttributesImpl copy = new AttributesImpl(atts);
+				copy.removeAttribute(i);
+				return copy;
+			}
+			return atts;
+		}
+
+		private Attributes extractNil(Attributes atts) throws SAXException {
+			int i = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
+			if (i < 0) {
+				return atts;
+			} else if (DatatypeConverter.parseBoolean(atts.getValue(i))) {
+				if (atts.getLength() > 1) {
+					// https://stackoverflow.com/questions/27555077/specify-attributes-on-a-nil-xml-element
+					throw new SAXException("A complex element being nil should not have additional attributes");
+				}
+				primitiveType = "nil";
+				return new AttributesImpl();
+			} else {
+				AttributesImpl copy = new AttributesImpl(atts);
+				copy.removeAttribute(i);
+				return copy;
+			}
 		}
 
 		private void writeAttributes(Attributes atts) {
