@@ -82,13 +82,12 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 			_queueName = null;
 			_topicName = ((Topic) _destination).getTopicName();
 		} else {
-			if (queueName == null && topicName == null) throw new IllegalArgumentException("One of jndiDestination, queueName or topicName must be set");
 			_queueName = globalContext.bindProperties(queueName);
 			_topicName = globalContext.bindProperties(topicName);
 		}
 		if (subscription != null) {
 			if (_topicName == null) throw new IllegalArgumentException("Subscription only allowed for topics: " + getKey());
-			if (workerCount != 1) throw new IllegalArgumentException("Subscriptions can only have one worker: " + getKey());
+			if (!shared && workerCount != 1) throw new IllegalArgumentException("Subscriptions can only have one worker: " + getKey());
 		}
 		_subscription = subscription;
 		_noLocal = noLocal;
@@ -328,7 +327,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 	class JMSWorker implements MessageListener {
 		final Context _context = new Context(_workerPool.getPoolContext());
 		volatile JMSSession _session;
-		volatile MessageConsumer _messageConsumer;
+		MessageConsumer _messageConsumer;
 
 		final void open() throws JMSException {
 			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
@@ -336,21 +335,19 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 			_context.putResource(ESBConstants.JMSSession, _session);
 		}
 
-		final void initMessageConsumer() throws JMSException {
+		protected final void initMessageConsumer() throws JMSException {
 			if (_messageConsumer == null && _session != null) {
-				if (_subscription != null) {
-					if (_shared) {
-						_messageConsumer = _session.getSession().createSharedDurableConsumer((Topic) getDestination(_session), _subscription, _messageSelector);
-					} else {
-						_messageConsumer = _session.getSession().createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, _noLocal);
-					}
-				} else {
+				if (_subscription == null) {
 					_messageConsumer = _session.getSession().createConsumer(getDestination(_session), _messageSelector, _noLocal);
+				} else if (_shared) {
+					_messageConsumer = _session.getSession().createSharedDurableConsumer((Topic) getDestination(_session), _subscription, _messageSelector);
+				} else {
+					_messageConsumer = _session.getSession().createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, _noLocal);
 				}
 			}
 		}
 
-		void startListening() throws JMSException {
+		synchronized void startListening() throws JMSException {
 			initMessageConsumer();
 			if (_messageConsumer != null) {
 				try {
@@ -362,7 +359,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 			}
 		}
 
-		void stopListening() {
+		synchronized void stopListening() {
 			if (_messageConsumer != null) {
 				try {
 					if (JMSConnectionProvider.closeWithTimeout > 0) {
@@ -449,7 +446,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 			_initialDelay = initialDelay;
 		}
 
-		void startListening() throws JMSException {
+		synchronized void startListening() throws JMSException {
 			initMessageConsumer();
 			if (_messageConsumer != null) {
 				_poller = schedule(this, _initialDelay);
@@ -457,13 +454,14 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		}
 
 		void stopListening() {
-			if (_poller != null) {
-				_poller.cancel(false);
+			Future<?> poller = _poller;
+			if (poller != null) {
+				poller.cancel(false);
 				_poller = null;
 				synchronized (this) {
 					super.stopListening();
-					if (needsReschedule() && _poller != null) {
-						_poller.cancel(false);
+					if (needsReschedule() && (poller = _poller) != null) {
+						poller.cancel(false);
 						_poller = null;
 					}
 				}
