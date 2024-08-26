@@ -446,10 +446,16 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 			_initialDelay = initialDelay;
 		}
 
-		synchronized void startListening() throws JMSException {
-			initMessageConsumer();
-			if (_messageConsumer != null) {
-				_poller = schedule(this, _initialDelay);
+		void startListening() throws JMSException {
+			if (_poller == null) {
+				synchronized (this) {
+					if (_poller == null) {
+						initMessageConsumer();
+						if (_messageConsumer != null) {
+							_poller = schedule(this, _initialDelay);
+						}
+					}
+				}
 			}
 		}
 
