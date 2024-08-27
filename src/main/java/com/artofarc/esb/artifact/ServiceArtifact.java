@@ -67,7 +67,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 	private List<ConsumerPort> _consumerPorts = new ArrayList<>();
 
 	// only used during validation
-	private final HashMap<String, List<Action>> _actionPipelines = new HashMap<>();
+	private HashMap<String, List<Action>> _actionPipelines;
 	private XMLProcessorFactory _xmlProcessorFactory;
 
 	public ServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
@@ -113,6 +113,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		Service service = unmarshal(globalContext);
 		try {
+			_actionPipelines = new HashMap<>();
 			for (ActionPipeline actionPipeline : service.getActionPipeline()) {
 				_actionPipelines.put(actionPipeline.getName(), transform(globalContext, actionPipeline.getAction(), actionPipeline.getErrorHandler()));
 			}
@@ -168,7 +169,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				consumerPort.setEnabled(service.isEnabled());
 			}
 		} finally {
-			_actionPipelines.clear();
+			_actionPipelines = null;
 			_xmlProcessorFactory = null;
 		}
 	}

@@ -211,7 +211,7 @@ public abstract class FileSystem {
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(this, parent, name);
 		case JNDIObjectFactoryArtifact.FILE_EXTENSION:
-		case "dsdef":
+		case "dsdef":// deprecated
 			return new JNDIObjectFactoryArtifact(this, parent, name);
 		case ClassLoaderArtifact.FILE_EXTENSION:
 			return new ClassLoaderArtifact(this, parent, name);
