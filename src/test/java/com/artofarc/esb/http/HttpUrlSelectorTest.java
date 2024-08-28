@@ -75,4 +75,18 @@ public class HttpUrlSelectorTest extends AbstractESBTest {
 		assertNotEquals(httpUrl1, httpUrl2);
 	}
 
+	@Test
+	public void testDate() {
+		long epochSeconds = HttpConstants.parseHttpDate("Wed, 28 Aug 2024 08:43:34 GMT");
+		assertEquals(1724834614, epochSeconds);
+	}
+
+	@Test
+	public void testRetryAfter() {
+		HttpCheckAlive httpCheckAlive = new HttpCheckAlive();
+		httpCheckAlive.isAlive(503, (h) -> HttpConstants.toHttpDate((System.currentTimeMillis() + 999) / 1000));
+		Integer consumeRetryAfter = httpCheckAlive.consumeRetryAfter();
+		assertEquals(1, consumeRetryAfter.intValue());
+	}
+
 }

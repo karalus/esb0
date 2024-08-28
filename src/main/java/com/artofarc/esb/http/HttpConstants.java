@@ -18,6 +18,11 @@ package com.artofarc.esb.http;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URLDecoder;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map.Entry;
@@ -161,6 +166,14 @@ public class HttpConstants {
 			return (type != null ? type : getValueFromHttpHeader(contentType)).toLowerCase(Locale.ROOT);
 		}
 		return null;
+	}
+
+	public static long parseHttpDate(String date) {
+		return DateTimeFormatter.RFC_1123_DATE_TIME.parse(date).getLong(ChronoField.INSTANT_SECONDS);
+	}
+
+	public static String toHttpDate(long epochSecond) {
+		return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneOffset.UTC));
 	}
 
 	public static String getFilename(String contentDisposition) throws UnsupportedEncodingException {

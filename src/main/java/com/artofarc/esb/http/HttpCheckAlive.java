@@ -16,22 +16,10 @@
 package com.artofarc.esb.http;
 
 import java.io.IOException;
-import java.util.Date;
+import java.time.format.DateTimeParseException;
 import java.util.function.Function;
 
 public class HttpCheckAlive {
-
-	@SuppressWarnings("deprecation")
-	protected static long convertDateString(String dateString) {
-		try {
-			if (dateString.indexOf("GMT") < 0) {
-				dateString += " GMT";
-			}
-			return Date.parse(dateString);
-		} catch (Exception e) {
-			return -1;
-		}
-	}
 
 	protected Integer _retryAfter; 
 
@@ -49,12 +37,14 @@ public class HttpCheckAlive {
 			_retryAfter = null;
 			String retryAfter = getHeader.apply(HttpConstants.HTTP_HEADER_RETRY_AFTER);
 			if (retryAfter != null) {
+				// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
 				try {
 					_retryAfter = Integer.valueOf(retryAfter);
 				} catch (NumberFormatException e) {
-					long date = convertDateString(retryAfter);
-					if (date > 0) {
-						_retryAfter = (int) (date - System.currentTimeMillis() + 999) / 1000;
+					try {
+						_retryAfter = (int) (HttpConstants.parseHttpDate(retryAfter) - System.currentTimeMillis() / 1000);
+					} catch (DateTimeParseException e2) {
+						HttpEndpointRegistry.logger.info("Unparsable Retry-After: {}", retryAfter);
 					}
 				}
 			}

@@ -165,6 +165,17 @@ public class ActionTest extends AbstractESBTest {
 	}
 
 	@Test
+	public void testHandleHttpDate() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+		message.putHeader("Last-Modified", "Wed, 28 Aug 2024 08:43:34 GMT");
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
+		action.addAssignment("date", false, "${Last-Modified}", "com.artofarc.esb.http.HttpConstants", "parseHttpDate", null);
+		action.addAssignment("X-Date", true, "${date}", "com.artofarc.esb.http.HttpConstants", "toHttpDate", null);
+		action.setNextAction(new DumpAction());
+		action.process(context, message);
+	}
+
+	@Test
 	public void testSetMessageBody() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
 		message.putVariable("string", "Hello");
