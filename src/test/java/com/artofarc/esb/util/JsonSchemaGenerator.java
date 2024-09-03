@@ -96,7 +96,7 @@ public final class JsonSchemaGenerator {
 		if (xsomHelper.getWrappedElement() != null) {
 			XSTerm term = xsomHelper.nextElement();
 			generateType(xsomHelper, term.asElementDecl().getDefaultValue(), term.asElementDecl().isNillable(), jsonGenerator);
-		} else {
+		} else if (xsomHelper.getComplexType() != _schemaSet.getAnyType()) {
 			jsonGenerator.write("type", "object");
 			if (xsomHelper.getAttributeWildcard() != null) {
 				jsonGenerator.writeStartObject("patternProperties");
