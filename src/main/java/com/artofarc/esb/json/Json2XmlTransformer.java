@@ -337,7 +337,10 @@ public final class Json2XmlTransformer {
 							}
 							simpleList = false;
 						} else if (any < 0) {
-							xsomHelper.endArray();
+							if (xsomHelper.endArray()) {
+								// if in middle of array then proceed to end
+								xsomHelper.endArray();
+							}
 							xsomHelper.endAny();
 						}
 						if (e.container != null && e.localName != e.container.localName) {
