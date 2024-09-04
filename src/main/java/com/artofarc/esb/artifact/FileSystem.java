@@ -369,7 +369,7 @@ public abstract class FileSystem {
 	}
 
 	final void noteChange(String uri, ChangeType type) {
-		_changes.putIfAbsent(uri, type);
+		_changes.merge(uri, type, (oldValue, newValue) -> oldValue == ChangeType.CREATE ? oldValue : newValue);
 	}
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {
