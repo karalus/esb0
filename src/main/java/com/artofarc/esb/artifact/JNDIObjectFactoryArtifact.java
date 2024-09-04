@@ -23,6 +23,7 @@ import javax.naming.spi.ObjectFactory;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.service.JndiObjectFactory;
+import com.artofarc.util.IOUtils;
 
 public final class JNDIObjectFactoryArtifact extends AbstractServiceArtifact {
 
@@ -35,6 +36,11 @@ public final class JNDIObjectFactoryArtifact extends AbstractServiceArtifact {
 
 	public JNDIObjectFactoryArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
+	}
+
+	@Override
+	public String getDeprecatedURI() {
+		return IOUtils.stripExt(getURI()) + ".dsdef";
 	}
 
 	@Override

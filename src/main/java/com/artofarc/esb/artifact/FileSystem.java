@@ -210,8 +210,10 @@ public abstract class FileSystem {
 			return new XSLTArtifact(this, parent, name);
 		case WorkerPoolArtifact.FILE_EXTENSION:
 			return new WorkerPoolArtifact(this, parent, name);
-		case JNDIObjectFactoryArtifact.FILE_EXTENSION:
 		case "dsdef":// deprecated
+			name = IOUtils.stripExt(name) + '.' + JNDIObjectFactoryArtifact.FILE_EXTENSION;
+			noteChange(parent.getURI() + '/' + name, ChangeType.RENAME);
+		case JNDIObjectFactoryArtifact.FILE_EXTENSION:
 			return new JNDIObjectFactoryArtifact(this, parent, name);
 		case ClassLoaderArtifact.FILE_EXTENSION:
 			return new ClassLoaderArtifact(this, parent, name);
@@ -310,7 +312,7 @@ public abstract class FileSystem {
 		}
 	}
 
-	protected enum ChangeType { CREATE, UPDATE, DELETE }
+	protected enum ChangeType { CREATE, UPDATE, DELETE, RENAME }
 
 	public final class ChangeSet {
 		private final List<Future<ServiceArtifact>> futures = new ArrayList<>();

@@ -86,7 +86,9 @@ public class FileSystemDir extends FileSystem {
 				}
 			} else {
 				Artifact artifact = getArtifact(entry.getKey());
-				if (artifact instanceof Directory) {
+				if (entry.getValue() == ChangeType.RENAME) {
+					new File(_anchorDir, artifact.getDeprecatedURI()).renameTo(file);
+				} else if (artifact instanceof Directory) {
 					file.mkdir();
 				} else {
 					FileOutputStream fos = new FileOutputStream(file);

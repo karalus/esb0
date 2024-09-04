@@ -86,6 +86,10 @@ public abstract class Artifact {
 		}
 	}
 
+	public String getDeprecatedURI() {
+		return null;
+	}
+
 	public final Collection<String> getReferenced() {
 		return _referenced;
 	}

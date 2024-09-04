@@ -91,10 +91,12 @@ public class FileSystemDB extends FileSystem {
 		String createSql = "insert into " + FILESYSTEM_TABLE + " (URI, ENVIRONMENT, MODIFIED, CONTENT) VALUES (?,'" + environment + "',?,?)";
 		String updateSql = "update " + FILESYSTEM_TABLE + " set MODIFIED=?, CONTENT=? WHERE URI=? and ENVIRONMENT='" + environment + "'";
 		String deleteSql = "delete from " + FILESYSTEM_TABLE + " WHERE URI=? and ENVIRONMENT='" + environment + "'";
+		String renameSql = "update " + FILESYSTEM_TABLE + " set URI=? WHERE URI=? and ENVIRONMENT='" + environment + "'";
 		try (Connection conn = _dataSource.getConnection();
 				PreparedStatement create = conn.prepareStatement(createSql);
 				PreparedStatement update = conn.prepareStatement(updateSql);
-				PreparedStatement delete = conn.prepareStatement(deleteSql)) {
+				PreparedStatement delete = conn.prepareStatement(deleteSql);
+				PreparedStatement rename = conn.prepareStatement(renameSql)) {
 
 			for (Map.Entry<String, ChangeType> entry : changes.entrySet()) {
 				Artifact artifact = getArtifact(entry.getKey());
@@ -118,6 +120,11 @@ public class FileSystemDB extends FileSystem {
 					case DELETE:
 						delete.setString(1, artifact.getURI());
 						delete.executeUpdate();
+						break;
+					case RENAME:
+						rename.setString(1, artifact.getURI());
+						rename.setString(2, artifact.getDeprecatedURI());
+						rename.executeUpdate();
 						break;
 					}
 				}
