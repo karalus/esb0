@@ -291,7 +291,7 @@ public final class XSOMHelper {
 						processElement(element);
 						return element;
 					}
-					if (_required && !(_currentGroup.all || _currentGroup.choice || _currentGroup.middleArray)) {
+					if (_required && !(_currentGroup.all || _currentGroup.choice || _currentGroup.startArray || _currentGroup.middleArray)) {
 						// assume wrapped element
 						foundParticle();
 						processElement(element);
