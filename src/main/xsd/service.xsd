@@ -266,7 +266,7 @@
 			<complexContent>
 				<extension base="tns:AssignBase">
 					<sequence>
-						<element name="assignment" maxOccurs="unbounded">
+						<element name="assignment" minOccurs="0" maxOccurs="unbounded">
 							<complexType>
 								<simpleContent>
 									<extension base="tns:XQDecl">

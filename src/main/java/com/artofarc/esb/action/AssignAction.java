@@ -81,14 +81,14 @@ public class AssignAction extends TransformAction {
 			if (hasAtomicType) builder.append(assignment.type).append('(');
 			builder.append(assignment.expr);
 			if (hasAtomicType) builder.append(')');
-			if (iter.hasNext()) {
+			if (iter.hasNext() || bodyExpr != null) {
 				builder.append(", ");
 			}
 			// save some bytes memory
 			assignment.expr = null;
 		}
 		if (bodyExpr != null) {
-			builder.append(", ").append(bodyExpr);
+			builder.append(bodyExpr);
 		}
 		builder.append(')');
 		return XQuerySource.create(builder.toString());
