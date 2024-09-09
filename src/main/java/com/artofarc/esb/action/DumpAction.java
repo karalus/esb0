@@ -78,9 +78,9 @@ public class DumpAction extends TerminalAction {
 				} else if (_binary || HttpConstants.isBinary(message.getContentType())) {
 					byte[] ba = message.getBodyAsByteArray(context);
 					logger.info("Body length: " + ba.length);
-					logger.info("Body(" + message.getCharset() + "):\n" + IOUtils.convertToHexDump(ba));
+					logger.info("Body(" + message.getContentType() + ", " + message.getCharset() + "):\n" + IOUtils.convertToHexDump(ba));
 				} else {
-					logger.info("Body:\n" + message.getBodyAsString(context));
+					logger.info("Body(" + message.getContentType() + "):\n" +  message.getBodyAsString(context));
 				}
 			}
 		}
