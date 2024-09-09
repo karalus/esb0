@@ -15,11 +15,14 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.StringReader;
 import java.util.Map;
 
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.xquery.XQItem;
+import javax.xml.xquery.XQItemType;
 
+import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
@@ -67,7 +70,10 @@ public class Json2XMLAction extends SAXAction {
 
 	@Override
 	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception {
-		throw new ExecutionException(this, "JSON expected, got XQItem");
+		if (item.getItemType().getBaseType() == XQItemType.XQBASETYPE_STRING) {
+			return new SAXSource(_streaming ? _json2xml.createStreamingParser() : _json2xml.createParser(), new InputSource(new StringReader((String) item.getObject())));
+		}
+		throw new ExecutionException(this, "JSON expected, got XQItem type of " + item.getItemType());
 	}
 
 	@Override

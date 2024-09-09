@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -590,6 +591,17 @@ public class SOAPTest extends AbstractESBTest {
    }
    
    @Test
+   public void testXqueryReturnsJSON() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      Action action = new AssignAction(Collections.emptyList(), "'{}'", null, java.util.Collections.<XQDecl> emptyList(), null, false);
+      consumerPort.setStartAction(action);
+      action = action.setNextAction(new Json2XMLAction(null, null, false, "root", null, null));
+      action = action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+   }
+   
+  @Test
    public void testInsertReplyContext() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
       message.setContentType("text/xml; charset=\"utf-8\"");
