@@ -240,14 +240,16 @@ public class HttpConstants {
 			final String charset = getValueFromHttpHeader(contentType, HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET);
 			if (charset == null) {
 				final String type = getValueFromHttpHeader(contentType);
-				if (isNotJSON(type)) {
-					// for text/xml we let the XML parser decide the encoding
-					if (!type.equals(HTTP_HEADER_CONTENT_TYPE_SOAP11) && type.startsWith(MEDIATYPE_TEXT)) {
+				if (type.startsWith(MEDIATYPE_APPLICATION)) {
+					if (type.endsWith("/json") || type.endsWith("+json")) {
+						return "UTF-8";
+					}
+				} else if (type.startsWith(MEDIATYPE_TEXT)) {
+					// for xml we let the XML parser decide the encoding
+					if (!(type.endsWith("/xml") || type.endsWith("+xml"))) {
 						// https://www.ietf.org/rfc/rfc2068.txt (3.7.1)
 						return "ISO-8859-1";
 					}
-				} else {
-					return "UTF-8";
 				}
 			}
 			return charset;
