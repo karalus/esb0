@@ -117,6 +117,19 @@ public class XPathTest extends AbstractESBTest {
    }
    
    @Test
+   public void testRFC1123DateTime() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.INVALID, null);
+      Action action = createAssignAction(createAssignments(false, "result", "format-dateTime(xs:dateTime('2024-08-28T08:43:34Z'),'[FNn,*-3], [D01] [MNn,*-3] [Y0001] [H01]:[m01]:[s01] GMT')"), null, null);
+      action.setNextAction(new DumpAction());
+      ConsumerPort consumerPort = new ConsumerPort(null);
+      consumerPort.setStartAction(action);
+      action.setNextAction(new DumpAction());
+      consumerPort.process(context, message);
+      String date = message.getVariable("result").toString();
+      assertEquals("Wed, 28 Aug 2024 08:43:34 GMT", date);
+   }
+   
+   @Test
    public void testNullableNumber() throws Exception {
 //      ESBMessage message = new ESBMessage(BodyType.STRING, "<test><number>?</number></test>");
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test></test>");
