@@ -30,8 +30,8 @@ import javax.xml.namespace.QName;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.AttributesImpl;
 
+import com.artofarc.util.AttributesHelper;
 import com.artofarc.util.JsonFactoryHelper;
 import com.artofarc.util.NamespaceMap;
 import com.artofarc.util.PrefixHandler;
@@ -144,6 +144,7 @@ public final class Xml2JsonTransformer {
 
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
+			AttributesHelper helper = new AttributesHelper(atts);
 			_builder.setLength(0);
 			if (root) {
 				root = false;
@@ -163,8 +164,8 @@ public final class Xml2JsonTransformer {
 				}
 				if (!_includeRoot) {
 					level = 1;
-					atts = extractType(atts);
-					writeAttributes(atts);
+					extractType(helper);
+					writeAttributes(helper);
 					return;
 				}
 				complex = true;
@@ -177,7 +178,7 @@ public final class Xml2JsonTransformer {
 					unopened = false;
 				}
 				xsomHelper.matchElement(uri, localName);
-				atts = extractType(atts);
+				extractType(helper);
 				if (xsomHelper.isLastElementAny()) {
 					if (anyLevel < 0) {
 						if (!_includeRoot && level == 1) {
@@ -222,9 +223,9 @@ public final class Xml2JsonTransformer {
 					openKey = prependPrefix(uri, localName);
 				}
 			}
-			atts = extractNil(atts);
+			extractNil(helper);
 			++level;
-			if (atts.getLength() > 0 || complex && anyLevel < 0 && primitiveType != "nil") {
+			if (helper.getLength() > 0 || complex && anyLevel < 0 && primitiveType != "nil") {
 				if (openKey != null) {
 					if (_wrapperAsArrayName && xsomHelper.getWrappedElement() != null) {
 						jsonGenerator.writeStartArray(openKey);
@@ -237,7 +238,7 @@ public final class Xml2JsonTransformer {
 				} else {
 					jsonGenerator.writeStartObject();
 				}
-				writeAttributes(atts);
+				writeAttributes(helper);
 				if (primitiveType != null) {
 					openKey = valueWrapper;
 				}
@@ -335,40 +336,31 @@ public final class Xml2JsonTransformer {
 			_builder.append(ch, start, length);
 		}
 
-		private Attributes extractType(Attributes atts) throws SAXException {
-			int i = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type");
-			if (i >= 0) {
-				primitiveType = getJsonType(atts.getValue(i));
-				AttributesImpl copy = new AttributesImpl(atts);
-				copy.removeAttribute(i);
-				return copy;
+		private void extractType(AttributesHelper helper) throws SAXException {
+			if (helper.getType() != null) {
+				primitiveType = getJsonType(helper.getType());
 			}
-			return atts;
 		}
 
-		private Attributes extractNil(Attributes atts) throws SAXException {
-			int i = atts.getIndex(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil");
-			if (i < 0) {
-				return atts;
-			} else if (DatatypeConverter.parseBoolean(atts.getValue(i))) {
-				if (atts.getLength() > 1) {
-					// https://stackoverflow.com/questions/27555077/specify-attributes-on-a-nil-xml-element
-					throw new SAXException("A complex element being nil should not have additional attributes");
+		private void extractNil(AttributesHelper helper) throws SAXException {
+			if (helper.getNil() != null) {
+				if (DatatypeConverter.parseBoolean(helper.getNil())) {
+					if (helper.getLength() > 0) {
+						// https://stackoverflow.com/questions/27555077/specify-attributes-on-a-nil-xml-element
+						throw new SAXException("A complex element being nil should not have additional attributes");
+					}
+					primitiveType = "nil";
 				}
-				primitiveType = "nil";
-				return new AttributesImpl();
-			} else {
-				AttributesImpl copy = new AttributesImpl(atts);
-				copy.removeAttribute(i);
-				return copy;
 			}
 		}
 
-		private void writeAttributes(Attributes atts) {
-			for (int i = 0; i < atts.getLength(); ++i) {
-				XSAttributeUse attributeUse = xsomHelper.getAttributeUse(atts.getURI(i), atts.getLocalName(i));
-				String type = attributeUse != null ? XSOMHelper.getJsonType(attributeUse.getDecl().getType()) : "string";
-				writeKeyValue(attributePrefix + prependPrefix(atts.getURI(i), atts.getLocalName(i)), atts.getValue(i), type);
+		private void writeAttributes(AttributesHelper helper) {
+			if (helper.getLength() > 0) {
+				helper.forEach((u, l, v) -> {
+					XSAttributeUse attributeUse = xsomHelper.getAttributeUse(u, l);
+					String type = attributeUse != null ? XSOMHelper.getJsonType(attributeUse.getDecl().getType()) : "string";
+					writeKeyValue(attributePrefix + prependPrefix(u, l), v, type);
+				});
 			}
 		}
 
