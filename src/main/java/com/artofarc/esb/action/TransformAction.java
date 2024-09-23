@@ -288,7 +288,7 @@ public class TransformAction extends Action {
 		if (!exception && resultSequence.next()) {
 			logger.warn("XQResultSequence not fully consumed");
 			if (logger.isDebugEnabled()) {
-				resultSequence.writeItem(System.err, null);
+				context.writeItem(resultSequence, System.err, null);
 			}
 		}
 		resultSequence.close();

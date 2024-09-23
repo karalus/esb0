@@ -45,6 +45,7 @@ public class XMLProcessorFactory {
 
 	public static final String XPATH_EXTENSION_NS_URI = "http://artofarc.com/xpath-extension";
 	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
+	public static final boolean USE_DEFAULT_IDENTITY_TRANSFORMER = Boolean.parseBoolean(System.getProperty("esb0.useDefaultIdentityTransformer"));
 
 	private static final boolean SECURE_PROCESSING = Boolean.parseBoolean(System.getProperty("esb0.jaxp.secure-processing", "true"));
 	private static final boolean XQ2XSL_PROCESSING_SAX = Boolean.parseBoolean(System.getProperty("esb0.xq2xsl-processing.sax"));
@@ -55,6 +56,7 @@ public class XMLProcessorFactory {
 	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
 	private static final MethodHandle conSAXTransformerFactory;
 	private static final MethodHandle conXMLProcessorFactory;
+	private static final TransformerFactory IDENTITY_TRANSFORMER_FACTORY;
 
 	static {
 		try {
@@ -70,6 +72,7 @@ public class XMLProcessorFactory {
 			} else {
 				throw new RuntimeException("Cannot be casted to SAXTransformerFactory: " + transformerFactory.getClass());
 			}
+			IDENTITY_TRANSFORMER_FACTORY = USE_DEFAULT_IDENTITY_TRANSFORMER ? TransformerFactory.newDefaultInstance() : transformerFactory;
 			Class<?> xmlProcessorFactory;
 			try {
 				xmlProcessorFactory = Class.forName(System.getProperty("esb0.XMLProcessorFactory", "com.artofarc.util.saxon.SaxonXMLProcessorFactory"));
@@ -95,7 +98,7 @@ public class XMLProcessorFactory {
 	}
 
 	public static Transformer newTransformer() throws TransformerConfigurationException {
-		return SAX_TRANSFORMER_FACTORY.newTransformer();
+		return IDENTITY_TRANSFORMER_FACTORY.newTransformer();
 	}
 
 	public static TransformerHandler newTransformerHandler() throws TransformerConfigurationException {

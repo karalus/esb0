@@ -434,7 +434,7 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(sw = new StringBuilderWriter(), getSinkProperties());
+			context.writeItem(xqItem, sw = new StringBuilderWriter(), getSinkProperties());
 			str = sw.toString();
 			break;
 		case READER:
@@ -475,7 +475,7 @@ public final class ESBMessage implements Cloneable {
 		case XQ_ITEM:
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(bos, getSinkProperties());
+			context.writeItem(xqItem, bos, getSinkProperties());
 			return init(BodyType.INPUT_STREAM, bos.getByteArrayInputStream(), _sinkEncoding);
 		default:
 			return new ByteArrayInputStream(getBodyAsByteArray(context));
@@ -491,7 +491,7 @@ public final class ESBMessage implements Cloneable {
 		case XQ_ITEM:
 			StringBuilderWriter sw = new StringBuilderWriter();
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(sw, getSinkProperties());
+			context.writeItem(xqItem, sw, getSinkProperties());
 			return sw.getReader();
 		default:
 			return new StringReader(getBodyAsString(context));
@@ -796,7 +796,7 @@ public final class ESBMessage implements Cloneable {
 			// nobreak
 		case XQ_ITEM:
 			XQItem xqItem = (XQItem) _body;
-			xqItem.writeItem(os, getSinkProperties());
+			context.writeItem(xqItem, os, getSinkProperties());
 			break;
 		case JSON_VALUE:
 			try (JsonWriter jsonWriter = JsonFactoryHelper.JSON_WRITER_FACTORY.createWriter(os, getSinkEncodingCharset())) {
@@ -818,10 +818,10 @@ public final class ESBMessage implements Cloneable {
 			break;
 		case OUTPUT_STREAM:
 			_body = getCompressedOutputStream((OutputStream) _body);
-			xqItem.writeItem((OutputStream) _body, getSinkProperties());
+			context.writeItem(xqItem, (OutputStream) _body, getSinkProperties());
 			break;
 		case WRITER:
-			xqItem.writeItem((Writer) _body, getSinkProperties());
+			context.writeItem(xqItem, (Writer) _body, getSinkProperties());
 			break;
 		default:
 			throw new IllegalStateException("XQItem cannot be written to: " + _bodyType);

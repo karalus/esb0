@@ -2,16 +2,23 @@ package com.artofarc.esb.action;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Properties;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
+
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.StringWrapper;
 import com.artofarc.util.URLUtils;
 
 
@@ -87,4 +94,73 @@ public class EncodingTest extends AbstractESBTest {
 		assertEquals("k1=Hello+&k2=World%21", message.createURLEncodedString("k1,k2"));
 	}
 
+	@Test
+	public void testRepairXML() throws Exception {
+		char[] chars = Character.toChars(26);
+		char char1 = java.lang.reflect.Array.getChar(chars, 0);
+		conv(char1);
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<root>\u001A</root>");
+		TransformAction transformAction = new TransformAction("root/text()");
+		//transformAction.setNextAction(new DumpAction());
+		// in XML &#x1a; &
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("${body.replace(_string,'?')}"), null, null);
+		action.addAssignment("_codePoint", false, "26", "java.lang.Integer", null, null);
+		action.addAssignment("_chars", false, "${_codePoint}", "java.lang.Character", "toChars", null);
+		action.addAssignment("_string", false, "${_chars}", "java.lang.String", "valueOf", null);
+		action.setNextAction(transformAction);
+		action.process(context, message);
+		assertEquals("?", message.getBodyAsString(context));
+	}
+
+	@BeforeClass
+	public static void init() {
+		System.setProperty("esb0.useDefaultIdentityTransformer", "true");
+	}
+
+	@AfterClass
+	public static void destroy() {
+		System.setProperty("esb0.useDefaultIdentityTransformer", "false");
+	}
+
+	@Test
+	public void testPrettyPrintXML() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.STRING, "<root><child/></root>");
+		Properties serializationParameters = new Properties();
+		serializationParameters.put("{http://xml.apache.org/xslt}indent-amount", "1");
+		// Not working with Saxon-HE
+		//serializationParameters.setProperty("{http://saxon.sf.net/}indent-spaces", "1");
+		message.putVariable(ESBConstants.serializationParameters, serializationParameters);
+		Action action = new TransformAction(".");
+		action.setNextAction(new SetMessageAction(getClass().getClassLoader(), new StringWrapper("${body}"), null, null));
+		action.process(context, message);
+		String bodyAsString = message.getBodyAsString(context);
+		// -Desb0.useDefaultIdentityTransformer=true
+		//assertEquals("<root>" + System.lineSeparator() + " <child/>" + System.lineSeparator() + "</root>" + System.lineSeparator(), bodyAsString);
+	}
+
+	void conv(int i) {
+		System.out.println((char) i);
+	}
+	
+//	@Test
+//	public void testWindows() {
+//		File tempDir= new File("c:\\Software");
+//		File cco = new File(tempDir, "cco");
+//		assertTrue(cco.mkdir());
+//		File Cco = new File(tempDir, "Cco");
+//		boolean exists = false;
+//		File[] listFiles = tempDir.listFiles();
+//		for (File file : listFiles) {
+//			if (file.getName().equals(Cco.getName())) {
+//				exists = true;
+//				break;
+//			}
+//		}
+//		System.out.println(exists);
+////		boolean mkdir = Cco.mkdir();
+////		System.out.println(mkdir);
+//		assertTrue(cco.delete());
+//	}
+
+	
 }

@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.context;
 
+import java.io.OutputStream;
 import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -37,6 +38,7 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQDataFactory;
 import javax.xml.xquery.XQException;
+import javax.xml.xquery.XQItemAccessor;
 import javax.xml.xquery.XQPreparedExpression;
 import javax.xml.xquery.XQSequence;
 
@@ -141,6 +143,22 @@ public final class Context extends AbstractContext {
 			_transformer.setOutputProperties(serializationParameters);
 		}
 		transformRaw(source, result);
+	}
+
+	public void writeItem(XQItemAccessor xqItem, OutputStream outputStream, Properties serializationParameters) throws Exception {
+		if (XMLProcessorFactory.USE_DEFAULT_IDENTITY_TRANSFORMER) {
+			transform(new DOMSource(xqItem.getNode()), new StreamResult(outputStream), serializationParameters);
+		} else {
+			xqItem.writeItem(outputStream, serializationParameters);
+		}
+	}
+
+	public void writeItem(XQItemAccessor xqItem, Writer writer, Properties serializationParameters) throws Exception {
+		if (XMLProcessorFactory.USE_DEFAULT_IDENTITY_TRANSFORMER) {
+			transform(new DOMSource(xqItem.getNode()), new StreamResult(writer), serializationParameters);
+		} else {
+			xqItem.writeItem(writer, serializationParameters);
+		}
 	}
 
 	public void transformRaw(Source source, Result result) throws TransformerException {
