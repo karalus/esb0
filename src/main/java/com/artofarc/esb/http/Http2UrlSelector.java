@@ -53,7 +53,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 				// Real life experience: SSL Handshake got stuck forever without timeout
 				.timeout(Duration.ofMillis(httpEndpoint.getConnectTimeout())).build();
 		HttpResponse<String> httpResponse = _httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-		return httpEndpoint.getHttpCheckAlive().isAlive(httpResponse.statusCode(), (name) -> httpResponse.headers().firstValue(name).orElse(null));
+		return httpEndpoint.getHttpCheckAlive().isAlive(httpResponse.statusCode(), name -> httpResponse.headers().firstValue(name).orElse(null));
 	}
 
 	public HttpResponse<InputStream> send(HttpEndpoint httpEndpoint, HttpRequest.Builder requestBuilder, String appendUrl, boolean doOutput, CountDownLatch streamConsumed) throws Exception {
@@ -71,7 +71,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 			inUse.incrementAndGet(pos);
 			try {
 				HttpResponse<InputStream> httpResponse = _httpClient.send(requestBuilder.uri(uri).build(), bodyHandler);
-				if (httpCheckAlive != null && !httpCheckAlive.isAlive(httpResponse.statusCode(), (name) -> httpResponse.headers().firstValue(name).orElse(null))) {
+				if (httpCheckAlive != null && !httpCheckAlive.isAlive(httpResponse.statusCode(), name -> httpResponse.headers().firstValue(name).orElse(null))) {
 					if (retryCount > 0 && streamConsumed != null && streamConsumed.getCount() == 0) {
 						// body was streamed, data is gone, cannot retry
 						retryCount = 0;
@@ -125,7 +125,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 			Throwable exc;
 			if (httpResponse != null) {
 				HttpCheckAlive httpCheckAlive = httpEndpoint.getHttpCheckAlive();
-				retry = httpCheckAlive != null && !httpCheckAlive.isAlive(httpResponse.statusCode(), (name) -> httpResponse.headers().firstValue(name).orElse(null));
+				retry = httpCheckAlive != null && !httpCheckAlive.isAlive(httpResponse.statusCode(), name -> httpResponse.headers().firstValue(name).orElse(null));
 				exc = retry ? new HttpCheckAlive.ConnectException(urlStr + " is not alive. Response code " + httpResponse.statusCode()) : null;
 			} else {
 				exc = completionException.getCause();

@@ -30,7 +30,7 @@ Features:
 
 ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.10.4.
+Current stable version is 1.11.0.
 
 ### Design goals ###
 
@@ -97,7 +97,7 @@ ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API, i.
 It has been tested with Tomcat 8, 8.5, 9, Wildfly, Jetty 9 and JBoss EAP 7.x.
 For Tomcat 10.x (Jakarta EE 9) you must make use of the migration tool (by deploying the WAR to *webapps-javaee* instead of *webapps*) or use JakartaEE9 branch from git repository.
 
-ESB Zero is built with Java 8 and has been tested with Oracle JDK8 and OpenJDK 11.
+ESB Zero is built with Java 11 and has been tested with OpenJDK 11 and OpenJDK 17.
 
 ESB Zero needs one directory to retrieve service flows and other artifacts from and persist to.
 Per default it is expected to have a folder named "esb_root" in the user home folder (of the user running the servlet container).
@@ -141,10 +141,9 @@ Optional
 
 ### Roadmap ###
 
-__1.11__ (Q3 2024):
-- Is going to reach production quality soon
+__1.12__ (Q1 2025):
+- divide source into modules using parent POM
 
 __Backlog:__
 - migrate to Jakarta EE 9 (at least when Tomcat 9.0 and JBoss 7.4 reached EOL)
-- divide source into modules using parent POM
 - make use of virtual threads (requires Java 21 minimum)
