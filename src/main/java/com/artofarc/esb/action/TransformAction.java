@@ -140,7 +140,7 @@ public class TransformAction extends Action {
 				}
 			}
 		}
-		QName[] externalVariables = _xquery.getExternalVariables();
+		QName[] externalVariables = _xquery.getExternalVariables(xqExpression);
 		XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
 		int[] externalVariableItemOccurrences = _xquery.getExternalVariableItemOccurrences();
 		for (int i = 0; i < externalVariables.length; ++i) {
@@ -295,13 +295,12 @@ public class TransformAction extends Action {
 		XQPreparedExpression xqExpression = execContext.getResource2();
 		// unbind (large) documents so that they can be garbage collected
 		xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
-		QName[] externalVariables = _xquery.getExternalVariables();
+		QName[] externalVariables = _xquery.getExternalVariables(xqExpression);
 		XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
 		int[] externalVariableItemOccurrences = _xquery.getExternalVariableItemOccurrences();
 		for (int i = 0; i < externalVariables.length; ++i) {
 			XQItemType externalVariableType = externalVariableTypes[i];
-			int itemOccurrence = externalVariableItemOccurrences[i];
-			if (externalVariableType != null && externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC || itemOccurrence == XQSequenceType.OCC_ONE_OR_MORE) {
+			if (externalVariableType != null && externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC || externalVariableItemOccurrences[i] == XQSequenceType.OCC_ONE_OR_MORE) {
 				xqExpression.bindSequence(externalVariables[i], context.getXQEmptySequence());
 			}
 		}

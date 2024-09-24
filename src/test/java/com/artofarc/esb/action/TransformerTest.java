@@ -17,6 +17,8 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.TimeGauge;
+import com.artofarc.util.XMLProcessorFactory;
+import com.artofarc.util.XQuerySource;
 
 public class TransformerTest extends AbstractESBTest {
 
@@ -257,13 +259,15 @@ public class TransformerTest extends AbstractESBTest {
 	public void testTransformElement() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
 		message.setContentType("text/xml");
-		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), null, null, null);
-		action.addAssignment("messageHeader", false, "${rawBody}", null, null, null);
+		XQuerySource xquery = XQuerySource.create("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; declare variable $messageHeader as element(v1:messageHeader) external; <neu>{$messageHeader}</neu>");
+		// Use different factory for init as it also happens in real runtime
+		javax.xml.xquery.XQConnection connection = XMLProcessorFactory.newInstance(null).getConnection();
+		xquery.prepareExpression(connection, null);
+		connection.close();
 		ConsumerPort consumerPort = new ConsumerPort(null);
-		consumerPort.setStartAction(createUnwrapSOAPAction(false, true), 
-				new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; v1:messageHeader"),
-				action,
-				new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; declare variable $messageHeader as element(v1:messageHeader) external; <neu>{$messageHeader}</neu>"),
+		consumerPort.setStartAction(createUnwrapSOAPAction(false, true),
+				createAssignAction("messageHeader", "*[1]"),
+				new TransformAction(xquery, null, null, null),
 				new DumpAction());
 		consumerPort.process(context, message);
 	}
