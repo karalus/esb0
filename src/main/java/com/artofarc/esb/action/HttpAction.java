@@ -68,8 +68,11 @@ public class HttpAction extends Action {
 		message.getVariables().put(HttpURLOutbound, httpResponse.uri().toString());
 		message.getVariables().put(HttpResponseCode, httpResponse.statusCode());
 		for (Map.Entry<String, List<String>> entry : httpResponse.headers().map().entrySet()) {
-			List<String> values = entry.getValue();
-			message.putHeader(entry.getKey(), values.size() > 1 ? values : values.get(0));
+			// ignore pseudo headers (https://www.rfc-editor.org/rfc/rfc7540#section-8.1.2.1)
+			if (entry.getKey().charAt(0) != ':') {
+				List<String> values = entry.getValue();
+				message.putHeader(entry.getKey(), values.size() > 1 ? values : values.get(0));
+			}
 		}
 		InputStream inputStream = httpResponse.body();
 		message.reset(null, inputStream);
