@@ -29,10 +29,6 @@ public final class XQuerySource {
 	private final byte[] _data;
 	private final int _hashCode;
 
-	private volatile QName[] _externalVariables;
-	private volatile XQItemType[] _externalVariableTypes;
-	private volatile int[] _externalVariableItemOccurrences;
-
 	private XQuerySource(byte[] data) {
 		if (data == null) throw new NullPointerException();
 		_xquery = null;
@@ -95,43 +91,61 @@ public final class XQuerySource {
 		}
 	}
 
+	private volatile ExternalVariables _externalVariables;
+
 	/**
 	 * Warning: In Saxon types belong to the XQDataSource (net.sf.saxon.Configuration) they were created with!
 	 * This must only be called with an XQPreparedExpression owned by GlobalContext's XMLProcessorFactory instance.
 	 */
-	public QName[] getExternalVariables(XQPreparedExpression preparedExpression) throws XQException {
+	public ExternalVariables getExternalVariables(XQPreparedExpression preparedExpression) throws XQException {
 		// double checked locking
-		QName[] externalVariables = _externalVariables;
+		ExternalVariables externalVariables = _externalVariables;
 		if (externalVariables == null) {
 			synchronized (this) {
 				externalVariables = _externalVariables;
 				if (externalVariables == null) {
-					externalVariables = _externalVariables = preparedExpression.getAllExternalVariables();
-					XQItemType[] types = new XQItemType[externalVariables.length];
-					int[] itemOccurrences = new int[types.length];
-					for (int i = 0; i < types.length; ++i) {
-						XQSequenceType sequenceType = preparedExpression.getStaticVariableType(externalVariables[i]);
-						XQItemType itemType = sequenceType.getItemType();
-						// Only store type when it is concrete enough
-						if (itemType.getItemKind() != XQItemType.XQITEMKIND_ITEM) {
-							types[i] = itemType;
-						}
-						itemOccurrences[i] = sequenceType.getItemOccurrence();
-					}
-					_externalVariableTypes = types;
-					_externalVariableItemOccurrences = itemOccurrences;
+					externalVariables = _externalVariables = new ExternalVariables(preparedExpression);
 				}
 			}
 		}
 		return externalVariables;
 	}
 
-	public XQItemType[] getExternalVariableTypes() {
-		return _externalVariableTypes;
-	}
+	public final static class ExternalVariables {
+		private final QName[] _names;
+		private final XQItemType[] _types;
+		private final int[] _occurrences;
 
-	public int[] getExternalVariableItemOccurrences() {
-		return _externalVariableItemOccurrences;
+		private ExternalVariables(XQPreparedExpression preparedExpression) throws XQException {
+			_names = preparedExpression.getAllExternalVariables();
+			_types = new XQItemType[_names.length];
+			_occurrences = new int[_names.length];
+			for (int i = 0; i < _names.length; ++i) {
+				XQSequenceType sequenceType = preparedExpression.getStaticVariableType(_names[i]);
+				XQItemType itemType = sequenceType.getItemType();
+				// Only store type when it is concrete enough
+				if (itemType.getItemKind() != XQItemType.XQITEMKIND_ITEM) {
+					_types[i] = itemType;
+				}
+				_occurrences[i] = sequenceType.getItemOccurrence();
+			}
+		}
+
+		public int getLength() {
+			return _names.length;
+		}
+
+		public QName getName(int i) {
+			return _names[i];
+		}
+
+		public XQItemType getType(int i) {
+			return _types[i];
+		}
+
+		public int getOccurrence(int i) {
+			return _occurrences[i];
+		}
 	}
 
 }

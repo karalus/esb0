@@ -140,11 +140,9 @@ public class TransformAction extends Action {
 				}
 			}
 		}
-		QName[] externalVariables = _xquery.getExternalVariables(xqExpression);
-		XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
-		int[] externalVariableItemOccurrences = _xquery.getExternalVariableItemOccurrences();
-		for (int i = 0; i < externalVariables.length; ++i) {
-			QName name = externalVariables[i];
+		XQuerySource.ExternalVariables externalVariables = _xquery.getExternalVariables(xqExpression);
+		for (int i = 0; i < externalVariables.getLength(); ++i) {
+			QName name = externalVariables.getName(i);
 			Object value;
 			if (name.getLocalPart().equals("attachmentsHull")) {
 				value = new SAXSource(new Attachments2SAX(message, false), null);
@@ -156,7 +154,7 @@ public class TransformAction extends Action {
 					throw new ExecutionException(this, "Must not be null: " + name);
 				}
 			}
-			bind(context, xqExpression, name, externalVariableTypes[i], externalVariableItemOccurrences[i], value);
+			bind(context, xqExpression, name, externalVariables.getType(i), externalVariables.getOccurrence(i), value);
 		}
 		context.getTimeGauge().stopTimeMeasurement("bindDocument", true);
 		XQResultSequence resultSequence = xqExpression.executeQuery();
@@ -295,13 +293,11 @@ public class TransformAction extends Action {
 		XQPreparedExpression xqExpression = execContext.getResource2();
 		// unbind (large) documents so that they can be garbage collected
 		xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
-		QName[] externalVariables = _xquery.getExternalVariables(xqExpression);
-		XQItemType[] externalVariableTypes = _xquery.getExternalVariableTypes();
-		int[] externalVariableItemOccurrences = _xquery.getExternalVariableItemOccurrences();
-		for (int i = 0; i < externalVariables.length; ++i) {
-			XQItemType externalVariableType = externalVariableTypes[i];
-			if (externalVariableType != null && externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC || externalVariableItemOccurrences[i] == XQSequenceType.OCC_ONE_OR_MORE) {
-				xqExpression.bindSequence(externalVariables[i], context.getXQEmptySequence());
+		XQuerySource.ExternalVariables externalVariables = _xquery.getExternalVariables(xqExpression);
+		for (int i = 0; i < externalVariables.getLength(); ++i) {
+			XQItemType externalVariableType = externalVariables.getType(i);
+			if (externalVariableType != null && externalVariableType.getItemKind() != XQItemType.XQITEMKIND_ATOMIC || externalVariables.getOccurrence(i) == XQSequenceType.OCC_ONE_OR_MORE) {
+				xqExpression.bindSequence(externalVariables.getName(i), context.getXQEmptySequence());
 			}
 		}
 	}

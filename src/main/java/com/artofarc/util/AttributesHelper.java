@@ -29,11 +29,9 @@ public class AttributesHelper {
 	private int len;
 	private String type, nil;
 
-	private static final boolean[] EMPTY_ARRAY = new boolean[0];
-
 	public AttributesHelper(Attributes atts) {
 		attributes = atts;
-		use = atts.getLength() > 0 ? new boolean[atts.getLength()] : EMPTY_ARRAY;
+		use = atts.getLength() > 0 ? new boolean[atts.getLength()] : null;
 		for (int i = 0; i < atts.getLength(); ++i) {
 			if (XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI.equals(atts.getURI(i))) {
 				// https://www.w3.org/TR/xmlschema-1/#Instance_Document_Constructions
