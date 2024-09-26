@@ -127,7 +127,7 @@ public abstract class JDBCAction extends Action {
 			if (dsName == null) {
 				throw new ExecutionException(this, "No DataSource configured and no Connection kept");
 			}
-			DataSource dataSource = (DataSource) context.getGlobalContext().getProperty(dsName);
+			DataSource dataSource = context.getGlobalContext().lookup(dsName);
 			if (dataSource == null) {
 				throw new ExecutionException(this, "DataSource not found: " + dsName);
 			}

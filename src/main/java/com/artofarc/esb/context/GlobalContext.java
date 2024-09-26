@@ -65,10 +65,9 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private static final String GLOBALPROPERTIES = System.getProperty("esb0.globalproperties");
 
 	private final ClassLoader _classLoader;
-	private final ConcurrentResourcePool<Object, String, Void, NamingException> _propertyCache;
+	private final ConcurrentResourcePool<Object, String, Boolean, NamingException> _propertyCache;
 	private final Map<Object, String> _localJndiObjects = new IdentityHashMap<>();
 	private final Map<String, List<WeakReference<PropertyChangeListener>>> _propertyChangeListeners = new HashMap<>();
-	private final InitialContext _initialContext;
 	private final URIResolver _uriResolver;
 	private final XMLProcessorFactory _xmlProcessorFactory;
 	private final XQConnection _xqConnection;
@@ -83,7 +82,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	public GlobalContext(ClassLoader classLoader, MBeanServer mbs, Properties properties) {
 		super(mbs);
 		_classLoader = classLoader;
-		_propertyCache = new ConcurrentResourcePool<Object, String, Void, NamingException>() {
+		_propertyCache = new ConcurrentResourcePool<Object, String, Boolean, NamingException>() {
 
 			@Override
 			protected void init(Map<String, Object> pool) throws Exception {
@@ -96,15 +95,18 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			}
 
 			@Override
-			protected Object createResource(String key, Void param) throws NamingException {
-				return key.startsWith("java:") ? lookup(key) : System.getProperty(key, System.getenv(key));
+			protected Object createResource(String key, Boolean jndi) throws NamingException {
+				if (jndi == Boolean.TRUE || key.startsWith("java:")) {
+					InitialContext initialContext = new InitialContext();
+					try {
+						return initialContext.lookup(key);
+					} finally {
+						initialContext.close();
+					}
+				}
+				return System.getProperty(key, System.getenv(key));
 			}
 		};
-		try {
-			_initialContext = new InitialContext();
-		} catch (NamingException e) {
-			throw new RuntimeException(e);
-		}
 		_uriResolver = new XMLProcessingArtifact.AbstractURIResolver() {
 
 			@Override
@@ -213,9 +215,8 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	}
 
 	@SuppressWarnings("unchecked")
-	public synchronized <O> O lookup(String name) throws NamingException {
-		// InitialContext is not thread safe
-		return (O) _initialContext.lookup(name);
+	public <O> O lookup(String name) throws NamingException {
+		return (O) _propertyCache.getResource(name, Boolean.TRUE);
 	}
 
 	public URIResolver getURIResolver() {
@@ -295,11 +296,6 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		try {
 			_xqConnection.close();
 		} catch (XQException e) {
-			// Ignore
-		}
-		try {
-			_initialContext.close();
-		} catch (NamingException e) {
 			// Ignore
 		}
 		// Close esb0 local JNDI Objects

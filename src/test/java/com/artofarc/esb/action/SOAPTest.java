@@ -450,7 +450,6 @@ public class SOAPTest extends AbstractESBTest {
 //	   embeddedActiveMQ.start();
 	   
 	   // java:/ConnectionFactory
-	   getGlobalContext().putProperty("ConnectionFactory", getGlobalContext().lookup("ConnectionFactory"));
 	   List<JMSConnectionData> jmsConnectionData = JMSConnectionData.create(getGlobalContext(), "ConnectionFactory", null, null, null);
       JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData.get(0), null, "dynamicQueues/test1", null, null, null, false, false, null, 1, 1, 2, 1000, 0L, "milliseconds", null);
       MarkAction markAction = new MarkAction();

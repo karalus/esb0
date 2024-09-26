@@ -99,7 +99,7 @@ public final class JMSConnectionData {
 
 	Connection createConnection(GlobalContext globalContext, GlobalContext.PropertyChangeListener listener) throws JMSException {
 		try {
-			ConnectionFactory connectionFactory = (ConnectionFactory) globalContext.getProperty(_jndiConnectionFactory);
+			ConnectionFactory connectionFactory = globalContext.lookup(_jndiConnectionFactory);
 			Connection connection = _userName != null ? connectionFactory.createConnection(_userName, _password) : connectionFactory.createConnection();
 			if (_clientID != null) {
 				connection.setClientID(_clientID);
