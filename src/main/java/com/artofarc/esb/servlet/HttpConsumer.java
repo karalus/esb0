@@ -45,7 +45,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 	private volatile long _lastPoolLimitExceeded;
 	private final AtomicLong _poolLimitExceededCount = new AtomicLong();
 
-	public HttpConsumer(String uri, int resourceLimit, String bindPath, String overwriteContentType, String requiredRole, long asyncTimeout, int minPoolSize, int maxPoolSize, long keepAlive, boolean supportCompression, String multipartSubtype, String multipartOption, Integer bufferSize) {
+	public HttpConsumer(String uri, int resourceLimit, String bindPath, String overwriteContentType, String requiredRole, long asyncTimeout, int minPoolSize, int maxPoolSize, long keepAlive, HttpResponseAction httpResponseAction) {
 		super(uri);
 		_pathMapping = bindPath.charAt(bindPath.length() - 1) == '*';
 		_bindPath = _pathMapping ? bindPath.substring(0, bindPath.length() - 1) : bindPath;
@@ -56,7 +56,7 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 		_maxPoolSize = maxPoolSize;
 		_keepAlive = keepAlive;
 		_resourceLimit = resourceLimit;
-		_terminalAction = new HttpResponseAction(supportCompression, multipartSubtype, multipartOption, bufferSize);
+		_terminalAction = httpResponseAction;
 	}
 
 	public boolean isPathMapping() {

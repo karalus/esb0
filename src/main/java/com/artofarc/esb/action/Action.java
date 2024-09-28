@@ -164,6 +164,10 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 				logESBMessage(context, message);
 				closeSilently = true;
 				message.reset(BodyType.EXCEPTION, e);
+				if (nextAction != null) {
+					// if nextAction was polled from execution stack (e.g. HttpResponseAction), if not it will be unwinded
+					context.getExecutionStack().push(nextAction);
+				}
 				context.unwindStack();
 				processException(context, message);
 				break;

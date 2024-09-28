@@ -48,6 +48,7 @@ import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.service.*;
 import com.artofarc.esb.servlet.HttpConsumer;
+import com.artofarc.esb.servlet.HttpResponseAction;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWrapper;
 import com.artofarc.util.DataStructures;
@@ -123,8 +124,10 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			case HTTP:
 				Service.HttpBindURI httpBinding = checkBindingPresent(service.getHttpBindURI());
 				String multipartSubtype = httpBinding.getMultipartSubtype() != null ? httpBinding.getMultipartSubtype().value() : httpBinding.getMultipartResponse() != null ? "related" : null;
+				HttpResponseAction httpResponseAction = new HttpResponseAction(httpBinding.isSupportCompression(), multipartSubtype, httpBinding.getMultipartResponse(), httpBinding.getBufferSize());
+				httpResponseAction.setLocation(new Location(getURI(), httpBinding.sourceLocation().getLineNumber()));
 				_consumerPorts.add(new HttpConsumer(getURI(), httpBinding.getResourceLimit(), globalContext.bindProperties(httpBinding.getValue()), httpBinding.getOverwriteContentType(), globalContext.bindProperties(httpBinding.getRequiredRole()),
-						httpBinding.getAsyncTimeout(), httpBinding.getMinPoolSize(), httpBinding.getMaxPoolSize(), httpBinding.getKeepAlive(), httpBinding.isSupportCompression(), multipartSubtype, httpBinding.getMultipartResponse(), httpBinding.getBufferSize()));
+						httpBinding.getAsyncTimeout(), httpBinding.getMinPoolSize(), httpBinding.getMaxPoolSize(), httpBinding.getKeepAlive(), httpResponseAction));
 				globalContext.checkBindHttpService(getConsumerPort());
 				break;
 			case JMS:
