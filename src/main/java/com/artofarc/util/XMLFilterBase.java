@@ -60,7 +60,14 @@ public class XMLFilterBase extends XMLFilterImpl {
 	public final void characters(String str) throws SAXException {
 		final int len = str.length();
 		if (len > 0) {
-			characters(str.toCharArray(), 0, len);
+			final char[] ch = str.toCharArray();
+			for (int i = 0; i < len; ++i) {
+				final int c = ch[i];
+				if (c < 32 && c != '\t' && c != '\n' && c != '\r') {
+					throw new SAXException("Illegal code point for XML: " + c);
+				}
+			}
+			characters(ch, 0, len);
 		}
 	}
 
@@ -75,16 +82,17 @@ public class XMLFilterBase extends XMLFilterImpl {
 						if (pos > 0) {
 							final byte[] ba = new byte[pos];
 							System.arraycopy(chunk, 0, ba, 0, pos);
-							characters(DatatypeConverter.printBase64Binary(ba));
+							characters(DatatypeConverter.printBase64Binary(ba).toCharArray(), 0, pos);
 						}
 						return;
 					}
 					pos += len;
 				} while (pos < chunkSize);
-				characters(DatatypeConverter.printBase64Binary(chunk));
+				characters(DatatypeConverter.printBase64Binary(chunk).toCharArray(), 0, chunkSize);
 			}
 		} else {
-			characters(DatatypeConverter.printBase64Binary(IOUtils.toByteArray(inputStream)));
+			final char[] ch = DatatypeConverter.printBase64Binary(IOUtils.toByteArray(inputStream)).toCharArray();
+			characters(ch, 0, ch.length);
 		}
 	}
 
