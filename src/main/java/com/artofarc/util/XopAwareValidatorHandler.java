@@ -40,11 +40,9 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 			String href = atts.getValue(W3CConstants.NAME_HREF);
 			if (href == null) {
 				reportError("Missing required attribute href");
-			}
-			if (!href.startsWith("cid:")) {
+			} else if (!href.startsWith("cid:")) {
 				reportError("href must have schema cid, but is " + href);
-			}
-			if (!_cids.contains(href.substring(4))) {
+			} else if (!_cids.contains(href.substring(4))) {
 				reportError("Not found in attachments " + href);
 			}
 		} else {

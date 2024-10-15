@@ -44,19 +44,20 @@ public final class XOPDeserializer extends XMLFilterBase {
 			String href = atts.getValue(W3CConstants.NAME_HREF);
 			if (href == null) {
 				reportError("Missing required attribute href");
-			}
-			if (!href.startsWith("cid:")) {
+			} else if (!href.startsWith("cid:")) {
 				reportError("href must have schema cid, but is " + href);
-			}
-			String cid = href.substring(4);
-			MimeBodyPart attachment = _message.getAttachments().remove(cid);
-			if (attachment == null) {
-				reportError("Not found in attachments " + href);
-			}
-			try (InputStream is = attachment.getInputStream()) {
-				base64Characters(is, attachment.getSize());
-			} catch (IOException | MessagingException e) {
-				throw new SAXException(e);
+			} else {
+				String cid = href.substring(4);
+				MimeBodyPart attachment = _message.getAttachments().remove(cid);
+				if (attachment == null) {
+					reportError("Not found in attachments " + href);
+				} else {
+					try (InputStream is = attachment.getInputStream()) {
+						base64Characters(is, attachment.getSize());
+					} catch (IOException | MessagingException e) {
+						throw new SAXException(e);
+					}
+				}
 			}
 		} else {
 			super.startElement(uri, localName, qName, atts);

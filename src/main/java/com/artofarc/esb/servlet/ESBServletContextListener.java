@@ -36,14 +36,12 @@ public final class ESBServletContextListener implements ServletContextListener {
 	public void contextInitialized(ServletContextEvent contextEvent) {
 		ServletContext servletContext = contextEvent.getServletContext();
 		Properties manifest = new Properties();
-		InputStream inputStream = servletContext.getResourceAsStream("/META-INF/MANIFEST.MF");
-		if (inputStream != null) {
-			try {
+		try (InputStream inputStream = servletContext.getResourceAsStream("/META-INF/MANIFEST.MF")) {
+			if (inputStream != null) {
 				manifest.load(inputStream);
-				inputStream.close();
-			} catch (IOException e) {
-				// ignore
 			}
+		} catch (IOException e) {
+			servletContext.log("Problem loading MANIFEST.MF", e);
 		}
 		Properties properties = new Properties();
 		properties.setProperty(GlobalContext.VERSION, manifest.getProperty("Implementation-Version", "0.0"));
