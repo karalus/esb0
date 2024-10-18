@@ -21,6 +21,7 @@ import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.jar.JarEntry;
@@ -70,9 +71,9 @@ public class JarArtifact extends Artifact {
 	}
 
 	@Override
-	protected void invalidate() {
+	protected void invalidate(Collection<Artifact> orphans) {
 		_jar = null;
-		super.invalidate();
+		super.invalidate(orphans);
 	}
 
 	static final class Jar {

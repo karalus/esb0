@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.artifact;
 
+import java.util.Collection;
 import java.util.List;
 
 import javax.xml.transform.Templates;
@@ -90,10 +91,10 @@ public class XSLTArtifact extends XMLProcessingArtifact {
 	}
 
 	@Override
-	protected void invalidate() {
+	protected void invalidate(Collection<Artifact> orphans) {
 		_templates = null;
 		_params = null;
-		super.invalidate();
+		super.invalidate(orphans);
 	}
 
 }

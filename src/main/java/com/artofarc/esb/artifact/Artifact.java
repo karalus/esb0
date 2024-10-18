@@ -205,14 +205,14 @@ public abstract class Artifact {
 	protected void postValidateInternal(GlobalContext globalContext) throws ValidationException {
 	}
 
-	protected void invalidate() {
+	protected void invalidate(Collection<Artifact> orphans) {
 		_validated = false;
 		for (Iterator<String> iterator = _referenced.iterator(); iterator.hasNext();) {
 			Artifact artifact = getArtifact(iterator.next());
 			Collection<String> referencedBy = artifact.getReferencedBy();
 			referencedBy.remove(getURI());
 			if (referencedBy.isEmpty()) {
-				artifact.invalidate();
+				orphans.add(artifact);
 			}
 			iterator.remove();
 		}

@@ -19,6 +19,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -425,9 +426,10 @@ public abstract class FileSystem {
 			}
 		}
 		// invalidate
+		ArrayDeque<Artifact> orphans = new ArrayDeque<>();
 		for (String original : visited) {
 			Artifact artifact = changedFileSystem.getArtifact(original);
-			artifact.invalidate();
+			artifact.invalidate(orphans);
 		}
 		// validate
 		for (String original : visited) {
@@ -443,6 +445,12 @@ public abstract class FileSystem {
 					throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
 				}
 				changeSet.getDeletedArtifacts().add(artifact);
+			}
+		}
+		Artifact orphan;
+		while ((orphan = orphans.poll()) != null) {
+			if (orphan.getReferencedBy().isEmpty()) {
+				orphan.invalidate(orphans);
 			}
 		}
 		return changeSet;

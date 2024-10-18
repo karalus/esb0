@@ -16,6 +16,7 @@
 package com.artofarc.esb.artifact;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.service.ClassLoader;
@@ -63,9 +64,9 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 	}
 
 	@Override
-	protected void invalidate() {
+	protected void invalidate(Collection<Artifact> orphans) {
 		_fileSystemClassLoader = null;
-		super.invalidate();
+		super.invalidate(orphans);
 	}
 
 }

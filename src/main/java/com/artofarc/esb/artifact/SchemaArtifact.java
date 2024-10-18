@@ -21,6 +21,7 @@ import java.io.Reader;
 import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -62,13 +63,13 @@ public abstract class SchemaArtifact extends Artifact {
 	}
 
 	@Override
-	protected void invalidate() {
+	protected void invalidate(Collection<Artifact> orphans) {
 		if (cacheXSGrammars) {
 			_grammars.clear();
 			_namespace.set(null);
 		}
 		_schemaSet = null;
-		super.invalidate();
+		super.invalidate(orphans);
 	}
 
 	public final Schema getSchema() {
