@@ -52,20 +52,24 @@ public final class JsonSchemaGenerator {
 		_namespaceMap = prefixMap != null ? new NamespaceMap(prefixMap) : null;
 	}
 
-	public String generate(String scd) throws SAXException {
+	public String generate(String scd, String name) throws SAXException {
 		StringBuilderWriter writer = new StringBuilderWriter();
 		try (JsonGenerator jsonGenerator = JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator(writer)) {
-			generate(scd, jsonGenerator);
+			generate(scd, name, jsonGenerator);
 		}
 		return writer.toString();
 	}
 
-	public void generate(String scd, JsonGenerator jsonGenerator) throws SAXException {
-		XSComponent component = _schemaSet.selectSingle(scd, _namespaceMap);
-		if (component instanceof XSComplexType) {
-			generate(new XSOMHelper((XSComplexType) component, null), jsonGenerator);
-		} else if (component instanceof XSElementDecl) {
-			XSElementDecl element = (XSElementDecl) component;
+	public String generate(String scd) throws SAXException {
+		return generate(scd, null);
+	}
+
+	public void generate(String scd, String name, JsonGenerator jsonGenerator) throws SAXException {
+		XSDeclaration declaration = selectSingleXSDeclaration(scd, name);
+		if (declaration instanceof XSComplexType) {
+			generate(new XSOMHelper((XSComplexType) declaration, null), jsonGenerator);
+		} else if (declaration instanceof XSElementDecl) {
+			XSElementDecl element = (XSElementDecl) declaration;
 			if (element.getType().isComplexType()) {
 				generate(new XSOMHelper(element), jsonGenerator);
 			} else {
@@ -73,13 +77,25 @@ public final class JsonSchemaGenerator {
 				generateType(element.getType().asSimpleType(), element.getDefaultValue(), element.isNillable(), jsonGenerator);
 				jsonGenerator.writeEnd();
 			}
-		} else if (component instanceof XSSimpleType) {
+		} else if (declaration instanceof XSSimpleType) {
 			jsonGenerator.writeStartObject();
-			generateType((XSSimpleType) component, null, false, jsonGenerator);
+			generateType((XSSimpleType) declaration, null, false, jsonGenerator);
 			jsonGenerator.writeEnd();
 		} else {
-			throw new IllegalArgumentException(scd + " does not resolve to type or element, but " + component);
+			throw new IllegalArgumentException(scd + " does not resolve to type or element, but " + declaration);
 		}
+	}
+
+	private XSDeclaration selectSingleXSDeclaration(String scd, String name) {
+		for (XSComponent component : _schemaSet.select(scd, _namespaceMap)) {
+			if (component instanceof XSDeclaration) {
+				XSDeclaration declaration = (XSDeclaration) component;
+				if (name == null || name.equals(declaration.getName())) {
+					return declaration;
+				}
+			}
+		}
+		return null;
 	}
 
 	private void generate(XSOMHelper xsomHelper, JsonGenerator jsonGenerator) throws SAXException {
@@ -363,7 +379,7 @@ public final class JsonSchemaGenerator {
 	}
 
 	public static void main(String[] args) throws SAXException {
-		System.out.println(createJsonSchemaGenerator(args[0], args[1]).generate(args[2]));
+		System.out.println(createJsonSchemaGenerator(args[0], args[1]).generate(args[2], null));
 	}
 
 }

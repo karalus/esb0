@@ -294,7 +294,7 @@ public class XSOMTest extends AbstractESBTest {
 		
 		//generator.generate("{http://aoa.de/ei/foundation/v1}propertyListType", jsonGenerator);
 		//generator.generate("/type::demoType/model::sequence/element::payload", jsonGenerator);
-		generator.generate("/type::demoType", jsonGenerator);
+		generator.generate("/type::demoType", null, jsonGenerator);
 		jsonGenerator.close();
 	}
 
