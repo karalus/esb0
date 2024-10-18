@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Andre Karalus
+ * Copyright 2022 Andre Karalus
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.namespace.QName;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXResult;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -29,6 +32,7 @@ import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.helpers.AttributesImpl;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.artofarc.util.WSDL4JUtil;
 import com.artofarc.util.XMLParserBase;
 import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.XSOMHelper;
@@ -173,7 +177,7 @@ public final class XmlSampleGenerator extends XMLParserBase {
 		}
 	}
 
-	public static XmlSampleGenerator createXmlSampleGenerator(String systemId, String rootElement, String typeName) throws SAXException {
+	public static XmlSampleGenerator createXmlSampleGenerator(String systemId, String rootElement, String typeName) throws Exception {
 		XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
 		xsomParser.setErrorHandler(new DefaultHandler() {
 
@@ -182,7 +186,15 @@ public final class XmlSampleGenerator extends XMLParserBase {
 				throw e;
 			}
 		});
-		xsomParser.parse(systemId);
+		if (systemId.endsWith(".wsdl")) {
+			Transformer transformer = XMLProcessorFactory.newTransformer();
+			WSDL4JUtil.processSchemas(WSDL4JUtil.createWSDLReader(false).readWSDL(systemId), schemaElement -> {
+				transformer.transform(new DOMSource(schemaElement, systemId), new SAXResult(xsomParser.getParserHandler()));
+				transformer.reset();
+			});
+		} else {
+			xsomParser.parse(systemId);
+		}
 		return new XmlSampleGenerator(xsomParser.getResult(), rootElement, typeName);
 	}
 

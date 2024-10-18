@@ -21,12 +21,14 @@ import java.util.Map;
 
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
+import javax.wsdl.Definition;
 import javax.wsdl.Message;
 import javax.wsdl.Part;
 import javax.wsdl.WSDLException;
 import javax.wsdl.extensions.ElementExtensible;
 import javax.wsdl.extensions.ExtensibilityElement;
 import javax.wsdl.extensions.mime.MIMEMultipartRelated;
+import javax.wsdl.extensions.schema.Schema;
 import javax.wsdl.extensions.soap.SOAPBinding;
 import javax.wsdl.extensions.soap.SOAPBody;
 import javax.wsdl.extensions.soap.SOAPOperation;
@@ -35,7 +37,10 @@ import javax.wsdl.extensions.soap12.SOAP12Body;
 import javax.wsdl.extensions.soap12.SOAP12Operation;
 import javax.wsdl.factory.WSDLFactory;
 import javax.wsdl.xml.WSDLReader;
+import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
+
+import org.w3c.dom.Element;
 
 public final class WSDL4JUtil {
 
@@ -188,6 +193,29 @@ public final class WSDL4JUtil {
 		Message message = bindingOperation.getOperation().getInput().getMessage();
 		Part part = parts == null || parts.isEmpty() ? (Part) message.getParts().values().iterator().next() : message.getPart(parts.get(0));
 		return part.getElementName();
+	}
+
+	public static <E extends Exception> void processSchemas(Definition definition, ThrowingConsumer<Element, E> consumer) throws E {
+		if (definition.getTypes() != null) {
+			for (Schema schema : getExtensibilityElements(definition.getTypes(), Schema.class)) {
+				Element schemaElement = schema.getElement();
+				@SuppressWarnings("unchecked")
+				Map<String, String> namespaces = definition.getNamespaces();
+				// add outer ns prefixes that might be needed within schema element
+				for (Map.Entry<String, String> entry : namespaces.entrySet()) {
+					String attrName = entry.getKey().isEmpty() ? "xmlns" : "xmlns:" + entry.getKey();
+					if (!schemaElement.hasAttribute(attrName)) {
+						schemaElement.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, attrName, entry.getValue());
+					}
+				}
+				consumer.accept(schemaElement);
+			}
+		}
+	}
+
+	@FunctionalInterface
+	public interface ThrowingConsumer<T, E extends Exception> {
+		void accept(T t) throws E;
 	}
 
 }

@@ -26,17 +26,15 @@ import java.util.Map;
 import javax.wsdl.Binding;
 import javax.wsdl.Definition;
 import javax.wsdl.Import;
-import javax.wsdl.extensions.schema.Schema;
 import javax.wsdl.xml.WSDLLocator;
-import javax.xml.XMLConstants;
 import javax.xml.namespace.QName;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -116,25 +114,14 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		return sources.toArray(new Source[sources.size()]);
 	}
 
-	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws Exception {
-		if (definition.getTypes() != null) {
-			for (Schema schema : WSDL4JUtil.getExtensibilityElements(definition.getTypes(), Schema.class)) {
-				Element element = schema.getElement();
-				@SuppressWarnings("unchecked")
-				Map<String, String> namespaces = definition.getNamespaces();
-				for (Map.Entry<String, String> entry : namespaces.entrySet()) {
-					String attrName = entry.getKey().isEmpty() ? "xmlns" : "xmlns:" + entry.getKey();
-					if (!element.hasAttribute(attrName)) {
-						element.setAttributeNS(XMLConstants.XMLNS_ATTRIBUTE_NS_URI, attrName, entry.getValue());
-					}
-				}
-				String targetNamespace = element.getAttribute("targetNamespace");
-				DOMSource schemaElement = new DOMSource(element, getURI());
-				transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-				_schemas.put(targetNamespace, XMLCatalog.toByteArray(schemaElement, transformer));
-				sources.add(schemaElement);
-			}
-		}
+	private void processSchemas(Definition definition, List<Source> sources, Transformer transformer) throws TransformerException {
+		WSDL4JUtil.processSchemas(definition, schemaElement -> {
+			String targetNamespace = schemaElement.getAttribute("targetNamespace");
+			DOMSource source = new DOMSource(schemaElement, getURI());
+			transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+			_schemas.put(targetNamespace, XMLCatalog.toByteArray(source, transformer));
+			sources.add(source);
+		});
 	}
 
 	@Override
