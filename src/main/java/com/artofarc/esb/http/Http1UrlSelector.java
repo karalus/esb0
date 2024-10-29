@@ -97,7 +97,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 	}
 
 	public static boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl, HttpCheckAlive httpCheckAlive) throws IOException {
-		HttpURLConnection conn = createHttpURLConnection(httpEndpoint, httpUrl.getUrl());
+		HttpURLConnection conn = createHttpURLConnection(httpEndpoint, httpUrl.getURL());
 		// Real life experience: SSL Handshake got stuck forever without timeout
 		conn.setReadTimeout(httpEndpoint.getConnectTimeout());
 		conn.setRequestMethod(httpCheckAlive.getCheckAliveMethod());
@@ -120,7 +120,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 				throw new ConnectException("No active url");
 			}
 			HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(pos);
-			URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getUrl();
+			URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getURL();
 			HttpUrlConnection httpUrlConnection = null;
 			try {
 				HttpURLConnection conn = createHttpURLConnection(httpEndpoint, url);

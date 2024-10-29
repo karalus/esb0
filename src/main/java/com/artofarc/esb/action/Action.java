@@ -139,11 +139,11 @@ public abstract class Action extends Evaluator<ExecutionException> implements Cl
 					nextAction = action.nextAction(execContext);
 					if (nextAction == null) {
 						nextAction = context.getExecutionStack().poll();
+						if (nextAction == null) break;
 					}
-					final boolean nextActionOffersSink;
+					final boolean nextActionOffersSink = nextAction.isOfferingSink(context);
 					// the nextAction can only be added if it is not offering a sink or if the current action does not stop or can write to a sink
-					if (nextAction == null || (nextActionOffersSink = nextAction.isOfferingSink(context)) && !action.isStreamingToSink()
-							|| action.isPipelineStop(execContext, nextAction) && !(nextActionOffersSink && action.isStreamingToSink())) {
+					if (nextActionOffersSink && !action.isStreamingToSink() || action.isPipelineStop(execContext, nextAction) && !(nextActionOffersSink && action.isStreamingToSink())) {
 						break;
 					}
 				}

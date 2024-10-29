@@ -39,6 +39,10 @@ public final class HttpEndpoint {
 	private final HttpClient.Version _version;
 
 	public HttpEndpoint(String name, List<HttpUrl> endpoints, boolean multiThreaded, String username, String password, int connectTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext, HttpClient.Version version) {
+		this(username, endpoints, multiThreaded, username != null && password != null ? username + ':' + password : null, connectTimeout, retries, checkAliveInterval, checkAlive, modificationTime, proxy, sslContext, version);
+	}
+
+	public HttpEndpoint(String name, List<HttpUrl> endpoints, boolean multiThreaded, String basicAuthCredential, int connectTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext, HttpClient.Version version) {
 		if (name != null) {
 			_name = name;
 		} else {
@@ -51,7 +55,7 @@ public final class HttpEndpoint {
 		}
 		_endpoints = endpoints;
 		_multiThreaded = multiThreaded;
-		_basicAuthCredential = username != null && password != null ? username + ':' + password : null;
+		_basicAuthCredential = basicAuthCredential;
 		_connectTimeout = connectTimeout;
 		_retries = retries;
 		_checkAliveInterval = checkAliveInterval;
@@ -60,7 +64,7 @@ public final class HttpEndpoint {
 		_proxy = proxy;
 		if (sslContext != null) {
 			for (HttpUrl httpUrl : endpoints) {
-				if (!"https".equals(httpUrl.getUrl().getProtocol())) {
+				if (!"https".equals(httpUrl.getURL().getProtocol())) {
 					throw new IllegalArgumentException("All endpoints must use https protocol in " + _name);
 				}
 			}

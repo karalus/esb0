@@ -62,6 +62,7 @@ public class HttpAction extends Action {
 		_multipartSubtype = multipartSubtype;
 		_multipartOption = multipartOption;
 		_pipelineStop = true;
+		_offeringSink = true;
 	}
 
 	private static void fillESBMessage(Context context, ESBMessage message, HttpResponse<InputStream> httpResponse) throws Exception {

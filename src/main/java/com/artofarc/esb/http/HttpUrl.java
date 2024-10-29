@@ -50,7 +50,7 @@ public final class HttpUrl {
 		return _urlStr;
 	}
 
-	URL getUrl() {
+	public URL getURL() {
 		return _url;
 	}
 
