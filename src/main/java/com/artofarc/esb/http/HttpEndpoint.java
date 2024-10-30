@@ -39,7 +39,7 @@ public final class HttpEndpoint {
 	private final HttpClient.Version _version;
 
 	public HttpEndpoint(String name, List<HttpUrl> endpoints, boolean multiThreaded, String username, String password, int connectTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext, HttpClient.Version version) {
-		this(username, endpoints, multiThreaded, username != null && password != null ? username + ':' + password : null, connectTimeout, retries, checkAliveInterval, checkAlive, modificationTime, proxy, sslContext, version);
+		this(name, endpoints, multiThreaded, username != null && password != null ? username + ':' + password : null, connectTimeout, retries, checkAliveInterval, checkAlive, modificationTime, proxy, sslContext, version);
 	}
 
 	public HttpEndpoint(String name, List<HttpUrl> endpoints, boolean multiThreaded, String basicAuthCredential, int connectTimeout, int retries, Integer checkAliveInterval, HttpCheckAlive checkAlive, long modificationTime, Proxy proxy, SSLContext sslContext, HttpClient.Version version) {
