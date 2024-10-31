@@ -131,7 +131,7 @@ public final class MimeHelper {
 					}
 					boolean binary = value instanceof byte[];
 					part = new MimeBodyPart(headers, binary ? (byte[]) value : value != null ? value.toString().getBytes(ESBMessage.CHARSET_DEFAULT) : null);
-					setDisposition(part, "form-data", name, binary ? name : null);
+					setDisposition(part, "form-data", name, message.getVariable(ESBConstants.filename, binary ? name : null));
 				}
 				mmp.addBodyPart(part);
 			}
