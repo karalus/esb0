@@ -66,7 +66,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 					}
 					if (_httpURLConnection.getErrorStream() != null) {
 						// Consume error message
-						IOUtils.toByteArray(_httpURLConnection.getErrorStream());
+						IOUtils.copy(_httpURLConnection.getErrorStream(), OutputStream.nullOutputStream());
 					}
 					throw new HttpCheckAlive.ConnectException(getHttpUrl().getUrlStr() + " is not alive. Response code " + _responseCode);
 				}

@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 
 import javax.mail.internet.MimeMultipart;
 import javax.xml.bind.DatatypeConverter;
@@ -117,7 +117,7 @@ public class HttpAction extends Action {
 		return appendHttpUrl;
 	}
 
-	private BiFunction<HttpResponse<InputStream>, Throwable, Void> createAsyncHandler(WorkerPool workerPool, Context context, ESBMessage message, int timeout) throws Exception {
+	private BiConsumer<HttpResponse<InputStream>, Throwable> createAsyncHandler(WorkerPool workerPool, Context context, ESBMessage message, int timeout) throws Exception {
 		AsyncProcessingPool asyncProcessingPool = workerPool.getAsyncProcessingPool();
 		if (asyncProcessingPool == null) {
 			throw new ExecutionException(this, "No AsyncProcessingPool in WorkerPool " + workerPool.getName());
@@ -142,7 +142,6 @@ public class HttpAction extends Action {
 			} finally {
 				workerPool.releaseContext(workerContext);
 			}
-			return null;
 		};
 	}
 

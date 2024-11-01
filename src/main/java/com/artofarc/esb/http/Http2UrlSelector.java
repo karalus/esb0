@@ -25,7 +25,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 
 import com.artofarc.esb.context.WorkerPool;
 
@@ -94,17 +94,17 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 	}
 
 	public void sendAsync(HttpEndpoint httpEndpoint, HttpRequest.Builder requestBuilder, String appendUrl, boolean doOutput, CountDownLatch streamConsumed,
-			BiFunction<HttpResponse<InputStream>, Throwable, Void> fn, WorkerPool workerPool) {
+			BiConsumer<HttpResponse<InputStream>, Throwable> fn, WorkerPool workerPool) {
 
 		sendAsync(httpEndpoint, requestBuilder, appendUrl, doOutput, streamConsumed, fn, workerPool, HttpResponse.BodyHandlers.ofInputStream(), httpEndpoint.getRetries());
 	}
 
 	private void sendAsync(HttpEndpoint httpEndpoint, HttpRequest.Builder requestBuilder, String appendUrl, boolean doOutput, CountDownLatch streamConsumed,
-			BiFunction<HttpResponse<InputStream>, Throwable, Void> fn, WorkerPool workerPool, HttpResponse.BodyHandler<InputStream> bodyHandler, int retryCount) {
+			BiConsumer<HttpResponse<InputStream>, Throwable> fn, WorkerPool workerPool, HttpResponse.BodyHandler<InputStream> bodyHandler, int retryCount) {
 
 		int pos = computeNextPos(httpEndpoint);
 		if (pos < 0) {
-			fn.apply(null, new ConnectException("No active url"));
+			fn.accept(null, new ConnectException("No active url"));
 			return;
 		}
 		String urlStr = httpEndpoint.getHttpUrls().get(pos).getUrlStr();
@@ -112,7 +112,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 		try {
 			uri = new URI(urlStr + appendUrl);
 		} catch (URISyntaxException e) {
-			fn.apply(null, e);
+			fn.accept(null, e);
 			return;
 		}
 		// check whether server is willing to respond (before sending data)
@@ -138,10 +138,10 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 				if (retryCount > 0 && (streamConsumed == null || streamConsumed.getCount() > 0)) {
 					sendAsync(httpEndpoint, requestBuilder, appendUrl, doOutput, streamConsumed, fn, workerPool, bodyHandler, retryCount - 1);
 				} else {
-					fn.apply(null, exc);
+					fn.accept(null, exc);
 				}
 			} else {
-				fn.apply(httpResponse, exc);
+				fn.accept(httpResponse, exc);
 				if (exc == null) {
 					_totalConnectionsCount.incrementAndGet();
 				}
