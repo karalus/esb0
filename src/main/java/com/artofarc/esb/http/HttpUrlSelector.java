@@ -70,6 +70,20 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 		}
 	}
 
+	public static boolean doOutput(String method, Long contentLength) {
+		switch (method) {
+		case "POST":
+		case "PUT":
+		case "PATCH":
+			return contentLength == null || contentLength > 0;
+		case "DELETE":
+			// May have body (https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/DELETE)
+			return contentLength != null && contentLength > 0;
+		default:
+			return false;
+		}
+	}
+
 	final boolean missesHttpEndpoint(HttpEndpoint httpEndpoint) {
 		synchronized (_httpEndpoints) {
 			for (WeakReference<HttpEndpoint> ref : _httpEndpoints) {

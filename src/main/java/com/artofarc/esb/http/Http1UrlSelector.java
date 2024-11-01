@@ -128,11 +128,11 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 				// For "PATCH" refer to https://stackoverflow.com/questions/25163131/httpurlconnection-invalid-http-method-patch
 				if ("PATCH".equals(method)) {
 					conn.setRequestProperty(HttpConstants.HTTP_HEADER_X_METHOD_OVERRIDE, "PATCH");
-					conn.setRequestMethod("POST");		
+					conn.setRequestMethod("POST");
 				} else {
 					conn.setRequestMethod(method);
 				}
-				if (contentLength == null || contentLength > 0) {
+				if (doOutput(method, contentLength)) {
 					conn.setDoOutput(true);
 					if (chunkLength != null) {
 						conn.setChunkedStreamingMode(chunkLength);

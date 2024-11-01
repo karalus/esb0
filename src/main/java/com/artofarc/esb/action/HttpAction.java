@@ -158,13 +158,13 @@ public class HttpAction extends Action {
 			}
 		} else {
 			Long contentLength = inPipeline ? null : message.getLengthExact();
-			boolean doOutput = contentLength == null || contentLength > 0;
 			int timeout = message.getTimeleft(_readTimeout).intValue();
 			WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);
 			Http2UrlSelector http2UrlSelector = context.getGlobalContext().getHttpEndpointRegistry().getHttpUrlSelector(_httpEndpoint, workerPool);
+			boolean doOutput = Http2UrlSelector.doOutput(message.getVariable(HttpMethod), contentLength);
 			CountDownLatch countDownLatch;
 			// check, if we need a pipe
-			boolean usePipe = inPipeline || (contentLength == null && message.getBodyType() != BodyType.INPUT_STREAM);
+			boolean usePipe = doOutput && (inPipeline || (contentLength == null && message.getBodyType() != BodyType.INPUT_STREAM));
 			if (usePipe) {
 				PipedOutputStream pos = new PipedOutputStream();
 				PipedInputStream pis = new PipedInputStream(pos, IOUtils.MTU);
@@ -199,10 +199,10 @@ public class HttpAction extends Action {
 					});
 				} else {
 					countDownLatch = null;
-					if (contentLength != null && contentLength == 0) {
-						bodyPublisher = HttpRequest.BodyPublishers.noBody();
-					} else {
+					if (doOutput) {
 						bodyPublisher = HttpRequest.BodyPublishers.ofByteArray(message.getBodyAsByteArray(context));
+					} else {
+						bodyPublisher = HttpRequest.BodyPublishers.noBody();
 					}
 				}
 				HttpRequest.Builder requestBuilder = createHttpRequestBuilder(context, message, timeout, bodyPublisher);
