@@ -47,14 +47,14 @@ public final class JDBCAttachments {
 		_complexType = _element.getType().asComplexType();
 	}
 
-	public void parseAttachments(JDBCConnection conn, Struct struct, ESBMessage message) throws SAXException, SQLException, MessagingException {
+	public void parseAttachments(Struct struct, ESBMessage message) throws SAXException, SQLException, MessagingException {
 		XSOMHelper xsomHelper = new XSOMHelper(_complexType, _element);
 		xsomHelper.checkComplexType(struct.getSQLTypeName());
 		xsomHelper.matchElement(null, "attachments");
 		Object[] attachments = struct.getAttributes();
 		if (attachments.length == 1) {
 			Array array = (Array) attachments[0];
-			xsomHelper.checkComplexType(conn.getSQLTypeName(array));
+			xsomHelper.checkComplexType(JDBCConnection.getSQLTypeName(array));
 			xsomHelper.matchElement(null, "attachment");
 			if (!xsomHelper.isStartArray()) {
 				throw new SAXException("Expected array in " + xsomHelper.getCurrentComplexType().getName());
@@ -98,10 +98,10 @@ public final class JDBCAttachments {
 			if (size > 3) {
 				attributes[3] = MimeHelper.getDispositionName(mimeBodyPart);
 			}
-			elements[pos++] = connection.getConnection().createStruct(sqlTypeNameAttachment, attributes);
+			elements[pos++] = connection.createStruct(sqlTypeNameAttachment, attributes);
 			iter.remove();
 		}
-		return connection.getConnection().createStruct(_complexType.getName(), new Object[] { connection.createArray(sqlTypeNameAttachments, elements) });
+		return connection.createStruct(_complexType.getName(), new Object[] { connection.createArray(sqlTypeNameAttachments, elements) });
 	}
 
 }

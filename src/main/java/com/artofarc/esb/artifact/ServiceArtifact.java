@@ -138,11 +138,24 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				int minWorkerCount = jmsBinding.getMinWorkerCount() != null ? jmsBinding.getMinWorkerCount() : jmsBinding.getWorkerCount();
 				List<JMSConnectionData> jmsConnectionDataList = JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword(), jmsBinding.getClientID());
 				JMSConsumer[] group = new JMSConsumer[jmsConnectionDataList.size()];
+				String workerPool = resolveWorkerPool(jmsBinding.getWorkerPool());
+				String queueName = null, topicName = null, rootElement = null;
+				XSSchemaSet schemaSet = null;
+				if (jmsBinding.getQueueName() != null) {
+					queueName = jmsBinding.getQueueName().getValue();
+					schemaSet = resolveSchemaSet(globalContext, jmsBinding.getQueueName().getSchemaURI());
+					rootElement = jmsBinding.getQueueName().getXmlElement();
+				}
+				if (jmsBinding.getTopicName() != null) {
+					topicName = jmsBinding.getTopicName().getValue();
+					schemaSet = resolveSchemaSet(globalContext, jmsBinding.getTopicName().getSchemaURI());
+					rootElement = jmsBinding.getTopicName().getXmlElement();
+				}
 				for (int i = 0; i < jmsConnectionDataList.size(); ++i) {
 					JMSConnectionData jmsConnectionData = jmsConnectionDataList.get(i);
-					JMSConsumer jmsConsumer = new JMSConsumer(globalContext, getURI(), resolveWorkerPool(jmsBinding.getWorkerPool()), jmsConnectionData, group, jmsBinding.getJndiDestination(),
-							jmsBinding.getQueueName(), jmsBinding.getTopicName(), jmsBinding.getSubscription(), jmsBinding.isNoLocal(), jmsBinding.isShared(), jmsBinding.getMessageSelector(),
-							jmsBinding.getWorkerCount(), minWorkerCount, jmsBinding.getBatchSize(), jmsBinding.getBatchTime(), jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt());
+					JMSConsumer jmsConsumer = new JMSConsumer(globalContext, getURI(), workerPool, jmsConnectionData, group, jmsBinding.getJndiDestination(), queueName, topicName, schemaSet,
+							rootElement, jmsBinding.getSubscription(), jmsBinding.isNoLocal(), jmsBinding.isShared(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(),
+							minWorkerCount, jmsBinding.getBatchSize(), jmsBinding.getBatchTime(), jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt());
 					globalContext.checkBindJmsConsumer(jmsConsumer);
 					_consumerPorts.add(jmsConsumer);
 					group[i] = jmsConsumer;
@@ -259,9 +272,19 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			Jms jms = (Jms) actionElement.getValue();
 			List<JMSConnectionData> jmsConnectionData = JMSConnectionData.create(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword(), jms.getClientID());
 			String multipartSubtype = jms.getMultipartSubtype() != null ? jms.getMultipartSubtype().value() : jms.getMultipart() != null ? "related" : null;
-			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), jms.getQueueName(), jms.getTopicName(), resolveWorkerPool(jms.getWorkerPool()), jms.isBytesMessage(),
+			String queueName = null, topicName = null;
+			XSSchemaSet schemaSet = null;
+			if (jms.getQueueName() != null) {
+				queueName = jms.getQueueName().getValue();
+				schemaSet = resolveSchemaSet(globalContext, jms.getQueueName().getSchemaURI());
+			}
+			if (jms.getTopicName() != null) {
+				topicName = jms.getTopicName().getValue();
+				schemaSet = resolveSchemaSet(globalContext, jms.getTopicName().getSchemaURI());
+			}
+			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), queueName, topicName, resolveWorkerPool(jms.getWorkerPool()), jms.isBytesMessage(),
 					jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.getExpiryQueue(),
-					jms.isReceiveFromTempQueue(), jms.getReplyQueue(), jms.getReceiveSelector(), multipartSubtype, jms.getMultipart()), location);
+					jms.isReceiveFromTempQueue(), jms.getReplyQueue(), jms.getReceiveSelector(), multipartSubtype, jms.getMultipart(), schemaSet), location);
 			break;
 		}
 		case "produceKafka": {

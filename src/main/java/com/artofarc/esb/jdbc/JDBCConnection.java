@@ -33,12 +33,16 @@ public final class JDBCConnection {
 	protected final static Logger logger = LoggerFactory.getLogger(JDBCConnection.class);
 
 	private static Class<?> ifcOracleConnection;
+	private static Class<?> ifcORADataFactory;
+	private static Class<?> ifcORAData;
 	private static MethodHandle createARRAY;
 	private static MethodHandle getSQLTypeName;
 
 	static {
 		try {
 			ifcOracleConnection = Class.forName("oracle.jdbc.OracleConnection");
+			ifcORADataFactory = Class.forName("oracle.sql.ORADataFactory");
+			ifcORAData = Class.forName("oracle.sql.ORAData");
 			MethodHandles.Lookup lookup = MethodHandles.publicLookup();
 			createARRAY = lookup.unreflect(ifcOracleConnection.getMethod("createARRAY", String.class, Object.class));
 			getSQLTypeName = lookup.unreflect(Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName"));
@@ -77,10 +81,12 @@ public final class JDBCConnection {
 				logger.warn("Could not free resource", e);
 			}
 		}
-		if (commit && !_connection.getAutoCommit()) {
-			_connection.commit();
+		if (_dsName != null) {
+			if (commit && !_connection.getAutoCommit()) {
+				_connection.commit();
+			}
+			_connection.close();
 		}
-		_connection.close();
 	}
 
 	private <T> T logResource(T resource) {
@@ -112,15 +118,27 @@ public final class JDBCConnection {
 		}
 	}
 
-	public String getSQLTypeName(Array array) throws SQLException {
-		if (!_isOracleConnection) {
-			throw new SQLException("Only works with OJDBC");
+	public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
+		return _connection.createStruct(typeName, attributes);
+	}
+
+	public static String getSQLTypeName(Array array) throws SQLException {
+		if (!array.getClass().getName().equals("oracle.sql.ARRAY")) {
+			throw new SQLException("Only works with oracle.sql.ARRAY");
 		}
 		try {
 			return (String) getSQLTypeName.invoke(array);
 		} catch (Throwable e) {
 			throw ReflectionUtils.convert(e, SQLException.class);
 		}
+	}
+
+	public static Class<?> getIfcORADataFactory() {
+		return ifcORADataFactory;
+	}
+
+	public static Class<?> getIfcORAData() {
+		return ifcORAData;
 	}
 
 }

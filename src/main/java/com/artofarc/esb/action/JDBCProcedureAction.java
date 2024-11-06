@@ -77,7 +77,7 @@ public class JDBCProcedureAction extends JDBCAction {
 					break;
 				case STRUCT:
 					JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
-					message.materializeBodyFromSource(context, new SAXSource(mapper.createParser(context, conn, (Struct) cs.getObject(param.getPos())), null));
+					message.materializeBodyFromSource(context, new SAXSource(mapper.createParser(context, (Struct) cs.getObject(param.getPos())), null));
 					break;
 				default:
 					throw new ExecutionException(this, "SQL type for body not supported: " + param.getType());
@@ -88,7 +88,7 @@ public class JDBCProcedureAction extends JDBCAction {
 				Struct struct = (Struct) cs.getObject(param.getPos());
 				if (struct != null) {
 					JDBCAttachments jdbcAttachments = new JDBCAttachments(_schemaSet, param.getXmlElement().getNamespaceURI(), param.getXmlElement().getLocalPart());
-					jdbcAttachments.parseAttachments(conn, struct, message);
+					jdbcAttachments.parseAttachments(struct, message);
 				}
 			} else {
 				message.getVariables().put(param.getBindName(), cs.getObject(param.getPos()));

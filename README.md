@@ -23,6 +23,7 @@ Features:
 - Simple REST admin services to deploy and control service flows
 - JMX support, i.e. MBeans for remote monitoring & management
 - JMS Providers and JDBC DataSources can be created and updated on the fly
+- Supports Oracle proprietary ADT both with JDBC and JMS (i.e. AdtMessage) by mapping to/from XML  
 - Asynchronous JMS send is supported with JMS 2.0 capable providers
 - Offers vendor independent JMS outbound loadbalancing supporting HA and active/active
 

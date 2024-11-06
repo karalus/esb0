@@ -27,17 +27,21 @@ import javax.jms.*;
 import javax.management.ObjectName;
 import javax.naming.NamingException;
 import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.namespace.QName;
 
 import com.artofarc.esb.SchedulingConsumerPort;
 import com.artofarc.esb.Trend;
 import com.artofarc.esb.action.JDBCAction;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.jdbc.JDBC2XMLMapper;
+import com.artofarc.esb.jms.aq.AdtHelper;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.Closer;
+import com.sun.xml.xsom.XSSchemaSet;
 
 public final class JMSConsumer extends SchedulingConsumerPort implements com.artofarc.esb.mbean.JMSConsumerMXBean {
 
@@ -46,6 +50,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 	private Destination _destination;
 	private final String _queueName;
 	private final String _topicName;
+	private final JDBC2XMLMapper _mapper;
 	private final String _subscription;
 	private final boolean _noLocal;
 	private final boolean _shared;
@@ -65,8 +70,9 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 	private volatile long _lastChangeOfState;
 	private Future<?> _control;
 
-	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, JMSConsumer[] group, String jndiDestination, String queueName, String topicName, String subscription,
-			boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, int batchSize, int batchTime, long pollInterval, String timeUnit, XMLGregorianCalendar at) throws NamingException, JMSException {
+	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, JMSConsumer[] group, String jndiDestination, String queueName,
+			String topicName, XSSchemaSet schemaSet, String rootElement, String subscription, boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount,
+			int batchSize, int batchTime, long pollInterval, String timeUnit, XMLGregorianCalendar at) throws NamingException, JMSException {
 
 		super(uri, workerPool, at, timeUnit, pollInterval, false);
 		_jmsConnectionData = jmsConnectionData;
@@ -92,6 +98,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		_subscription = subscription;
 		_noLocal = noLocal;
 		_shared = shared;
+		_mapper = schemaSet != null && rootElement != null ? new JDBC2XMLMapper(schemaSet, QName.valueOf(rootElement)) : null;
 		_jmsWorker = new JMSWorker[workerCount];
 		_minWorkerCount = minWorkerCount;
 		_batchSize = batchSize;
@@ -315,9 +322,13 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		esbMessage.putVariable(ESBConstants.JMSMessageID, message.getJMSMessageID());
 		esbMessage.putVariable(ESBConstants.JMSTimestamp, message.getJMSTimestamp());
 		esbMessage.putVariable(ESBConstants.JMSExpiration, message.getJMSExpiration());
-		esbMessage.putVariableIfNotNull(ESBConstants.JMSType, message.getJMSType());
 		esbMessage.putVariableIfNotNull(ESBConstants.JMSCorrelationID, message.getJMSCorrelationID());
-		esbMessage.putVariableIfNotNull(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
+		try {
+			esbMessage.putVariableIfNotNull(ESBConstants.JMSType, message.getJMSType());
+			esbMessage.putVariableIfNotNull(ESBConstants.JMSReplyTo, message.getJMSReplyTo());
+		} catch (JMSException e) {
+			// Oracle AdtMessage does not support these features
+		}
 		Map.Entry<String, String> destinationName = JMSSession.getDestinationName(message.getJMSDestination());
 		if (destinationName != null) {
 			esbMessage.putVariable(destinationName.getKey(), destinationName.getValue());
@@ -338,7 +349,11 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		protected final void initMessageConsumer() throws JMSException {
 			if (_messageConsumer == null && _session != null) {
 				if (_subscription == null) {
-					_messageConsumer = _session.getSession().createConsumer(getDestination(_session), _messageSelector, _noLocal);
+					if (_mapper != null) {
+						_messageConsumer = AdtHelper.createAdtConsumer(_session.getSession(), getDestination(_session), _messageSelector, _noLocal);
+					} else {
+						_messageConsumer = _session.getSession().createConsumer(getDestination(_session), _messageSelector, _noLocal);
+					}
 				} else if (_shared) {
 					_messageConsumer = _session.getSession().createSharedDurableConsumer((Topic) getDestination(_session), _subscription, _messageSelector);
 				} else {
@@ -412,6 +427,9 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 			esbMessage.putVariable("JMSConnectionData", _jmsConnectionData.toString());
 			esbMessage.putVariable(ESBConstants.JMSOrigin, getDestinationName());
 			fillESBMessage(_context, esbMessage, message);
+			if (_mapper != null) {
+				AdtHelper.parseAdtMessage(message, _mapper, _context, esbMessage);
+			}
 			processInternal(_context, esbMessage);
 			return esbMessage.getVariable(ESBConstants.initialTimestamp);
 		}

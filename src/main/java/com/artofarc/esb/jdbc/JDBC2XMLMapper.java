@@ -61,23 +61,21 @@ public final class JDBC2XMLMapper {
 		return xsomHelper.getComplexType().getName();
 	}
 
-	public XMLReader createParser(Context context, JDBCConnection conn, Struct struct) {
-		return new Parser(context, conn, struct);
+	public XMLReader createParser(Context context, Struct struct) {
+		return new Parser(context, struct);
 	}
 
 	// Not thread safe
 	private final class Parser extends XMLParserBase {
 
-		final JDBCConnection _conn;
 		final Struct _struct;
 		final Context _context;
 		final XSOMHelper _xsomHelper = new XSOMHelper(_element);
 		final AttributesImpl _atts = new AttributesImpl();
 		final Calendar calendar = JDBCParameter.getCalendarInstance();
 
-		Parser(Context context, JDBCConnection conn, Struct struct) {
+		Parser(Context context, Struct struct) {
 			super(true, null);
-			_conn = conn;
 			_struct = struct;
 			_context = context;
 		}
@@ -121,7 +119,7 @@ public final class JDBC2XMLMapper {
 				} else if (attribute instanceof Array) {
 					Array inner = (Array) attribute;
 					term = _xsomHelper.nextElement();
-					_xsomHelper.checkComplexType(_conn.getSQLTypeName(inner));
+					_xsomHelper.checkComplexType(JDBCConnection.getSQLTypeName(inner));
 					String uri = term.apply(XSOMHelper.GetNamespace);
 					String name = term.apply(XSOMHelper.GetName);
 					startElement(uri, name, name, _atts);

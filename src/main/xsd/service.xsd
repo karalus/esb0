@@ -913,11 +913,19 @@
 		<attribute name="password" type="tns:globalExpression" />
 		<attribute name="clientID" type="tns:globalExpression" />
 	</attributeGroup>
+	<complexType name="DestinationType">
+		<simpleContent>
+			<extension base="tns:globalExpression">
+				<attribute name="schemaURI" type="anyURI" />
+				<attribute name="xmlElement" type="tns:string1" />
+			</extension>
+		</simpleContent>
+	</complexType>
 	<group name="JMSDestination">
 		<choice>
 			<element name="jndiDestination" type="anyURI" />
-			<element name="queueName" type="tns:globalExpression" />
-			<element name="topicName" type="tns:globalExpression" />
+			<element name="queueName" type="tns:DestinationType" />
+			<element name="topicName" type="tns:DestinationType" />
 		</choice>
 	</group>
 </schema>

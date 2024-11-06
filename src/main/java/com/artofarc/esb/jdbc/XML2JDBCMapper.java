@@ -38,6 +38,7 @@ import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.PrefixHandler;
 import com.artofarc.util.XMLParserBase;
 import com.artofarc.util.XSOMHelper;
+import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.XSSimpleType;
 import com.sun.xml.xsom.XSTerm;
@@ -76,7 +77,7 @@ public final class XML2JDBCMapper extends PrefixHandler {
 				if (array) {
 					return connection.createArray(name, objects.toArray());
 				} else {
-					return connection.getConnection().createStruct(name, objects.toArray());
+					return connection.createStruct(name, objects.toArray());
 				}
 			} catch (SQLException e) {
 				throw new SAXException("Could not create " + this, e);
@@ -114,7 +115,11 @@ public final class XML2JDBCMapper extends PrefixHandler {
 		boolean complex;
 		if (root) {
 			root = false;
-			xsomHelper = new XSOMHelper(_schemaSet.getElementDecl(uri, localName));
+			XSElementDecl elementDecl = _schemaSet.getElementDecl(uri, localName);
+			if (elementDecl == null) {
+				throw new SAXException("Not found in schema: {" + uri + "}" + localName);
+			}
+			xsomHelper = new XSOMHelper(elementDecl);
 			complex = true;
 		} else {
 			for (;;) {

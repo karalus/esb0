@@ -451,14 +451,14 @@ public class SOAPTest extends AbstractESBTest {
 	   
 	   // java:/ConnectionFactory
 	   List<JMSConnectionData> jmsConnectionData = JMSConnectionData.create(getGlobalContext(), "ConnectionFactory", null, null, null);
-      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData.get(0), null, "dynamicQueues/test1", null, null, null, false, false, null, 1, 1, 2, 1000, 0L, "milliseconds", null);
+      JMSConsumer jmsConsumer = new JMSConsumer(getGlobalContext(), null, null, jmsConnectionData.get(0), null, "dynamicQueues/test1", null, null, null, null, null, false, false, null, 1, 1, 2, 1000, 0L, "milliseconds", null);
       MarkAction markAction = new MarkAction();
       jmsConsumer.setStartAction(markAction);
       jmsConsumer.init(getGlobalContext());
       
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
       
-      JMSAction jmsAction = new JMSAction(getGlobalContext(), jmsConnectionData, "dynamicQueues/test1", null, null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 10000L, null, null, false, null, null, null, null);
+      JMSAction jmsAction = new JMSAction(getGlobalContext(), jmsConnectionData, "dynamicQueues/test1", null, null, null, false, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, 10000L, null, null, false, null, null, null, null, null);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(jmsAction);
       assertFalse(markAction.isExecuted());

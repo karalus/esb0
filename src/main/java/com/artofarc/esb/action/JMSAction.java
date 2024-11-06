@@ -31,10 +31,12 @@ import com.artofarc.esb.jms.JMSCompletionListener;
 import com.artofarc.esb.jms.JMSConnectionData;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSSession;
+import com.artofarc.esb.jms.aq.AdtHelper;
 import com.artofarc.esb.message.*;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.DataStructures;
+import com.sun.xml.xsom.XSSchemaSet;
 
 public class JMSAction extends Action {
 
@@ -77,11 +79,12 @@ public class JMSAction extends Action {
 	private final boolean _receiveFromTempQueue;
 	private final String _replyQueue, _receiveSelector;
 	private final String _multipartSubtype, _multipart;
+	private final XSSchemaSet _schemaSet;
 	private final AtomicInteger _pos;
 
 	public JMSAction(GlobalContext globalContext, List<JMSConnectionData> jmsConnectionDataList, String jndiDestination, String queueName, String topicName, String workerPool,
 			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String replyQueue,
-			String receiveSelector, String multipartSubtype, String multipart) throws NamingException {
+			String receiveSelector, String multipartSubtype, String multipart, XSSchemaSet schemaSet) throws NamingException {
 		_pipelineStop = true;
 		_offeringSink = true;
 		_queueName = globalContext.bindProperties(queueName);
@@ -103,6 +106,7 @@ public class JMSAction extends Action {
 		_receiveSelector = receiveSelector;
 		_multipartSubtype = multipartSubtype;
 		_multipart = multipart;
+		_schemaSet = schemaSet;
 	}
 
 	private JMSSession getJMSSession(Context context, JMSSession oldSession) throws JMSException {
@@ -192,6 +196,8 @@ public class JMSAction extends Action {
 					bytesMessage.setStringProperty(ESBConstants.Charset, message.getSinkEncoding());
 				}
 				jmsMessage = bytesMessage;
+			} else if (_schemaSet != null) {
+				jmsMessage = AdtHelper.createAdtMessage(context, message, _schemaSet, session);
 			} else {
 				jmsMessage = session.createTextMessage(message.getBodyAsString(context));
 			}

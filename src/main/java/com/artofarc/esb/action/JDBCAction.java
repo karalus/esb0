@@ -19,6 +19,7 @@ import java.sql.*;
 import static java.sql.Types.*;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -220,7 +221,7 @@ public abstract class JDBCAction extends Action {
 	}
 
 	public static void closeKeptConnections(Context context, boolean commit) throws SQLException {
-		ArrayDeque<JDBCConnection> connections = context.removeResource(ESBConstants.JDBCConnections);
+		Collection<JDBCConnection> connections = context.removeResource(ESBConstants.JDBCConnections);
 		if (connections != null) {
 			for (JDBCConnection connection : connections) {
 				connection.close(commit);
