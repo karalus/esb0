@@ -19,6 +19,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Struct;
 import java.util.Collections;
 
@@ -51,11 +52,15 @@ public class AdtHelper implements InvocationHandler {
 	}
 
 	@Override
-	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+	public Object invoke(Object proxy, Method method, Object[] args) throws SQLException {
 		JDBCConnection conn = new JDBCConnection(null, (Connection) args[0], false);
 		_context.putResource(ESBConstants.JDBCConnections, Collections.singletonList(conn));
 		XML2JDBCMapper mapper = new XML2JDBCMapper(_schemaSet, conn);
-		_message.writeToSAX(mapper, _context);
+		try {
+			_message.writeToSAX(mapper, _context);
+		} catch (Exception e) {
+			throw ReflectionUtils.convert(e, SQLException.class);
+		}
 		return mapper.getObject();
 	}
 
@@ -69,9 +74,9 @@ public class AdtHelper implements InvocationHandler {
 		}
 	}
 
-	public static void parseAdtMessage(Message adtMmessage, JDBC2XMLMapper mapper, Context context, ESBMessage message) throws Exception {
+	public static void parseAdtMessage(Message adtMessage, JDBC2XMLMapper mapper, Context context, ESBMessage message) throws Exception {
 		try {
-			Object data = ReflectionUtils.invoke(adtMmessage.getClass().getMethod("getAdtPayload"), JMSException.class, adtMmessage);
+			Object data = ReflectionUtils.invoke(adtMessage.getClass().getMethod("getAdtPayload"), JMSException.class, adtMessage);
 			Struct struct = ReflectionUtils.invoke(data.getClass().getMethod("toDatum", Connection.class), JMSException.class, data, (Connection) null);
 			//message.putVariable(com.artofarc.esb.message.ESBConstants.JMSType, struct.getSQLTypeName());
 			message.materializeBodyFromSource(context, new SAXSource(mapper.createParser(context, struct), null));

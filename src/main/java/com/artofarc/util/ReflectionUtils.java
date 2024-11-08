@@ -20,8 +20,11 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class ReflectionUtils {
 
@@ -300,25 +303,33 @@ public final class ReflectionUtils {
 		if (t instanceof Error) {
 			throw (Error) t;
 		}
-		E result;
-		if (cls.isInstance(t)) {
-			result = cls.cast(t);
-		} else {
-			Throwable cause = t.getCause();
-			if (cls.isInstance(cause)) {
-				result = cls.cast(cause);
-			} else {
-				try {
-					List<Object> list = new ArrayList<>(Arrays.asList(params));
-					list.add(t);
-					Constructor<E> con = findConstructor(cls, list);
-					result = con.newInstance(list.toArray());
-				} catch (ReflectiveOperationException e) {
-					throw convert(t, RuntimeException.class);
-				}
+		E result = findInstance(t, cls);
+		if (result == null) {
+			try {
+				List<Object> list = new ArrayList<>(Arrays.asList(params));
+				list.add(t);
+				Constructor<E> con = findConstructor(cls, list);
+				result = con.newInstance(list.toArray());
+			} catch (ReflectiveOperationException e) {
+				throw convert(t, RuntimeException.class);
 			}
 		}
 		return result;
+	}
+
+	private static <E extends Exception> E findInstance(Throwable e, Class<E> cls) {
+		Set<Throwable> dejaVu = Collections.newSetFromMap(new IdentityHashMap<Throwable, Boolean>());
+		return cls.cast(findInstance(e, cls, dejaVu));
+	}
+
+	private static Throwable findInstance(Throwable e, Class<? extends Throwable> cls, Set<Throwable> dejaVu) {
+		if (cls.isInstance(e)) {
+			return e;
+		}
+		if (e.getCause() != null && dejaVu.add(e)) {
+			return findInstance(e.getCause(), cls, dejaVu);
+		}
+		return null;
 	}
 
 	@SuppressWarnings("unchecked")

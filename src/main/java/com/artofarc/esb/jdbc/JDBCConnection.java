@@ -47,7 +47,7 @@ public final class JDBCConnection {
 			createARRAY = lookup.unreflect(ifcOracleConnection.getMethod("createARRAY", String.class, Object.class));
 			getSQLTypeName = lookup.unreflect(Class.forName("oracle.sql.ARRAY").getMethod("getSQLTypeName"));
 		} catch (ReflectiveOperationException e) {
-			logger.warn("Oracle JDBC driver not in classpath. Mapping of Arrays will not work");
+			logger.warn("Oracle JDBC driver not in classpath. Mapping of Arrays an dealing with AQjmsAdtMessage will not work");
 		}
 	}
 

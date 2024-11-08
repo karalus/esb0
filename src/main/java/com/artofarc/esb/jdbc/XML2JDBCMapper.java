@@ -124,6 +124,9 @@ public final class XML2JDBCMapper extends PrefixHandler {
 		} else {
 			for (;;) {
 				XSTerm term = xsomHelper.nextElement();
+				if (term == null) {
+					throw new SAXException("Element not expected: {" + uri + "}" + localName);
+				}
 				if (xsomHelper.isLastElementAny()) {
 					DBObject dbObject = _stack.peek();
 					dbObject.name = null;
