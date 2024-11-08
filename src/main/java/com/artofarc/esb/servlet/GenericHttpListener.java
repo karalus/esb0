@@ -112,6 +112,10 @@ public class GenericHttpListener extends HttpServlet {
 						sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort resource limit exceeded");
 					}
 				} else {
+					Integer delay = consumerPort.getDelay();
+					if (delay != null) {
+						response.setIntHeader(HTTP_HEADER_RETRY_AFTER, delay > 0 ? delay : 1);
+					}
 					sendError(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "ConsumerPort is disabled");
 				}
 			}

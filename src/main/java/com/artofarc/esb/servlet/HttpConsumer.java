@@ -104,32 +104,52 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 
 	void processWithServletResponse(Context context, ESBMessage message) throws Exception {
 		if (_resourceLimit > 0 && getCompletedTaskCount() >= _resourceLimit) {
-			message.reset(BodyType.STRING, "Resource limit exhausted");
-			message.getVariables().put(ESBConstants.HttpResponseCode, javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE);
 			message.clearHeaders();
+			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+			message.getVariables().put(ESBConstants.HttpResponseCode, 429);
+			Integer delay = getDelay();
+			message.putHeader(HttpConstants.HTTP_HEADER_RETRY_AFTER, delay != null && delay > 0 ? delay : 1);
 			message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT);
-			ScheduledFuture<?> scheduledFuture = _scheduledFuture;
-			if (scheduledFuture != null) {
-				message.putHeader(HttpConstants.HTTP_HEADER_RETRY_AFTER, (int) scheduledFuture.getDelay(TimeUnit.SECONDS));
-			}
+			message.reset(BodyType.STRING, "Resource limit exhausted");
 			_terminalAction.process(context, message);
 		} else {
 			context.getExecutionStack().push(_terminalAction);
 			long count = process(context, message);
 			if (_resourceLimit > 0 && count == 1) {
-				_scheduledFuture = context.getGlobalContext().getDefaultWorkerPool().getScheduledExecutorService().schedule(this, 60L, TimeUnit.SECONDS);
+				scheduleAvailability(context.getGlobalContext(), 60);
 			}
 		}
 	}
 
+	public void scheduleAvailability(GlobalContext globalContext, int delay) {
+		_scheduledFuture = globalContext.getDefaultWorkerPool().getScheduledExecutorService().schedule(this, delay, TimeUnit.SECONDS);
+	}
+
+	public Integer getDelay() {
+		ScheduledFuture<?> scheduledFuture = _scheduledFuture;
+		return scheduledFuture != null ? (int) scheduledFuture.getDelay(TimeUnit.SECONDS) : null;
+	}
+
 	@Override
 	public void run() {
+		if (isEnabled()) {
+			_completedTaskCount.set(0L);
+		} else {
+			setEnabled(true);
+		}
 		_scheduledFuture = null;
-		_completedTaskCount.set(0L);
 	}
 
 	@Override
 	public void enable(boolean enable) throws Exception {
+		ScheduledFuture<?> scheduledFuture = _scheduledFuture;
+		if (enable && scheduledFuture != null) {
+			scheduledFuture.cancel(false);
+			_scheduledFuture = null;
+			if (_resourceLimit > 0) {
+				_completedTaskCount.set(0L);
+			}
+		}
 		super.enable(enable);
 		if (!enable) {
 			close();

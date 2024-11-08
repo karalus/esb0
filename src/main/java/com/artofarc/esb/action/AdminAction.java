@@ -28,6 +28,7 @@ import com.artofarc.esb.context.*;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.message.*;
+import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.DataStructures;
 import com.artofarc.util.IOUtils;
@@ -195,6 +196,13 @@ public class AdminAction extends Action {
 							}
 						}
 					} else {
+						if (consumerPort instanceof HttpConsumer) {
+							String delay = (String) resolve(message, "delay", true);
+							if (delay != null) {
+								HttpConsumer httpConsumer = (HttpConsumer) consumerPort;
+								httpConsumer.scheduleAvailability(globalContext, Integer.parseInt(delay));
+							}
+						}
 						consumerPort.enable(enable);
 					}
 				} else {
