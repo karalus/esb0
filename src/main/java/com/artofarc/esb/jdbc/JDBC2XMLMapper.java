@@ -61,8 +61,8 @@ public final class JDBC2XMLMapper {
 		return xsomHelper.getComplexType().getName();
 	}
 
-	public XMLReader createParser(Context context, Struct struct) {
-		return new Parser(context, struct);
+	public SAXSource createSAXSource(Context context, Struct struct) {
+		return new SAXSource(new Parser(context, struct), null);
 	}
 
 	// Not thread safe

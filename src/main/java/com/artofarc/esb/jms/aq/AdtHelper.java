@@ -28,7 +28,6 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
-import javax.xml.transform.sax.SAXSource;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.jdbc.JDBC2XMLMapper;
@@ -79,7 +78,7 @@ public class AdtHelper implements InvocationHandler {
 			Object data = ReflectionUtils.invoke(adtMessage.getClass().getMethod("getAdtPayload"), JMSException.class, adtMessage);
 			Struct struct = ReflectionUtils.invoke(data.getClass().getMethod("toDatum", Connection.class), JMSException.class, data, (Connection) null);
 			//message.putVariable(com.artofarc.esb.message.ESBConstants.JMSType, struct.getSQLTypeName());
-			message.materializeBodyFromSource(context, new SAXSource(mapper.createParser(context, struct), null));
+			message.materializeBodyFromSource(context, mapper.createSAXSource(context, struct));
 		} catch (NoSuchMethodException e) {
 			throw new JMSException("Not a Oracle AQ AdtMessage");
 		}
