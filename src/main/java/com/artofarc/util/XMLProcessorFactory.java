@@ -47,7 +47,7 @@ public class XMLProcessorFactory {
 	public static final String XPATH_EXTENSION_NS_PREFIX = "fn-artofarc";
 	public static final boolean USE_DEFAULT_IDENTITY_TRANSFORMER = Boolean.parseBoolean(System.getProperty("esb0.useDefaultIdentityTransformer"));
 
-	private static final boolean SECURE_PROCESSING = Boolean.parseBoolean(System.getProperty("esb0.jaxp.secure-processing", "true"));
+	protected static final boolean SECURE_PROCESSING = Boolean.parseBoolean(System.getProperty("esb0.jaxp.secure-processing", "true"));
 	private static final boolean XQ2XSL_PROCESSING_SAX = Boolean.parseBoolean(System.getProperty("esb0.xq2xsl-processing.sax"));
 
 	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
@@ -68,11 +68,13 @@ public class XMLProcessorFactory {
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
 			if (transformerFactory.getFeature(SAXTransformerFactory.FEATURE)) {
 				SAX_TRANSFORMER_FACTORY = (SAXTransformerFactory) transformerFactory;
+				SAX_TRANSFORMER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 				conSAXTransformerFactory = MethodHandles.lookup().unreflectConstructor(transformerFactory.getClass().getConstructor());
 			} else {
 				throw new RuntimeException("Cannot be casted to SAXTransformerFactory: " + transformerFactory.getClass());
 			}
 			IDENTITY_TRANSFORMER_FACTORY = USE_DEFAULT_IDENTITY_TRANSFORMER ? TransformerFactory.newDefaultInstance() : transformerFactory;
+			IDENTITY_TRANSFORMER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
 			Class<?> xmlProcessorFactory;
 			try {
 				xmlProcessorFactory = Class.forName(System.getProperty("esb0.XMLProcessorFactory", "com.artofarc.util.saxon.SaxonXMLProcessorFactory"));

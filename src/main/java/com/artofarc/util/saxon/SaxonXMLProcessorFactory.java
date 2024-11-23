@@ -34,6 +34,7 @@ import net.sf.saxon.TransformerFactoryImpl;
 import net.sf.saxon.expr.XPathContext;
 import net.sf.saxon.lib.ExtensionFunctionCall;
 import net.sf.saxon.lib.ExtensionFunctionDefinition;
+import net.sf.saxon.lib.FeatureKeys;
 import net.sf.saxon.lib.ModuleURIResolver;
 import net.sf.saxon.om.Sequence;
 import net.sf.saxon.om.StructuredQName;
@@ -59,6 +60,11 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 		super(uriResolver);
 		_uriResolver = uriResolver;
 		Configuration configuration = ((TransformerFactoryImpl) _saxTransformerFactory).getConfiguration();
+		if (SECURE_PROCESSING) {
+			String saxParserFeature = FeatureKeys.XML_PARSER_FEATURE + "http://xml.org/sax/features/";
+			configuration.setConfigurationProperty(saxParserFeature + "external-general-entities", Boolean.FALSE);
+			configuration.setConfigurationProperty(saxParserFeature + "external-parameter-entities", Boolean.FALSE);
+		}
 		configuration.registerExtensionFunction(functionUUID);
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);
 		configuration.registerExtensionFunction(functionRandom);
