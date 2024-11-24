@@ -53,7 +53,7 @@ public class XMLProcessorFactory {
 	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
 	private static final SAXParserFactory SAX_PARSER_FACTORY = SAXParserFactory.newInstance();
 	private static final XPathFactory XPATH_FACTORY = XPathFactory.newInstance();
-	private static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
+	protected static final SAXTransformerFactory SAX_TRANSFORMER_FACTORY;
 	private static final MethodHandle conSAXTransformerFactory;
 	private static final MethodHandle conXMLProcessorFactory;
 	private static final TransformerFactory IDENTITY_TRANSFORMER_FACTORY;

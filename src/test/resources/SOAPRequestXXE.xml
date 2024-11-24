@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE soapenv:Envelope [
+  <!ENTITY xxe SYSTEM "file:///windows-version.txt">]>
+  
+ 
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:v1="http://aoa.de/xsd/demo/v1/" xmlns:dem="http://aoa.de/service/demo/Demo1/">
+   <soapenv:Header>
+      <test xmlns="http://aoa.de/test">In Header</test>
+   </soapenv:Header>
+   <soapenv:Body>
+      <v1:demoElementRequest xmlns:v1="http://aoa.de/xsd/demo/v1/" >
+         <v12:messageHeader xmlns:v12="http://aoa.de/ei/foundation/v1">
+            <v12:senderFQN>usingPort1</v12:senderFQN>
+            <v12:messageId>M-b6ce48e2-e85e-42f6-800f-52668405aafa</v12:messageId>
+            <v12:processInstanceId>P-0cdbb3bf-44b8-4c35-9ccb-48d1fed38417</v12:processInstanceId>
+         </v12:messageHeader>
+         <v1:payload>
+            <v1:para1>&xxe;</v1:para1>
+            <v1:para2>Test</v1:para2>
+            <v1:para2>Test</v1:para2>
+            <v1:para2>Test</v1:para2>
+            <v1:para2>Test</v1:para2>
+         </v1:payload>
+      </v1:demoElementRequest>
+   </soapenv:Body>
+</soapenv:Envelope>

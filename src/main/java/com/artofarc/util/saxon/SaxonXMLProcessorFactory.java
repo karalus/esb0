@@ -56,18 +56,23 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 	private final URIResolver _uriResolver;
 	private final SaxonXQDataSource _dataSource;
 
+	private final static void secureProcessing(Configuration configuration) {
+		// https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
+		configuration.setConfigurationProperty(FeatureKeys.XML_PARSER_FEATURE + "http://apache.org/xml/features/disallow-doctype-decl", Boolean.TRUE);
+	}
+
+	static {
+		if (SECURE_PROCESSING) {
+			secureProcessing(((TransformerFactoryImpl) SAX_TRANSFORMER_FACTORY).getConfiguration());
+		}
+	}
+
 	public SaxonXMLProcessorFactory(URIResolver uriResolver) throws Throwable {
 		super(uriResolver);
 		_uriResolver = uriResolver;
 		Configuration configuration = ((TransformerFactoryImpl) _saxTransformerFactory).getConfiguration();
 		if (SECURE_PROCESSING) {
-			// https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
-			String saxParserFeature = FeatureKeys.XML_PARSER_FEATURE + "http://xml.org/sax/features/";
-			configuration.setConfigurationProperty(saxParserFeature + "external-general-entities", Boolean.FALSE);
-			configuration.setConfigurationProperty(saxParserFeature + "external-parameter-entities", Boolean.FALSE);
-			// Only works with Xerces
-			String xercesParserFeature = FeatureKeys.XML_PARSER_FEATURE + "http://apache.org/xml/features/";
-			configuration.setConfigurationProperty(xercesParserFeature + "nonvalidating/load-external-dtd", Boolean.FALSE);
+			secureProcessing(configuration);
 		}
 		configuration.registerExtensionFunction(functionUUID);
 		configuration.registerExtensionFunction(functionCurrentTimeMillis);

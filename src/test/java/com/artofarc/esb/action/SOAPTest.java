@@ -12,6 +12,8 @@ import javax.jms.Message;
 import javax.jws.WebService;
 import javax.jws.soap.SOAPBinding;
 import javax.xml.soap.SOAPConstants;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.ws.Endpoint;
 
 import org.junit.Test;
@@ -280,6 +282,18 @@ public class SOAPTest extends AbstractESBTest {
       action = action.setNextAction(createValidateAction(xsdArtifact));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
+   }
+
+   @Test
+   public void testPreventXXE() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequestXXE.xml"));
+      message.setContentType("text/xml; charset=\"utf-8\"");
+      try {
+	      context.transformRaw(message.getBodyAsSource(context), new StreamResult(System.out));
+	      fail("XXE Attack not detected");
+      } catch (TransformerException e) {
+    	  // expected
+      }
    }
 
    @Test
