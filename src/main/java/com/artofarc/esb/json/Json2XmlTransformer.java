@@ -411,7 +411,7 @@ public final class Json2XmlTransformer {
 				if ((simpleContent || any >= 0 && type == null) && valueWrapper.equals(keyName)) {
 					simpleContent = true;
 					characters(value);
-				} else if (xsomHelper.getCurrentComplexType().isMixed() && (any < 0 || type == null) && valueWrapper.equals(keyName != null ? keyName : _arrays.peek().localName)) {
+				} else if (xsomHelper.getCurrentComplexType() != null && xsomHelper.getCurrentComplexType().isMixed() && (any < 0 || type == null) && valueWrapper.equals(keyName != null ? keyName : _arrays.peek().localName)) {
 					characters(value);
 				} else {
 					final Element e;
