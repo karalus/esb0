@@ -158,13 +158,25 @@ public class Registry extends AbstractContext {
 	}
 
 	public final ConsumerPort bindInternalService(ConsumerPort consumerPort) {
-		ConsumerPort oldConsumerPort = _services.put(consumerPort.getUri(), consumerPort); 
-		unbindService(oldConsumerPort);
+		ConsumerPort oldConsumerPort = _services.put(consumerPort.getUri(), consumerPort);
+		if (oldConsumerPort instanceof JMSConsumer) {
+			for (JMSConsumer jmsConsumer : ((JMSConsumer) oldConsumerPort).getGroup()) {
+				unbindService(jmsConsumer);
+				unregisterMBean(jmsConsumer.getMBeanPostfix());
+			}
+		} else if (oldConsumerPort != null) {
+			unbindService(oldConsumerPort);
+			unregisterMBean(oldConsumerPort.getMBeanPostfix());
+		}
 		return oldConsumerPort;
 	}
 
 	private void rebindInternalServiceAndMBean(ConsumerPort consumerPort, ConsumerPort oldConsumerPort) {
-		if (oldConsumerPort != null) {
+		if (oldConsumerPort instanceof JMSConsumer) {
+			for (JMSConsumer jmsConsumer : ((JMSConsumer) oldConsumerPort).getGroup()) {
+				unregisterMBean(jmsConsumer.getMBeanPostfix());
+			}
+		} else if (oldConsumerPort != null) {
 			unregisterMBean(oldConsumerPort.getMBeanPostfix());
 		}
 		registerMBean(consumerPort, consumerPort.getMBeanPostfix());
