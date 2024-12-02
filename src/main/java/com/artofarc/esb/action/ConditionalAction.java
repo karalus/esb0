@@ -28,8 +28,8 @@ public class ConditionalAction extends AssignAction {
 
 	private final Action _conditionalAction;
 
-	public ConditionalAction(String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, Action conditionalAction) {
-		super(null, expression, namespaces, bindNames, contextItem);
+	public ConditionalAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders, String expression, Action conditionalAction) {
+		super(assignments.add(new Assignment(null, false, expression, null, null)) ? assignments : null, bodyExpr, namespaces, bindNames, contextItem, clearHeaders);
 		_conditionalAction = conditionalAction;
 	}
 

@@ -62,7 +62,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 
 	public final static String FILE_EXTENSION = "xservice";
 
-	private static final boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
+	public static final boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation", "true"));
 
 	private Protocol _protocol;
 	private List<ConsumerPort> _consumerPorts = new ArrayList<>();
@@ -254,7 +254,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			}
 			HttpClient.Version version = http.getVersion() != null ? HttpClient.Version.valueOf(http.getVersion().replace('/', '_').replace('.', '_')) : null;
 			HttpEndpoint httpEndpoint = new HttpEndpoint(http.getName(), endpoints, http.isMultiThreaded(), http.getUsername(), http.getPassword(), http.getConnectTimeout(),
-					http.getRetries(), http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy, sslContext, version);
+				http.getRetries() != null ? http.getRetries() : endpoints.size() - 1, http.getCheckAliveInterval(), httpCheckAlive, getModificationTime(), proxy, sslContext, version);
 			httpEndpoint = globalContext.getHttpEndpointRegistry().validate(httpEndpoint);
 			String multipartSubtype = http.getMultipartSubtype() != null ? http.getMultipartSubtype().value() : http.getMultipartRequest() != null ? "related" : null;
 			if (http.getVersion() != null) {
@@ -302,7 +302,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		case "executeAction": {
 			ExecuteAction executeAction = (ExecuteAction) actionElement.getValue();
 			java.lang.ClassLoader classLoader = resolveClassLoader(globalContext, executeAction.getClassLoader());
-			Action action; 
+			Action action;
 			try {
 				@SuppressWarnings("unchecked")
 				Class<? extends Action> cls = (Class<? extends Action>) Class.forName(executeAction.getJavaType(), true, classLoader);
@@ -385,17 +385,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "assign": {
 			Assign assign = (Assign) actionElement.getValue();
-			List<AssignAction.Assignment> assignments = new ArrayList<>();
-			for (Assign.Assignment assignment : assign.getAssignment()) {
-				if (assignment.getVariable() != null) {
-					assignments.add(new AssignAction.Assignment(assignment.getVariable(), false, assignment.getValue(), assignment.isNullable(), assignment.getType()));
-				} else if (assignment.getHeader() != null) {
-					assignments.add(new AssignAction.Assignment(assignment.getHeader(), true, assignment.getValue(), assignment.isNullable(), assignment.getType()));
-				} else {
-					throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either variable or header");
-				}
-			}
-			AssignAction assignAction = new AssignAction(assignments, assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearHeaders());
+			AssignAction assignAction = new AssignAction(createAssignments(assign), assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearHeaders());
 			XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;
@@ -513,8 +503,8 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "conditional":
 			Conditional conditional = (Conditional) actionElement.getValue();
-			ConditionalAction conditionalAction = new ConditionalAction(conditional.getExpression(), createNsDecls(conditional.getNsDecl()).entrySet(),
-				conditional.getBindName(), conditional.getContextItem(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
+			ConditionalAction conditionalAction = new ConditionalAction(createAssignments(conditional), conditional.getBody(), createNsDecls(conditional.getNsDecl()).entrySet(), conditional.getBindName(),
+				conditional.getContextItem(), conditional.isClearHeaders(), conditional.getExpression(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
 			XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), conditionalAction.getXQuery());
 			addAction(list, conditionalAction, location);
 			break;
@@ -639,6 +629,20 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			result.put(prefix != null ? prefix : "", nsDecl.getNamespace());
 		}
 		return result;
+	}
+
+	private List<AssignAction.Assignment> createAssignments(Assign assign) throws ValidationException {
+		List<AssignAction.Assignment> assignments = new ArrayList<>();
+		for (Assign.Assignment assignment : assign.getAssignment()) {
+			if (assignment.getVariable() != null) {
+				assignments.add(new AssignAction.Assignment(assignment.getVariable(), false, assignment.getValue(), assignment.isNullable(), assignment.getType()));
+			} else if (assignment.getHeader() != null) {
+				assignments.add(new AssignAction.Assignment(assignment.getHeader(), true, assignment.getValue(), assignment.isNullable(), assignment.getType()));
+			} else {
+				throw new ValidationException(this, assignment.sourceLocation().getLineNumber(), "assignment must be either variable or header");
+			}
+		}
+		return assignments;
 	}
 
 	private static List<JDBCParameter> createJDBCParameters(List<Parameter> jdbcParameters, boolean[] posUsed) {

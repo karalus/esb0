@@ -65,7 +65,7 @@ public class TransformAction extends Action {
 	private final Set<String> _checkNotNull;
 	private final List<Assignment> _assignments;
 	private final boolean _clearSchema;
-	private final String _baseURI; 
+	private final String _baseURI;
 	protected final String _contextItem;
 	private final String _newContentType;
 
@@ -264,13 +264,14 @@ public class TransformAction extends Action {
 				message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(sequence.getItem()));
 			} else if (_contextItem == null) {
 				XQResultSequence resultSequence = execContext.getResource();
-				checkNext(resultSequence, "body");
-				if (message.isSink()) {
-					context.getTimeGauge().startTimeMeasurement();
-					message.writeItemToSink(resultSequence.getItem(), context);
-					context.getTimeGauge().stopTimeMeasurement("XQItem::writeItem", false);
-				} else {
-					message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
+				if (resultSequence.next()) {
+					if (message.isSink()) {
+						context.getTimeGauge().startTimeMeasurement();
+						message.writeItemToSink(resultSequence.getItem(), context);
+						context.getTimeGauge().stopTimeMeasurement("XQItem::writeItem", false);
+					} else {
+						message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(resultSequence.getItem()));
+					}
 				}
 			}
 		}

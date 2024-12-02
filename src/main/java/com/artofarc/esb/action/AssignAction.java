@@ -16,7 +16,6 @@
 package com.artofarc.esb.action;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -31,10 +30,6 @@ import com.artofarc.util.XQuerySource;
 public class AssignAction extends TransformAction {
 
 	private final boolean _clearHeaders;
-
-	public AssignAction(String varName, String expression, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem) {
-		this(Collections.singletonList(new Assignment(varName, false, expression, null, null)), null, namespaces, bindNames, contextItem, false);
-	}
 
 	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders) {
 		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	bodyExpr != null, null, contextItem, null);
@@ -95,8 +90,7 @@ public class AssignAction extends TransformAction {
 	}
 
 	private static boolean createLet(Assignment assignment, HashSet<String> variables) {
-		return assignment.name != null && !variables.contains("$" + assignment.name)
-				&& !variables.contains(assignment.expr) && !assignment.expr.equals(".");
+		return assignment.name != null && !variables.contains("$" + assignment.name) && !variables.contains(assignment.expr) && !assignment.expr.equals(".");
 	}
 
 	private static HashSet<String> createCheckNotNull(List<XQDecl> bindNames) {

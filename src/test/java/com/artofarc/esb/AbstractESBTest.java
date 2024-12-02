@@ -55,8 +55,6 @@ public abstract class AbstractESBTest {
 
 	protected final static Logger logger = LoggerFactory.getLogger("com.artofarc.esb.junit");
 
-	protected static boolean USE_SAX_VALIDATION = Boolean.parseBoolean(System.getProperty("esb0.useSAXValidation"));
-
 	@BeforeClass
 	public static void init() {
 		System.setProperty("esb0.cacheXSGrammars", "false");
@@ -146,7 +144,7 @@ public abstract class AbstractESBTest {
 			decl.setValue(bindName);
 			decls.add(decl);
 		}
-		return new AssignAction(varName, expression, null, decls, null);
+		return new AssignAction(Collections.singletonList(new AssignAction.Assignment(varName, false, expression, null, null)), null, null, decls, null, false);
 	}
 
 	protected static AssignAction createAssignAction(List<AssignAction.Assignment> assignments, String expression, Map<String, String> namespaces, String... bindNames) {
@@ -170,7 +168,7 @@ public abstract class AbstractESBTest {
 	}
 
 	protected static Action createValidateAction(SchemaArtifact schemaArtifact) {
-		return USE_SAX_VALIDATION ? new SAXValidationAction(schemaArtifact.getSchema()) : new ValidateAction(schemaArtifact.getSchema(), ".", null, null);
+		return ServiceArtifact.USE_SAX_VALIDATION ? new SAXValidationAction(schemaArtifact.getSchema()) : new ValidateAction(schemaArtifact.getSchema(), ".", null, null);
 	}
 
 	protected static UnwrapSOAPAction createUnwrapSOAPAction(boolean soap12, boolean singlePart) {

@@ -2,6 +2,7 @@ package com.artofarc.esb.action;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -73,7 +74,7 @@ public class XPathTest extends AbstractESBTest {
    public void testCondition() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
       MarkAction action3 = new MarkAction();
-      ConditionalAction action = new ConditionalAction("test/text() = \'Hello\'", null, Collections.<XQDecl> emptyList(), null, action3);
+      ConditionalAction action = new ConditionalAction(new ArrayList<>(), null, null, Collections.<XQDecl> emptyList(), null, false, "test/text() = \'Hello\'", action3);
       MarkAction action2 = new MarkAction();
       action.setNextAction(action2);
       action.process(context, message);

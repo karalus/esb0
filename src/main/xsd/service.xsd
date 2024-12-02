@@ -62,7 +62,7 @@
 					<attribute name="username" type="tns:expression" />
 					<attribute name="password" type="tns:expression" />
 					<attribute name="connectTimeout" type="int" default="10000" />
-					<attribute name="retries" type="int" default="0" />
+					<attribute name="retries" type="int" />
 					<attribute name="checkAliveInterval" type="int" />
 					<attribute name="checkAliveClass" type="tns:identifier" />
 					<attribute name="classLoader" type="anyURI" />
@@ -250,39 +250,30 @@
 			</extension>
 		</simpleContent>
 	</complexType>
-	<complexType name="AssignBase" abstract="true">
+	<complexType name="Assign">
 		<complexContent>
 			<extension base="tns:ActionBase">
 				<sequence>
 					<element name="bindName" type="tns:XQDecl" minOccurs="0" maxOccurs="unbounded"/>
 					<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
+					<element name="assignment" minOccurs="0" maxOccurs="unbounded">
+						<complexType>
+							<simpleContent>
+								<extension base="tns:XQDecl">
+									<attribute name="variable" type="tns:identifier" />
+									<attribute name="header" type="tns:identifier" />
+								</extension>
+							</simpleContent>
+						</complexType>
+					</element>
+					<element name="body" type="tns:string1" minOccurs="0"/>
 				</sequence>
 				<attribute name="contextItem" type="tns:identifier" />
+				<attribute name="clearHeaders" type="boolean" default="false" />
 			</extension>
 		</complexContent>
 	</complexType>
-	<element name="assign" substitutionGroup="tns:action">
-		<complexType>
-			<complexContent>
-				<extension base="tns:AssignBase">
-					<sequence>
-						<element name="assignment" minOccurs="0" maxOccurs="unbounded">
-							<complexType>
-								<simpleContent>
-									<extension base="tns:XQDecl">
-										<attribute name="variable" type="tns:identifier" />
-										<attribute name="header" type="tns:identifier" />
-									</extension>
-								</simpleContent>
-							</complexType>
-						</element>
-						<element name="body" type="tns:string1" minOccurs="0"/>
-					</sequence>
-					<attribute name="clearHeaders" type="boolean" default="false" />
-				</extension>
-			</complexContent>
-		</complexType>
-	</element>
+	<element name="assign" substitutionGroup="tns:action" type="tns:Assign"/>
 	<element name="xml2json" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
@@ -464,7 +455,7 @@
 	<element name="conditional" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:AssignBase">
+				<extension base="tns:Assign">
 					<sequence>
 						<element ref="tns:action" maxOccurs="unbounded" />
 					</sequence>

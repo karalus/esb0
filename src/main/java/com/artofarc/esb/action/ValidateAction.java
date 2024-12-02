@@ -34,7 +34,7 @@ public class ValidateAction extends AssignAction {
 	private final Schema _schema;
 
 	public ValidateAction(Schema schema, String expression, Collection<Map.Entry<String, String>> namespaces, String contextItem) {
-		super(null, expression, namespaces, Collections.emptyList(), contextItem);
+		super(Collections.singletonList(new Assignment(null, false, expression, null, null)), null, namespaces, Collections.emptyList(), contextItem, false);
 		_schema = schema;
 	}
 
