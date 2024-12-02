@@ -22,10 +22,14 @@ import javax.xml.validation.ValidatorHandler;
 import javax.xml.xquery.XQItem;
 
 import org.xml.sax.ContentHandler;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.ExecutionContext;
+import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.XMLFilterBase;
 
@@ -80,6 +84,24 @@ public class SAXValidationAction extends SAXAction {
 			return xmlFilter;
 		}
 		return new ValidatingReuseParserXMLFilter(context.getSAXParser());
+	}
+
+	@Override
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
+		if (nextActionIsPipelineStop) {
+			if (message.isSink()) {
+				context.transform(execContext.getResource(), message.createResultFromBodyAsSink(context), message.getVariable(ESBConstants.serializationParameters));
+			} else {
+				SAXSource saxSource = execContext.getResource();
+				if (saxSource.getInputSource() == null) {
+					ValidatingXQJFilter validatingXQJFilter = (ValidatingXQJFilter) saxSource.getXMLReader();
+					validatingXQJFilter.parse((InputSource) null);
+					message.reset(BodyType.XQ_ITEM, validatingXQJFilter._item);
+				} else {
+					message.reset(BodyType.SOURCE, saxSource);
+				}
+			}
+		}
 	}
 
 }

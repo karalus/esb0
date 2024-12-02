@@ -43,7 +43,7 @@ import com.artofarc.util.XMLFilterBase;
 public abstract class SAXAction extends Action {
 
 	protected static class XQJFilter extends XMLFilterBase {
-		private final XQItem _item;
+		protected final XQItem _item;
 
 		public XQJFilter(XQItem item) {
 			_item = item;
