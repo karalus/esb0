@@ -103,4 +103,15 @@ public final class KafkaConsumerPort extends PollingConsumerPort {
 		}
 	}
 
+	@Override
+	public void bind(Registry registry) {
+		registry.registerMBean(this, getMBeanPostfix());
+		registry.registerKafkaConsumer(this);
+	}
+
+	@Override
+	public void unbind(Registry registry) {
+		registry.unbindKafkaConsumer(this);
+	}
+
 }

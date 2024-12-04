@@ -24,6 +24,7 @@ import com.artofarc.esb.TimerService;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.jms.JMSConsumer;
+import com.artofarc.esb.jms.JMSConsumerGroup;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
 import com.artofarc.util.DataStructures;
@@ -41,7 +42,7 @@ public final class DeployHelper {
 		globalContext.setFileSystem(fileSystem);
 		XMLCatalog.attachToFileSystem(globalContext);
 		deployChangeSet(globalContext, fileSystem.init(globalContext));
-		// necessary for auto migrated artifacts 
+		// necessary for auto migrated artifacts
 		fileSystem.writeBackChanges();
 	}
 
@@ -56,11 +57,18 @@ public final class DeployHelper {
 				closer.closeAsync(httpConsumer);
 				break;
 			case JMS:
-				for (ConsumerPort consumer : service.getConsumerPorts()) {
+				ConsumerPort consumer = service.getConsumerPort();
+				if (consumer instanceof JMSConsumer) {
 					JMSConsumer jmsConsumer = (JMSConsumer) consumer;
 					globalContext.unbindJmsConsumer(jmsConsumer);
 					jmsConsumer.unsubscribe();
 					jmsConsumer.close();
+				} else {
+					for (JMSConsumer jmsConsumer : ((JMSConsumerGroup) consumer).getGroup()) {
+						globalContext.unbindJmsConsumer(jmsConsumer);
+						jmsConsumer.unsubscribe();
+						jmsConsumer.close();
+					}
 				}
 				break;
 			case FILE:
@@ -79,7 +87,7 @@ public final class DeployHelper {
 				closer.closeAsync(timerService);
 				break;
 			default:
-				globalContext.unbindInternalService(service.getConsumerPort());
+				globalContext.unregisterInternalService(service.getConsumerPort());
 				break;
 			}
 		});
@@ -145,21 +153,33 @@ public final class DeployHelper {
 				}
 				break;
 			case JMS:
-				for (ConsumerPort consumer : service.getConsumerPorts()) {
+				ConsumerPort consumer = service.getConsumerPort();
+				if (consumer instanceof JMSConsumer) {
 					JMSConsumer jmsConsumer = (JMSConsumer) consumer;
-					Collection<ConsumerPort> oldConsumerPorts = globalContext.bindJmsConsumer(jmsConsumer);
-					for (ConsumerPort consumerPort : oldConsumerPorts) {
-						if (consumerPort instanceof JMSConsumer) {
-							((JMSConsumer) consumerPort).close();
-						} else {
-							closer.closeAsync(consumerPort);
-						}
-					}
+					oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumer);
 					try {
 						jmsConsumer.init(globalContext);
 					} catch (Exception e) {
 						Artifact.logger.info("Could not init JMSConsumer " + jmsConsumer.getKey(), e);
 						// ignore, if JMS is down we reconnect later
+					}
+				} else {
+					JMSConsumerGroup jmsConsumerGroup = (JMSConsumerGroup) consumer;
+					oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumerGroup);
+					for (JMSConsumer jmsConsumer : jmsConsumerGroup.getGroup()) {
+						try {
+							jmsConsumer.init(globalContext);
+						} catch (Exception e) {
+							Artifact.logger.info("Could not init JMSConsumer " + jmsConsumer.getKey(), e);
+							// ignore, if JMS is down we reconnect later
+						}
+					}
+				}
+				if (oldConsumerPort != null) {
+					if (consumer.needsSyncClose(oldConsumerPort)) {
+						Closer.closeQuietly(oldConsumerPort);
+					} else {
+						closer.closeAsync(oldConsumerPort);
 					}
 				}
 				break;

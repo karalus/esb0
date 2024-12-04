@@ -155,4 +155,15 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 		}
 	}
 
+	@Override
+	public void bind(Registry registry) {
+		registry.registerMBean(this, getMBeanPostfix());
+		registry.registerFileWatchEventService(this);
+	}
+
+	@Override
+	public void unbind(Registry registry) {
+		registry.unbindFileWatchEventService(this);
+	}
+
 }

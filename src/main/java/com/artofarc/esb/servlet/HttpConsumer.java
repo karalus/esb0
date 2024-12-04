@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.artofarc.esb.ConsumerPort;
+import com.artofarc.esb.Registry;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ContextPool;
 import com.artofarc.esb.context.GlobalContext;
@@ -170,6 +171,17 @@ public final class HttpConsumer extends ConsumerPort implements Runnable, com.ar
 
 	public long getPoolLimitExceededCount() {
 		return _poolLimitExceededCount.get();
+	}
+
+	@Override
+	public void bind(Registry registry) {
+		registry.registerMBean(this, getMBeanPostfix());
+		registry.registerHttpService(this);
+	}
+
+	@Override
+	public void unbind(Registry registry) {
+		registry.unbindHttpService(this);
 	}
 
 }

@@ -71,13 +71,16 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		_enabled = enable;
 	}
 
-	public final List<Action> getServiceFlow() {
+	public final List<Action> cloneServiceFlow() {
 		return Action.cloneService(_serviceFlow);
 	}
 
 	public final Action setServiceFlow(List<Action> service) {
-		_serviceFlow = service;
-		return _startAction = Action.linkList(service);
+		return Action.linkList(_serviceFlow = service);
+	}
+
+	public void setStartAction(Action action) {
+		_startAction = action;
 	}
 
 	public final long process(Context context, ESBMessage message) throws Exception {
@@ -115,12 +118,28 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	}
 
 	// For JUnit
-	public final Action setStartAction(Action... actions) {
-		return setServiceFlow(java.util.Arrays.asList(actions));
+	public final void setStartAction(Action... actions) {
+		setStartAction(setServiceFlow(java.util.Arrays.asList(actions)));
+	}
+
+	public boolean needsSyncClose(ConsumerPort oldConsumerPort) {
+		return false;
 	}
 
 	@Override
 	public void close() throws Exception {
+	}
+
+	/**
+	 * MBean und spezial Map
+	 */
+	public void bind(Registry registry) {
+	}
+
+	/**
+	 * MBean und spezial Map
+	 */
+	public void unbind(Registry registry) {
 	}
 
 }

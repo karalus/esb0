@@ -29,6 +29,8 @@ import javax.naming.NamingException;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
 
+import com.artofarc.esb.ConsumerPort;
+import com.artofarc.esb.Registry;
 import com.artofarc.esb.SchedulingConsumerPort;
 import com.artofarc.esb.Trend;
 import com.artofarc.esb.action.JDBCAction;
@@ -46,7 +48,6 @@ import com.sun.xml.xsom.XSSchemaSet;
 public final class JMSConsumer extends SchedulingConsumerPort implements com.artofarc.esb.mbean.JMSConsumerMXBean {
 
 	private final JMSConnectionData _jmsConnectionData;
-	private final JMSConsumer[] _group;
 	private Destination _destination;
 	private final String _queueName;
 	private final String _topicName;
@@ -70,13 +71,12 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 	private volatile long _lastChangeOfState;
 	private Future<?> _control;
 
-	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, JMSConsumer[] group, String jndiDestination, String queueName,
-			String topicName, XSSchemaSet schemaSet, String rootElement, String subscription, boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount,
-			int batchSize, int batchTime, long pollInterval, String timeUnit, XMLGregorianCalendar at) throws NamingException, JMSException {
+	public JMSConsumer(GlobalContext globalContext, String uri, String workerPool, JMSConnectionData jmsConnectionData, String jndiDestination, String queueName, String topicName,
+			XSSchemaSet schemaSet, String rootElement, String subscription, boolean noLocal, boolean shared, String messageSelector, int workerCount, int minWorkerCount, int batchSize,
+			int batchTime, long pollInterval, String timeUnit, XMLGregorianCalendar at) throws NamingException, JMSException {
 
 		super(uri, workerPool, at, timeUnit, pollInterval, false);
 		_jmsConnectionData = jmsConnectionData;
-		_group = group;
 		_messageSelector = globalContext.bindProperties(messageSelector);
 		if (jndiDestination != null) {
 			_destination = globalContext.lookup(jndiDestination);
@@ -142,10 +142,6 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 
 	public long getCurrentSentReceiveDelay() {
 		return _sentReceiveDelay.getCurrent();
-	}
-
-	public JMSConsumer[] getGroup() {
-		return _group;
 	}
 
 	public synchronized void init(GlobalContext globalContext) throws JMSException {
@@ -528,6 +524,30 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 				jmsConnectionProvider.getExceptionListener(_jmsConnectionData).onException(e);
 			}
 		}
+	}
+
+	@Override
+	public void bind(Registry registry) {
+		registry.registerMBean(this, getMBeanPostfix());
+		registry.registerJmsConsumer(this);
+	}
+
+	@Override
+	public void unbind(Registry registry) {
+		registry.unbindJmsConsumer(this);
+	}
+
+	@Override
+	public boolean needsSyncClose(ConsumerPort oldConsumerPort) {
+		if (oldConsumerPort instanceof JMSConsumer) {
+			return getKey().equals(((JMSConsumer) oldConsumerPort).getKey());
+		}
+		if (oldConsumerPort instanceof JMSConsumerGroup) {
+			for (JMSConsumer jmsConsumer : ((JMSConsumerGroup) oldConsumerPort).getGroup()) {
+				if (getKey().equals(jmsConsumer.getKey())) return true;
+			}
+		}
+		return false;
 	}
 
 }

@@ -85,4 +85,14 @@ public final class TimerService extends SchedulingConsumerPort implements Runnab
 		}
 	}
 
+	@Override
+	public void bind(Registry registry) {
+		registry.registerMBean(this, getMBeanPostfix());
+	}
+
+	@Override
+	public void unbind(Registry registry) {
+		registry.unbindTimerService(this);
+	}
+
 }

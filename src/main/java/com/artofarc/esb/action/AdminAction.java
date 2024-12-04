@@ -27,6 +27,7 @@ import com.artofarc.esb.artifact.*;
 import com.artofarc.esb.context.*;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.jms.JMSConsumer;
+import com.artofarc.esb.jms.JMSConsumerGroup;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.DataStructures;
@@ -187,9 +188,9 @@ public class AdminAction extends Action {
 				if (consumerPort != null) {
 					// if header is missing just toggle state
 					boolean enable = enableStr != null ? Boolean.parseBoolean(enableStr) : !consumerPort.isEnabled();
-					if (consumerPort instanceof JMSConsumer) {
+					if (consumerPort instanceof JMSConsumerGroup) {
 						String key = (String) resolve(message, "key", true);
-						for (JMSConsumer jmsConsumer : ((JMSConsumer) consumerPort).getGroup()) {
+						for (JMSConsumer jmsConsumer : ((JMSConsumerGroup) consumerPort).getGroup()) {
 							if (key == null || jmsConsumer.getKey().equals(key)) {
 								jmsConsumer.enable(enable);
 							}
@@ -248,7 +249,6 @@ public class AdminAction extends Action {
 		} else {
 			throwHttpError(message, SC_GATEWAY_TIMEOUT, new ExecutionException(this, "Another update is in progress"));
 		}
-		
 	}
 
 	private static void throwHttpError(ESBMessage message, int statusCode, Exception e) throws Exception {

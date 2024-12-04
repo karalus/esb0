@@ -278,7 +278,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			Closer.closeQuietly(jmsConsumer);
 		}
 		for (FileWatchEventConsumer fileWatchEventConsumer : getFileWatchEventConsumers()) {
-			fileWatchEventConsumer.close();			
+			fileWatchEventConsumer.close();
 		}
 		for (KafkaConsumerPort kafkaConsumer : getKafkaConsumers()) {
 			kafkaConsumer.close();
