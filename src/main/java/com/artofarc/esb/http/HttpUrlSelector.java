@@ -42,12 +42,12 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 
 	private final List<WeakReference<HttpEndpoint>> _httpEndpoints = new ArrayList<>();
 	private final WorkerPool _workerPool;
-	protected final int size;
+	protected final int size, passiveSize;
 	private final int[] weight;
 	private final boolean[] active;
 	protected final AtomicIntegerArray inUse;
 	private int pos;
-	protected int activeCount;
+	protected int activeCount, passiveCount;
 	private long _sequenceNumber;
 	private ScheduledFuture<?> _future;
 	protected final AtomicLong _totalConnectionsCount = new AtomicLong();
@@ -64,10 +64,9 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 		inUse = new AtomicIntegerArray(size);
 		for (int i = 0; i < size; ++i) {
 			weight[i] = httpEndpoint.getHttpUrls().get(i).getWeight();
-			boolean isActive = httpEndpoint.getHttpUrls().get(i).isActive();
-			active[i] = isActive;
-			if (isActive) ++activeCount;
+			if (active[i] = httpEndpoint.getHttpUrls().get(i).isActive()) ++activeCount;
 		}
+		passiveSize = size - activeCount;
 	}
 
 	public static boolean doOutput(String method, Long contentLength) {
@@ -125,32 +124,47 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 		return active[pos];
 	}
 
-	public final synchronized void setActive(int pos, boolean b) {
-		boolean old = active[pos];
-		if (b != old) {
+	public final void setActive(int pos, boolean b) {
+		setActive(getFirstHttpEndpoint(), pos, b);
+	}
+
+	synchronized void setActive(HttpEndpoint httpEndpoint, int pos, boolean b) {
+		if (active[pos] != b) {
 			active[pos] = b;
-			if (b) {
-				if (++activeCount == size && _future != null) {
-					_future.cancel(true);
-					_future = null;
+			if (httpEndpoint.getHttpUrls().get(pos).isActive()) {
+				if (b) {
+					if (++activeCount == size - passiveSize) {
+						// all active urls are now active
+						if (_future != null) {
+							_future.cancel(true);
+							_future = null;
+						}
+						if (passiveSize > 0) {
+							// switch all passive urls off
+							for (int i = 0; i < size; ++i) {
+								if (i != pos && !httpEndpoint.getHttpUrls().get(i).isActive()) {
+									setActive(httpEndpoint, i, false);
+								}
+							}
+						}
+					}
+				} else {
+					--activeCount;
+					if (_future == null && httpEndpoint.getCheckAliveInterval() != null) {
+						scheduleHealthCheck(httpEndpoint);
+					}
 				}
 			} else {
-				--activeCount;
-				if (_future == null) {
-					scheduleHealthCheck();
-				}
+				passiveCount += b ? 1 : - 1;
 			}
-			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Endpoint state changed", "active[" + pos + "]", "boolean", old, b));
+			sendNotification(new AttributeChangeNotification(this, ++_sequenceNumber, System.currentTimeMillis(), "Endpoint state changed", "active[" + pos + "]", "boolean", !b, b));
 		}
 	}
 
-	private void scheduleHealthCheck() {
-		HttpEndpoint httpEndpoint = getFirstHttpEndpoint();
-		if (httpEndpoint != null && httpEndpoint.getCheckAliveInterval() != null) {
-			Integer retryAfter = httpEndpoint.getHttpCheckAlive().consumeRetryAfter();
-			int nextCheckAlive = retryAfter != null ? retryAfter : httpEndpoint.getCheckAliveInterval();
-			_future = _workerPool.getScheduledExecutorService().schedule(this, nextCheckAlive, TimeUnit.SECONDS);
-		}
+	private synchronized void scheduleHealthCheck(HttpEndpoint httpEndpoint) {
+		Integer retryAfter = httpEndpoint.getHttpCheckAlive().consumeRetryAfter();
+		int nextCheckAlive = retryAfter != null ? retryAfter : httpEndpoint.getCheckAliveInterval();
+		_future = _workerPool.getScheduledExecutorService().schedule(this, nextCheckAlive, TimeUnit.SECONDS);
 	}
 
 	public final synchronized void stop() {
@@ -169,7 +183,7 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 					HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(i);
 					try {
 						if (checkAlive(httpEndpoint, httpUrl)) {
-							setActive(i, true);
+							setActive(httpEndpoint, i, true);
 						}
 					} catch (IOException e) {
 						// ignore
@@ -178,10 +192,8 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 					}
 				}
 			}
-		}
-		synchronized (this) {
-			if (activeCount < size) {
-				scheduleHealthCheck();
+			if (activeCount < size - passiveSize) {
+				scheduleHealthCheck(httpEndpoint);
 			}
 		}
 	}
@@ -189,27 +201,31 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 	protected abstract boolean checkAlive(HttpEndpoint httpEndpoint, HttpUrl httpUrl) throws Exception;
 
 	synchronized int computeNextPos(HttpEndpoint httpEndpoint) {
+		if (getActiveCount() == 0) {
+			if (passiveSize > 0) {
+				// switch all passive urls on
+				for (int i = 0; i < size; ++i) {
+					if (!httpEndpoint.getHttpUrls().get(i).isActive()) {
+						setActive(httpEndpoint, i, true);
+					}
+				}
+			} else {
+				return -1;
+			}
+		}
 		for (int i = 0;; ++pos) {
 			if (pos == size) {
 				pos = 0;
 			}
-			switch (activeCount) {
-			case 0:
-				return -1;
-			case 1:
-				return pos;
-			default:
-				if (active[pos]) {
-					if (httpEndpoint.isMultiThreaded()) {
-						if (--weight[pos] == 0) {
-							weight[pos] = httpEndpoint.getHttpUrls().get(pos).getWeight();
-							return pos++;
-						}
-					} else if (i++ == activeCount || inUse.get(pos) < weight[pos]) {
+			if (active[pos]) {
+				if (httpEndpoint.isMultiThreaded()) {
+					if (--weight[pos] == 0) {
+						weight[pos] = httpEndpoint.getHttpUrls().get(pos).getWeight();
 						return pos++;
 					}
+				} else if (i++ == getActiveCount() || inUse.get(pos) < weight[pos]) {
+					return pos++;
 				}
-				break;
 			}
 		}
 	}
@@ -245,7 +261,7 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 	}
 
 	public int getActiveCount() {
-		return activeCount;
+		return activeCount + passiveCount;
 	}
 
 	public List<String> getAllUrls() {

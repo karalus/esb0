@@ -62,7 +62,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 		for (int retryCount = httpEndpoint.getRetries();;) {
 			int pos = computeNextPos(httpEndpoint);
 			if (pos < 0) {
-				throw new ConnectException("No active url");
+				throw new ConnectException("No active url for " + httpEndpoint.getName());
 			}
 			URI uri = new URI(httpEndpoint.getHttpUrls().get(pos).getUrlStr() + appendUrl);
 			// check whether server is willing to respond (before sending data)
@@ -82,7 +82,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 				return httpResponse;
 			} catch (IOException e) {
 				if (httpEndpoint.getCheckAliveInterval() != null) {
-					setActive(pos, false);
+					setActive(httpEndpoint, pos, false);
 				}
 				if (--retryCount < 0) {
 					throw e;
@@ -104,7 +104,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 
 		int pos = computeNextPos(httpEndpoint);
 		if (pos < 0) {
-			fn.accept(null, new ConnectException("No active url"));
+			fn.accept(null, new ConnectException("No active url for " + httpEndpoint.getName()));
 			return;
 		}
 		String urlStr = httpEndpoint.getHttpUrls().get(pos).getUrlStr();
@@ -133,7 +133,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 			}
 			if (retry) {
 				if (httpEndpoint.getCheckAliveInterval() != null) {
-					setActive(pos, false);
+					setActive(httpEndpoint, pos, false);
 				}
 				if (retryCount > 0 && (streamConsumed == null || streamConsumed.getCount() > 0)) {
 					sendAsync(httpEndpoint, requestBuilder, appendUrl, doOutput, streamConsumed, fn, workerPool, bodyHandler, retryCount - 1);

@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.net.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -87,6 +88,28 @@ public class HttpUrlSelectorTest extends AbstractESBTest {
 		httpCheckAlive.isAlive(503, (h) -> HttpConstants.toHttpDate((System.currentTimeMillis() + 999) / 1000));
 		Integer consumeRetryAfter = httpCheckAlive.consumeRetryAfter();
 		assertEquals(1, consumeRetryAfter.intValue());
+	}
+
+	@Test
+	public void testActivePassive() throws Exception {
+		List<HttpUrl> list = new ArrayList<>();
+		for (int i = 0; i < 2; ++i) {
+			list.add(new HttpUrl("http://localhost:" + (9001 + i), 1, (i & 1) == 0));
+		}
+		HttpEndpoint httpEndpoint = new HttpEndpoint(null, list, true, null, null, 1000, list.size() - 1, 120, new HttpCheckAlive(), System.currentTimeMillis(), Proxy.NO_PROXY, null, null);
+		Http1UrlSelector httpUrlSelector = new Http1UrlSelector(httpEndpoint , getGlobalContext().getDefaultWorkerPool());
+		httpUrlSelector.setActive(httpEndpoint, 0, false);
+		for (int i = 0; i < 30; ++i) {
+			if (i > 9) {
+				httpUrlSelector.setActive(httpEndpoint, 0, true);
+			}
+			if (i > 19) {
+				httpUrlSelector.setActive(httpEndpoint, 1, true);
+			}
+			int pos = httpUrlSelector.computeNextPos(httpEndpoint);
+			System.out.println(pos);
+		}
+		System.out.println(Arrays.asList(httpUrlSelector.getHttpEndpointStates()));
 	}
 
 }

@@ -62,7 +62,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 				HttpCheckAlive httpCheckAlive = _httpEndpoint.getHttpCheckAlive();
 				if (httpCheckAlive != null && !httpCheckAlive.isAlive(_responseCode, name -> _httpURLConnection.getHeaderField(name))) {
 					if (_httpEndpoint.getCheckAliveInterval() != null) {
-						setActive(_pos, false);
+						setActive(_httpEndpoint, _pos, false);
 					}
 					if (_httpURLConnection.getErrorStream() != null) {
 						// Consume error message
@@ -117,7 +117,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 		for (int retryCount = httpEndpoint.getRetries();;) {
 			int pos = computeNextPos(httpEndpoint);
 			if (pos < 0) {
-				throw new ConnectException("No active url");
+				throw new ConnectException("No active url for " + httpEndpoint.getName());
 			}
 			HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(pos);
 			URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getURL();
@@ -172,7 +172,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 				return httpUrlConnection;
 			} catch (IOException e) {
 				if (httpEndpoint.getCheckAliveInterval() != null) {
-					setActive(pos, false);
+					setActive(httpEndpoint, pos, false);
 				}
 				if (httpUrlConnection != null) {
 					httpUrlConnection.close();
