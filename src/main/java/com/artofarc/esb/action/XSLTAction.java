@@ -34,6 +34,7 @@ import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.artifact.XSLTArtifact;
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.Attachments2SAX;
@@ -140,6 +141,12 @@ public class XSLTAction extends SAXAction {
 	@Override
 	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws TransformerException {
 		return new TransformerFilter(context, message, parent);
+	}
+
+	@Override
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		message.preferXQItemBody();
+		return super.prepare(context, message, inPipeline);
 	}
 
 }

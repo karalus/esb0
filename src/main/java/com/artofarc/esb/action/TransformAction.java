@@ -114,6 +114,7 @@ public class TransformAction extends Action {
 				// Nothing to bind, but we need a context item
 				xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 			} else {
+				message.preferXQItemBody();
 				switch (message.getBodyType()) {
 				case XQ_SEQUENCE:
 					XQSequence sequence = message.getBody();

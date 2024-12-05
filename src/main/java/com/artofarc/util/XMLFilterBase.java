@@ -49,6 +49,15 @@ public class XMLFilterBase extends XMLFilterImpl {
 		}
 	}
 
+	@Override
+	public Object getProperty (String name) throws SAXNotRecognizedException, SAXNotSupportedException {
+		// Don't throw SAXNotRecognizedException when parent is null, this takes too much performance
+		if (getParent() != null) {
+			return getParent().getProperty(name);
+		}
+		return null;
+	}
+
 	protected final void reportError(String message) throws SAXException {
 		if (getErrorHandler() != null) {
 			getErrorHandler().error(new SAXParseException(message, null));

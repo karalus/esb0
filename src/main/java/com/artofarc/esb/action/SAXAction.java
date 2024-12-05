@@ -38,6 +38,7 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.XMLFilterBase;
 
 public abstract class SAXAction extends Action {
@@ -54,7 +55,7 @@ public abstract class SAXAction extends Action {
 			try {
 				_item.writeItemToResult(new SAXResult(getContentHandler()));
 			} catch (XQException e) {
-				throw new SAXException(e);
+				throw ReflectionUtils.convert(e, SAXException.class);
 			}
 		}
 	}

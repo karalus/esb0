@@ -262,7 +262,7 @@ public final class ESBMessage implements Cloneable {
 		final String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		String sinkContentType = contentType != null ? contentType : _contentType;
 		if (needsCharset(sinkContentType)) {
-			sinkContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + getSinkEncoding(); 
+			sinkContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET + getSinkEncoding();
 		}
 		if (contentType != sinkContentType) {
 			putHeader(HTTP_HEADER_CONTENT_TYPE, sinkContentType);
@@ -722,7 +722,8 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public void writeTo(DOMResult result, Context context) throws XQException, TransformerException, IOException {
+	public void writeTo(DOMResult result, Context context) throws Exception {
+		preferXQItemBody();
 		if (_bodyType == BodyType.XQ_ITEM) {
 			XQItem xqItem = (XQItem) _body;
 			result.setNode(xqItem.getNode());
@@ -870,7 +871,29 @@ public final class ESBMessage implements Cloneable {
 		return init(BodyType.DOM, result.getNode(), null);
 	}
 
+	public void preferXQItemBody() throws SAXException {
+		if (_body instanceof SAXSource) {
+			XMLReader xmlReader = ((SAXSource) _body).getXMLReader();
+			if (xmlReader != null) {
+				try {
+					Object xqItem = xmlReader.getProperty(ESBConstants.xqItem);
+					if (xqItem != null) {
+						init(BodyType.XQ_ITEM, xqItem, null);
+					}
+				} catch (SAXException e) {
+					// xmlReader does not recognize property
+				} catch (RuntimeException e) {
+					if (e.getCause() instanceof SAXException) {
+						throw (SAXException) e.getCause();
+					}
+					throw e;
+				}
+			}
+		}
+	}
+
 	public Object cloneBody(Context context, boolean singleUse) throws Exception {
+		preferXQItemBody();
 		final Object newBody;
 		switch (_bodyType) {
 		case INPUT_STREAM:

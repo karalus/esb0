@@ -27,11 +27,10 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.XMLFilterBase;
+import com.artofarc.util.XopAwareValidatorHandler;
 
 public class SAXValidationAction extends SAXAction {
 
@@ -41,12 +40,45 @@ public class SAXValidationAction extends SAXAction {
 		_schema = schema;
 	}
 
-	class ValidatingXQJFilter extends XQJFilter {
+	abstract static class XQJIdentityFilter extends XQJFilter {
+		XQJIdentityFilter(XQItem item) {
+			super(item);
+		}
+
+		@Override
+		public Object getProperty(String name) {
+			if (name == ESBConstants.xqItem) {
+				try {
+					parse((InputSource) null);
+				} catch (SAXException e) {
+					throw new RuntimeException(e);
+				}
+				return _item;
+			}
+			return null;
+		}
+	}
+
+	class ValidatingXQJFilter extends XQJIdentityFilter {
 		private final ValidatorHandler _validatorHandler = _schema.newValidatorHandler();
 
 		ValidatingXQJFilter(XQItem item) {
 			super(item);
 			super.setContentHandler(_validatorHandler);
+		}
+
+		@Override
+		public void setContentHandler(ContentHandler handler) {
+			_validatorHandler.setContentHandler(handler);
+		}
+	}
+
+	static class XopAwareValidatingXQJFilter extends XQJIdentityFilter {
+		private final XopAwareValidatorHandler _validatorHandler;
+
+		XopAwareValidatingXQJFilter(XQItem item, XopAwareValidatorHandler validatorHandler) {
+			super(item);
+			super.setContentHandler(_validatorHandler = validatorHandler);
 		}
 
 		@Override
@@ -72,7 +104,8 @@ public class SAXValidationAction extends SAXAction {
 	@Override
 	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) {
 		message.setSchema(_schema);
-		return new SAXSource(new ValidatingXQJFilter(item), null);
+		XMLReader xmlReader = message.getAttachments().isEmpty() ? new ValidatingXQJFilter(item) : new XopAwareValidatingXQJFilter(item, new XopAwareValidatorHandler(_schema, message.getAttachments().keySet()));
+		return new SAXSource(xmlReader, null);
 	}
 
 	@Override
@@ -80,28 +113,10 @@ public class SAXValidationAction extends SAXAction {
 		message.setSchema(_schema);
 		if (parent != null) {
 			XMLFilterBase xmlFilter = new XMLFilterBase(parent);
-			xmlFilter.setContentHandler(_schema.newValidatorHandler());
+			xmlFilter.setContentHandler(message.getAttachments().isEmpty() ? _schema.newValidatorHandler() : new XopAwareValidatorHandler(_schema, message.getAttachments().keySet()));
 			return xmlFilter;
 		}
 		return new ValidatingReuseParserXMLFilter(context.getSAXParser());
-	}
-
-	@Override
-	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		if (nextActionIsPipelineStop) {
-			if (message.isSink()) {
-				context.transform(execContext.getResource(), message.createResultFromBodyAsSink(context), message.getVariable(ESBConstants.serializationParameters));
-			} else {
-				SAXSource saxSource = execContext.getResource();
-				if (saxSource.getInputSource() == null) {
-					ValidatingXQJFilter validatingXQJFilter = (ValidatingXQJFilter) saxSource.getXMLReader();
-					validatingXQJFilter.parse((InputSource) null);
-					message.reset(BodyType.XQ_ITEM, validatingXQJFilter._item);
-				} else {
-					message.reset(BodyType.SOURCE, saxSource);
-				}
-			}
-		}
 	}
 
 }
