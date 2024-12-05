@@ -82,13 +82,14 @@ public class XMLFilterBase extends XMLFilterImpl {
 						if (pos > 0) {
 							final byte[] ba = new byte[pos];
 							System.arraycopy(chunk, 0, ba, 0, pos);
-							characters(DatatypeConverter.printBase64Binary(ba).toCharArray(), 0, pos);
+							final char[] ch = DatatypeConverter.printBase64Binary(ba).toCharArray();
+							characters(ch, 0, ch.length);
 						}
 						return;
 					}
 					pos += len;
 				} while (pos < chunkSize);
-				characters(DatatypeConverter.printBase64Binary(chunk).toCharArray(), 0, chunkSize);
+				characters(DatatypeConverter.printBase64Binary(chunk).toCharArray(), 0, IOUtils.MTU);
 			}
 		} else {
 			final char[] ch = DatatypeConverter.printBase64Binary(IOUtils.toByteArray(inputStream)).toCharArray();
