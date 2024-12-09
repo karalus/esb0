@@ -209,6 +209,9 @@ public final class XSOMHelper {
 	private void saveCurrent() {
 		if (_currentGroup != null && _currentGroup.hasNext()) {
 			Entry<String, ArrayDeque<Group>> context = _stack.peek();
+			if (context == null) {
+				_stack.push(context = DataStructures.createEntry(_currentGroup.owner.getName(), new ArrayDeque<>()));
+			}
 			context.getValue().push(_currentGroup);
 		}
 	}
