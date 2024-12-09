@@ -118,26 +118,31 @@ public class JMSAction extends Action {
 			return jmsSession;
 		}
 		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
-		if (_pos != null) {
-			if (_activePassive) {
+		if (_activePassive) {
+			try {
 				jmsSession = jmsSessionFactory.getResource(_jmsConnectionDataList.get(0), false);
 				if (jmsSession != oldSession && jmsSession.isConnected()) {
 					return jmsSession;
 				}
+			} catch (JMSException e) {
 				// try passive
-				return jmsSessionFactory.getResource(_jmsConnectionDataList.get(1), false);
-			} else {
-				int currentPos = _pos.getAndUpdate(old -> (old + 1) % _jmsConnectionDataList.size());
-				int pos = currentPos;
-				do {
+			}
+			return jmsSessionFactory.getResource(_jmsConnectionDataList.get(1), false);
+		} else if (_pos != null) {
+			int currentPos = _pos.getAndUpdate(old -> (old + 1) % _jmsConnectionDataList.size());
+			int pos = currentPos;
+			do {
+				try {
 					jmsSession = jmsSessionFactory.getResource(_jmsConnectionDataList.get(pos), false);
 					if (jmsSession != oldSession && jmsSession.isConnected()) {
 						return jmsSession;
 					}
-					pos = (pos + 1) % _jmsConnectionDataList.size();
-				} while (pos != currentPos);
-				throw new JMSException("No connected JMSSession");
-			}
+				} catch (JMSException e) {
+					// try next pos
+				}
+				pos = (pos + 1) % _jmsConnectionDataList.size();
+			} while (pos != currentPos);
+			throw new JMSException("No connected JMSSession");
 		} else {
 			return jmsSessionFactory.getResource(_jmsConnectionDataList.get(0), false);
 		}
