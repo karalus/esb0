@@ -903,6 +903,7 @@
 		<attribute name="userName" type="tns:globalExpression" />
 		<attribute name="password" type="tns:globalExpression" />
 		<attribute name="clientID" type="tns:globalExpression" />
+		<attribute name="activePassive" type="boolean" default="false" />
 	</attributeGroup>
 	<complexType name="DestinationType">
 		<simpleContent>

@@ -67,6 +67,7 @@ public class JMSAction extends Action {
 	}
 
 	private final List<JMSConnectionData> _jmsConnectionDataList;
+	private final boolean _activePassive;
 	private Destination _destination;
 	private final String _queueName;
 	private final String _topicName;
@@ -82,9 +83,10 @@ public class JMSAction extends Action {
 	private final XSSchemaSet _schemaSet;
 	private final AtomicInteger _pos;
 
-	public JMSAction(GlobalContext globalContext, List<JMSConnectionData> jmsConnectionDataList, String jndiDestination, String queueName, String topicName, String workerPool,
-			boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue, String replyQueue,
-			String receiveSelector, String multipartSubtype, String multipart, XSSchemaSet schemaSet) throws NamingException {
+	public JMSAction(GlobalContext globalContext, List<JMSConnectionData> jmsConnectionDataList, boolean activePassive, String jndiDestination, String queueName, String topicName,
+			String workerPool, boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue,
+			String replyQueue, String receiveSelector, String multipartSubtype, String multipart, XSSchemaSet schemaSet) throws NamingException {
+
 		_pipelineStop = true;
 		_offeringSink = true;
 		_queueName = globalContext.bindProperties(queueName);
@@ -94,6 +96,7 @@ public class JMSAction extends Action {
 		}
 		_workerPool = workerPool;
 		_jmsConnectionDataList = jmsConnectionDataList;
+		_activePassive = activePassive;
 		_pos = jmsConnectionDataList.size() > 1 ? new AtomicInteger() : null;
 		_isBytesMessage = isBytesMessage;
 		_deliveryMode = deliveryMode;
@@ -116,20 +119,25 @@ public class JMSAction extends Action {
 		}
 		JMSSessionFactory jmsSessionFactory = context.getResourceFactory(JMSSessionFactory.class);
 		if (_pos != null) {
-			int currentPos = _pos.getAndUpdate(old -> (old + 1) % _jmsConnectionDataList.size());
-			int pos = currentPos;
-			do {
-				try {
+			if (_activePassive) {
+				jmsSession = jmsSessionFactory.getResource(_jmsConnectionDataList.get(0), false);
+				if (jmsSession != oldSession && jmsSession.isConnected()) {
+					return jmsSession;
+				}
+				// try passive
+				return jmsSessionFactory.getResource(_jmsConnectionDataList.get(1), false);
+			} else {
+				int currentPos = _pos.getAndUpdate(old -> (old + 1) % _jmsConnectionDataList.size());
+				int pos = currentPos;
+				do {
 					jmsSession = jmsSessionFactory.getResource(_jmsConnectionDataList.get(pos), false);
 					if (jmsSession != oldSession && jmsSession.isConnected()) {
 						return jmsSession;
 					}
-				} catch (JMSException e) {
-					// try next pos
-				}
-				pos = (pos + 1) % _jmsConnectionDataList.size();
-			} while (pos != currentPos);
-			throw new JMSException("No connected JMSSession");
+					pos = (pos + 1) % _jmsConnectionDataList.size();
+				} while (pos != currentPos);
+				throw new JMSException("No connected JMSSession");
+			}
 		} else {
 			return jmsSessionFactory.getResource(_jmsConnectionDataList.get(0), false);
 		}

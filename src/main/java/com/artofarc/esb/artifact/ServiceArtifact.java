@@ -132,6 +132,9 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				}
 				int minWorkerCount = jmsBinding.getMinWorkerCount() != null ? jmsBinding.getMinWorkerCount() : jmsBinding.getWorkerCount();
 				List<JMSConnectionData> jmsConnectionDataList = JMSConnectionData.create(globalContext, jmsBinding.getJndiConnectionFactory(), jmsBinding.getUserName(), jmsBinding.getPassword(), jmsBinding.getClientID());
+				if (jmsBinding.isActivePassive() && jmsConnectionDataList.size() != 2) {
+					throw new ValidationException(this, jmsBinding.sourceLocation().getLineNumber(), "For active/passive we need exactly two jms factories: " + jmsBinding.getJndiConnectionFactory());
+				}
 				String workerPool = resolveWorkerPool(jmsBinding.getWorkerPool());
 				String queueName = null, topicName = null, rootElement = null;
 				XSSchemaSet schemaSet = null;
@@ -145,7 +148,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 					schemaSet = resolveSchemaSet(globalContext, jmsBinding.getTopicName().getSchemaURI());
 					rootElement = jmsBinding.getTopicName().getXmlElement();
 				}
-				if (jmsConnectionDataList.size() == 1) {
+				if (jmsConnectionDataList.size() == 1 || jmsBinding.isActivePassive()) {
 					_consumerPort = new JMSConsumer(globalContext, getURI(), workerPool, jmsConnectionDataList.get(0), jmsBinding.getJndiDestination(), queueName, topicName, schemaSet,
 							rootElement, jmsBinding.getSubscription(), jmsBinding.isNoLocal(), jmsBinding.isShared(), jmsBinding.getMessageSelector(), jmsBinding.getWorkerCount(),
 							minWorkerCount, jmsBinding.getBatchSize(), jmsBinding.getBatchTime(), jmsBinding.getPollInterval(), jmsBinding.getTimeUnit(), jmsBinding.getAt());
@@ -264,6 +267,9 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		case "jms": {
 			Jms jms = (Jms) actionElement.getValue();
 			List<JMSConnectionData> jmsConnectionData = JMSConnectionData.create(globalContext, jms.getJndiConnectionFactory(), jms.getUserName(), jms.getPassword(), jms.getClientID());
+			if (jms.isActivePassive() && jmsConnectionData.size() != 2) {
+				throw new ValidationException(this, jms.sourceLocation().getLineNumber(), "For active/passive we need exactly two jms factories: " + jms.getJndiConnectionFactory());
+			}
 			String multipartSubtype = jms.getMultipartSubtype() != null ? jms.getMultipartSubtype().value() : jms.getMultipart() != null ? "related" : null;
 			String queueName = null, topicName = null;
 			XSSchemaSet schemaSet = null;
@@ -275,9 +281,9 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				topicName = jms.getTopicName().getValue();
 				schemaSet = resolveSchemaSet(globalContext, jms.getTopicName().getSchemaURI());
 			}
-			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.getJndiDestination(), queueName, topicName, resolveWorkerPool(jms.getWorkerPool()), jms.isBytesMessage(),
-					jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(), jms.getExpiryQueue(),
-					jms.isReceiveFromTempQueue(), jms.getReplyQueue(), jms.getReceiveSelector(), multipartSubtype, jms.getMultipart(), schemaSet), location);
+			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.isActivePassive(), jms.getJndiDestination(), queueName, topicName, resolveWorkerPool(jms.getWorkerPool()),
+					jms.isBytesMessage(), jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(),
+					jms.getExpiryQueue(), jms.isReceiveFromTempQueue(), jms.getReplyQueue(), jms.getReceiveSelector(), multipartSubtype, jms.getMultipart(), schemaSet), location);
 			break;
 		}
 		case "produceKafka": {
