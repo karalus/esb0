@@ -403,7 +403,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 
 		@Override
 		public void onMessage(Message message) {
-			// monitor threads not started by us but by the JMS provider 
+			// monitor threads not started by us but by the JMS provider
 			_workerPool.addThread(Thread.currentThread(), getDestinationName());
 			try {
 				long receiveTimestamp = processMessage(message);
@@ -413,7 +413,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 				try {
 					rollback();
 				} catch (JMSException je) {
-					throw new RuntimeException(je); 
+					throw new RuntimeException(je);
 				}
 			}
 		}

@@ -44,8 +44,9 @@ public final class JMSSession implements AutoCloseable {
 	public JMSSession(JMSSessionFactory jmsSessionFactory, JMSConnectionData jmsConnectionData, boolean transacted) throws JMSException {
 		_jmsConnectionData = jmsConnectionData;
 		_transacted = transacted;
-		(_jmsConnection = jmsSessionFactory.getJMSConnectionProvider().getResource(jmsConnectionData)).addJMSSessionFactory(jmsSessionFactory);
+		_jmsConnection = jmsSessionFactory.getJMSConnectionProvider().getResource(jmsConnectionData);
 		createSession();
+		_jmsConnection.addJMSSessionFactory(jmsSessionFactory);
 	}
 
 	private void createSession() throws JMSException {
@@ -182,7 +183,7 @@ public final class JMSSession implements AutoCloseable {
 	public static Map.Entry<String, String> getDestinationName(Destination destination) throws JMSException {
 		if (destination instanceof Queue) {
 			return DataStructures.createEntry(ESBConstants.QueueName, ((Queue) destination).getQueueName());
-		} 
+		}
 		if (destination instanceof Topic) {
 			return DataStructures.createEntry(ESBConstants.TopicName, ((Topic) destination).getTopicName());
 		}

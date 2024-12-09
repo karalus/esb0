@@ -145,7 +145,9 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 					}
 				} catch (JMSException e) {
 					logger.error("Currently cannot connect using " + _jmsConnectionData, e);
-					scheduleReconnectTask();
+					if (_jmsConsumers.size() > 0) {
+						scheduleReconnectTask();
+					}
 					throw e;
 				} finally {
 					_lock.unlock();

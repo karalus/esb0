@@ -157,6 +157,13 @@ public final class DeployHelper {
 				if (consumer instanceof JMSConsumer) {
 					JMSConsumer jmsConsumer = (JMSConsumer) consumer;
 					oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumer);
+					if (oldConsumerPort != null) {
+						if (consumer.needsSyncClose(oldConsumerPort)) {
+							Closer.closeQuietly(oldConsumerPort);
+						} else {
+							closer.closeAsync(oldConsumerPort);
+						}
+					}
 					try {
 						jmsConsumer.init(globalContext);
 					} catch (Exception e) {
@@ -166,6 +173,13 @@ public final class DeployHelper {
 				} else {
 					JMSConsumerGroup jmsConsumerGroup = (JMSConsumerGroup) consumer;
 					oldConsumerPort = globalContext.bindJmsConsumer(jmsConsumerGroup);
+					if (oldConsumerPort != null) {
+						if (consumer.needsSyncClose(oldConsumerPort)) {
+							Closer.closeQuietly(oldConsumerPort);
+						} else {
+							closer.closeAsync(oldConsumerPort);
+						}
+					}
 					for (JMSConsumer jmsConsumer : jmsConsumerGroup.getGroup()) {
 						try {
 							jmsConsumer.init(globalContext);
@@ -173,13 +187,6 @@ public final class DeployHelper {
 							Artifact.logger.info("Could not init JMSConsumer " + jmsConsumer.getKey(), e);
 							// ignore, if JMS is down we reconnect later
 						}
-					}
-				}
-				if (oldConsumerPort != null) {
-					if (consumer.needsSyncClose(oldConsumerPort)) {
-						Closer.closeQuietly(oldConsumerPort);
-					} else {
-						closer.closeAsync(oldConsumerPort);
 					}
 				}
 				break;
