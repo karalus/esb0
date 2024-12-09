@@ -282,6 +282,7 @@ public final class Xml2JsonTransformer {
 						xsomHelper.endArray();
 					} else if (isWrapped()) {
 						jsonGenerator.writeEnd();
+						xsomHelper.endComplex();
 					}
 				}
 				if (_builder.length() > 0) {
