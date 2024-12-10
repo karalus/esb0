@@ -63,7 +63,7 @@ public class HttpInboundAction extends Action {
 			if (inputStream != null) {
 				if (message.isSink()) {
 					message.copyFrom(inputStream);
-				} else {
+				} else if (message.getBody() == inputStream) {
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
 					message.reset(BodyType.OUTPUT_STREAM, bos);
 					message.copyFrom(inputStream);
