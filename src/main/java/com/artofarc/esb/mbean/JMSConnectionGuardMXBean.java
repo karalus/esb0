@@ -38,4 +38,6 @@ public interface JMSConnectionGuardMXBean {
 
 	String getJMSProvider() throws Exception;
 
+	void checkClose();
+
 }

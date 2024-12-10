@@ -334,7 +334,7 @@ public final class JMSConnectionProvider extends ResourceFactory<JMSConnectionPr
 			}
 		}
 
-		private void checkClose() {
+		public void checkClose() {
 			if (_jmsConsumers.isEmpty() && _jmsSessionFactories.isEmpty()) {
 				removeResource(_jmsConnectionData);
 				Closer.closeQuietly(this);
