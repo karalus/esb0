@@ -31,7 +31,7 @@ import com.artofarc.esb.context.WorkerPool;
 
 public final class Http2UrlSelector extends HttpUrlSelector {
 
-	private final HttpClient _httpClient; 
+	private final HttpClient _httpClient;
 
 	public Http2UrlSelector(HttpEndpoint httpEndpoint, WorkerPool workerPool) {
 		super(httpEndpoint, workerPool);
@@ -66,7 +66,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 			}
 			URI uri = new URI(httpEndpoint.getHttpUrls().get(pos).getUrlStr() + appendUrl);
 			// check whether server is willing to respond (before sending data)
-			boolean checkServer = retryCount > size - activeCount;
+			boolean checkServer = retryCount > getUnavailableCount();
 			requestBuilder.expectContinue(checkServer && doOutput);
 			inUse.incrementAndGet(pos);
 			try {
@@ -116,7 +116,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 			return;
 		}
 		// check whether server is willing to respond (before sending data)
-		boolean checkServer = retryCount > size - activeCount;
+		boolean checkServer = retryCount > getUnavailableCount();
 		HttpRequest request = requestBuilder.expectContinue(checkServer && doOutput).uri(uri).build();
 		inUse.incrementAndGet(pos);
 		_httpClient.sendAsync(request, bodyHandler).handleAsync((httpResponse, completionException) -> {

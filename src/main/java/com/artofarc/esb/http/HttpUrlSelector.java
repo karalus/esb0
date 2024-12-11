@@ -42,12 +42,12 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 
 	private final List<WeakReference<HttpEndpoint>> _httpEndpoints = new ArrayList<>();
 	private final WorkerPool _workerPool;
-	protected final int size, passiveSize;
+	private final int size, passiveSize;
 	private final int[] weight;
 	private final boolean[] active;
 	protected final AtomicIntegerArray inUse;
 	private int pos;
-	protected int activeCount, passiveCount;
+	private int activeCount, passiveCount;
 	private long _sequenceNumber;
 	private ScheduledFuture<?> _future;
 	protected final AtomicLong _totalConnectionsCount = new AtomicLong();
@@ -230,6 +230,10 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 		}
 	}
 
+	protected final int getUnavailableCount() {
+		return size - (passiveCount > 0 ? activeCount + passiveCount : activeCount + passiveSize);
+	}
+
 	// Methods for monitoring, not synchronized to avoid effects on important methods
 
 	public CompositeDataSupport[] getHttpEndpointStates() throws OpenDataException {
@@ -253,7 +257,7 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 		for (int i = 0; i < size; ++i) {
 			total += inUse.get(i);
 		}
-		return total; 
+		return total;
 	}
 
 	public long getTotalConnectionsCount() {

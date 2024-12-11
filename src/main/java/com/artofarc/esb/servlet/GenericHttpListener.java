@@ -149,9 +149,9 @@ public class GenericHttpListener extends HttpServlet {
 			message.prepareContent(context);
 		}
 		// copy into variable for HttpServletResponseAction
-		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_CHARSET, message.removeHeader(HTTP_HEADER_ACCEPT_CHARSET));
-		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_ENCODING, message.removeHeader(HTTP_HEADER_ACCEPT_ENCODING));
-		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT, message.removeHeader(HTTP_HEADER_ACCEPT));
+		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_CHARSET, message.getHeader(HTTP_HEADER_ACCEPT_CHARSET));
+		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT_ENCODING, message.getHeader(HTTP_HEADER_ACCEPT_ENCODING));
+		message.putVariableIfNotNull(HTTP_HEADER_ACCEPT, message.getHeader(HTTP_HEADER_ACCEPT));
 		return message;
 	}
 

@@ -82,7 +82,7 @@ public final class HttpUrl {
 		if (!(obj instanceof HttpUrl))
 			return false;
 		HttpUrl other = (HttpUrl) obj;
-		return _host == other._host && _port == other._port && _protocol == other._protocol && _path.equals(other._path) && _weight == other._weight;
+		return _host == other._host && _port == other._port && _protocol == other._protocol && _path.equals(other._path) && _weight == other._weight && _active == other._active;
 	}
 
 	@Override

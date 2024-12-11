@@ -153,7 +153,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 					}
 				}
 				// check whether server is willing to respond (before sending data)
-				boolean checkServer = retryCount > size - activeCount;
+				boolean checkServer = retryCount > getUnavailableCount();
 				if (checkServer && conn.getDoOutput()) {
 					conn.setRequestProperty("Expect", "100-Continue");
 					if (chunkLength == null && contentLength == null) {
