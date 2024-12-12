@@ -85,25 +85,12 @@ public final class IOUtils {
 		return null;
 	}
 
-	public static void copy(InputStream is, OutputStream os) throws IOException {
-		if (is instanceof ByteArrayInputStream) {
-			ByteArrayInputStream bis = (ByteArrayInputStream) is;
-			bis.copyTo(os);
-		} else {
-			final byte[] buffer = new byte[MTU];
-			int len;
-			while ((len = is.read(buffer)) >= 0) {
-				os.write(buffer, 0, len);
-			}
-		}
+	public static void copy(InputStream in, OutputStream out) throws IOException {
+		in.transferTo(out);
 	}
 
-	public static void copy(Reader is, Writer os) throws IOException {
-		final char[] buffer = new char[MTU];
-		int len;
-		while ((len = is.read(buffer)) >= 0) {
-			os.write(buffer, 0, len);
-		}
+	public static void copy(Reader in, Writer out) throws IOException {
+		in.transferTo(out);
 	}
 
 	static byte[] toByteArray(byte buf[], int pos, int count) {
