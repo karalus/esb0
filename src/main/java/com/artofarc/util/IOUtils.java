@@ -114,7 +114,7 @@ public final class IOUtils {
 			return toByteArray(is, ((PredictableInputStream) is).lengthAsInt());
 		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
-		copy(is, os);
+		is.transferTo(os);
 		return os.toByteArray();
 	}
 
@@ -136,7 +136,7 @@ public final class IOUtils {
 			return toByteBuffer(is, ((PredictableInputStream) is).lengthAsInt());
 		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
-		copy(is, os);
+		is.transferTo(os);
 		return os.toByteBuffer();
 	}
 
@@ -149,7 +149,7 @@ public final class IOUtils {
 
 	public static String toString(InputStream is, Charset charset) throws IOException {
 		try (StringBuilderWriter writer = new StringBuilderWriter()) {
-			copy(new InputStreamReader(is, charset), writer);
+			new InputStreamReader(is, charset).transferTo(writer);
 			return writer.toString();
 		}
 	}
