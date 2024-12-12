@@ -42,6 +42,9 @@ public abstract class Evaluator<E extends Exception> {
 			String name = k < 0 ? path : path.substring(0, k);
 			Object value;
 			switch (name) {
+			case "null":
+				value = null;
+				break;
 			case "esbMessage":
 				value = message;
 				break;
