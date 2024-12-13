@@ -36,7 +36,6 @@ import javax.mail.internet.MimeMultipart;
 import javax.xml.bind.DatatypeConverter;
 
 import com.artofarc.esb.http.HttpConstants;
-import com.artofarc.util.IOUtils;
 
 public class DeployTool {
 
@@ -72,7 +71,7 @@ public class DeployTool {
 			boolean successful = conn.getResponseCode() < HttpURLConnection.HTTP_BAD_REQUEST;
 			if (!successful) {
 				System.err.println("HTTP response code: " + conn.getResponseCode());
-				IOUtils.copy(conn.getErrorStream(), System.err);
+				conn.getErrorStream().transferTo(System.err);
 				System.err.println();
 			}
 			return successful;
@@ -83,7 +82,7 @@ public class DeployTool {
 
 	public Boolean deployServer(String server, InputStream inputStream) throws IOException, MessagingException {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		IOUtils.copy(inputStream, bos);
+		inputStream.transferTo(bos);
 		MimeMultipart mimeMultipart = createMimeMultipart(bos.toByteArray());
 		System.out.println("Provisioning server: " + server);
 		return deploy(new URL(server), mimeMultipart);
@@ -113,7 +112,7 @@ public class DeployTool {
 					}
 					return result;
 				} else {
-					IOUtils.copy(inputStream, System.err);
+					inputStream.transferTo(System.err);
 					throw new IOException("No JSON received: " + contentType);
 				}
 			}

@@ -85,11 +85,8 @@ public final class IOUtils {
 		return null;
 	}
 
+	@Deprecated(forRemoval = true)
 	public static void copy(InputStream in, OutputStream out) throws IOException {
-		in.transferTo(out);
-	}
-
-	public static void copy(Reader in, Writer out) throws IOException {
 		in.transferTo(out);
 	}
 
@@ -108,7 +105,9 @@ public final class IOUtils {
 			return bis.toByteArray();
 		}
 		if (is instanceof java.io.ByteArrayInputStream) {
-			return toByteArray(is, is.available());
+			try (ExtractByteArray extractor = new ExtractByteArray(is)) {
+				return toByteArray(extractor.buf, extractor.offset, extractor.length);
+			}
 		}
 		if (is instanceof PredictableInputStream) {
 			return toByteArray(is, ((PredictableInputStream) is).lengthAsInt());
@@ -130,7 +129,9 @@ public final class IOUtils {
 			return bis.toByteBuffer();
 		}
 		if (is instanceof java.io.ByteArrayInputStream) {
-			return toByteBuffer(is, is.available());
+			try (ExtractByteArray extractor = new ExtractByteArray(is)) {
+				return ByteBuffer.wrap(extractor.buf, extractor.offset, extractor.length);
+			}
 		}
 		if (is instanceof PredictableInputStream) {
 			return toByteBuffer(is, ((PredictableInputStream) is).lengthAsInt());
@@ -145,6 +146,39 @@ public final class IOUtils {
 		for (ReadableByteChannel channel = ((PredictableInputStream) is).getChannel(); channel.read(byteBuffer) >= 0 && byteBuffer.remaining() > 0;);
 		if (byteBuffer.remaining() > 0) throw new EOFException();
 		return (ByteBuffer) byteBuffer.rewind();
+	}
+
+	public static ByteArrayInputStream toByteArrayInputStream(java.io.ByteArrayInputStream bis) throws IOException {
+		if (bis instanceof ByteArrayInputStream) {
+			return (ByteArrayInputStream) bis;
+		}
+		try (ExtractByteArray extractor = new ExtractByteArray(bis)) {
+			return new ByteArrayInputStream(extractor.buf, extractor.offset, extractor.length);
+		}
+	}
+
+	private static class ExtractByteArray extends OutputStream {
+		byte[] buf;
+		int offset, length;
+
+		ExtractByteArray(InputStream is) throws IOException {
+			is.transferTo(this);
+			if (buf == null) {
+				throw new IOException("Unexpected behavior in " + is.getClass());
+			}
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) {
+			buf = b;
+			offset = off;
+			length = len;
+		}
+
+		@Override
+		public void write(int b) {
+			throw new UnsupportedOperationException();
+		}
 	}
 
 	public static String toString(InputStream is, Charset charset) throws IOException {

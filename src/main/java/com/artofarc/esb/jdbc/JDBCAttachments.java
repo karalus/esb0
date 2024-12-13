@@ -31,7 +31,6 @@ import org.xml.sax.SAXException;
 
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.message.MimeHelper;
-import com.artofarc.util.IOUtils;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSComplexType;
 import com.sun.xml.xsom.XSElementDecl;
@@ -90,7 +89,7 @@ public final class JDBCAttachments {
 			Object[] attributes = new Object[size];
 			Blob blob = connection.createBlob();
 			try (InputStream is = mimeBodyPart.getInputStream(); OutputStream os = blob.setBinaryStream(1)) {
-				IOUtils.copy(is, os);
+				is.transferTo(os);
 			}
 			attributes[0] = blob;
 			attributes[1] = cid;

@@ -23,6 +23,10 @@ public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 		super(IOUtils.MTU);
 	}
 
+	public ByteArrayOutputStream(int size) {
+		super(size);
+	}
+
 	@Override
 	public void write(byte[] b, int off, int len) {
 		if (count + len > buf.length) {

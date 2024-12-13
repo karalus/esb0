@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.Http1UrlSelector.HttpUrlConnection;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.ByteArrayOutputStream;
 
@@ -62,11 +63,12 @@ public class HttpInboundAction extends Action {
 			InputStream inputStream = execContext.getResource();
 			if (inputStream != null) {
 				if (message.isSink()) {
-					message.copyFrom(inputStream);
+					message.transferFrom(inputStream);
 				} else if (message.getBody() == inputStream) {
-					ByteArrayOutputStream bos = new ByteArrayOutputStream();
+					String contentLength = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_LENGTH);
+					ByteArrayOutputStream bos = contentLength != null ? new ByteArrayOutputStream(Integer.parseInt(contentLength)) : new ByteArrayOutputStream();
 					message.reset(BodyType.OUTPUT_STREAM, bos);
-					message.copyFrom(inputStream);
+					message.transferFrom(inputStream);
 					message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 				}
 			}

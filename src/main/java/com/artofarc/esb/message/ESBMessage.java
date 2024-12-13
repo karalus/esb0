@@ -441,7 +441,7 @@ public final class ESBMessage implements Cloneable {
 			if (_body instanceof StringBuilderReader) {
 				str = _body.toString();
 			} else {
-				IOUtils.copy((Reader) _body, sw = new StringBuilderWriter());
+				((Reader) _body).transferTo(sw = new StringBuilderWriter());
 				str = sw.toString();
 			}
 			break;
@@ -767,7 +767,7 @@ public final class ESBMessage implements Cloneable {
 		case BYTES:
 			if (isSinkEncodingdifferent()) {
 				try (Reader reader = new InputStreamReader(new ByteArrayInputStream((byte[]) _body), getCharset()); Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
-					IOUtils.copy(reader, writer);
+					reader.transferTo(writer);
 				}
 			} else {
 				os.write((byte[]) _body);
@@ -776,19 +776,19 @@ public final class ESBMessage implements Cloneable {
 		case INPUT_STREAM:
 			if (isSinkEncodingdifferent()) {
 				try (Reader reader = getInputStreamReader((InputStream) _body); Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
-					IOUtils.copy(reader, writer);
+					reader.transferTo(writer);
 				}
 			} else {
 				// writes compressed data through!
 				try (InputStream inputStream = getUncompressedInputStream((InputStream) _body)) {
-					IOUtils.copy(inputStream, os);
+					inputStream.transferTo(os);
 				}
 			}
 			init(BodyType.INVALID, null, null);
 			break;
 		case READER:
 			try (Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
-				IOUtils.copy((Reader) _body, writer);
+				((Reader) _body).transferTo(writer);
 			}
 			init(BodyType.INVALID, null, null);
 			break;
@@ -829,16 +829,16 @@ public final class ESBMessage implements Cloneable {
 		}
 	}
 
-	public void copyFrom(InputStream inputStream) throws IOException {
+	public void transferFrom(InputStream inputStream) throws IOException {
 		switch (_bodyType) {
 		case OUTPUT_STREAM:
-			IOUtils.copy(getUncompressedInputStream(inputStream), (OutputStream) _body);
+			getUncompressedInputStream(inputStream).transferTo((OutputStream) _body);
 			break;
 		case WRITER:
-			IOUtils.copy(getInputStreamReader(inputStream), (Writer) _body);
+			getInputStreamReader(inputStream).transferTo((Writer) _body);
 			break;
 		default:
-			throw new IllegalStateException("Message cannot be copied to: " + _bodyType);
+			throw new IllegalStateException("InputStream cannot be transferred to: " + _bodyType);
 		}
 	}
 

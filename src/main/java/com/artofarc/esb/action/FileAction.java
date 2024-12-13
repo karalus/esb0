@@ -145,7 +145,7 @@ public class FileAction extends TerminalAction {
 								Map.Entry<String, MimeBodyPart> entry = iter.next();
 								String name = MimeHelper.getDispositionName(entry.getValue());
 								zos.putNextEntry(new ZipEntry(name != null ? name : entry.getKey()));
-								IOUtils.copy(entry.getValue().getInputStream(), zos);
+								entry.getValue().getInputStream().transferTo(zos);
 								iter.remove();
 							}
 						}

@@ -28,7 +28,6 @@ import java.util.Map;
 import javax.net.ssl.HttpsURLConnection;
 
 import com.artofarc.esb.context.WorkerPool;
-import com.artofarc.util.IOUtils;
 
 public final class Http1UrlSelector extends HttpUrlSelector {
 
@@ -66,7 +65,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 					}
 					if (_httpURLConnection.getErrorStream() != null) {
 						// Consume error message
-						IOUtils.copy(_httpURLConnection.getErrorStream(), OutputStream.nullOutputStream());
+						_httpURLConnection.getErrorStream().transferTo(OutputStream.nullOutputStream());
 					}
 					throw new HttpCheckAlive.ConnectException(getHttpUrl().getUrlStr() + " is not alive. Response code " + _responseCode);
 				}

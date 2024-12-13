@@ -339,7 +339,7 @@ public abstract class FileSystem {
 					} else {
 						throw ReflectionUtils.convert(e.getCause(), RuntimeException.class);
 					}
-				} 
+				}
 			}
 			if (validationExceptions.size() > 0) {
 				Iterator<ValidationException> iterator = validationExceptions.iterator();
@@ -515,7 +515,7 @@ public abstract class FileSystem {
 				ZipEntry zipEntry = new ZipEntry(artifact.getURI().substring(1));
 				zipEntry.setTime(artifact.getModificationTime());
 				zos.putNextEntry(zipEntry);
-				IOUtils.copy(artifact.getContentAsStream(), zos);
+				artifact.getContentAsStream().transferTo(zos);
 			}
 		}
 	}
