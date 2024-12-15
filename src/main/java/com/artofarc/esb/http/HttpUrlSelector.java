@@ -231,7 +231,8 @@ public abstract class HttpUrlSelector extends NotificationBroadcasterSupport imp
 	}
 
 	protected final int getUnavailableCount() {
-		return size - (passiveCount > 0 ? activeCount + passiveCount : activeCount + passiveSize);
+		final int electableServers = passiveCount > 0 ? activeCount + passiveCount : activeCount + passiveSize;
+		return size - electableServers;
 	}
 
 	// Methods for monitoring, not synchronized to avoid effects on important methods

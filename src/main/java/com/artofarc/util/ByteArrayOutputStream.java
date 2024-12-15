@@ -19,6 +19,8 @@ import java.nio.ByteBuffer;
 
 public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 
+	private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+
 	public ByteArrayOutputStream() {
 		super(IOUtils.MTU);
 	}
@@ -27,27 +29,25 @@ public final class ByteArrayOutputStream extends java.io.ByteArrayOutputStream {
 		super(size);
 	}
 
-	@Override
-	public void write(byte[] b, int off, int len) {
-		if (count + len > buf.length) {
-			super.write(b, off, len);
-		} else {
-			System.arraycopy(b, off, buf, count, len);
-			count += len;
-		}
-	}
-
 	public ByteArrayInputStream getByteArrayInputStream() {
 		return new ByteArrayInputStream(buf, 0, count);
 	}
 
 	public ByteBuffer toByteBuffer() {
-		return ByteBuffer.wrap(buf, 0, count);
+		ByteBuffer bb = ByteBuffer.wrap(buf, 0, count);
+		buf = EMPTY_BYTE_ARRAY;
+		count = 0;
+		return bb;
 	}
 
 	@Override
 	public byte[] toByteArray() {
-		return IOUtils.toByteArray(buf, 0, count);
+		byte[] b = IOUtils.toByteArray(buf, 0, count);
+		if (b == buf) {
+			buf = EMPTY_BYTE_ARRAY;
+			count = 0;
+		}
+		return b;
 	}
 
 }

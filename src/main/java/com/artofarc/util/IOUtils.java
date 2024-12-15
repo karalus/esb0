@@ -105,9 +105,9 @@ public final class IOUtils {
 			return bis.toByteArray();
 		}
 		if (is instanceof java.io.ByteArrayInputStream) {
-			try (ExtractByteArray extractor = new ExtractByteArray(is)) {
-				return toByteArray(extractor.buf, extractor.offset, extractor.length);
-			}
+			ExtractByteArray extractor = new ExtractByteArray();
+			is.transferTo(extractor);
+			return toByteArray(extractor.buf, extractor.offset, extractor.length);
 		}
 		if (is instanceof PredictableInputStream) {
 			return toByteArray(is, ((PredictableInputStream) is).lengthAsInt());
@@ -129,9 +129,9 @@ public final class IOUtils {
 			return bis.toByteBuffer();
 		}
 		if (is instanceof java.io.ByteArrayInputStream) {
-			try (ExtractByteArray extractor = new ExtractByteArray(is)) {
-				return ByteBuffer.wrap(extractor.buf, extractor.offset, extractor.length);
-			}
+			ExtractByteArray extractor = new ExtractByteArray();
+			is.transferTo(extractor);
+			return ByteBuffer.wrap(extractor.buf, extractor.offset, extractor.length);
 		}
 		if (is instanceof PredictableInputStream) {
 			return toByteBuffer(is, ((PredictableInputStream) is).lengthAsInt());
@@ -152,32 +152,28 @@ public final class IOUtils {
 		if (bis instanceof ByteArrayInputStream) {
 			return (ByteArrayInputStream) bis;
 		}
-		try (ExtractByteArray extractor = new ExtractByteArray(bis)) {
-			return new ByteArrayInputStream(extractor.buf, extractor.offset, extractor.length);
-		}
+		ExtractByteArray extractor = new ExtractByteArray();
+		bis.transferTo(extractor);
+		return new ByteArrayInputStream(extractor.buf, extractor.offset, extractor.length);
 	}
 
 	private static class ExtractByteArray extends OutputStream {
 		byte[] buf;
 		int offset, length;
 
-		ExtractByteArray(InputStream is) throws IOException {
-			is.transferTo(this);
-			if (buf == null) {
-				throw new IOException("Unexpected behavior in " + is.getClass());
-			}
-		}
-
 		@Override
-		public void write(byte[] b, int off, int len) {
+		public void write(byte[] b, int off, int len) throws IOException {
+			if (buf != null) {
+				throw new IOException("Unexpected behavior. Only one single call with complete buffer is expected.");
+			}
 			buf = b;
 			offset = off;
 			length = len;
 		}
 
 		@Override
-		public void write(int b) {
-			throw new UnsupportedOperationException();
+		public void write(int b) throws IOException {
+			throw new IOException("Unexpected behavior. Only one single call with complete buffer is expected.");
 		}
 	}
 
