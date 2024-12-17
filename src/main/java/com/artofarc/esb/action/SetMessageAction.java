@@ -34,7 +34,7 @@ public class SetMessageAction extends ForwardAction {
 
 	private final ClassLoader _classLoader;
 	private final ArrayList<Assignment> _assignments = new ArrayList<>();
-	private final Assignment _body; 
+	private final Assignment _body;
 	private Set<String> _clearHeadersExcept;
 
 	public SetMessageAction(ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ReflectiveOperationException {
@@ -44,7 +44,7 @@ public class SetMessageAction extends ForwardAction {
 	}
 
 	public final void addAssignment(String name, boolean header, String expr, String javaType, String method, String field) throws ReflectiveOperationException {
-		Assignment assignment = new Assignment(name, header, new StringWrapper(expr), javaType, method, field);
+		Assignment assignment = new Assignment(name, header, StringWrapper.create(expr), javaType, method, field);
 		_assignments.add(assignment);
 		if (assignment._needsBody) {
 			_pipelineStop = true;

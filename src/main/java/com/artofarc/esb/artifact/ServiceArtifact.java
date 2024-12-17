@@ -345,9 +345,9 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 					Artifact artifact = loadArtifact(update.getBody().getFileURI());
 					artifact.validate(globalContext);
 					addReference(artifact);
-					bodyExpr = new StringWrapper(artifact.getContentAsBytes());
+					bodyExpr = StringWrapper.create(artifact.getContentAsBytes(), artifact.getEncoding());
 				} else {
-					bodyExpr = new StringWrapper(update.getBody().getValue());
+					bodyExpr = StringWrapper.create(update.getBody().getValue());
 				}
 				action = new SetMessageAction(classLoader, bodyExpr, update.getBody().getJavaType(), update.getBody().getMethod());
 			} else {

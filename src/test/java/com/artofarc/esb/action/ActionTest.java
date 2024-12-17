@@ -130,7 +130,7 @@ public class ActionTest extends AbstractESBTest {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
 		message.putHeader("header1", "header1");
 		message.putHeader("header2", "header2");
-		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("${body}"), "java.lang.String", null);
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), StringWrapper.create("${body}"), "java.lang.String", null);
 		action.setClearHeadersExcept(Collections.singleton("header1"));
 		action.addAssignment("int", true, "42", "java.lang.Integer", null, null);
 		action.addAssignment("bool", true, "true", "java.lang.Boolean", "parseBoolean", null);
@@ -179,7 +179,7 @@ public class ActionTest extends AbstractESBTest {
 	public void testSetMessageBody() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
 		message.putVariable("string", "Hello");
-		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("${string}"), "javax.json.Json", "createValue");
+		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), StringWrapper.create("${string}"), "javax.json.Json", "createValue");
 		action.process(context, message);
 		assertEquals(BodyType.JSON_VALUE, message.getBodyType());
 	}
@@ -187,7 +187,7 @@ public class ActionTest extends AbstractESBTest {
 	@Test
 	public void testStartPipelineWithSetMessageBody() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.INVALID, null);
-		Action action = new SetMessageAction(getClass().getClassLoader(), new StringWrapper("<dummy/>"), null, null);
+		Action action = new SetMessageAction(getClass().getClassLoader(), StringWrapper.create("<dummy/>"), null, null);
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
 		String xquery = ".";
@@ -304,7 +304,7 @@ public class ActionTest extends AbstractESBTest {
 	@Test
 	public void testInvokeMethod() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>../../Hello</test>");
-		StringWrapper bodyExpr = new StringWrapper("${body.toString.replace('../../','../').substring(0).toString().replace('e','i')}");
+		StringWrapper bodyExpr = StringWrapper.create("${body.toString.replace('../../','../').substring(0).toString().replace('e','i')}");
 		SetMessageAction action = new SetMessageAction(null, bodyExpr , null, null);
 		action.setNextAction(new DumpAction());
 		action.process(context, message);

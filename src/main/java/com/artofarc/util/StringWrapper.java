@@ -17,26 +17,26 @@ package com.artofarc.util;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.WeakHashMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public final class StringWrapper {
 
+	private static final ObjectPool<StringWrapper> POOL = new ObjectPool<>(new WeakHashMap<>(1024));
+
 	private final String smallString;
 	private final byte[] compressedContent;
 	private final Charset charset;
 
-	public StringWrapper(String string) {
-		smallString = string.intern();
+	private StringWrapper(String string) {
+		smallString = string;
 		compressedContent = null;
 		charset = null;
 	}
 
-	public StringWrapper(byte[] content) {
-		this(content, java.nio.charset.StandardCharsets.UTF_8);
-	}
-
-	public StringWrapper(byte[] content, Charset charset) {
+	private StringWrapper(byte[] content, Charset charset) {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(out, IOUtils.MTU)) {
 			gzipOutputStream.write(content);
@@ -51,6 +51,34 @@ public final class StringWrapper {
 			smallString = new String(content, charset);
 		}
 		this.charset = charset;
+	}
+
+	public static StringWrapper create(String string) {
+		return POOL.intern(new StringWrapper(string));
+	}
+
+	public static StringWrapper create(byte[] content, Charset charset) {
+		return POOL.intern(new StringWrapper(content, charset));
+	}
+
+	@Override
+	public int hashCode() {
+		// Since StringWrapper objects are not used in HashMaps as keys at runtime we need not to cache hashCode
+		return smallString != null ? smallString.hashCode() : Arrays.hashCode(compressedContent);
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		if (this == other) return true;
+		if (other instanceof StringWrapper) {
+			StringWrapper o = (StringWrapper) other;
+			if (smallString != null) {
+				return smallString.equals(o.smallString);
+			} else if (compressedContent != null && charset == o.charset){
+				return Arrays.equals(compressedContent, o.compressedContent);
+			}
+		}
+		return false;
 	}
 
 	public boolean isEmpty() {

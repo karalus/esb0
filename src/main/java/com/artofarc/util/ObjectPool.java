@@ -27,13 +27,8 @@ public class ObjectPool<T> {
 	}
 
 	public final synchronized T intern(T instance) {
-		T existing = _pool.get(instance);
-		if (existing != null) {
-			return existing;
-		} else {
-			_pool.put(instance, instance);
-			return instance;
-		}
+		T existing = _pool.putIfAbsent(instance, instance);
+		return existing != null ? existing : instance;
 	}
 
 }
