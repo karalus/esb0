@@ -74,7 +74,7 @@ public final class StringWrapper {
 			StringWrapper o = (StringWrapper) other;
 			if (smallString != null) {
 				return smallString.equals(o.smallString);
-			} else if (compressedContent != null && charset == o.charset){
+			} else if (charset == o.charset) {
 				return Arrays.equals(compressedContent, o.compressedContent);
 			}
 		}
