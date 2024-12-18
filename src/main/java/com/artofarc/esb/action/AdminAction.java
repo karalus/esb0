@@ -168,15 +168,19 @@ public class AdminAction extends Action {
 			if (contentType == null || "bin".equals(MimeHelper.getFileExtension(contentType))) {
 				boolean simulate = Boolean.parseBoolean(message.getHeader("simulate"));
 				InputStream is = message.getBodyType() == BodyType.INPUT_STREAM ? message.<InputStream> getBody() : new ByteArrayInputStream(message.<byte[]> getBody());
-				try {
-					FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
-					if (simulate) {
-						changeSet.getServiceArtifacts();
-					} else {
-						deployChangeset(globalContext, changeSet, message);
+				if (globalContext.lockFileSystem()) {
+					try {
+						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, is);
+						if (!simulate) {
+							deployChangeset(globalContext, changeSet, message);
+						}
+					} catch (IOException | ValidationException | RuntimeException e) {
+						throwHttpError(message, SC_BAD_REQUEST, e);
+					} finally {
+						globalContext.unlockFileSystem();
 					}
-				} catch (IOException | ValidationException e) {
-					throwHttpError(message, SC_BAD_REQUEST, e);
+				} else {
+					throwHttpError(message, SC_GATEWAY_TIMEOUT, new ExecutionException(this, "Another update is in progress"));
 				}
 			} else {
 				throwHttpError(message, SC_UNSUPPORTED_MEDIA_TYPE, new ExecutionException(this, contentType));
@@ -223,32 +227,32 @@ public class AdminAction extends Action {
 				if (filename != null) {
 					resource += '/' + filename;
 				}
-				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, message.getBodyAsByteArray(context));
-				deployChangeset(globalContext, changeSet, message);
+				if (globalContext.lockFileSystem()) {
+					try {
+						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, message.getBodyAsByteArray(context));
+						deployChangeset(globalContext, changeSet, message);
+					} catch (ValidationException | RuntimeException e) {
+						throwHttpError(message, SC_BAD_REQUEST, e);
+					} finally {
+						globalContext.unlockFileSystem();
+					}
+				} else {
+					throwHttpError(message, SC_GATEWAY_TIMEOUT, new ExecutionException(this, "Another update is in progress"));
+				}
 			}
 		}
 	}
 
 	private void deployChangeset(GlobalContext globalContext, FileSystem.ChangeSet changeSet, ESBMessage message) throws Exception {
-		if (globalContext.lockFileSystem()) {
-			try {
-				int serviceCount = DeployHelper.deployChangeSet(globalContext, changeSet);
-				FileSystem newFileSystem = changeSet.getFileSystem();
-				globalContext.setFileSystem(newFileSystem);
-				newFileSystem.writeBackChanges();
-				logger.info("Configuration changed by: " + resolve(message, ESBConstants.RemoteUser, false));
-				logger.info("Number of created/updated services: " + serviceCount);
-				logger.info("Number of deleted services: " + DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).count());
-				message.putVariable(ESBConstants.HttpResponseCode, SC_NO_CONTENT);
-				message.reset(BodyType.INVALID, null);
-			} catch (ValidationException | RuntimeException e) {
-				throwHttpError(message, SC_BAD_REQUEST, e);
-			} finally {
-				globalContext.unlockFileSystem();
-			}
-		} else {
-			throwHttpError(message, SC_GATEWAY_TIMEOUT, new ExecutionException(this, "Another update is in progress"));
-		}
+		DeployHelper.deployChangeSet(globalContext, changeSet);
+		FileSystem newFileSystem = changeSet.getFileSystem();
+		globalContext.setFileSystem(newFileSystem);
+		newFileSystem.writeBackChanges();
+		logger.info("Configuration changed by: " + resolve(message, ESBConstants.RemoteUser, false));
+		logger.info("Number of created/updated services: " + changeSet.getServiceArtifacts().size());
+		logger.info("Number of deleted services: " + DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).count());
+		message.putVariable(ESBConstants.HttpResponseCode, SC_NO_CONTENT);
+		message.reset(BodyType.INVALID, null);
 	}
 
 	private static void throwHttpError(ESBMessage message, int statusCode, Exception e) throws Exception {

@@ -320,39 +320,42 @@ public abstract class FileSystem {
 		private final List<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
 		private final List<JNDIObjectFactoryArtifact> jndiObjectFactoryArtifacts = new ArrayList<>();
 		private final List<Artifact> deletedArtifacts = new ArrayList<>();
+		private List<ServiceArtifact> serviceArtifacts;
 
 		public FileSystem getFileSystem() {
 			return FileSystem.this;
 		}
 
 		public List<ServiceArtifact> getServiceArtifacts() throws ValidationException {
-			List<ServiceArtifact> serviceArtifacts = new ArrayList<>();
-			HashSet<ValidationException> validationExceptions = new HashSet<>();
-			for (Future<ServiceArtifact> future : futures) {
-				try {
-					serviceArtifacts.add(future.get());
-				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
-				} catch (ExecutionException e) {
-					if (e.getCause() instanceof ValidationException) {
-						validationExceptions.add((ValidationException) e.getCause());
-					} else {
-						throw ReflectionUtils.convert(e.getCause(), RuntimeException.class);
+			if (serviceArtifacts == null) {
+				serviceArtifacts = new ArrayList<>(futures.size());
+				HashSet<ValidationException> validationExceptions = new HashSet<>();
+				for (Future<ServiceArtifact> future : futures) {
+					try {
+						serviceArtifacts.add(future.get());
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					} catch (ExecutionException e) {
+						if (e.getCause() instanceof ValidationException) {
+							validationExceptions.add((ValidationException) e.getCause());
+						} else {
+							throw ReflectionUtils.convert(e.getCause(), RuntimeException.class);
+						}
 					}
 				}
-			}
-			if (validationExceptions.size() > 0) {
-				Iterator<ValidationException> iterator = validationExceptions.iterator();
-				ValidationException exception = iterator.next();
-				while (iterator.hasNext())
-					exception.addSuppressed(iterator.next());
-				if (ignoreValidationExceptionsOnStartup && isStartup()) {
-					logger.warn("ValidationExceptions on startup", exception);
-				} else {
-					throw exception;
+				if (validationExceptions.size() > 0) {
+					Iterator<ValidationException> iterator = validationExceptions.iterator();
+					ValidationException exception = iterator.next();
+					while (iterator.hasNext())
+						exception.addSuppressed(iterator.next());
+					if (ignoreValidationExceptionsOnStartup && isStartup()) {
+						logger.warn("ValidationExceptions on startup", exception);
+					} else {
+						throw exception;
+					}
 				}
+				dehydrateArtifacts(_root);
 			}
-			dehydrateArtifacts(_root);
 			return serviceArtifacts;
 		}
 
@@ -381,7 +384,7 @@ public abstract class FileSystem {
 		return changeSet;
 	}
 
-	public final ChangeSet createChangeSet(GlobalContext globalContext, String uri, byte[] content) throws Exception {
+	public final ChangeSet createChangeSet(GlobalContext globalContext, String uri, byte[] content) throws ValidationException {
 		FileSystem copy = copy();
 		CRC32 crc = new CRC32();
 		crc.update(content);
@@ -447,6 +450,7 @@ public abstract class FileSystem {
 				changeSet.getDeletedArtifacts().add(artifact);
 			}
 		}
+		changeSet.getServiceArtifacts();
 		Artifact orphan;
 		while ((orphan = orphans.poll()) != null) {
 			if (orphan.getReferencedBy().isEmpty()) {

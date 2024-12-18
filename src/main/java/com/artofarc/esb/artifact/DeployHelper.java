@@ -46,7 +46,7 @@ public final class DeployHelper {
 		fileSystem.writeBackChanges();
 	}
 
-	public static int deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet changeSet) throws ValidationException {
+	public static void deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet changeSet) throws ValidationException {
 		Collection<ServiceArtifact> serviceArtifacts = changeSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
 		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).forEach(service -> {
@@ -225,7 +225,6 @@ public final class DeployHelper {
 		closer.submit();
 		// to obtain log when finished
 		closer.closeAsyncUnattended(closer);
-		return serviceArtifacts.size();
 	}
 
 	public static void createAdminService(GlobalContext globalContext, String path) throws Exception {
