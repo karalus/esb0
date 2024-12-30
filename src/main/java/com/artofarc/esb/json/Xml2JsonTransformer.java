@@ -325,7 +325,9 @@ public final class Xml2JsonTransformer {
 			}
 			if (anyLevel == level--) {
 				anyLevel = -1;
-				xsomHelper.endAny();
+				if (xsomHelper.getComplexType() != _schemaSet.getAnyType()) {
+					xsomHelper.endAny();
+				}
 			}
 			primitiveType = null;
 			_builder.setLength(0);
@@ -351,6 +353,9 @@ public final class Xml2JsonTransformer {
 						throw new SAXException("A complex element being nil should not have additional attributes");
 					}
 					primitiveType = "nil";
+					if (complex) {
+						xsomHelper.endComplex();
+					}
 				}
 			}
 		}

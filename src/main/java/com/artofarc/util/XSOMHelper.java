@@ -58,7 +58,7 @@ public final class XSOMHelper {
 				pos = 0;
 			}
 		}
-		
+
 		void found() {
 			count = 0;
 		}
@@ -502,7 +502,7 @@ public final class XSOMHelper {
 	}
 
 	public void repeatElement() {
-		--_currentGroup.pos;
+		if (_currentGroup.pos > 0) --_currentGroup.pos;
 	}
 
 	public void startArray() {
@@ -532,8 +532,8 @@ public final class XSOMHelper {
 		if (_nextGroup != null) {
 			_nextGroup = null;
 		} else {
-			Entry<String, ArrayDeque<Group>> context = _stack.pop();
-			context = _stack.peek();
+			_stack.poll();
+			Entry<String, ArrayDeque<Group>> context = _stack.peek();
 			if (context != null) {
 				_currentGroup = context.getValue().poll();
 			}

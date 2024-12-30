@@ -31,6 +31,7 @@ import javax.xml.namespace.QName;
 import org.xml.sax.InputSource;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.AttributesImpl;
 
 import com.artofarc.util.JsonFactoryHelper;
@@ -193,12 +194,12 @@ public final class Json2XmlTransformer {
 		final ArrayDeque<Element> _objects = new ArrayDeque<>();
 		final ArrayDeque<Element> _arrays = new ArrayDeque<>();
 
+		Source source;
 		boolean attribute, simpleContent, simpleList, union;
 
 		@Override
 		public void parse(InputSource inputSource) throws SAXException {
-			final Source source = new Source(inputSource);
-			setDocumentLocator(source);
+			setDocumentLocator(source = new Source(inputSource));
 			startDocument();
 			try (final JsonParser jsonParser = source.jsonParser) {
 				Element e = null;
@@ -244,7 +245,7 @@ public final class Json2XmlTransformer {
 									}
 								} else {
 									if (xsomHelper.getComplexType() == null) {
-										throw new SAXException("Expected complex type: " + new QName(uri, keyName));
+										throw new SAXParseException("Expected complex type: " + new QName(uri, keyName), source);
 									}
 									simpleContent = xsomHelper.getSimpleType() != null;
 								}
@@ -312,7 +313,7 @@ public final class Json2XmlTransformer {
 									uri = term.apply(XSOMHelper.GetNamespace);
 									term = xsomHelper.matchElement(uri, keyName);
 								} else {
-									throw new SAXException("Array not expected for " + keyName);
+									throw new SAXParseException("Array not expected for " + keyName, source);
 								}
 							}
 							e = new Element(uri, keyName, createQName(uri, keyName));
@@ -391,6 +392,7 @@ public final class Json2XmlTransformer {
 					}
 				}
 			}
+			source = null;
 			endDocument();
 		}
 
@@ -438,12 +440,12 @@ public final class Json2XmlTransformer {
 								simpleList = xsomHelper.isListSimpleType();
 							}
 						} else if (value != null) {
-							throw new SAXException("Expected simple type: " + e.qName);
+							throw new SAXParseException("Expected simple type: " + e.qName, source);
 						}
 					}
 					if (value != null) {
 						if (union || any >= 0 && type != null) {
-							if (union || any == _objects.size()) {
+							if (union || any <= _objects.size()) {
 								startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 							}
 							if (simpleList) {
@@ -464,24 +466,20 @@ public final class Json2XmlTransformer {
 						endElement(e.uri, e.localName, e.qName);
 						if (union || any >= 0 && type != null) {
 							_atts.clear();
-							if (union || any == _objects.size()) {
+							if (union || any <= _objects.size()) {
 								endPrefixMapping("xsd");
 								endPrefixMapping("xsi");
 							}
 						}
 					} else if (any >= 0 || term.asElementDecl().isNillable()) {
-						if (any < 0 || _objects.size() == any) {
-							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
-						}
+						startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 						_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil", "xsi:nil", "CDATA", "true");
 						startElement(e.uri, e.localName, e.qName, _atts);
 						endElement(e.uri, e.localName, e.qName);
 						_atts.clear();
-						if (any < 0) {
-							endPrefixMapping("xsi");
-							if (xsomHelper.getComplexType() != null) {
-								xsomHelper.endComplex();
-							}
+						endPrefixMapping("xsi");
+						if (any < 0 && xsomHelper.getComplexType() != null) {
+							xsomHelper.endComplex();
 						}
 					}
 					if (!xsomHelper.isInArray()) {
@@ -562,7 +560,7 @@ public final class Json2XmlTransformer {
 				String key = iter.next();
 				if (key.startsWith(attributePrefix)) {
 					keyName = key.substring(attributePrefix.length());
-					addAttribute(getString(jsonMap.get(key)));
+					addAttribute(asString(jsonMap.get(key)));
 					iter.remove();
 				}
 			}
@@ -587,9 +585,7 @@ public final class Json2XmlTransformer {
 					}
 					if (xsomHelper.isLastElementAny()) {
 						// map any element not mapped before
-						if (++any == 0) {
-							startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);							
-						}
+						++any;
 						for (String key : new ArrayList<>(jsonMap.keySet())) {
 							uri = null;
 							final JsonValue jsonValue = removeJsonValue(jsonMap, key);
@@ -599,9 +595,9 @@ public final class Json2XmlTransformer {
 							parse(new Element(uri, key, createQName(uri, key)), jsonValue);
 						}
 						if (--any < 0) {
-							endPrefixMapping("xsi");
+							xsomHelper.endAny();
 						}
-						xsomHelper.endAny();
+						if (jsonMap.isEmpty()) break;
 					} else {
 						uri = null;
 						keyName = term.apply(XSOMHelper.GetName);
@@ -661,7 +657,7 @@ public final class Json2XmlTransformer {
 						String value = null;
 						primitiveType = null;
 						if (jsonArray.size() > 0) {
-							value = getString(jsonArray.get(0));
+							value = asString(jsonArray.get(0));
 							if (primitiveType == null) {
 								primitiveType = "string";
 							}
@@ -683,7 +679,7 @@ public final class Json2XmlTransformer {
 							characters(value);
 							for (int i = 1; i < jsonArray.size(); ++i) {
 								characters(WHITESPACE, 0, 1);
-								characters(getString(jsonArray.get(i)));
+								characters(asString(jsonArray.get(i)));
 							}
 						}
 						endElement(e.uri, e.localName, e.qName);
@@ -727,26 +723,20 @@ public final class Json2XmlTransformer {
 				xsomHelper.discardArray();
 				break;
 			case NULL:
-				if (any < 0) {
-					startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
-				}
+				startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 				_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "nil", "xsi:nil", "CDATA", "true");
 				startElement(e.uri, e.localName, e.qName, _atts);
 				endElement(e.uri, e.localName, e.qName);
 				_atts.clear();
-				if (any < 0) {
-					endPrefixMapping("xsi");
-				}
-				if (simpleType == null) {
+				endPrefixMapping("xsi");
+				if (any < 0 && simpleType == null) {
 					xsomHelper.endComplex();
 				}
 				break;
 			default:
-				final String value = getString(jsonValue);
+				final String value = asString(jsonValue);
 				if (union || any >= 0 && primitiveType != null) {
-					if (any < 0) {
-						startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
-					}
+					startPrefixMapping("xsi", XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
 					startPrefixMapping("xsd", XMLConstants.W3C_XML_SCHEMA_NS_URI);
 					_atts.addAttribute(XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI, "type", "xsi:type", "CDATA", primitiveType != null ? "xsd:" + primitiveType : "xsd:string");
 				}
@@ -756,9 +746,7 @@ public final class Json2XmlTransformer {
 				if (union || any >= 0 && primitiveType != null) {
 					_atts.clear();
 					endPrefixMapping("xsd");
-					if (any < 0) {
-						endPrefixMapping("xsi");
-					}
+					endPrefixMapping("xsi");
 				}
 				break;
 			}
@@ -781,7 +769,7 @@ public final class Json2XmlTransformer {
 			return jsonValue;
 		}
 
-		private String getString(JsonValue jsonValue) {
+		private String asString(JsonValue jsonValue) {
 			switch(jsonValue.getValueType()) {
 			case STRING:
 				JsonString jsonString = (JsonString) jsonValue;
@@ -807,5 +795,5 @@ public final class Json2XmlTransformer {
 			}
 		}
 	}
-	
+
 }

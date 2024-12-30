@@ -76,7 +76,7 @@ public class AdtHelper implements InvocationHandler {
 	public static void parseAdtMessage(Message adtMessage, JDBC2XMLMapper mapper, Context context, ESBMessage message) throws Exception {
 		try {
 			Object data = ReflectionUtils.invoke(adtMessage.getClass().getMethod("getAdtPayload"), JMSException.class, adtMessage);
-			Struct struct = ReflectionUtils.invoke(data.getClass().getMethod("toDatum", Connection.class), JMSException.class, data, (Connection) null);
+			Struct struct = ReflectionUtils.invoke(data.getClass().getMethod("toDatum", Connection.class), SQLException.class, data, (Connection) null);
 			//message.putVariable(com.artofarc.esb.message.ESBConstants.JMSType, struct.getSQLTypeName());
 			message.materializeBodyFromSource(context, mapper.createSAXSource(context, struct));
 		} catch (NoSuchMethodException e) {
