@@ -17,7 +17,6 @@ package com.artofarc.esb.http;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.ConnectException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -62,7 +61,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 		for (int retryCount = httpEndpoint.getRetries();;) {
 			int pos = computeNextPos(httpEndpoint);
 			if (pos < 0) {
-				throw new ConnectException("No active url for " + httpEndpoint.getName());
+				throw new HttpCheckAlive.ConnectException("No active url for " + httpEndpoint.getName());
 			}
 			URI uri = new URI(httpEndpoint.getHttpUrls().get(pos).getUrlStr() + appendUrl);
 			// check whether server is willing to respond (before sending data)
@@ -104,7 +103,7 @@ public final class Http2UrlSelector extends HttpUrlSelector {
 
 		int pos = computeNextPos(httpEndpoint);
 		if (pos < 0) {
-			fn.accept(null, new ConnectException("No active url for " + httpEndpoint.getName()));
+			fn.accept(null, new HttpCheckAlive.ConnectException("No active url for " + httpEndpoint.getName()));
 			return;
 		}
 		String urlStr = httpEndpoint.getHttpUrls().get(pos).getUrlStr();

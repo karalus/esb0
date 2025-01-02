@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 public class HttpCheckAlive {
 
-	protected Integer _retryAfter; 
+	protected Integer _retryAfter;
 
 	@Override
 	public boolean equals(Object obj) {

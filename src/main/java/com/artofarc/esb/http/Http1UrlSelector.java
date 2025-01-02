@@ -18,7 +18,6 @@ package com.artofarc.esb.http;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Collection;
@@ -116,7 +115,7 @@ public final class Http1UrlSelector extends HttpUrlSelector {
 		for (int retryCount = httpEndpoint.getRetries();;) {
 			int pos = computeNextPos(httpEndpoint);
 			if (pos < 0) {
-				throw new ConnectException("No active url for " + httpEndpoint.getName());
+				throw new HttpCheckAlive.ConnectException("No active url for " + httpEndpoint.getName());
 			}
 			HttpUrl httpUrl = httpEndpoint.getHttpUrls().get(pos);
 			URL url = appendUrl != null && appendUrl.length() > 0 ? new URL(httpUrl.getUrlStr() + appendUrl) : httpUrl.getURL();
