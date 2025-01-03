@@ -131,7 +131,7 @@ public final class MimeHelper {
 					}
 					boolean binary = value instanceof byte[];
 					part = new MimeBodyPart(headers, binary ? (byte[]) value : value != null ? value.toString().getBytes(ESBMessage.CHARSET_DEFAULT) : null);
-					setDisposition(part, "form-data", name, message.getVariable(ESBConstants.filename, binary ? name : null));
+					setDisposition(part, "form-data", name, binary ? message.getVariable(ESBConstants.filename, name) : null);
 				}
 				mmp.addBodyPart(part);
 			}
@@ -155,7 +155,7 @@ public final class MimeHelper {
 					multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + mediaType + '"';
 					multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + mediaType + '"';
 				}
-				mmp = new MimeMultipart(multipartSubtype); 
+				mmp = new MimeMultipart(multipartSubtype);
 				part = createMimeBodyPart(ROOTPART, multipartContentType, body, null);
 			} else {
 				mmp = new MimeMultipart(multipartSubtype);
