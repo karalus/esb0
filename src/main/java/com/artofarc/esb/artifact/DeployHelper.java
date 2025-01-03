@@ -16,6 +16,7 @@
 package com.artofarc.esb.artifact;
 
 import java.util.Collection;
+import java.util.HashSet;
 
 import com.artofarc.esb.ConsumerPort;
 import com.artofarc.esb.FileWatchEventConsumer;
@@ -25,6 +26,7 @@ import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.context.WorkerPool;
 import com.artofarc.esb.jms.JMSConsumer;
 import com.artofarc.esb.jms.JMSConsumerGroup;
+import com.artofarc.esb.resource.LRUCacheWithExpirationFactory;
 import com.artofarc.esb.servlet.HttpConsumer;
 import com.artofarc.util.Closer;
 import com.artofarc.util.DataStructures;
@@ -109,6 +111,7 @@ public final class DeployHelper {
 				}
 			});
 		});
+		HashSet<String> usedCaches = new HashSet<>();
 		for (WorkerPoolArtifact workerPoolArtifact : changeSet.getWorkerPoolArtifacts()) {
 			String name = IOUtils.stripExt(workerPoolArtifact.getURI());
 			com.artofarc.esb.service.WorkerPool wpDef = workerPoolArtifact.getWorkerPool();
@@ -221,10 +224,22 @@ public final class DeployHelper {
 				}
 				break;
 			}
+			if (oldConsumerPort != null) {
+				usedCaches.addAll(oldConsumerPort.getUsedCaches());
+			}
 		}
 		closer.submit();
 		// to obtain log when finished
 		closer.closeAsyncUnattended(closer);
+		// invalidate used caches
+		@SuppressWarnings("unchecked")
+		LRUCacheWithExpirationFactory<Object, Object[]> factory = globalContext.getResourceFactory(LRUCacheWithExpirationFactory.class);
+		for (String cacheName : usedCaches) {
+			LRUCacheWithExpirationFactory<Object, Object[]>.Cache cache = factory.peekResource(cacheName);
+			if (cache != null) {
+				cache.clear();
+			}
+		}
 	}
 
 	public static void createAdminService(GlobalContext globalContext, String path) throws Exception {

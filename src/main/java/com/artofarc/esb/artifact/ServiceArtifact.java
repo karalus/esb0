@@ -70,6 +70,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 	// only used during validation
 	private HashMap<String, List<Action>> _actionPipelines;
 	private XMLProcessorFactory _xmlProcessorFactory;
+	private HashSet<String> _usedCaches;
 
 	public ServiceArtifact(FileSystem fileSystem, Directory parent, String name) {
 		super(fileSystem, parent, name);
@@ -109,8 +110,9 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		Service service = unmarshal(globalContext);
+		_actionPipelines = new HashMap<>();
+		_usedCaches = new HashSet<>();
 		try {
-			_actionPipelines = new HashMap<>();
 			for (ActionPipeline actionPipeline : service.getActionPipeline()) {
 				_actionPipelines.put(actionPipeline.getName(), transform(globalContext, actionPipeline.getAction(), actionPipeline.getErrorHandler()));
 			}
@@ -179,10 +181,12 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			}
 			_consumerPort.setStartAction(_consumerPort.setServiceFlow(list));
+			_consumerPort.setUsedCaches(_usedCaches.isEmpty() ? Collections.emptySet() : _usedCaches);
 			_consumerPort.setEnabled(service.isEnabled());
 		} finally {
 			_actionPipelines = null;
 			_xmlProcessorFactory = null;
+			_usedCaches = null;
 		}
 	}
 
@@ -511,6 +515,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			Cache cache = (Cache) actionElement.getValue();
 			addAction(list, new CacheAction(globalContext, cache.getKey(), cache.isNullable(), cache.getValue(),
 				Action.linkList(transform(globalContext, cache.getAction(), null)), cache.isWriteOnly(), cache.getName(), cache.getMaxSize(), cache.getTtl()), location);
+			_usedCaches.add(cache.getName());
 			break;
 		case "uncache":
 			Uncache uncache = (Uncache) actionElement.getValue();

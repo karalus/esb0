@@ -16,6 +16,7 @@
 package com.artofarc.esb;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.management.ObjectName;
@@ -35,6 +36,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	private final String _uri;
 	private List<Action> _serviceFlow;
 	protected Action _startAction;
+	private Set<String> _usedCaches;
 	private volatile boolean _enabled = true;
 	protected final AtomicLong _completedTaskCount = new AtomicLong();
 	private final Trend _timeConsumed = new Trend(10L);
@@ -81,6 +83,14 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 
 	public void setStartAction(Action action) {
 		_startAction = action;
+	}
+
+	public Set<String> getUsedCaches() {
+		return _usedCaches;
+	}
+
+	public void setUsedCaches(Set<String> usedCaches) {
+		this._usedCaches = usedCaches;
 	}
 
 	public final long process(Context context, ESBMessage message) throws Exception {
@@ -130,15 +140,9 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 	public void close() throws Exception {
 	}
 
-	/**
-	 * MBean und spezial Map
-	 */
 	public void bind(Registry registry) {
 	}
 
-	/**
-	 * MBean und spezial Map
-	 */
 	public void unbind(Registry registry) {
 	}
 
