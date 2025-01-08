@@ -327,6 +327,10 @@ public final class JsonSchemaGenerator {
 						jsonGenerator.write("maximum", new BigDecimal(facetMaxinclusive.getValue().value));
 					}
 				}
+				XSFacet fractionDigits = simpleType.getFacet(XSFacet.FACET_FRACTIONDIGITS);
+				if (fractionDigits != null) {
+					jsonGenerator.write("multipleOf", BigDecimal.valueOf(1L, Integer.parseInt(fractionDigits.getValue().value)));
+				}
 			}
 			List<XSFacet> facets = simpleType.getFacets(XSFacet.FACET_ENUMERATION);
 			if (facets.size() > 0) {
