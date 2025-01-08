@@ -66,7 +66,7 @@ public class XMLFilterBase extends XMLFilterImpl {
 		}
 	}
 
-	public final void characters(String str) throws SAXException {
+	protected final void characters(String str) throws SAXException {
 		final int len = str.length();
 		if (len > 0) {
 			final char[] ch = str.toCharArray();

@@ -36,22 +36,17 @@ public abstract class XMLParserBase extends XMLFilterBase {
 		_stack.push(defaultNsUri != null ? defaultNsUri : XMLConstants.NULL_NS_URI);
 	}
 
-	public final String getDefaultUri() {
+	protected final String getDefaultUri() {
 		return _stack.peek();
 	}
 
-	protected final String getPrefix(String namespaceURI) {
-		return _namespaceMap != null ? _namespaceMap.getPrefix(namespaceURI) : null;
+	protected final String getPrefix(String uri) {
+		return _namespaceMap != null ? _namespaceMap.getPrefix(uri) : null;
 	}
 
-	public final String createQName(String uri, String localName) {
-		if (_namespaceMap != null) {
-			String prefix = _namespaceMap.getPrefix(uri);
-			if (prefix != null && prefix.length() > 0) {
-				return prefix + ':' + localName;
-			}
-		}
-		return localName;
+	protected final String createQName(String uri, String localName) {
+		String prefix = getPrefix(uri);
+		return prefix != null && prefix.length() > 0 ? prefix + ':' + localName : localName;
 	}
 
 	public static String getPrefixFromQName(String qName) {
