@@ -35,70 +35,51 @@ import com.artofarc.util.WeakCache;
 public class HttpConstants {
 
 	public static final String HTTP_HEADER_ACCEPT = "Accept";
-
 	public static final String HTTP_HEADER_ACCEPT_CHARSET = "Accept-Charset";
-
 	public static final String HTTP_HEADER_ACCEPT_ENCODING = "Accept-Encoding";
-
 	public static final String HTTP_HEADER_VARY = "Vary";
-
 	public static final String HTTP_HEADER_TRANSFER_ENCODING = "Transfer-Encoding";
-
 	public static final String HTTP_HEADER_CONTENT_LENGTH = "Content-Length";
-
 	public static final String HTTP_HEADER_CONTENT_ENCODING = "Content-Encoding";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE = "Content-Type";
-
 	public static final String HTTP_HEADER_CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
-
 	public static final String HTTP_HEADER_CONTENT_DISPOSITION = "Content-Disposition";
+	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
+	public static final String HTTP_HEADER_RETRY_AFTER = "Retry-After";
+	public static final String HTTP_HEADER_AUTHORIZATION = "Authorization";
+	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
+	public static final String HTTP_HEADER_X_METHOD_OVERRIDE = "X-HTTP-Method-Override";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_TEXT = "text/plain";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_XML = "application/xml";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_JSON = "application/json";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_SOAP11 = "text/xml";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_SOAP12 = "application/soap+xml";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 = "application/fastinfoset";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_FI_SOAP12 = "application/soap+fastinfoset";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_CHARSET = "charset=";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_ACTION = "action=";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_START = "start=";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO = "start-info=";
-
 	public static final String HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE = "type=";
 
-	public static final String HTTP_HEADER_CONTENT_PARAMETER_NAME = "name=";
-
-	public static final String HTTP_HEADER_CONTENT_PARAMETER_FILENAME = "filename=";
-
-	public static final String HTTP_HEADER_SOAP_ACTION = "SOAPAction";
-
-	public static final String HTTP_HEADER_RETRY_AFTER = "Retry-After";
-
-	public static final String HTTP_HEADER_AUTHORIZATION = "Authorization";
-
-	public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
-
-	public static final String HTTP_HEADER_X_METHOD_OVERRIDE = "X-HTTP-Method-Override";
+	public static final String HTTP_HEADER_CONTENT_DISPOSITION_PARAMETER_NAME = "name=";
+	public static final String HTTP_HEADER_CONTENT_DISPOSITION_PARAMETER_FILENAME = "filename=";
 
 	public static final String MEDIATYPE_APPLICATION = "application/";
-
 	public static final String MEDIATYPE_TEXT = "text/";
-
 	public static final String MEDIATYPE_MULTIPART = "multipart/";
+
+	public static final int SC_NO_CONTENT = 204;
+	public static final int SC_BAD_REQUEST = 400;
+	public static final int SC_NOT_FOUND = 404;
+	public static final int SC_METHOD_NOT_ALLOWED = 405;
+	public static final int SC_NOT_ACCEPTABLE = 406;
+	public static final int SC_UNSUPPORTED_MEDIA_TYPE = 415;
+	public static final int SC_INTERNAL_SERVER_ERROR = 500;
+	public static final int SC_GATEWAY_TIMEOUT = 504;
 
 	private static int findNextDelim(String s, int i) {
 		for (; i < s.length(); ++i) {
@@ -186,7 +167,7 @@ public class HttpConstants {
 			i = filename.indexOf('\'', i + 1);
 			return URLDecoder.decode(filename.substring(i + 1), enc);
 		} else {
-			return getValueFromHttpHeader(contentDisposition, HTTP_HEADER_CONTENT_PARAMETER_FILENAME);
+			return getValueFromHttpHeader(contentDisposition, HTTP_HEADER_CONTENT_DISPOSITION_PARAMETER_FILENAME);
 		}
 	}
 

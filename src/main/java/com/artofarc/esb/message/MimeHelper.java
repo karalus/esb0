@@ -62,15 +62,15 @@ public final class MimeHelper {
 	}
 
 	private static void setDisposition(MimeBodyPart bodyPart, String type, String name, String filename) throws MessagingException {
-		String disposition = type + "; " + HTTP_HEADER_CONTENT_PARAMETER_NAME + '"' + name + '"';
+		String disposition = type + "; " + HTTP_HEADER_CONTENT_DISPOSITION_PARAMETER_NAME + '"' + name + '"';
 		if (filename != null) {
-			disposition += "; " + HTTP_HEADER_CONTENT_PARAMETER_FILENAME + '"' + filename + '"';
+			disposition += "; " + HTTP_HEADER_CONTENT_DISPOSITION_PARAMETER_FILENAME + '"' + filename + '"';
 		}
 		bodyPart.setHeader(HTTP_HEADER_CONTENT_DISPOSITION, disposition);
 	}
 
 	public static String getDispositionName(MimeBodyPart bodyPart) throws MessagingException {
-		return getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), HTTP_HEADER_CONTENT_PARAMETER_NAME);
+		return getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), HTTP_HEADER_CONTENT_DISPOSITION_PARAMETER_NAME);
 	}
 
 	public static boolean isMimeMultipart(String multipartSubtype, ESBMessage message) {
