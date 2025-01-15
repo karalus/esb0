@@ -21,6 +21,8 @@ import java.io.UnsupportedEncodingException;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.transform.Source;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
@@ -78,6 +80,25 @@ public abstract class SAXAction extends Action {
 		}
 	}
 
+	protected static class DOMFilter extends XMLFilterBase {
+		private final Context _context;
+		private final DOMSource _domSource;
+
+		public DOMFilter(Context context, DOMSource domSource) {
+			_context = context;
+			_domSource = domSource;
+		}
+
+		@Override
+		public void parse(InputSource source) throws SAXException {
+			try {
+				_context.transformRaw(_domSource, new SAXResult(getContentHandler()));
+			} catch (TransformerException e) {
+				throw ReflectionUtils.convert(e, SAXException.class);
+			}
+		}
+	}
+
 	public static StreamSource inputSourceToSource(InputSource inputSource) throws UnsupportedEncodingException {
 		StreamSource streamSource = new StreamSource(inputSource.getSystemId());
 		streamSource.setPublicId(inputSource.getPublicId());
@@ -106,6 +127,9 @@ public abstract class SAXAction extends Action {
 		if (source instanceof SAXSource) {
 			SAXSource saxSource = (SAXSource) source;
 			parent = saxSource.getXMLReader();
+		} else if (source instanceof DOMSource) {
+			DOMSource domSource = (DOMSource) source;
+			parent = new DOMFilter(context, domSource);
 		}
 		InputSource inputSource = SAXSource.sourceToInputSource(source);
 		return new SAXSource(createXMLFilter(context, message, parent), inputSource);
