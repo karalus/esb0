@@ -18,6 +18,7 @@ package com.artofarc.esb.action;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.util.function.BiConsumer;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.transform.Source;
@@ -30,6 +31,7 @@ import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQSequence;
 
+import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
@@ -76,6 +78,44 @@ public abstract class SAXAction extends Action {
 				super.parse(input);
 			} finally {
 				_saxParser.reset();
+			}
+		}
+	}
+
+	protected static class ChainingXMLFilter<T extends ContentHandler> extends XMLFilterBase {
+		private final SAXParser _saxParser;
+		private final T _handler;
+		private final BiConsumer<T, ContentHandler> _setter;
+
+		public ChainingXMLFilter(SAXParser saxParser, T handler, BiConsumer<T, ContentHandler> setter) throws SAXException {
+			super(saxParser.getXMLReader());
+			_saxParser = saxParser;
+			super.setContentHandler(_handler = handler);
+			_setter = setter;
+		}
+
+		ChainingXMLFilter(XMLReader parent, T handler, BiConsumer<T, ContentHandler> setter) {
+			super(parent);
+			_saxParser = null;
+			parent.setContentHandler(_handler = handler);
+			_setter = setter;
+		}
+
+		@Override
+		public void setContentHandler(ContentHandler handler) {
+			_setter.accept(_handler, handler);
+		}
+
+		@Override
+		public void parse(InputSource source) throws SAXException, IOException {
+			if (_saxParser != null) {
+				try {
+					super.parse(source);
+				} finally {
+					_saxParser.reset();
+				}
+			} else {
+				getParent().parse(source);
 			}
 		}
 	}
