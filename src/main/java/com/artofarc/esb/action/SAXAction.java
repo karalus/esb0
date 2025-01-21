@@ -94,7 +94,7 @@ public abstract class SAXAction extends Action {
 			_setter = setter;
 		}
 
-		ChainingXMLFilter(XMLReader parent, T handler, BiConsumer<T, ContentHandler> setter) {
+		public ChainingXMLFilter(XMLReader parent, T handler, BiConsumer<T, ContentHandler> setter) {
 			super(parent);
 			_saxParser = null;
 			parent.setContentHandler(_handler = handler);
