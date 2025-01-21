@@ -45,6 +45,7 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 			} else if (!_cids.contains(href.substring(4))) {
 				reportError("Not found in attachments " + href);
 			}
+			getReceiverContentHandler().startElement(uri, localName, qName, atts);
 		} else {
 			super.startElement(uri, localName, qName, atts);
 		}
@@ -53,7 +54,9 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 	@Override
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		typeInfo = null;
-		if (!W3CConstants.isXOPInclude(uri, localName)) {
+		if (W3CConstants.isXOPInclude(uri, localName)) {
+			getReceiverContentHandler().endElement(uri, localName, qName);
+		} else {
 			super.endElement(uri, localName, qName);
 		}
 	}
