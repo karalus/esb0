@@ -483,15 +483,21 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public Reader getBodyAsReader(Context context) throws Exception {
+		StringBuilderWriter sw;
 		switch (_bodyType) {
 		case READER:
 			return (Reader) _body;
 		case INPUT_STREAM:
 			return init(BodyType.READER, getInputStreamReader((InputStream) _body), null);
 		case XQ_ITEM:
-			StringBuilderWriter sw = new StringBuilderWriter();
 			XQItem xqItem = (XQItem) _body;
-			context.writeItem(xqItem, sw, getSinkProperties());
+			context.writeItem(xqItem, sw = new StringBuilderWriter(), getSinkProperties());
+			return sw.getReader();
+		case DOM:
+			_body = new DOMSource((Node) _body);
+			// nobreak
+		case SOURCE:
+			context.transform((Source) _body, new StreamResult(sw = new StringBuilderWriter()), getVariable(ESBConstants.serializationParameters));
 			return sw.getReader();
 		default:
 			return new StringReader(getBodyAsString(context));
