@@ -101,14 +101,7 @@
 							</restriction>
 						</simpleType>
 					</attribute>
-					<attribute name="priority" default="4">
-						<simpleType>
-							<restriction base="int">
-								<minInclusive value="0" />
-								<maxInclusive value="9" />
-							</restriction>
-						</simpleType>
-					</attribute>
+					<attribute name="priority" type="tns:string1" default="4" />
 					<attribute name="timeToLive" default="0">
 						<simpleType>
 							<restriction base="long">

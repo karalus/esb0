@@ -73,7 +73,7 @@ public class JMSAction extends Action {
 	private final String _topicName;
 	private final boolean _isBytesMessage;
 	private final int _deliveryMode;
-	private final int _priority;
+	private final String _priority;
 	private final long _timeToLive;
 	private final String _deliveryDelay, _expiryQueue;
 	private final String _workerPool;
@@ -84,7 +84,7 @@ public class JMSAction extends Action {
 	private final AtomicInteger _pos;
 
 	public JMSAction(GlobalContext globalContext, List<JMSConnectionData> jmsConnectionDataList, boolean activePassive, String jndiDestination, String queueName, String topicName,
-			String workerPool, boolean isBytesMessage, int deliveryMode, int priority, long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue,
+			String workerPool, boolean isBytesMessage, int deliveryMode, String priority, long timeToLive, String deliveryDelay, String expiryQueue, boolean receiveFromTempQueue,
 			String replyQueue, String receiveSelector, String multipartSubtype, String multipart, XSSchemaSet schemaSet) throws NamingException {
 
 		_pipelineStop = true;
@@ -100,7 +100,7 @@ public class JMSAction extends Action {
 		_pos = jmsConnectionDataList.size() > 1 ? new AtomicInteger() : null;
 		_isBytesMessage = isBytesMessage;
 		_deliveryMode = deliveryMode;
-		_priority = priority;
+		_priority = priority.intern();
 		_timeToLive = timeToLive;
 		_deliveryDelay = deliveryDelay;
 		_expiryQueue = expiryQueue;
@@ -251,6 +251,7 @@ public class JMSAction extends Action {
 	}
 
 	private void send(Context context, ESBMessage message, JMSSession jmsSession, Message jmsMessage) throws Exception {
+		int priority = Integer.parseInt(Character.isDigit(_priority.charAt(0)) ? _priority : message.getVariable(_priority, "4"));
 		long timeLeft = message.getTimeleft(60000L).longValue();
 		long timeToLive = _timeToLive;
 		Long jmsExpiration = message.getVariable(ESBConstants.JMSExpiration);
@@ -263,7 +264,7 @@ public class JMSAction extends Action {
 		Destination destination = _destination != null ? _destination : getDestination(message, jmsSession);
 		if (_receiveFromTempQueue) {
 			jmsMessage.setJMSReplyTo(jmsSession.getTemporaryQueue());
-			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
+			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, priority, timeToLive);
 			context.getTimeGauge().stopTimeMeasurement("JMS send", true);
 			Message replyMessage = jmsSession.getConsumerForTemporaryQueue().receive(timeLeft);
 			context.getTimeGauge().stopTimeMeasurement("JMS receive", false);
@@ -272,7 +273,7 @@ public class JMSAction extends Action {
 			}
 			JMSConsumer.fillESBMessage(context, message, replyMessage);
 		} else if (_replyQueue != null) {
-			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, _priority, timeToLive);
+			jmsSession.createProducer(destination).send(jmsMessage, _deliveryMode, priority, timeToLive);
 			context.getTimeGauge().stopTimeMeasurement("JMS send", true);
 			message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
 			final Session session = jmsSession.getSession();
@@ -293,7 +294,7 @@ public class JMSAction extends Action {
 			Destination replyTo = message.getVariable(ESBConstants.JMSReplyTo);
 			if (replyTo != null) {
 				MessageProducer producer = jmsSession.createProducer(null);
-				producer.send(replyTo, jmsMessage, _deliveryMode, _priority, timeToLive);
+				producer.send(replyTo, jmsMessage, _deliveryMode, priority, timeToLive);
 				message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
 			} else if (destination != null) {
 				MessageProducer producer = jmsSession.createProducer(destination);
@@ -322,9 +323,9 @@ public class JMSAction extends Action {
 					JMSCompletionListener completionListener = new JMSCompletionListener(workerPool);
 					asyncProcessingPool.saveContext(completionListener, _nextAction, DataStructures.moveToNewList(context.getExecutionStack()),
 							context.getStackErrorHandler(), context.getStackPos(), message.getVariables(), System.currentTimeMillis() + timeLeft);
-					completionListener.send(producer, jmsMessage, _deliveryMode, _priority, timeToLive);
+					completionListener.send(producer, jmsMessage, _deliveryMode, priority, timeToLive);
 				} else {
-					jmsSession.send(producer, jmsMessage, _deliveryMode, _priority, timeToLive);
+					jmsSession.send(producer, jmsMessage, _deliveryMode, priority, timeToLive);
 					message.putVariable(ESBConstants.JMSMessageID, jmsMessage.getJMSMessageID());
 				}
 			} else {
@@ -343,7 +344,7 @@ public class JMSAction extends Action {
 		String queueName = message.getVariable(ESBConstants.QueueName);
 		if (queueName != null) {
 			return jmsSession.createQueue(queueName);
-		}			
+		}
 		String topicName = message.getVariable(ESBConstants.TopicName);
 		if (topicName != null) {
 			return jmsSession.createTopic(topicName);
