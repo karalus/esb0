@@ -161,7 +161,7 @@ public abstract class JDBCAction extends Action {
 						case BLOB:
 							Blob blob = connection.createBlob();
 							message.reset(BodyType.OUTPUT_STREAM, blob.setBinaryStream(1L));
-							message.setCharset(message.getSinkEncoding());						
+							message.setCharset(message.getSinkEncoding());
 							execContext.setResource3(blob);
 							break;
 						case STRUCT:
@@ -184,7 +184,7 @@ public abstract class JDBCAction extends Action {
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		String sql = (String) eval(_sql != null ? _sql : execContext.getResource3(), context, message); 
+		String sql = (String) eval(_sql != null ? _sql : execContext.getResource3(), context, message);
 		logger.debug("JDBCAction sql={}", sql);
 		if (sql.length() > 0) {
 			try (JDBCResult result = executeStatement(context, execContext, message, sql)) {
@@ -254,6 +254,7 @@ public abstract class JDBCAction extends Action {
 							ps.setNull(param.getPos(), CLOB);
 						} else {
 							ps.setCharacterStream(param.getPos(), message.getBodyAsReader(context));
+							message.reset(BodyType.INVALID, null);
 						}
 					}
 					break;
@@ -270,6 +271,7 @@ public abstract class JDBCAction extends Action {
 							ps.setNull(param.getPos(), BLOB);
 						} else {
 							ps.setBinaryStream(param.getPos(), message.getBodyAsInputStream(context));
+							message.reset(BodyType.INVALID, null);
 						}
 					}
 					break;

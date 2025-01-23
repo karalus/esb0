@@ -500,7 +500,7 @@ public final class ESBMessage implements Cloneable {
 			// nobreak
 		case SOURCE:
 			context.transform((Source) _body, new StreamResult(sw = new StringBuilderWriter()), getVariable(ESBConstants.serializationParameters));
-			return sw.getReader();
+			return init(BodyType.READER, sw.getReader(), null);
 		default:
 			return new StringReader(getBodyAsString(context));
 		}
@@ -716,6 +716,7 @@ public final class ESBMessage implements Cloneable {
 			break;
 		default:
 			Source source = getBodyAsSource(context);
+			init(BodyType.INVALID, null, null);
 			if (source instanceof SAXSource) {
 				SAXSource saxSource = (SAXSource) source;
 				XMLReader xmlReader = saxSource.getXMLReader();
@@ -737,6 +738,7 @@ public final class ESBMessage implements Cloneable {
 			result.setNode(xqItem.getNode());
 		} else {
 			context.transformRaw(getBodyAsSource(context), result);
+			init(BodyType.INVALID, null, null);
 		}
 	}
 
