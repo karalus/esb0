@@ -466,16 +466,18 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	/**
-	 * @param context Can be null if we don't expect BodyType DOM
+	 * @param context Can be null if we don't expect BodyType DOM or SOURCE
 	 */
 	public InputStream getBodyAsInputStream(Context context) throws Exception {
 		switch (_bodyType) {
 		case INPUT_STREAM:
 			return getUncompressedInputStream((InputStream) _body);
+		case DOM:
+		case SOURCE:
+		case JSON_VALUE:
 		case XQ_ITEM:
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			XQItem xqItem = (XQItem) _body;
-			context.writeItem(xqItem, bos, getSinkProperties());
+			writeRawTo(bos, context);
 			return init(BodyType.INPUT_STREAM, bos.getByteArrayInputStream(), _sinkEncoding);
 		default:
 			return new ByteArrayInputStream(getBodyAsByteArray(context));
