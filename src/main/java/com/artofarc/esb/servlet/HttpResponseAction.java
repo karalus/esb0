@@ -152,16 +152,15 @@ public class HttpResponseAction extends Action {
 	}
 
 	private static void checkCompression(ESBMessage message, boolean inPipeline) throws Exception {
+		message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
 			Long length = message.getLength();
 			if (inPipeline || length == null && !message.isEmpty() || length != null && length > thresholdCompression || message.getContentEncoding() != null) {
 				if (isAcceptable(acceptEncoding, "gzip")) {
 					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
-					message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
 				} else if (isAcceptable(acceptEncoding, "deflate")) {
 					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "deflate");
-					message.addHeader(HTTP_HEADER_VARY, HTTP_HEADER_ACCEPT_ENCODING);
 				}
 			}
 		}
