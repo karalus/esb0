@@ -340,8 +340,10 @@ public final class ESBMessage implements Cloneable {
 			} else {
 				switch (contentEncoding) {
 				case "gzip":
+					setContentEncoding("gzip");
 					return new GZIPOutputStream(outputStream, IOUtils.MTU);
 				case "deflate":
+					setContentEncoding("deflate");
 					return new DeflaterOutputStream(outputStream);
 				default:
 					throw new IOException("Content-Encoding not supported: " + contentEncoding);
