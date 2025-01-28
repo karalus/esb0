@@ -99,7 +99,7 @@ public class HttpResponseAction extends Action {
 				}
 				// prevent flushing to avoid "transfer encoding chunked" on small responses
 				if (inPipeline) {
-					message.reset(BodyType.OUTPUT_STREAM, message.getCompressedOutputStream(new IOUtils.PreventFlushOutputStream(response.getOutputStream())));
+					message.reset(BodyType.OUTPUT_STREAM, message.getCompressedOutputStream(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), true));
 				} else if (message.getBodyType() != BodyType.INVALID) {
 					Long contentLength = message.getLengthExact();
 					if (contentLength == null) {

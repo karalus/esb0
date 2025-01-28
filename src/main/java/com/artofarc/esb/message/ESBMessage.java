@@ -332,7 +332,7 @@ public final class ESBMessage implements Cloneable {
 		return contentEncoding != null && !contentEncoding.equals(getContentEncoding());
 	}
 
-	public OutputStream getCompressedOutputStream(OutputStream outputStream) throws IOException {
+	public OutputStream getCompressedOutputStream(OutputStream outputStream, boolean isSink) throws IOException {
 		final String contentEncoding = getHeader(HTTP_HEADER_CONTENT_ENCODING);
 		if (contentEncoding != null) {
 			if (contentEncoding.equals(getContentEncoding()) && !isSinkEncodingdifferent()) {
@@ -340,10 +340,14 @@ public final class ESBMessage implements Cloneable {
 			} else {
 				switch (contentEncoding) {
 				case "gzip":
-					setContentEncoding("gzip");
+					if (isSink) {
+						setContentEncoding("gzip");
+					}
 					return new GZIPOutputStream(outputStream, IOUtils.MTU);
 				case "deflate":
-					setContentEncoding("deflate");
+					if (isSink) {
+						setContentEncoding("deflate");
+					}
 					return new DeflaterOutputStream(outputStream);
 				default:
 					throw new IOException("Content-Encoding not supported: " + contentEncoding);
@@ -670,7 +674,7 @@ public final class ESBMessage implements Cloneable {
 				throw new IllegalStateException("Message cannot be converted to FastInfoset: " + _bodyType);
 			}
 			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
-			init(BodyType.RESULT, new SAXResult(serializer.getContentHandler(getCompressedOutputStream((OutputStream) _body), getSinkEncoding())), null);
+			init(BodyType.RESULT, new SAXResult(serializer.getContentHandler(getCompressedOutputStream((OutputStream) _body, true), getSinkEncoding())), null);
 			setContentType(contentType);
 		}
 	}
@@ -681,7 +685,7 @@ public final class ESBMessage implements Cloneable {
 		case RESULT:
 			return (Result) _body;
 		case OUTPUT_STREAM:
-			_body = getCompressedOutputStream((OutputStream) _body);
+			_body = getCompressedOutputStream((OutputStream) _body, true);
 			if (isSinkEncodingdifferent()) {
 				init(BodyType.WRITER, new OutputStreamWriter((OutputStream) _body, _sinkEncoding), null);
 				// nobreak
@@ -698,7 +702,7 @@ public final class ESBMessage implements Cloneable {
 	public JsonGenerator createJsonGeneratorFromBodyAsSink() throws IOException {
 		switch (_bodyType) {
 		case OUTPUT_STREAM:
-			_body = getCompressedOutputStream((OutputStream) _body);
+			_body = getCompressedOutputStream((OutputStream) _body, true);
 			return JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator((OutputStream) _body, getSinkEncodingCharset());
 		case WRITER:
 			return JsonFactoryHelper.JSON_GENERATOR_FACTORY.createGenerator((Writer) _body);
@@ -745,7 +749,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void writeTo(OutputStream os, Context context) throws Exception {
-		os = getCompressedOutputStream(os);
+		os = getCompressedOutputStream(os, false);
 		if (isFastInfoset(getHeader(HTTP_HEADER_CONTENT_TYPE))) {
 			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
 			writeToSAX(serializer.getContentHandler(os, getSinkEncoding()), context);
@@ -830,7 +834,7 @@ public final class ESBMessage implements Cloneable {
 			xqItem.writeItemToResult((Result) _body);
 			break;
 		case OUTPUT_STREAM:
-			_body = getCompressedOutputStream((OutputStream) _body);
+			_body = getCompressedOutputStream((OutputStream) _body, true);
 			context.writeItem(xqItem, (OutputStream) _body, getSinkProperties());
 			break;
 		case WRITER:
