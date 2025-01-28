@@ -287,7 +287,7 @@ public abstract class FileSystem {
 
 	private void collectFolders(HashSet<String> visited, Directory directory) {
 		for (Artifact artifact : directory.getArtifacts().values()) {
-			if (artifact instanceof ServiceArtifact || artifact instanceof JNDIObjectFactoryArtifact) {
+			if (artifact.isValidated() && (artifact instanceof ServiceArtifact || artifact instanceof JNDIObjectFactoryArtifact)) {
 				collectDownwardDependencies(visited, artifact.getURI());
 			} else if (artifact instanceof Directory) {
 				collectFolders(visited, (Directory) artifact);

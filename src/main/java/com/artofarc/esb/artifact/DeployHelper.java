@@ -51,7 +51,7 @@ public final class DeployHelper {
 	public static void deployChangeSet(GlobalContext globalContext, FileSystem.ChangeSet changeSet) throws ValidationException {
 		Collection<ServiceArtifact> serviceArtifacts = changeSet.getServiceArtifacts();
 		Closer closer = new Closer(globalContext.getDefaultWorkerPool().getExecutorService());
-		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).forEach(service -> {
+		DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).filter(Artifact::isValidated).forEach(service -> {
 			switch (service.getProtocol()) {
 			case HTTP:
 				HttpConsumer httpConsumer = service.getConsumerPort();
