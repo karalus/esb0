@@ -1,6 +1,5 @@
 package com.artofarc.esb.artifact;
 
-import java.io.File;
 import java.io.IOException;
 
 import static org.junit.Assert.*;
@@ -21,11 +20,13 @@ public class FileSystemTest extends AbstractESBTest {
 
    @Test
    public void testFileSystem() throws Exception {
-      FileSystem fileSystem = new FileSystemDir("src/test/resources");
-      fileSystem.init(context.getPoolContext().getGlobalContext());
-      FileSystem clone = fileSystem.copy();
-      assertFalse(fileSystem.getRoot() == clone.getRoot());
-      assertFalse(fileSystem.tidyOut(clone.new ChangeSet()));
+      try (GlobalContext globalContext = new GlobalContext(null)) {
+          DeployHelper.attachFileSystemAndDeploy(globalContext, "src/test/resources");
+          FileSystem fileSystem = globalContext.getFileSystem();
+          FileSystem clone = fileSystem.copy();
+          assertFalse(fileSystem.getRoot() == clone.getRoot());
+          assertFalse(fileSystem.tidyOut(clone.new ChangeSet()));
+       }
    }
    
   @Test
