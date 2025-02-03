@@ -26,6 +26,9 @@ import javax.xml.xquery.XQConstants;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQStaticContext;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.artofarc.util.XMLProcessorFactory;
 import com.saxonica.xqj.SaxonXQDataSource;
 
@@ -36,6 +39,7 @@ import net.sf.saxon.lib.ExtensionFunctionCall;
 import net.sf.saxon.lib.ExtensionFunctionDefinition;
 import net.sf.saxon.lib.FeatureKeys;
 import net.sf.saxon.lib.ModuleURIResolver;
+import net.sf.saxon.lib.StandardLogger;
 import net.sf.saxon.om.Sequence;
 import net.sf.saxon.om.StructuredQName;
 import net.sf.saxon.sxpath.XPathDynamicContext;
@@ -48,6 +52,18 @@ import net.sf.saxon.value.SequenceType;
 import net.sf.saxon.value.StringValue;
 
 public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implements ModuleURIResolver {
+
+	private final static Logger logger = LoggerFactory.getLogger("Saxon");
+	private final static StandardLogger saxonSLF4JLogger = new StandardLogger() {
+
+		@Override
+		public void println(String message, int severity) {
+			// Avoid warnings like "Selected XML parser com.sun.xml.fastinfoset.sax.SAXDocumentParser does not recognize the feature http://apache.org/xml/features/disallow-doctype-decl"
+			if (severity > WARNING) {
+				logger.error(message);
+			}
+		}
+	};
 
 	private final static UUID functionUUID = new UUID();
 	private final static CurrentTimeMillis functionCurrentTimeMillis = new CurrentTimeMillis();
@@ -71,6 +87,7 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 		super(uriResolver);
 		_uriResolver = uriResolver;
 		Configuration configuration = ((TransformerFactoryImpl) _saxTransformerFactory).getConfiguration();
+		configuration.setLogger(saxonSLF4JLogger);
 		if (SECURE_PROCESSING) {
 			secureProcessing(configuration);
 		}
