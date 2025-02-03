@@ -246,8 +246,17 @@ public final class ESBMessage implements Cloneable {
 		_contentType = contentType;
 	}
 
+	public void evaluateContentType() {
+		_contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
+		if (_bodyType.hasCharset()) {
+			setCharset(determineCharset(_contentType));
+		} else {
+			_charset = null;
+		}
+	}
+
 	public boolean prepareContent(Context context) throws Exception {
-		setContentEncoding(removeHeader(HTTP_HEADER_CONTENT_ENCODING));
+		setContentEncoding(getHeader(HTTP_HEADER_CONTENT_ENCODING));
 		String contentType = getHeader(HTTP_HEADER_CONTENT_TYPE);
 		_contentType = MimeHelper.parseContentType(context, this, contentType);
 		if (_bodyType.hasCharset()) {
@@ -592,7 +601,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public boolean isStream() {
-		return _bodyType == BodyType.INPUT_STREAM || _bodyType == BodyType.READER;
+		return _bodyType == BodyType.SOURCE || _bodyType == BodyType.INPUT_STREAM || _bodyType == BodyType.READER;
 	}
 
 	public boolean isEmpty() throws IOException {

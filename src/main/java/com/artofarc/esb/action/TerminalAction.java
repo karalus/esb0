@@ -44,7 +44,7 @@ public abstract class TerminalAction extends Action {
 		if (execContext != null && execContext.getResource() instanceof ByteArrayOutputStream) {
 			ByteArrayOutputStream bos = execContext.getResource();
 			message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
-			message.prepareContent(context);
+			message.evaluateContentType();
 		}
 		execute(context, message);
 	}
