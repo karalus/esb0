@@ -48,6 +48,7 @@ import org.xml.sax.SAXException;
 
 import com.artofarc.esb.action.Action;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.NamespaceBeautifier;
 import com.artofarc.util.TimeGauge;
 import com.artofarc.util.XMLProcessorFactory;
@@ -131,7 +132,7 @@ public final class Context extends AbstractContext {
 
 	public FastInfosetReader getFastInfosetDeserializer() {
 		if (_fastInfosetDeserializer == null) {
-			_fastInfosetDeserializer = new com.sun.xml.fastinfoset.sax.SAXDocumentParser();
+			_fastInfosetDeserializer = new FastInfosetDeserializer();
 		}
 		return _fastInfosetDeserializer;
 	}

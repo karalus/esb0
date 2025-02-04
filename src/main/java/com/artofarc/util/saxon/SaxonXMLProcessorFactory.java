@@ -58,9 +58,16 @@ public final class SaxonXMLProcessorFactory extends XMLProcessorFactory implemen
 
 		@Override
 		public void println(String message, int severity) {
-			// Avoid warnings like "Selected XML parser com.sun.xml.fastinfoset.sax.SAXDocumentParser does not recognize the feature http://apache.org/xml/features/disallow-doctype-decl"
-			if (severity > WARNING) {
+			switch (severity) {
+			case INFO:
+				logger.info(message);
+				break;
+			case WARNING:
+				logger.warn(message);
+				break;
+			default:
 				logger.error(message);
+				break;
 			}
 		}
 	};
