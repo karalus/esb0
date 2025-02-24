@@ -40,7 +40,7 @@ public class HTTPTest extends AbstractESBTest {
       @SuppressWarnings("resource")
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new DumpAction(true, null));
+      action = action.setNextAction(new DumpAction(false, true, null));
       action = action.setNextAction(createHttpAction(url));
       //action = action.setNextAction(createHttpAction("http://localhost:1213/echo"));
       MarkAction markAction = new MarkAction();
@@ -72,7 +72,7 @@ public class HTTPTest extends AbstractESBTest {
       @SuppressWarnings("resource")
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new DumpAction(true, null));
+      action = action.setNextAction(new DumpAction(false, true, null));
       action = action.setNextAction(createHttpAction(url));
       //action = action.setNextAction(createHttpAction("http://localhost:1213/echo"));
       MarkAction markAction = new MarkAction();
@@ -80,6 +80,7 @@ public class HTTPTest extends AbstractESBTest {
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
       message.getVariables().put(ESBConstants.HttpMethod, "POST");
+      message.getVariables().put(ESBConstants.QueryString, "wsdl");
       //message.getVariables().put(ESBConstants.AsyncContext, true);
       message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, SOAPConstants.SOAP_1_1_CONTENT_TYPE);
       //message.putHeader(HttpAction.HTTP_HEADER_SOAP_ACTION, "\"\"");
@@ -200,7 +201,7 @@ public class HTTPTest extends AbstractESBTest {
       @SuppressWarnings("resource")
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new DumpAction(true, null));
+      action = action.setNextAction(new DumpAction(false, true, null));
       action = action.setNextAction(createHttpAction("http://localhost:1213/echo", url));
       //action = action.setNextAction(createHttpAction("http://localhost:1213/echo"));
       MarkAction markAction = new MarkAction();
@@ -233,7 +234,7 @@ public class HTTPTest extends AbstractESBTest {
       @SuppressWarnings("resource")
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new DumpAction(true, null));
+      action = action.setNextAction(new DumpAction(false, true, null));
       action = action.setNextAction(createHttpAction("http://localhost:1213/echo", url));
       //action = action.setNextAction(createHttpAction("http://localhost:1213/echo"));
       MarkAction markAction = new MarkAction();

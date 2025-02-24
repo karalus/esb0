@@ -21,22 +21,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
-import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.XQuerySource;
 
 public class AssignAction extends TransformAction {
 
-	private final boolean _clearHeaders;
-
 	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders) {
-		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	bodyExpr != null, null, contextItem, null);
+		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	bodyExpr != null, null, contextItem, clearHeaders, null);
 		if (contextItem != null && bodyExpr != null) {
 			throw new IllegalArgumentException("when a contextItem is used the body cannot be assigned");
 		}
-		_clearHeaders = clearHeaders;
 	}
 
 	private static XQuerySource createXQuery(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
@@ -104,14 +98,6 @@ public class AssignAction extends TransformAction {
 			}
 		}
 		return result;
-	}
-
-	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		if (_clearHeaders) {
-			message.clearHeaders();
-		}
-		return super.prepare(context, message, inPipeline);
 	}
 
 }

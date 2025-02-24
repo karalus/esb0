@@ -29,14 +29,13 @@ public abstract class TerminalAction extends Action {
 	}
 
 	@Override
-	protected final ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
 		if (inPipeline) {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			message.reset(BodyType.OUTPUT_STREAM, bos);
 			return new ExecutionContext(bos);
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	@Override

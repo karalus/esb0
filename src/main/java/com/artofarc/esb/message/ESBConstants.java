@@ -66,6 +66,8 @@ public interface ESBConstants {
 
 	String xqItem = "http://artofarc.com/esb0/XQJIdentityFilter/xqItem";
 
+	String xqItemKindElement = "xqItemKindElement";
+
 	// SOAP processing concepts
 	String SOAP_ELEMENT_NAME = "soapElementName";
 

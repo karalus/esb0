@@ -20,19 +20,24 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.util.ByteArrayInputStream;
+import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.IOUtils;
+import com.artofarc.util.StringBuilderReader;
 import com.artofarc.util.StringBuilderWriter;
 
 public class DumpAction extends TerminalAction {
 
-	private final boolean _binary;
+	private final boolean _noEffectOnMessage, _binary;
 	private final File _dumpDir;
 
-	public DumpAction(boolean binary, String dumpDir) {
+	public DumpAction(boolean noEffectOnMessage, boolean binary, String dumpDir) {
+		_noEffectOnMessage = noEffectOnMessage;
 		_binary = binary;
 		if (dumpDir != null) {
 			_dumpDir = new File(dumpDir);
@@ -45,7 +50,15 @@ public class DumpAction extends TerminalAction {
 	}
 
 	public DumpAction() {
-		this(false, null);
+		this(false, false, null);
+	}
+
+	@Override
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
+		if (_noEffectOnMessage && message.getBodyType() == BodyType.XQ_SEQUENCE) {
+			return null;
+		}
+		return super.prepare(context, message, inPipeline);
 	}
 
 	@Override
@@ -72,15 +85,34 @@ public class DumpAction extends TerminalAction {
 				if (_dumpDir != null) {
 					File dumpFile = new File(_dumpDir, message.getVariable(ESBConstants.initialTimestamp) + ".bin");
 					try (FileOutputStream fileOutputStream = new FileOutputStream(dumpFile)) {
-						fileOutputStream.write(message.getBodyAsByteArray(context));
+						message.writeRawTo(fileOutputStream, context);
 					}
 					logger.info("Body dumped into " + dumpFile);
-				} else if (_binary || HttpConstants.isBinary(message.getContentType())) {
-					byte[] ba = message.getBodyAsByteArray(context);
-					logger.info("Body length: " + ba.length);
-					logger.info("Body(" + message.getContentType() + ", " + message.getCharset() + "):\n" + IOUtils.convertToHexDump(ba));
 				} else {
-					logger.info("Body(" + message.getContentType() + "):\n" +  message.getBodyAsString(context));
+					if (_binary || HttpConstants.isBinary(message.getContentType())) {
+						ByteArrayInputStream bis;
+						if (message.getBody() instanceof ByteArrayInputStream) {
+							bis = message.getBody();
+						} else if (message.getBodyType() == BodyType.BYTES) {
+							bis = new ByteArrayInputStream(message.getBody());
+						} else {
+							ByteArrayOutputStream bos = new ByteArrayOutputStream();
+							message.writeRawTo(bos, context);
+							bis = bos.getByteArrayInputStream();
+						}
+						logger.info("Body length: " + bis.lengthAsInt());
+						logger.info("Body({}, {}):\n{}", message.getContentType(), message.getCharset(), IOUtils.convertToHexDump(bis));
+					} else {
+						Object s;
+						if (message.getBodyType() == BodyType.STRING || message.getBody() instanceof StringBuilderReader) {
+							s = message.getBody();
+						} else {
+							ByteArrayOutputStream bos = new ByteArrayOutputStream();
+							message.writeRawTo(bos, context);
+							s = bos;
+						}
+						logger.info("Body({}):\n{}", message.getContentType(), s);
+					}
 				}
 			}
 		}

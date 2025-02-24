@@ -1,5 +1,7 @@
 package com.artofarc.esb.action;
 
+import static org.junit.Assert.*;
+
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -267,9 +269,24 @@ public class TransformerTest extends AbstractESBTest {
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(createUnwrapSOAPAction(false, true),
 				createAssignAction("messageHeader", "*[1]"),
-				new TransformAction(xquery, null, null, null),
+				new TransformAction(xquery, null, null, false, null),
 				new DumpAction());
 		consumerPort.process(context, message);
+	}
+
+	@Test
+	public void testReposition() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+		message.setContentType("text/xml; charset=\"utf-8\"");
+		Action action = createUnwrapSOAPAction(false, true);
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(action);
+		action = action.setNextAction(createAssignAction("pos1", "local-name(*[1])"));
+		action = action.setNextAction(new XOPDeserializeAction());
+		action = action.setNextAction(createAssignAction("pos2", "local-name(*[1])"));
+		action = action.setNextAction(new DumpAction());
+		consumerPort.process(context, message);
+		assertEquals(message.<String>getVariable("pos1"), message.<String>getVariable("pos2"));
 	}
 
 }

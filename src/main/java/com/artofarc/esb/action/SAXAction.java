@@ -29,6 +29,7 @@ import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
+import javax.xml.xquery.XQItemType;
 import javax.xml.xquery.XQSequence;
 
 import org.xml.sax.ContentHandler;
@@ -187,7 +188,11 @@ public abstract class SAXAction extends Action {
 			message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(sequence.getItem()));
 			// nobreak
 		case XQ_ITEM:
-			source = createSAXSource(context, message, message.<XQItem> getBody());
+			XQItem xqItem = message.getBody();
+			if (xqItem.getItemType().getItemKind() == XQItemType.XQITEMKIND_ELEMENT) {
+				message.putVariable(ESBConstants.xqItemKindElement, true);
+			}
+			source = createSAXSource(context, message, xqItem);
 			break;
 		default:
 			source = createSAXSource(context, message, message.getBodyAsSource(context));

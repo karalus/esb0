@@ -25,6 +25,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.xquery.*;
 
+import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.Text;
 
@@ -33,6 +34,7 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.BodyType;
+import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.DataStructures;
 import com.artofarc.util.XQuerySource;
@@ -65,32 +67,33 @@ public class TransformAction extends Action {
 	private final XQuerySource _xquery;
 	private final Set<String> _checkNotNull;
 	private final List<Assignment> _assignments;
-	private final boolean _clearSchema;
+	private final boolean _clearSchema, _clearHeaders;
 	private final String _baseURI;
 	protected final String _contextItem;
 	private final String _newContentType;
 
-	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, boolean clearSchema, String baseURI, String contextItem, String newContentType) {
+	public TransformAction(XQuerySource xquery, Set<String> checkNotNull, List<Assignment> assignments, boolean clearSchema, String baseURI, String contextItem, boolean clearHeaders, String newContentType) {
 		_xquery = xquery;
 		_checkNotNull = checkNotNull != null ? checkNotNull : Collections.emptySet();
 		_assignments = assignments;
 		_clearSchema = clearSchema;
+		_clearHeaders = clearHeaders;
 		_baseURI = baseURI;
 		_contextItem = contextItem != null ? contextItem.intern() : null;
 		_newContentType = newContentType;
 		_streamingToSink = _contextItem == null;
 	}
 
-	public TransformAction(XQuerySource xquery, String baseURI, String contextItem, String newContentType) {
-		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), true, baseURI, contextItem, newContentType);
+	public TransformAction(XQuerySource xquery, String baseURI, String contextItem, boolean clearHeaders, String newContentType) {
+		this(xquery, null, contextItem != null ? Collections.singletonList(new Assignment(contextItem, false)) : Collections.emptyList(), true, baseURI, contextItem, false, newContentType);
 	}
 
 	protected TransformAction(String xquery, List<Assignment> varNames, String newContentType) {
-		this(XQuerySource.create(xquery), null, varNames, false, null, null, newContentType);
+		this(XQuerySource.create(xquery), null, varNames, false, null, null, false, newContentType);
 	}
 
 	protected TransformAction(String xquery) {
-		this(XQuerySource.create(xquery), null, Collections.emptyList(), false, null, null, null);
+		this(XQuerySource.create(xquery), null, Collections.emptyList(), false, null, null, false, null);
 	}
 
 	public final XQuerySource getXQuery() {
@@ -105,6 +108,9 @@ public class TransformAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		if (_clearHeaders) {
+			message.clearHeaders();
+		}
 		context.getTimeGauge().startTimeMeasurement();
 		XQPreparedExpression xqExpression = context.getXQPreparedExpression(_xquery, _baseURI);
 		context.getTimeGauge().stopTimeMeasurement("prepareExpression", true);
@@ -136,7 +142,13 @@ public class TransformAction extends Action {
 							xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
 						}
 					} else {
-						xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
+						Boolean xqItemKindElement = (Boolean) message.getVariables().remove(ESBConstants.xqItemKindElement);
+						if (Boolean.TRUE.equals(xqItemKindElement)) {
+							XQItem xqItem = context.getXQDataFactory().createItemFromDocument(message.getBodyAsSource(context), null);
+							xqExpression.bindNode(XQConstants.CONTEXT_ITEM, ((Document) xqItem.getNode()).getDocumentElement(), null);
+						} else {
+							xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
+						}
 					}
 					break;
 				}

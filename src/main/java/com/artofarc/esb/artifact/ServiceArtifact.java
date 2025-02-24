@@ -411,11 +411,11 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				XQueryArtifact xQueryArtifact = loadArtifact(transform.getXqueryURI());
 				addReference(xQueryArtifact);
 				xQueryArtifact.validate(globalContext);
-				addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getURI(), transform.getContextItem(), transform.getMediaType()), location);
+				addAction(list, new TransformAction(XQuerySource.create(xQueryArtifact.getContentAsBytes()), xQueryArtifact.getURI(), transform.getContextItem(), transform.isClearHeaders(), transform.getMediaType()), location);
 			} else if (transform.getXquery() != null) {
 				XQuerySource xquery = XQuerySource.create(transform.getXquery().trim());
 				XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), xquery);
-				addAction(list, new TransformAction(xquery, getURI(), transform.getContextItem(), transform.getMediaType()), location);
+				addAction(list, new TransformAction(xquery, getURI(), transform.getContextItem(), transform.isClearHeaders(), transform.getMediaType()), location);
 			} else {
 				throw new ValidationException(this, "transform has no XQuery");
 			}
@@ -596,7 +596,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "dump":
 			Dump dump = (Dump) actionElement.getValue();
-			addAction(list, new DumpAction(dump.isBinary(), globalContext.bindProperties(dump.getDir())), location);
+			addAction(list, new DumpAction(dump.isNoEffectOnMessage(), dump.isBinary(), globalContext.bindProperties(dump.getDir())), location);
 			break;
 		case "admin":
 			Admin admin = (Admin) actionElement.getValue();

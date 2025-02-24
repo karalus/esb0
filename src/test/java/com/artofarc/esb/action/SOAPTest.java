@@ -625,7 +625,7 @@ public class SOAPTest extends AbstractESBTest {
 		XQueryArtifact module = new XQueryArtifact(globalContext.getFileSystem(), globalContext.getFileSystem().getRoot(), "service-utils.xqm");
 		module.setContent(readFile("src/test/resources/service-utils.xqm"));
 
-      action = action.setNextAction(new TransformAction(XQuerySource.create("import module namespace fn-svi='http://aoa.de/esb/service-utils' at '/service-utils.xqm'; fn-svi:copyAndInsertReplyContext(., 'SGFsbG8gV2VsdCE=')"), "/", null, null));
+      action = action.setNextAction(new TransformAction(XQuerySource.create("import module namespace fn-svi='http://aoa.de/esb/service-utils' at '/service-utils.xqm'; fn-svi:copyAndInsertReplyContext(., 'SGFsbG8gV2VsdCE=')"), "/", null, false, null));
       action = action.setNextAction(new TransformAction("declare namespace v1=\"http://aoa.de/ei/foundation/v1\"; ./*[1]"));
       XSDArtifact xsdArtifact = new XSDArtifact(null, null, "kdf");
       xsdArtifact.setContent(readFile("src/test/resources/example/de.aoa.ei.foundation.v1.xsd"));
