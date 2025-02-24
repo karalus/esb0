@@ -39,6 +39,7 @@ import com.artofarc.util.XQuerySource;
 
 public class TransformAction extends Action {
 
+	protected static final boolean BIND_NULL_CHECK = Boolean.parseBoolean(System.getProperty("esb0.bindNullCheck"));
 	protected static final boolean ASSIGN_NULL_CHECK = Boolean.parseBoolean(System.getProperty("esb0.assignNullCheck"));
 
 	public final static class Assignment {
@@ -193,6 +194,9 @@ public class TransformAction extends Action {
 			} else if (value != null) {
 				xqExpression.bindObject(qName, value, type);
 			} else if (itemOccurrence == XQSequenceType.OCC_EXACTLY_ONE || itemOccurrence == XQSequenceType.OCC_ONE_OR_MORE) {
+				if (BIND_NULL_CHECK) {
+					throw new ExecutionException(this, "Value is null but XQuery requires it for " + qName);
+				}
 				logger.info("Value is null but XQuery requires it for " + qName);
 				xqExpression.bindString(qName, "", null);
 			} else {

@@ -18,7 +18,7 @@
 	<groupId>com.artofarc.eai</groupId>
 	<artifactId>esb0</artifactId>
 	<packaging>war</packaging>
-	<version>1.11.1-SNAPSHOT</version>
+	<version>1.11.2-SNAPSHOT</version>
 	<name>ESB Zero Maven Webapp</name>
 	<url>https://github.com/karalus/esb0</url>
 	<properties>
