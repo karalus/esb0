@@ -61,7 +61,7 @@ input[type="submit"][value="false"] {
 				%>
 				<tr>
 					<td><%=path%></td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
-					<td><%=consumerPort.getPoolSize()%></td>
+					<td><%=consumerPort.getPoolSize()%>/<%=consumerPort.getMaxPoolSize()%></td>
 					<td><%=consumerPort.getCompletedTaskCount()%></td>
 					<td><%=consumerPort.getExecutionTime()%></td>
 					<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?HttpServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
@@ -83,7 +83,7 @@ input[type="submit"][value="false"] {
 				%>
 				<tr>
 					<td><%=path%>*</td><td><a href="<%=request.getContextPath() + request.getServletPath() + consumerPort.getUri()%>"><%=consumerPort.getUri()%></a></td>
-					<td><%=consumerPort.getPoolSize()%></td>
+					<td><%=consumerPort.getPoolSize()%>/<%=consumerPort.getMaxPoolSize()%></td>
 					<td><%=consumerPort.getCompletedTaskCount()%></td>
 					<td><%=consumerPort.getExecutionTime()%></td>
 					<td><form method="post" action="<%=adminPath + consumerPort.getUri()%>?MappedHttpServices"><input type="submit" value="<%=consumerPort.isEnabled()%>"/></form></td>
@@ -113,7 +113,7 @@ input[type="submit"][value="false"] {
 				<tr>
 					<td><%=jmsConsumer.getKey()%></td>
 					<td><a href="<%=request.getContextPath() + request.getServletPath() + jmsConsumer.getUri()%>"><%=jmsConsumer.getUri()%></a></td>
-					<td><%=jmsConsumer.getWorkerCount()%></td>
+					<td><%=jmsConsumer.getWorkerCount()%>/<%=jmsConsumer.getMaxWorkerCount()%></td>
 					<td><%=jmsConsumer.getCompletedTaskCount()%></td>
 					<td><%=jmsConsumer.getExecutionTime()%></td>
 					<td><%=jmsConsumer.getCurrentSentReceiveDelay()%></td>

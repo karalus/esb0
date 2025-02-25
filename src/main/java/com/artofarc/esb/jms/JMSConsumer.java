@@ -132,6 +132,10 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		return super.getMBeanPostfix() + ",key=" + ObjectName.quote(getKey());
 	}
 
+	public int getMaxWorkerCount() {
+		return _jmsWorker.length;
+	}
+
 	public int getWorkerCount() {
 		return _workerCount;
 	}
@@ -149,7 +153,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		if (_workerPool.getExecutorService() == null) {
 			throw new IllegalArgumentException("WorkerPool must have an ExecutorService: " + _workerPoolName);
 		}
-		// distribute evenly over poll interval
+		// distribute evenly spread over poll interval
 		long delay = _period / _jmsWorker.length;
 		for (; _workerCount < _minWorkerCount; ++_workerCount) {
 			_jmsWorker[_workerCount] = _period > 0L ? new JMSPollingWorker(delay * _workerCount) : new JMSWorker();
@@ -286,7 +290,7 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		jmsConnectionProvider.unregisterJMSConsumer(_jmsConnectionData, this);
 	}
 
-	public Boolean unsubscribe() {
+	public boolean unsubscribe() {
 		JMSSession session = _jmsWorker[0]._session;
 		if (_subscription != null && session != null) {
 			try {

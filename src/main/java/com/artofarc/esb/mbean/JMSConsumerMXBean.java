@@ -21,12 +21,14 @@ public interface JMSConsumerMXBean extends ConsumerPortMXBean {
 
 	String getKey();
 
+	int getMaxWorkerCount();
+
 	int getWorkerCount();
 
 	Date getLastChangeOfState();
 
 	long getCurrentSentReceiveDelay();
 
-	Boolean unsubscribe();
+	boolean unsubscribe();
 
 }
