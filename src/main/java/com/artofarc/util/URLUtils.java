@@ -17,11 +17,14 @@ package com.artofarc.util;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.function.Function;
 
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -31,50 +34,71 @@ import javax.xml.datatype.XMLGregorianCalendar;
  */
 public final class URLUtils {
 
-	private static final BitSet DONT_NEED_ENCODING = new BitSet(128);
+	private static final BitSet PATH_DONT_NEED_ENCODING = new BitSet(128), QUERY_VALUE_DONT_NEED_ENCODING;
 
 	static {
 		for (int i = 'a'; i <= 'z'; ++i) {
-			DONT_NEED_ENCODING.set(i);
+			PATH_DONT_NEED_ENCODING.set(i);
 		}
 		for (int i = 'A'; i <= 'Z'; ++i) {
-			DONT_NEED_ENCODING.set(i);
+			PATH_DONT_NEED_ENCODING.set(i);
 		}
 		for (int i = '0'; i <= '9'; ++i) {
-			DONT_NEED_ENCODING.set(i);
+			PATH_DONT_NEED_ENCODING.set(i);
 		}
-		DONT_NEED_ENCODING.set('!');
-		DONT_NEED_ENCODING.set('$');
-		DONT_NEED_ENCODING.set('&');
-		DONT_NEED_ENCODING.set('\'');
-		DONT_NEED_ENCODING.set('(');
-		DONT_NEED_ENCODING.set(')');
-		DONT_NEED_ENCODING.set('*');
-		DONT_NEED_ENCODING.set('+');
-		DONT_NEED_ENCODING.set(',');
-		DONT_NEED_ENCODING.set(';');
-		DONT_NEED_ENCODING.set('=');
-		DONT_NEED_ENCODING.set('-');
-		DONT_NEED_ENCODING.set('.');
-		DONT_NEED_ENCODING.set('_');
-		DONT_NEED_ENCODING.set('~');
-		DONT_NEED_ENCODING.set(':');
-		DONT_NEED_ENCODING.set('@');
+		PATH_DONT_NEED_ENCODING.set('!');
+		PATH_DONT_NEED_ENCODING.set('$');
+		PATH_DONT_NEED_ENCODING.set('\'');
+		PATH_DONT_NEED_ENCODING.set('(');
+		PATH_DONT_NEED_ENCODING.set(')');
+		PATH_DONT_NEED_ENCODING.set('*');
+		PATH_DONT_NEED_ENCODING.set(',');
+		PATH_DONT_NEED_ENCODING.set(';');
+		PATH_DONT_NEED_ENCODING.set('=');
+		PATH_DONT_NEED_ENCODING.set('-');
+		PATH_DONT_NEED_ENCODING.set('.');
+		PATH_DONT_NEED_ENCODING.set('_');
+		PATH_DONT_NEED_ENCODING.set('~');
+		PATH_DONT_NEED_ENCODING.set(':');
+		PATH_DONT_NEED_ENCODING.set('@');
+		// Common base
+		QUERY_VALUE_DONT_NEED_ENCODING = (BitSet) PATH_DONT_NEED_ENCODING.clone();
+		// Allowed within path
+		PATH_DONT_NEED_ENCODING.set('&');
+		PATH_DONT_NEED_ENCODING.set('+');
+		// Buggy Servers might struggle but it's valid!
+		QUERY_VALUE_DONT_NEED_ENCODING.set('/');
+		QUERY_VALUE_DONT_NEED_ENCODING.set('?');
 	}
 
 	private URLUtils() {
 	}
 
 	public static String encodePathSegment(String s) {
+		return encode(s, PATH_DONT_NEED_ENCODING);
+	}
+
+	public static String encodeQueryValue(String s) {
+		return encode(s, QUERY_VALUE_DONT_NEED_ENCODING);
+	}
+
+	private static String encode(String s, BitSet dontNeedEnconding) {
 		boolean modified = false;
 		StringBuilder result = new StringBuilder();
 		for (int i = 0; i < s.length(); ++i) {
 			char c = s.charAt(i);
-			if (DONT_NEED_ENCODING.get(c)) {
+			if (dontNeedEnconding.get(c)) {
 				result.append(c);
 			} else {
-				for (byte b : String.valueOf(c).getBytes(StandardCharsets.UTF_8)) {
-					result.append('%').append(convertNibble2Char(b >> 4)).append(convertNibble2Char(b));
+				if (c < 128) {
+					result.append('%').append(convertNibble2Char(c >> 4)).append(convertNibble2Char(c));
+				} else {
+					CharBuffer charBuffer = CharBuffer.wrap(s, i, (Character.isHighSurrogate(c) ? ++i : i) + 1);
+					ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(charBuffer);
+					do {
+						byte b = byteBuffer.get();
+						result.append('%').append(convertNibble2Char(b >> 4)).append(convertNibble2Char(b));
+					} while (byteBuffer.hasRemaining());
 				}
 				modified = true;
 			}
@@ -116,7 +140,7 @@ public final class URLUtils {
 			} else {
 				Object old = variables.get(key);
 				if (old != null) {
-					ArrayList<Object> list; 
+					ArrayList<Object> list;
 					if (old instanceof ArrayList) {
 						list = (ArrayList<Object>) old;
 					} else {
@@ -136,7 +160,7 @@ public final class URLUtils {
 	}
 
 	public static String createURLEncodedString(Map<String, Object> variables, String parameters) {
-		URLEncodedStringBuilder builder = new URLEncodedStringBuilder();
+		URLEncodedStringBuilder builder = new URLEncodedStringBuilder(URLUtils::encode);
 		StringTokenizer st = new StringTokenizer(parameters, ",");
 		while (st.hasMoreTokens()) {
 			String varName = st.nextToken();
@@ -147,6 +171,11 @@ public final class URLUtils {
 
 	public final static class URLEncodedStringBuilder {
 		private final StringBuilder sb = new StringBuilder();
+		private final Function<String, String> _encoder;
+
+		public URLEncodedStringBuilder(Function<String, String> encoder) {
+			_encoder = encoder;
+		}
 
 		public void add(String key, Object value) {
 			if (value != null) {
@@ -169,7 +198,7 @@ public final class URLUtils {
 			if (sb.length() > 0) {
 				sb.append('&');
 			}
-			sb.append(key).append('=').append(encode(value.toString()));
+			sb.append(key).append('=').append(_encoder.apply(value.toString()));
 		}
 
 		@Override

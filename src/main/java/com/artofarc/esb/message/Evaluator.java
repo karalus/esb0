@@ -19,7 +19,7 @@ import java.util.StringTokenizer;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.util.ReflectionUtils;
-import com.artofarc.util.URLUtils.URLEncodedStringBuilder;
+import com.artofarc.util.URLUtils;
 
 public abstract class Evaluator<E extends Exception> {
 
@@ -133,7 +133,7 @@ public abstract class Evaluator<E extends Exception> {
 	}
 
 	public final String createURLEncodedString(Context context, ESBMessage message, String parameters) throws Exception {
-		URLEncodedStringBuilder builder = new URLEncodedStringBuilder();
+		URLUtils.URLEncodedStringBuilder builder = new URLUtils.URLEncodedStringBuilder(URLUtils::encodeQueryValue);
 		StringTokenizer st = new StringTokenizer(parameters, ",");
 		while (st.hasMoreTokens()) {
 			String varName = st.nextToken();
