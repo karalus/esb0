@@ -43,7 +43,7 @@ public class BranchOnPathAction extends Action {
 		if (_branchMap.put(new PathTemplate(pathTemplate), action) != null) {
 			throw new IllegalArgumentException("Duplicate branch pathTemplate " + pathTemplate);
 		}
-	}	
+	}
 
 	@Override
 	protected boolean isPipelineStop(ExecutionContext execContext, Action nextAction) {
@@ -55,7 +55,7 @@ public class BranchOnPathAction extends Action {
 		Action action = null;
 		String appendHttpUrlPath = message.getVariable(ESBConstants.appendHttpUrlPath);
 		if (appendHttpUrlPath != null && appendHttpUrlPath.startsWith(_basePath)) {
-			String path = appendHttpUrlPath.substring(_basePath.length());
+			String path = URLUtils.normalizePathSegment(appendHttpUrlPath.substring(_basePath.length()));
 			action = _defaultAction;
 			for (Map.Entry<PathTemplate, Action> entry : _branchMap.entrySet()) {
 				final Map<String, String> match = entry.getKey().match(path);

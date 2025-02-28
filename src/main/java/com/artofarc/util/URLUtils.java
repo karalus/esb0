@@ -15,6 +15,8 @@
  */
 package com.artofarc.util;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
@@ -72,6 +74,12 @@ public final class URLUtils {
 	}
 
 	private URLUtils() {
+	}
+
+	public static String normalizePathSegment(String s) throws URISyntaxException {
+		// http://en.wikipedia.org/wiki/URL_normalization#Normalizations_that_Preserve_Semantics
+		URI uri = new URI(s), normalizedUri = uri.normalize();
+		return uri != normalizedUri ? normalizedUri.toString() : s;
 	}
 
 	public static String encodePathSegment(String s) {
