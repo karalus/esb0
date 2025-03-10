@@ -58,6 +58,7 @@ import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQSequence;
 
+import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
@@ -889,7 +890,9 @@ public final class ESBMessage implements Cloneable {
 
 	public Object materializeBodyFromSource(Context context, Source source) throws Exception {
 		if (context.getXQDataFactory() != null) {
-			return init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(source, null), null);
+			XQItem document = context.getXQDataFactory().createItemFromDocument(source, null);
+			boolean xqItemKindElement = Boolean.TRUE.equals(_variables.remove(ESBConstants.xqItemKindElement));
+			return init(xqItemKindElement ? BodyType.DOM : BodyType.XQ_ITEM, xqItemKindElement ? ((Document) document.getNode()).getDocumentElement() : document, null);
 		}
 		DOMResult result = new DOMResult();
 		context.transformRaw(source, result);

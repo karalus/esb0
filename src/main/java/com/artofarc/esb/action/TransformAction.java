@@ -129,7 +129,10 @@ public class TransformAction extends Action {
 					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, sequence.getItem());
 					break;
 				case XQ_ITEM:
-					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.<XQItem> getBody());
+					xqExpression.bindItem(XQConstants.CONTEXT_ITEM, message.getBody());
+					break;
+				case DOM:
+					xqExpression.bindNode(XQConstants.CONTEXT_ITEM, message.getBody(), null);
 					break;
 				case EXCEPTION:
 					xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, DataStructures.asXMLString(message.getBody()), null, null);
@@ -143,8 +146,8 @@ public class TransformAction extends Action {
 						}
 					} else {
 						Boolean xqItemKindElement = (Boolean) message.getVariables().remove(ESBConstants.xqItemKindElement);
-						if (Boolean.TRUE.equals(xqItemKindElement)) {
-							XQItem xqItem = context.getXQDataFactory().createItemFromDocument(message.getBodyAsSource(context), null);
+						if (Boolean.TRUE.equals(xqItemKindElement) && message.getBodyType() == BodyType.SOURCE) {
+							XQItem xqItem = context.getXQDataFactory().createItemFromDocument(message.<Source> getBody(), null);
 							xqExpression.bindNode(XQConstants.CONTEXT_ITEM, ((Document) xqItem.getNode()).getDocumentElement(), null);
 						} else {
 							xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);

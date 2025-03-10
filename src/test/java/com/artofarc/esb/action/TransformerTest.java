@@ -289,4 +289,20 @@ public class TransformerTest extends AbstractESBTest {
 		assertEquals(message.<String>getVariable("pos1"), message.<String>getVariable("pos2"));
 	}
 
+	@Test
+	public void testRepositionMaterializeMessage() throws Exception {
+		ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest.xml"));
+		message.setContentType("text/xml; charset=\"utf-8\"");
+		Action action = createUnwrapSOAPAction(false, true);
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(action);
+		action = action.setNextAction(createAssignAction("pos1", "local-name(*[1])"));
+		action = action.setNextAction(new XOPDeserializeAction());
+		action = action.setNextAction(new ForkAction(null, true, false, false, new DumpAction()));
+		action = action.setNextAction(createAssignAction("pos2", "local-name(*[1])"));
+		action = action.setNextAction(new DumpAction());
+		consumerPort.process(context, message);
+		assertEquals(message.<String>getVariable("pos1"), message.<String>getVariable("pos2"));
+	}
+
 }
