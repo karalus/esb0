@@ -108,7 +108,7 @@ public final class MimeHelper {
 				if (i < 0) {
 					throw new IllegalArgumentException("Delimiter '=' is missing: " + pair);
 				}
-				String name = pair.substring(0, i);
+				String name = (String) evaluator.eval(pair.substring(0, i), context, message);
 				String exp = pair.substring(i + 1);
 				boolean isBody = "${body}".equals(exp);
 				Object value = isBody ? message.getBodyAsByteArray(context) : evaluator.eval(exp, context, message);
