@@ -97,6 +97,7 @@ public final class MimeHelper {
 		MimeMultipart mmp;
 		MimeBodyPart part;
 		if (multipartSubtype == "form-data") {
+			multipartContentType = message.getVariable(ESBConstants.formData, multipartContentType);
 			if (multipartContentType == null) {
 				throw new IllegalArgumentException("For multipart/form-data a list of form data is required");
 			}
@@ -104,11 +105,11 @@ public final class MimeHelper {
 			StringTokenizer tokenizer = new StringTokenizer(multipartContentType, ",");
 			while (tokenizer.hasMoreTokens()) {
 				String pair = tokenizer.nextToken();
-				int i = pair.indexOf("=");
+				int i = pair.indexOf('=');
 				if (i < 0) {
 					throw new IllegalArgumentException("Delimiter '=' is missing: " + pair);
 				}
-				String name = (String) evaluator.eval(pair.substring(0, i), context, message);
+				String name = pair.substring(0, i);
 				String exp = pair.substring(i + 1);
 				boolean isBody = "${body}".equals(exp);
 				Object value = isBody ? message.getBodyAsByteArray(context) : evaluator.eval(exp, context, message);

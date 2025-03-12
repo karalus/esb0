@@ -68,6 +68,8 @@ public interface ESBConstants {
 
 	String xqItemKindElement = "xqItemKindElement";
 
+	String formData = "formData";
+
 	// SOAP processing concepts
 	String SOAP_ELEMENT_NAME = "soapElementName";
 
