@@ -34,6 +34,12 @@ public abstract class Evaluator<E extends Exception> {
 				builder.append(exp.substring(pos));
 				break;
 			}
+			if (i > 0 && exp.charAt(i - 1) == '$') {
+				// Escape ${ with ${{
+				builder.append(exp.substring(pos, i));
+				pos = i + 1;
+				continue;
+			}
 			if (i > pos) builder.append(exp.substring(pos, i));
 			int j = exp.indexOf('}', i);
 			if (j < 0) throw new IllegalArgumentException("Matching } is missing");

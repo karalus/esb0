@@ -56,6 +56,7 @@ public class ActionTest extends AbstractESBTest {
       } catch (InvocationTargetException e) {
       	assertTrue(e.getCause() instanceof IllegalStateException);
       }
+      assertEquals("op1${op1}", action.eval("${operation}$${${operation}}", context, message));
    }
 
    @Test
