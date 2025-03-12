@@ -127,8 +127,13 @@ public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCach
 			return _expirationKeys.keySet();
 		}
 
-		public Collection<?> getExpirations() {
+		public Collection<? extends Delayed> getExpirations() {
 			return _expirationKeys.values();
+		}
+
+		public Long getDelay(K key) {
+			Expiration<K> expiration = _expirationKeys.get(key);
+			return expiration != null ? expiration.getDelay(TimeUnit.SECONDS) : null;
 		}
 
 		public void clear() {

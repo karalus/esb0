@@ -35,7 +35,7 @@ public abstract class Evaluator<E extends Exception> {
 				break;
 			}
 			if (i > 0 && exp.charAt(i - 1) == '$') {
-				// Escape ${ with ${{
+				// Escape ${ with $${
 				builder.append(exp.substring(pos, i));
 				pos = i + 1;
 				continue;
