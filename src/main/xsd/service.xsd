@@ -283,6 +283,7 @@
 				</sequence>
 				<attribute name="contextItem" type="tns:identifier" />
 				<attribute name="clearHeaders" type="boolean" default="false" />
+				<attribute name="referencedURIs" type="tns:referencedURIs" />
 			</extension>
 		</complexContent>
 	</complexType>
@@ -329,6 +330,7 @@
 					<attribute name="contextItem" type="tns:identifier" />
 					<attribute name="clearHeaders" type="boolean" default="false" />
 					<attribute name="mediaType" type="tns:expression" />
+					<attribute name="referencedURIs" type="tns:referencedURIs" />
 				</extension>
 			</complexContent>
 		</complexType>
@@ -922,6 +924,9 @@
 			<enumeration value="mixed" />
 			<enumeration value="form-data" />
 		</restriction>
+	</simpleType>
+	<simpleType name="referencedURIs">
+		<list itemType="anyURI" />
 	</simpleType>
 	<attributeGroup name="JMSConnectionData">
 		<attribute name="jndiConnectionFactory" type="tns:globalExpression" use="required" />

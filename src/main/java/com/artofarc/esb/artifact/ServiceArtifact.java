@@ -388,7 +388,8 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "assign": {
 			Assign assign = (Assign) actionElement.getValue();
-			AssignAction assignAction = new AssignAction(createAssignments(assign), assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), assign.getContextItem(), assign.isClearHeaders());
+			resolveReferencedURIs(globalContext, assign.getReferencedURIs());
+			AssignAction assignAction = new AssignAction(createAssignments(assign), assign.getBody(), createNsDecls(assign.getNsDecl()).entrySet(), assign.getBindName(), getURI(), assign.getContextItem(), assign.isClearHeaders());
 			XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), assignAction.getXQuery());
 			addAction(list, assignAction, location);
 			break;
@@ -407,6 +408,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "transform": {
 			Transform transform = (Transform) actionElement.getValue();
+			resolveReferencedURIs(globalContext, transform.getReferencedURIs());
 			if (transform.getXqueryURI() != null) {
 				XQueryArtifact xQueryArtifact = loadArtifact(transform.getXqueryURI());
 				addReference(xQueryArtifact);
@@ -506,8 +508,9 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "conditional":
 			Conditional conditional = (Conditional) actionElement.getValue();
+			resolveReferencedURIs(globalContext, conditional.getReferencedURIs());
 			ConditionalAction conditionalAction = new ConditionalAction(createAssignments(conditional), conditional.getBody(), createNsDecls(conditional.getNsDecl()).entrySet(), conditional.getBindName(),
-				conditional.getContextItem(), conditional.isClearHeaders(), conditional.getExpression(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
+				getURI(), conditional.getContextItem(), conditional.isClearHeaders(), conditional.getExpression(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
 			XQueryArtifact.validateXQuerySource(this, getLineNumber(actionElement), getXQConnectionFactory(), conditionalAction.getXQuery());
 			addAction(list, conditionalAction, location);
 			break;
@@ -624,6 +627,14 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			return schemaArtifact.getXSSchemaSet();
 		}
 		return null;
+	}
+
+	private void resolveReferencedURIs(GlobalContext globalContext, List<String> referencedURIs) throws Exception {
+		for (String referencedURI : referencedURIs) {
+			Artifact artifact = loadArtifact(referencedURI);
+			artifact.validate(globalContext);
+			addReference(artifact);
+		}
 	}
 
 	private static Map<String, String> createNsDecls(List<NsDecl> nsDecls) {

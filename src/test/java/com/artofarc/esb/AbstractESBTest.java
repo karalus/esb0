@@ -144,7 +144,7 @@ public abstract class AbstractESBTest {
 			decl.setValue(bindName);
 			decls.add(decl);
 		}
-		return new AssignAction(Collections.singletonList(new AssignAction.Assignment(varName, false, expression, null, null)), null, null, decls, null, false);
+		return new AssignAction(Collections.singletonList(new AssignAction.Assignment(varName, false, expression, null, null)), null, null, decls, null, null, false);
 	}
 
 	protected static AssignAction createAssignAction(List<AssignAction.Assignment> assignments, String expression, Map<String, String> namespaces, String... bindNames) {
@@ -154,7 +154,7 @@ public abstract class AbstractESBTest {
 			decl.setValue(bindName);
 			decls.add(decl);
 		}
-		return new AssignAction(assignments, expression, namespaces != null ? namespaces.entrySet() : null, decls, null, false);
+		return new AssignAction(assignments, expression, namespaces != null ? namespaces.entrySet() : null, decls, null, null, false);
 	}
 
 	protected static List<AssignAction.Assignment> createAssignments(boolean header, String... tuples) {

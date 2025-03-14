@@ -598,7 +598,7 @@ public class SOAPTest extends AbstractESBTest {
       Action action = createValidateAction(wsdlArtifact);
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new AssignAction(createAssignments(true, HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"), null, null, java.util.Collections.<XQDecl> emptyList(), null, true));
+      action = action.setNextAction(new AssignAction(createAssignments(true, HttpConstants.HTTP_HEADER_CONTENT_TYPE, "'" + HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11 + "'"), null, null, java.util.Collections.<XQDecl> emptyList(), null, null, true));
       action = action.setNextAction(new DumpAction());
       consumerPort.process(context, message);
    }
@@ -607,7 +607,7 @@ public class SOAPTest extends AbstractESBTest {
    public void testXqueryReturnsJSON() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.INVALID, null);
       ConsumerPort consumerPort = new ConsumerPort(null);
-      Action action = new AssignAction(Collections.emptyList(), "'{}'", null, java.util.Collections.<XQDecl> emptyList(), null, false);
+      Action action = new AssignAction(Collections.emptyList(), "'{}'", null, java.util.Collections.<XQDecl> emptyList(), null, null, false);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new Json2XMLAction(null, null, false, "root", null, null));
       action = action.setNextAction(new DumpAction());

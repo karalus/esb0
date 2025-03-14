@@ -26,8 +26,8 @@ import com.artofarc.util.XQuerySource;
 
 public class AssignAction extends TransformAction {
 
-	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String contextItem, boolean clearHeaders) {
-		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	bodyExpr != null, null, contextItem, clearHeaders, null);
+	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String baseURI, String contextItem, boolean clearHeaders) {
+		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	bodyExpr != null, baseURI, contextItem, clearHeaders, null);
 		if (contextItem != null && bodyExpr != null) {
 			throw new IllegalArgumentException("when a contextItem is used the body cannot be assigned");
 		}
