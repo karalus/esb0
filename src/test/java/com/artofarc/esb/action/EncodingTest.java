@@ -95,6 +95,13 @@ public class EncodingTest extends AbstractESBTest {
 	}
 
 	@Test
+	public void testNormalizeURI() throws Exception {
+		String uriStr = "/./applet";
+		String normalize = URLUtils.normalizePathSegment(uriStr);
+		assertEquals(normalize, "/applet");
+	}
+
+	@Test
 	public void testRepairXML() throws Exception {
 		char[] chars = Character.toChars(26);
 		char char1 = java.lang.reflect.Array.getChar(chars, 0);

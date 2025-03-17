@@ -12,14 +12,19 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map;
+
+import javax.mail.internet.MimeMultipart;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.ConsumerPort;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.MimeHelper;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.StringWrapper;
 import com.artofarc.esb.message.ESBConstants;
@@ -305,7 +310,7 @@ public class ActionTest extends AbstractESBTest {
 	@Test
 	public void testInvokeMethod() throws Exception {
 		ESBMessage message = new ESBMessage(BodyType.STRING, "<test>../../Hello</test>");
-		StringWrapper bodyExpr = StringWrapper.create("${body.toString.replace('../../','../').substring(0).toString().replace('e','i')}");
+		StringWrapper bodyExpr = StringWrapper.create("${body.replace('../../','../').substring(0).toString().replace('e','i')}");
 		SetMessageAction action = new SetMessageAction(null, bodyExpr , null, null);
 		action.setNextAction(new DumpAction());
 		action.process(context, message);
@@ -366,6 +371,25 @@ public class ActionTest extends AbstractESBTest {
 		action = action.setNextAction(new DumpAction());
 		processJsonAction.process(context, message);
 		assertEquals(2, (message.<List> getVariable("result")).size());
+	}
+
+	@Test
+	public void testAttachments() throws Exception {
+		String msgStr = "{\"name\":\"esb0\",\"alive\":true,\"surname\":null,\"no\":1,\"amount\":5.0,\"foo\":[\"bar\",\"baz\"]}";
+		ESBMessage message = new ESBMessage(BodyType.READER, new StringReader(msgStr));
+		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "application/json");
+		message.addAttachment("11", "application/pdf", "11".getBytes(), "11");
+		message.addAttachment("12", "application/pdf", "12".getBytes(), "12");
+		Action action = createUpdateAction(Map.of("formData", "inhalt=$${body}"));
+		ConsumerPort consumerPort = new ConsumerPort(null);
+		consumerPort.setStartAction(action);
+		action = action.setNextAction(new IterateAction("${attachments.keySet}", "_iterator", false, "_key", null, null,
+				createUpdateAction(Map.of("formData", "${formData},${_key}=$${attachments.get('${_key}')}"))));
+		action = action.setNextAction(new DumpAction());
+		consumerPort.process(context, message);
+		MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "form-data", null, null);
+		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.unfoldHttpHeader(mmp.getContentType()));
+		mmp.writeTo(System.out);
 	}
 
 	@Test

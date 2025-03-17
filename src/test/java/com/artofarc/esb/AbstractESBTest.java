@@ -167,6 +167,14 @@ public abstract class AbstractESBTest {
 		return assignments;
 	}
 
+	protected static SetMessageAction createUpdateAction(Map<String, String> assignments) throws Exception {
+		SetMessageAction action = new SetMessageAction(AbstractESBTest.class.getClassLoader(), null, null, null);
+		for (Map.Entry<String, String> entry : assignments.entrySet()) {
+			action.addAssignment(entry.getKey(), false, entry.getValue(), null, null, null);
+		}
+		return action;
+	}
+
 	protected static Action createValidateAction(SchemaArtifact schemaArtifact) {
 		return ServiceArtifact.USE_SAX_VALIDATION ? new SAXValidationAction(schemaArtifact.getSchema()) : new ValidateAction(schemaArtifact.getSchema(), ".", null, null);
 	}

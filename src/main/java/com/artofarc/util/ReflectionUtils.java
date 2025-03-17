@@ -140,7 +140,7 @@ public final class ReflectionUtils {
 		return null;
 	}
 
-	private final static Map<Class<?>, Class<?>[]> primitiveMapper = DataStructures.createMap(
+	private final static Map<Class<?>, Class<?>[]> primitiveMapper = Map.of(
 			double.class, new Class[] { Double.class, Float.class, Long.class, Integer.class, Short.class, Byte.class },
 			float.class, new Class[] { Float.class, Long.class, Integer.class, Short.class, Byte.class },
 			long.class, new Class[] { Long.class, Integer.class, Short.class, Byte.class },
