@@ -380,11 +380,11 @@ public class ActionTest extends AbstractESBTest {
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, "application/json");
 		message.addAttachment("11", "application/pdf", "11".getBytes(), "11");
 		message.addAttachment("12", "application/pdf", "12".getBytes(), "12");
-		Action action = createUpdateAction(Map.of("formData", "inhalt=$${body}"));
+		Action action = createUpdateAction(Map.of(ESBConstants.formData, "inhalt=$${body}"));
 		ConsumerPort consumerPort = new ConsumerPort(null);
 		consumerPort.setStartAction(action);
-		action = action.setNextAction(new IterateAction("${attachments.keySet}", "_iterator", false, "_key", null, null,
-				createUpdateAction(Map.of("formData", "${formData},${_key}=$${attachments.get('${_key}')}"))));
+		action = action.setNextAction(new IterateAction("${attachments.keySet}", "_iter", false, "key", null, null,
+				createUpdateAction(Map.of(ESBConstants.formData, "${formData},${key}=$${attachments.get('${key}')}"))));
 		action = action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
 		MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "form-data", null, null);
