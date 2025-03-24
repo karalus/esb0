@@ -259,7 +259,7 @@ public class TransformAction extends Action {
 					if (assignment.list) {
 						message.getVariables().put(assignment.name, result);
 					} else {
-						logger.warn("Result is a list in " + toString());
+						logger.warn("Result is a list for " + assignment.name + " at " + toString());
 						message.getVariables().put(assignment.name, result.get(0));
 					}
 					break;

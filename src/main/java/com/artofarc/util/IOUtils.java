@@ -85,11 +85,6 @@ public final class IOUtils {
 		return null;
 	}
 
-	@Deprecated(forRemoval = true)
-	public static void copy(InputStream in, OutputStream out) throws IOException {
-		in.transferTo(out);
-	}
-
 	static byte[] toByteArray(byte buf[], int pos, int count) {
 		if (pos == 0 && buf.length == count) {
 			return buf;

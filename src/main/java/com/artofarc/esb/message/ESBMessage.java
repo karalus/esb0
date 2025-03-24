@@ -792,12 +792,15 @@ public final class ESBMessage implements Cloneable {
 			}
 			break;
 		case BYTES:
-			if (isSinkEncodingdifferent()) {
-				try (Reader reader = new InputStreamReader(new ByteArrayInputStream((byte[]) _body), getCharset()); Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
-					reader.transferTo(writer);
+			byte[] ba = (byte[]) _body;
+			if (ba.length > 0) {
+				if (isSinkEncodingdifferent()) {
+					try (Reader reader = new InputStreamReader(new ByteArrayInputStream(ba), getCharset()); Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
+						reader.transferTo(writer);
+					}
+				} else {
+					os.write(ba);
 				}
-			} else {
-				os.write((byte[]) _body);
 			}
 			break;
 		case INPUT_STREAM:
