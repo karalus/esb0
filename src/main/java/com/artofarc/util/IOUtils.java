@@ -61,17 +61,90 @@ public final class IOUtils {
 		}
 	}
 
-	public static class PredictableFileInputStream extends FileInputStream implements PredictableInputStream {
+	public static class PredictableFileInputStream extends InputStream implements PredictableInputStream {
 		private final File _file;
+		private FileInputStream fileInputStream;
+		private byte[] buf;
+		private int count, pos;
+		private long available;
 
 		public PredictableFileInputStream(File file) throws FileNotFoundException {
-			super(file);
+			if (!file.isFile()) {
+				throw new FileNotFoundException("Not a file " + file);
+			}
+			available = file.length();
 			_file = file;
+		}
+
+		private FileInputStream getFileInputStream() throws FileNotFoundException {
+			if (fileInputStream == null) {
+				fileInputStream = new FileInputStream(_file);
+			}
+			return fileInputStream;
+		}
+
+		private int fill() throws IOException {
+			if (buf == null) {
+				buf = new byte[MTU];
+			}
+			count = getFileInputStream().read(buf, pos = 0, MTU);
+			if (count > 0) available -= count;
+			return count;
 		}
 
 		@Override
 		public long length() {
-			return _file.length();
+			int avail = count - pos;
+			return avail <= 0 ? available : available + avail;
+		}
+
+		@Override
+		public int read() throws IOException {
+			if (pos >= count) {
+				if (fill() <= 0) return -1;
+			}
+			return buf[pos++] & 0xff;
+		}
+
+		@Override
+		public int read(byte[] b, int off, int len) throws IOException {
+			int avail = count - pos;
+			if (avail <= 0) {
+				if (len >= MTU || len >= available) {
+					int l = getFileInputStream().read(b, off, len);
+					if (l > 0) available -= l;
+					return l;
+				}
+				avail = fill();
+				if (avail <= 0) return -1;
+			}
+			int cnt = avail < len ? avail : len;
+			System.arraycopy(buf, pos, b, off, cnt);
+			pos += cnt;
+			return cnt;
+		}
+
+		@Override
+		public long skip(long n) throws IOException {
+			if (n <= 0) return 0;
+			long remaining = n;
+			int avail = count - pos;
+			if (avail > 0) {
+				int cnt = avail < n ? avail : (int) n;
+				pos += cnt;
+				remaining -= cnt;
+			}
+			if (remaining > 0) {
+				remaining -= getFileInputStream().skip(remaining);
+			}
+			return n - remaining;
+		}
+
+		@Override
+		public void close() throws IOException {
+			if (fileInputStream != null) {
+				fileInputStream.close();
+			}
 		}
 	}
 
@@ -105,17 +178,11 @@ public final class IOUtils {
 			return toByteArray(extractor.buf, extractor.offset, extractor.length);
 		}
 		if (is instanceof PredictableInputStream) {
-			return toByteArray(is, ((PredictableInputStream) is).lengthAsInt());
+			return readFully(is, new byte[((PredictableInputStream) is).lengthAsInt()]);
 		}
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
 		is.transferTo(os);
 		return os.toByteArray();
-	}
-
-	private static byte[] toByteArray(InputStream is, int length) throws IOException {
-		final byte[] ba = new byte[length];
-		readFully(is, ba);
-		return ba;
 	}
 
 	public static ByteBuffer toByteBuffer(InputStream is) throws IOException {
@@ -200,18 +267,19 @@ public final class IOUtils {
 		return -1;
 	}
 
-	public static void readFully(InputStream is, byte ba[]) throws IOException {
+	public static byte[] readFully(InputStream is, byte ba[]) throws IOException {
 		int n = 0, len = ba.length;
 		while (n < len) {
 			final int count = is.read(ba, n, len - n);
 			if (count < 0) throw new EOFException();
 			n += count;
 		}
+		return ba;
 	}
 
 	public static byte[] readFile(File file) throws IOException {
-		try (InputStream is = new PredictableFileInputStream(file)) {
-			return toByteArray(is);
+		try (InputStream is = new FileInputStream(file)) {
+			return readFully(is, new byte[Math.toIntExact(file.length())]);
 		}
 	}
 

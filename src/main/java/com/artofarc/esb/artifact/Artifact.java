@@ -151,7 +151,7 @@ public abstract class Artifact {
 
 	protected final byte[] getContentAsBytes() throws Exception {
 		if (_content == null) {
-			_content = _fileSystem.reloadContent(getURI());
+			setContent(_fileSystem.reloadContent(getURI()));
 		}
 		return _content;
 	}

@@ -619,6 +619,9 @@ public final class ESBMessage implements Cloneable {
 			if (is.available() > 0) {
 				return false;
 			}
+			if (is instanceof IOUtils.PredictableInputStream) {
+				return ((IOUtils.PredictableInputStream) is).length() == 0;
+			}
 			if (is.markSupported()) {
 				is.mark(1);
 				if (is.read() < 0) {
@@ -629,18 +632,17 @@ public final class ESBMessage implements Cloneable {
 					is.reset();
 					return false;
 				}
+			}
+			int b = is.read();
+			if (b < 0) {
+				is.close();
+				init(BodyType.STRING, "", null);
+				return true;
 			} else {
-				int b = is.read();
-				if (b < 0) {
-					is.close();
-					init(BodyType.STRING, "", null);
-					return true;
-				} else {
-					PushbackInputStream pis = new PushbackInputStream(is);
-					pis.unread(b);
-					_body = pis;
-					return false;
-				}
+				PushbackInputStream pis = new PushbackInputStream(is);
+				pis.unread(b);
+				_body = pis;
+				return false;
 			}
 		default:
 			return false;
