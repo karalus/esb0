@@ -15,11 +15,13 @@
  */
 package com.artofarc.esb.servlet;
 
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map.Entry;
 
 import javax.mail.internet.MimeMultipart;
 import javax.servlet.AsyncContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.artofarc.esb.action.Action;
@@ -97,16 +99,21 @@ public class HttpResponseAction extends Action {
 						}
 					}
 				}
+				boolean doOutput = doOutput((HttpServletRequest) asyncContext.getRequest(), httpResponseCode);
 				// prevent flushing to avoid "transfer encoding chunked" on small responses
 				if (inPipeline) {
-					message.reset(BodyType.OUTPUT_STREAM, message.getCompressedOutputStream(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), true));
+					message.reset(BodyType.OUTPUT_STREAM, doOutput ? message.getCompressedOutputStream(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), true) : OutputStream.nullOutputStream());
 				} else if (message.getBodyType() != BodyType.INVALID) {
 					Long contentLength = message.getLengthExact();
 					if (contentLength == null) {
-						message.writeTo(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), context);
+						if (doOutput) {
+							message.writeTo(new IOUtils.PreventFlushOutputStream(response.getOutputStream()), context);
+						}
 					} else if (contentLength > 0) {
 						response.setContentLengthLong(contentLength);
-						message.writeTo(response.getOutputStream(), context);
+						if (doOutput) {
+							message.writeTo(response.getOutputStream(), context);
+						}
 					}
 				}
 				if (message.getAttachments().size() > 0) {
@@ -115,6 +122,11 @@ public class HttpResponseAction extends Action {
 			}
 		}
 		return executionContext;
+	}
+
+	private static boolean doOutput(HttpServletRequest request, Number httpResponseCode) {
+		// https://stackoverflow.com/questions/16339198/which-http-methods-require-a-body
+		return (httpResponseCode == null || httpResponseCode.intValue() != HttpServletResponse.SC_NO_CONTENT && httpResponseCode.intValue() != HttpServletResponse.SC_NOT_MODIFIED) && !"HEAD".equals(request.getMethod());
 	}
 
 	private boolean checkContentType(ESBMessage message, HttpServletResponse response, boolean mimeMultipart) throws Exception {
