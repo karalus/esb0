@@ -59,6 +59,7 @@ import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQSequence;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
@@ -564,9 +565,12 @@ public final class ESBMessage implements Cloneable {
 			extractItemFromSequence();
 			// nobreak
 		case XQ_ITEM:
-			XQItem xqItem = (XQItem) _body;
-			return new DOMSource(xqItem.getNode());
+			_body = ((XQItem) _body).getNode();
+			// nobreak
 		case DOM:
+			if (_body instanceof Element) {
+				_variables.put(ESBConstants.xqItemKindElement, Boolean.TRUE);
+			}
 			return new DOMSource((Node) _body);
 		case STRING:
 			return new StreamSource(new StringReader((String) _body));

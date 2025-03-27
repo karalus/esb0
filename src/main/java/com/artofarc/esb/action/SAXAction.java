@@ -190,7 +190,7 @@ public abstract class SAXAction extends Action {
 		case XQ_ITEM:
 			XQItem xqItem = message.getBody();
 			if (xqItem.getItemType().getItemKind() == XQItemType.XQITEMKIND_ELEMENT) {
-				message.putVariable(ESBConstants.xqItemKindElement, true);
+				message.putVariable(ESBConstants.xqItemKindElement, Boolean.TRUE);
 			}
 			source = createSAXSource(context, message, xqItem);
 			break;
