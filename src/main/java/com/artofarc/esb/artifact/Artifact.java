@@ -41,6 +41,7 @@ public abstract class Artifact {
 	private final HashSet<String> _referenced = new HashSet<>();
 	private final HashSet<String> _referencedBy = new HashSet<>();
 
+	protected Charset _encoding = java.nio.charset.StandardCharsets.UTF_8;
 	protected byte[] _content;
 	protected int _length;
 	private long _crc;
@@ -115,6 +116,13 @@ public abstract class Artifact {
 		_length = content.length;
 	}
 
+	public final void setContent(byte[] content, Charset charset) {
+		if (_encoding != charset) {
+			content = new String(content, charset).getBytes(_encoding);
+		}
+		setContent(content);
+	}
+
 	/**
 	 * Override when content should be kept in memory or intermediate objects should be disposed.
 	 */
@@ -160,8 +168,8 @@ public abstract class Artifact {
 		return HttpConstants.HTTP_HEADER_CONTENT_TYPE_TEXT;
 	}
 
-	public Charset getEncoding() {
-		return java.nio.charset.StandardCharsets.UTF_8;
+	public final Charset getEncoding() {
+		return _encoding;
 	}
 
 	public final <A extends Artifact> A getArtifact(String uri) {
@@ -250,6 +258,7 @@ public abstract class Artifact {
 		}
 		clone.setModificationTime(getModificationTime());
 		clone.setCrc(_crc);
+		clone._encoding = _encoding;
 		clone._content = _content;
 		clone._length = _length;
 		return clone;

@@ -48,7 +48,6 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	private volatile Map<QName, Binding> _allBindings;
 	private final HashMap<String, byte[]> _schemas = new HashMap<>();
-	private Charset _encoding;
 	// only used during validation
 	private String latestImportURI;
 
@@ -57,14 +56,8 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	}
 
 	@Override
-	public Charset getEncoding() {
-		return _encoding;
-	}
-
-	@Override
 	protected WSDLArtifact clone(FileSystem fileSystem, Directory parent) {
 		WSDLArtifact clone = initClone(new WSDLArtifact(fileSystem, parent, getName()));
-		clone._encoding = _encoding;
 		clone._allBindings = _allBindings;
 		clone._schemaSet = _schemaSet;
 		clone._schemas.putAll(_schemas);

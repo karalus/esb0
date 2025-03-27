@@ -219,7 +219,7 @@ public class AdminAction extends Action {
 				}
 				if (globalContext.lockFileSystem()) {
 					try {
-						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, message.getBodyAsByteArray(context));
+						FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource, message.getBodyAsByteArray(context), message.getCharset());
 						deployChangeset(globalContext, changeSet, message);
 					} catch (ValidationException | RuntimeException e) {
 						throwHttpError(message, SC_BAD_REQUEST, e);

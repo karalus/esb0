@@ -21,6 +21,7 @@ import java.lang.invoke.MethodHandles;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.SAXParserFactory;
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
@@ -57,6 +58,7 @@ public class XMLProcessorFactory {
 	private static final MethodHandle conSAXTransformerFactory;
 	private static final MethodHandle conXMLProcessorFactory;
 	private static final TransformerFactory IDENTITY_TRANSFORMER_FACTORY;
+	private static final XMLInputFactory XML_INPUT_FACTORY = XMLInputFactory.newFactory();
 
 	static {
 		try {
@@ -75,6 +77,7 @@ public class XMLProcessorFactory {
 			}
 			IDENTITY_TRANSFORMER_FACTORY = USE_DEFAULT_IDENTITY_TRANSFORMER ? TransformerFactory.newDefaultInstance() : transformerFactory;
 			IDENTITY_TRANSFORMER_FACTORY.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, SECURE_PROCESSING);
+			XML_INPUT_FACTORY.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);
 			Class<?> xmlProcessorFactory;
 			try {
 				xmlProcessorFactory = Class.forName(System.getProperty("esb0.XMLProcessorFactory", "com.artofarc.util.saxon.SaxonXMLProcessorFactory"));
@@ -97,6 +100,10 @@ public class XMLProcessorFactory {
 
 	public static XPathFactory getXPathFactory() {
 		return XPATH_FACTORY;
+	}
+
+	public static XMLInputFactory getXMLInputFactory() {
+		return XML_INPUT_FACTORY;
 	}
 
 	public static Transformer newTransformer() throws TransformerConfigurationException {

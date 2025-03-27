@@ -17,8 +17,10 @@ package com.artofarc.esb.artifact;
 
 import java.io.FileNotFoundException;
 import java.lang.ref.WeakReference;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.TransformerException;
@@ -43,7 +45,17 @@ public class XMLProcessingArtifact extends Artifact {
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
 		// checks well-formedness
-		XMLProcessorFactory.getSAXParserFactory().newSAXParser().parse(getContentAsStream(), new org.xml.sax.helpers.DefaultHandler());
+		XMLStreamReader xmlStreamReader = XMLProcessorFactory.getXMLInputFactory().createXMLStreamReader(getContentAsStream());
+		try {
+			while (xmlStreamReader.hasNext()) {
+				xmlStreamReader.next();
+			}
+		} finally {
+			xmlStreamReader.close();
+		}
+		if (xmlStreamReader.getEncoding() != null) {
+			_encoding = Charset.forName(xmlStreamReader.getEncoding());
+		}
 	}
 
 	@Override

@@ -457,7 +457,7 @@ Upload Service-JAR:
 				%>
 				<br>
 				<form action="<%=adminPath + pathInfo%>" method="POST" accept-charset="utf-8">
-					<textarea name="content" rows="50" cols="200" spellcheck="false" style="tab-size:4"<%if (a.getModificationTime() == 0 || a.getEncoding() != java.nio.charset.StandardCharsets.UTF_8) {%> readonly<%}%>><%=content%></textarea>
+					<textarea name="content" rows="50" cols="200" spellcheck="false" style="tab-size:4"<%if (a.getModificationTime() == 0) {%> readonly<%}%>><%=content%></textarea>
 					<input type="submit" value="Change">
 				</form>
 				<%

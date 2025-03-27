@@ -19,6 +19,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -381,21 +382,21 @@ public abstract class FileSystem {
 		return changeSet;
 	}
 
-	public final ChangeSet createChangeSet(GlobalContext globalContext, String uri, byte[] content) throws ValidationException {
+	public final ChangeSet createChangeSet(GlobalContext globalContext, String uri, byte[] content, Charset charset) throws ValidationException {
 		FileSystem copy = copy();
 		CRC32 crc = new CRC32();
 		crc.update(content);
 		Artifact artifact = copy.getArtifact(copy.getRoot(), uri);
 		if (artifact != null) {
 			if (artifact.isDifferent(content, crc.getValue())) {
-				artifact.setContent(content);
+				artifact.setContent(content, charset);
 				artifact.setModificationTime(System.currentTimeMillis());
 				artifact.setCrc(crc.getValue());
 				copy.noteChange(uri, ChangeType.UPDATE);
 			}
 		} else {
 			artifact = copy.createArtifact(uri.substring(1));
-			artifact.setContent(content);
+			artifact.setContent(content, charset);
 			artifact.setModificationTime(System.currentTimeMillis());
 			artifact.setCrc(crc.getValue());
 			copy.noteChange(uri, ChangeType.CREATE);
