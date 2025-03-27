@@ -34,6 +34,7 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.JsonFactoryHelper;
+import com.artofarc.util.FileInputStream;
 
 public class FileAction extends TerminalAction {
 
@@ -101,7 +102,7 @@ public class FileAction extends TerminalAction {
 					message.setContentEncoding("gzip");
 				}
 				message.setContentType(MimeHelper.guessContentTypeFromName(filename));
-				message.reset(BodyType.INPUT_STREAM, new IOUtils.PredictableFileInputStream(file));
+				message.reset(BodyType.INPUT_STREAM, new FileInputStream(file));
 			}
 		} else {
 			String fileExtension = IOUtils.getExt(filename);

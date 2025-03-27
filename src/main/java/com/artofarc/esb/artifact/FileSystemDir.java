@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.zip.CRC32;
 
 import com.artofarc.util.IOUtils;
+import com.artofarc.util.FileInputStream;
 
 public class FileSystemDir extends FileSystem {
 
@@ -48,7 +49,7 @@ public class FileSystemDir extends FileSystem {
 
 	@Override
 	protected InputStream createInputStream(String uri) throws FileNotFoundException {
-		return new IOUtils.PredictableFileInputStream(new File(_anchorDir, uri));
+		return new FileInputStream(new File(_anchorDir, uri));
 	}
 
 	@Override
