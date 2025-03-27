@@ -15,8 +15,8 @@
  */
 package com.artofarc.esb;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
@@ -89,7 +89,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 								msg.getVariables().put(ESBConstants.FileEventKind, kind.toString());
 								msg.getVariables().put(ESBConstants.ContextPath, parent.toString());
 								msg.getVariables().put(ESBConstants.filename, path.toString());
-								try (InputStream inputStream = Channels.newInputStream(fileChannel)) {
+								try (BufferedInputStream inputStream = new BufferedInputStream(Channels.newInputStream(fileChannel))) {
 									fillESBMessage(msg, inputStream, path.toString());
 									process(context, msg);
 									moveFile(context, msg, absolutePath, _move);
@@ -117,7 +117,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 		}
 	}
 
-	private static void fillESBMessage(ESBMessage msg, InputStream inputStream, String filename) throws Exception {
+	private static void fillESBMessage(ESBMessage msg, BufferedInputStream inputStream, String filename) throws Exception {
 		String ext = IOUtils.getExt(filename);
 		if ("zip".equals(ext)) {
 			try (ZipInputStream zis = new ZipInputStream(inputStream)) {
