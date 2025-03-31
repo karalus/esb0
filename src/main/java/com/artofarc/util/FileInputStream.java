@@ -27,7 +27,7 @@ import java.io.InputStream;
 public class FileInputStream extends InputStream implements IOUtils.PredictableInputStream {
 
 	private final File _file;
-	private java.io.FileInputStream fileInputStream;
+	private InputStream fileInputStream;
 	private byte[] buf;
 	private int count, pos;
 	private long available;

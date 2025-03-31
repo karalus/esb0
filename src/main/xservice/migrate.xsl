@@ -67,6 +67,7 @@
 		</xsl:copy>
 	</xsl:template>
 	<xsl:template match="ns:transform[local-name(preceding-sibling::*[1]) = 'deserializeXop' and ns:xquery = '*']"/>
+	<xsl:template match="ns:transform[ns:xquery = '*' and local-name(preceding-sibling::*[1]) = 'applyXSLT']"/>
 	<xsl:template match="ns:assignment[@variable='messageHeader']">
 		<assignment variable="messageHeader"><xsl:value-of select="replace(text(),'\(\$([^=]+)=''''\)','(string-length(\$$1)=0)')" /></assignment>
 	</xsl:template>
