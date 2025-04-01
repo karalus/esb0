@@ -44,12 +44,19 @@ public class FileAction extends TerminalAction {
 	private final Boolean _readable, _writable;
 
 	public FileAction(String destDir, String action, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable, boolean ownerOnly) throws FileNotFoundException {
-		_destDir = new File(destDir);
-		if (!_destDir.exists()) {
-			throw new FileNotFoundException(destDir);
-		}
-		if (!_destDir.isDirectory()) {
-			throw new IllegalStateException("Is not a directory " + destDir);
+		if (destDir != null) {
+			_destDir = new File(destDir);
+			if (!_destDir.isAbsolute()) {
+				throw new IllegalArgumentException("Dir is not absolute: " + destDir);
+			}
+			if (!_destDir.exists()) {
+				throw new FileNotFoundException(destDir);
+			}
+			if (!_destDir.isDirectory()) {
+				throw new IllegalStateException("Is not a directory " + destDir);
+			}
+		} else {
+			_destDir = null;
 		}
 		_action = action;
 		_filename = filename;
@@ -88,6 +95,9 @@ public class FileAction extends TerminalAction {
 		if (action == null) {
 			message.clearHeaders();
 			File file = new File(_destDir, filename);
+			if (_destDir == null && !file.isAbsolute()) {
+				throw new ExecutionException(this, "Filename is not absolute: " + file);
+			}
 			if (file.isDirectory()) {
 				JsonArrayBuilder builder = JsonFactoryHelper.JSON_BUILDER_FACTORY.createArrayBuilder();
 				for (File f : file.listFiles()) {
@@ -123,6 +133,9 @@ public class FileAction extends TerminalAction {
 			}
 			boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
 			File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
+			if (_destDir == null && !file.isAbsolute()) {
+				throw new ExecutionException(this, "Filename is not absolute: " + file);
+			}
 			if (_mkdirs) {
 				mkdirs(file.getCanonicalFile().getParentFile());
 			}

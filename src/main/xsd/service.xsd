@@ -174,7 +174,7 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase">
-					<attribute name="dir" type="tns:globalExpression" use="required" />
+					<attribute name="dir" type="tns:globalExpression" />
 					<attribute name="action" type="tns:expression" default="${FileEventKind}" />
 					<attribute name="filename" type="tns:expression" default="${filename}" />
 					<attribute name="mkdirs" type="boolean" default="false" />
