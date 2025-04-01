@@ -67,7 +67,7 @@ public class JarArtifact extends Artifact {
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
-		_jar = new Jar(globalContext, this);
+		_jar = new Jar(this);
 	}
 
 	@Override
@@ -78,15 +78,13 @@ public class JarArtifact extends Artifact {
 
 	static final class Jar {
 
-		private final GlobalContext _globalContext;
-		private final String _jarArtifactURI;
+		private final WeakReference<JarArtifact> _jarArtifact;
 		private final Map<String, WeakReference<byte[]>> _entries = new LinkedHashMap<>();
 		private final Manifest _manifest;
 
-		Jar(GlobalContext globalContext, JarArtifact jarArtifact) throws IOException {
-			_globalContext = globalContext;
-			_jarArtifactURI = jarArtifact.getURI();
-			logger.info("Reading " + _jarArtifactURI);
+		Jar(JarArtifact jarArtifact) throws IOException {
+			_jarArtifact = new WeakReference<>(jarArtifact);
+			logger.info("Reading " + jarArtifact);
 			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
 				JarEntry entry;
 				while ((entry = jis.getNextJarEntry()) != null) {
@@ -99,8 +97,11 @@ public class JarArtifact extends Artifact {
 		}
 
 		private byte[] reload(String filename) throws IOException {
-			JarArtifact jarArtifact = _globalContext.getFileSystem().loadArtifact(_jarArtifactURI);
-			logger.info("Reloading " + _jarArtifactURI);
+			JarArtifact jarArtifact = _jarArtifact.get();
+			if (jarArtifact == null) {
+				throw new IllegalStateException("Reference has already been cleared");
+			}
+			logger.info("Reloading " + jarArtifact);
 			byte[] result = null;
 			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
 				JarEntry entry;
@@ -134,7 +135,7 @@ public class JarArtifact extends Artifact {
 					_entries.replace(filename, null);
 				}
 			} else if (nullify && _entries.containsKey(filename)) {
-				throw new IllegalStateException("Same jar is loaded twice from different classLoaders " + _jarArtifactURI);
+				throw new IllegalStateException("Same jar is loaded twice from different classLoaders " + _jarArtifact.get());
 			}
 			return data;
 		}

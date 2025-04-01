@@ -42,7 +42,7 @@ public class FileSystemClassLoader extends SecureClassLoader {
 	 * <li>call findClass: look in jars</li>
 	 * <li>propagate to parent classloader</li>
 	 * </ol>
-	 * 
+	 *
 	 * @see FileSystemClassLoader#findClass(String)
 	 * @see ClassLoader#loadClass(String)
 	 */
