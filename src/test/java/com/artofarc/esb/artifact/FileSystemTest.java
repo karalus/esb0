@@ -1,6 +1,8 @@
 package com.artofarc.esb.artifact;
 
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -16,7 +18,27 @@ import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 
+import javassist.bytecode.ClassFile;
+import javassist.bytecode.CodeAttribute;
+import javassist.bytecode.MethodInfo;
+
 public class FileSystemTest extends AbstractESBTest {
+
+	@Test
+	public void testMethodLength() throws Exception {
+		// https://stackoverflow.com/questions/48338337/how-to-check-bytecode-length-of-java-method
+		try (InputStream is = getClass().getResourceAsStream("ServiceArtifact.class")) {
+			assertNotNull(is);
+			ClassFile cf = new ClassFile(new DataInputStream(is));
+			for (MethodInfo mi : cf.getMethods()) {
+				CodeAttribute ca = mi.getCodeAttribute();
+				if (ca == null) continue; // abstract or native
+				int bLen = ca.getCode().length;
+				// Methods larger than 8000 Bytes will not be compiled by Java Hotspot
+				assertTrue(mi.getName() + " " + mi.getDescriptor() + ", " + bLen + " bytes", bLen < 8000);
+			}
+		}
+	}
 
    @Test
    public void testFileSystem() throws Exception {
