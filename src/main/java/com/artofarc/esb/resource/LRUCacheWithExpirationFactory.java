@@ -69,7 +69,7 @@ public class LRUCacheWithExpirationFactory<K, V> extends ResourceFactory<LRUCach
 			_name = name;
 			_maxSize = maxSize;
 			_expirationKeys = new ConcurrentHashMap<>(maxSize);
-			_cache = Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize) {
+			_cache = Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize * 4 / 3, .75f, true) {
 				private static final long serialVersionUID = 1L;
 
 				@Override
