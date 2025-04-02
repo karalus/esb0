@@ -18,7 +18,6 @@ import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.StringWrapper;
 import com.artofarc.util.URLUtils;
 
 
@@ -110,7 +109,7 @@ public class EncodingTest extends AbstractESBTest {
 		TransformAction transformAction = new TransformAction("root/text()");
 		//transformAction.setNextAction(new DumpAction());
 		// in XML &#x1a; &
-		SetMessageAction action = new SetMessageAction(getClass().getClassLoader(), StringWrapper.create("${body.replace(_string,'?')}"), null, null);
+		SetMessageAction action = createUpdateAction("${body.replace(_string,'?')}", null, null);
 		action.addAssignment("_codePoint", false, "26", "java.lang.Integer", null, null);
 		action.addAssignment("_chars", false, "${_codePoint}", "java.lang.Character", "toChars", null);
 		action.addAssignment("_string", false, "${_chars}", "java.lang.String", "valueOf", null);
@@ -138,7 +137,7 @@ public class EncodingTest extends AbstractESBTest {
 		//serializationParameters.setProperty("{http://saxon.sf.net/}indent-spaces", "1");
 		message.putVariable(ESBConstants.serializationParameters, serializationParameters);
 		Action action = new TransformAction(".");
-		action.setNextAction(new SetMessageAction(getClass().getClassLoader(), StringWrapper.create("${body}"), null, null));
+		action.setNextAction(createUpdateAction("${body}", null, null));
 		action.process(context, message);
 		String bodyAsString = message.getBodyAsString(context);
 		// -Desb0.useDefaultIdentityTransformer=true

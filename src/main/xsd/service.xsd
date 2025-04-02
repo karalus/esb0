@@ -452,7 +452,7 @@
 					</attribute>
 					<attribute name="writeOnly" type="boolean" default="false" />
 					<attribute name="name" type="Name" use="required" />
-					<attribute name="maxSize" type="tns:nonNegativeInt" use="required" />
+					<attribute name="maxSize" type="tns:positiveInt" use="required" />
 					<attribute name="ttl" type="tns:string1" use="required" />
 				</extension>
 			</complexContent>
@@ -613,7 +613,15 @@
 									</simpleContent>
 								</complexType>
 							</element>
-							<element name="variable" type="tns:HeaderOrVariable" />
+							<element name="variable">
+								<complexType>
+									<simpleContent>
+										<extension base="tns:HeaderOrVariable">
+											<attribute name="fileURI" type="anyURI" />
+										</extension>
+									</simpleContent>
+								</complexType>
+							</element>
 						</choice>
 						<element name="body" minOccurs="0">
 							<complexType>

@@ -502,7 +502,7 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new WrapSOAPAction(false, false, true));
-      SetMessageAction setMessageAction = new SetMessageAction(null, null, null, null);
+      SetMessageAction setMessageAction = createUpdateAction(null, null, null);
       setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_CONTENT_TYPE, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null, null);
 		action = action.setNextAction(setMessageAction);
       action = action.setNextAction(new DumpAction());
@@ -527,7 +527,7 @@ public class SOAPTest extends AbstractESBTest {
       
       @SuppressWarnings("unchecked")
       ConsumerPort consumerPort = new ConsumerPort(null);
-      SetMessageAction setMessageAction = new SetMessageAction(null, null, null, null);
+      SetMessageAction setMessageAction = createUpdateAction(null, null, null);
       setMessageAction.addAssignment(HttpConstants.HTTP_HEADER_CONTENT_TYPE, true, HttpConstants.HTTP_HEADER_CONTENT_TYPE_FI_SOAP11, null, null, null);
       consumerPort.setStartAction(setMessageAction);
 //	Action action = setMessageAction.setNextAction(createValidateAction(schemaArtifact));

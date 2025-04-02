@@ -101,7 +101,7 @@ public class FileInputStream extends InputStream implements IOUtils.PredictableI
 		}
 		if (remaining > 0) {
 			long l = getFileInputStream().skip(remaining);
-			if (l > 0) available -= l;
+			available -= l;
 			remaining -= l;
 		}
 		return n - remaining;

@@ -13,7 +13,6 @@ import org.junit.Test;
 import com.artofarc.esb.AbstractESBTest;
 import com.artofarc.esb.FileWatchEventConsumer;
 import com.artofarc.esb.TimerService;
-import com.artofarc.util.StringWrapper;
 
 public class FileSystemWatchTest extends AbstractESBTest {
 
@@ -43,7 +42,7 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		File moveDir = new File(dir, "move");
 		moveDir.mkdir();
 		moveDir.deleteOnExit();
-		SetMessageAction setMessageAction = new SetMessageAction(getClass().getClassLoader(), StringWrapper.create("${filenameOrigin}: ${tstmp}\n"), null, null);
+		SetMessageAction setMessageAction = createUpdateAction("${filenameOrigin}: ${tstmp}\n", null, null);
 		setMessageAction.addAssignment("filenameOrigin", false, "${filename}", null, null, null);
 		setMessageAction.addAssignment("filename", false, "log.txt", null, null, null);
 		setMessageAction.addAssignment("tstmp", false, "${initialTimestamp}", "java.sql.Date", null, null);

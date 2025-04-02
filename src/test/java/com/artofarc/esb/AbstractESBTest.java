@@ -49,6 +49,7 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.IOUtils;
+import com.artofarc.util.StringWrapper;
 import com.artofarc.util.XQuerySource;
 
 public abstract class AbstractESBTest {
@@ -167,8 +168,12 @@ public abstract class AbstractESBTest {
 		return assignments;
 	}
 
+	protected static SetMessageAction createUpdateAction(String bodyExpr, String javaType, String method) throws ReflectiveOperationException {
+		return new SetMessageAction(AbstractESBTest.class.getClassLoader(), javaType, method, bodyExpr != null ? StringWrapper.create(bodyExpr) : null, false);
+	}
+
 	protected static SetMessageAction createUpdateAction(Map<String, String> assignments) throws Exception {
-		SetMessageAction action = new SetMessageAction(AbstractESBTest.class.getClassLoader(), null, null, null);
+		SetMessageAction action = new SetMessageAction(AbstractESBTest.class.getClassLoader(), null, null, null, false);
 		for (Map.Entry<String, String> entry : assignments.entrySet()) {
 			action.addAssignment(entry.getKey(), false, entry.getValue(), null, null, null);
 		}

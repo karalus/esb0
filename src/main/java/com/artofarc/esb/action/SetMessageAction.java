@@ -37,18 +37,22 @@ public class SetMessageAction extends ForwardAction {
 	private final Assignment _body;
 	private Set<String> _clearHeadersExcept;
 
-	public SetMessageAction(ClassLoader cl, StringWrapper bodyExpr, String javaType, String method) throws ReflectiveOperationException {
+	public SetMessageAction(ClassLoader cl, String javaType, String method, StringWrapper bodyExpr, boolean fromFile) throws ReflectiveOperationException {
 		_classLoader = cl;
-		_body = bodyExpr != null ? new Assignment("body", false, bodyExpr, javaType, method, null) : null;
+		_body = bodyExpr != null ? new Assignment("body", false, javaType, method, null, bodyExpr, fromFile) : null;
 		_pipelineStop = bodyExpr != null;
 	}
 
-	public final void addAssignment(String name, boolean header, String expr, String javaType, String method, String field) throws ReflectiveOperationException {
-		Assignment assignment = new Assignment(name, header, StringWrapper.create(expr), javaType, method, field);
+	public final void addAssignment(String name, boolean header, String javaType, String method, String field, StringWrapper expr, boolean fromFile) throws ReflectiveOperationException {
+		Assignment assignment = new Assignment(name, header, javaType, method, field, expr, fromFile);
 		_assignments.add(assignment);
 		if (assignment._needsBody) {
 			_pipelineStop = true;
 		}
+	}
+
+	public final void addAssignment(String name, boolean header, String expr, String javaType, String method, String field) throws ReflectiveOperationException {
+		addAssignment(name, header, javaType, method, field, StringWrapper.create(expr), false);
 	}
 
 	public final void setClearHeadersExcept(Set<String> clearHeadersExcept) {
@@ -64,7 +68,7 @@ public class SetMessageAction extends ForwardAction {
 			if (assignment._needsBody) {
 				break;
 			} else {
-				assignment.assign(message, eval(assignment._expr.getString(), context, message));
+				assignment.assign(context, message);
 			}
 		}
 		return super.prepare(context, message, inPipeline);
@@ -75,11 +79,11 @@ public class SetMessageAction extends ForwardAction {
 		boolean forBody = false;
 		for (Assignment assignment : _assignments) {
 			if (forBody |= assignment._needsBody) {
-				assignment.assign(message, eval(assignment._expr.getString(), context, message));
+				assignment.assign(context, message);
 			}
 		}
 		if (_body != null) {
-			message.reset(null, _body.convert(eval(_body._expr.getString(), context, message)));
+			message.reset(null, _body.evaluate(context, message));
 			message.evaluateContentType();
 			message.setSchema(null);
 			if (_clearHeadersExcept == null) {
@@ -94,29 +98,30 @@ public class SetMessageAction extends ForwardAction {
 		final String _name;
 		final boolean _header;
 		final StringWrapper _expr;
+		final boolean _fromFile;
 		final boolean _needsBody;
 		final Entry<Class<?>, MethodHandle>[] _methodHandles;
 
-		Assignment(String name, boolean header, StringWrapper expr, String javaType, String method, String field) throws ReflectiveOperationException {
+		Assignment(String name, boolean header, String javaType, String method, String field, StringWrapper expr, boolean fromFile) throws ReflectiveOperationException {
 			_name = name.intern();
 			_header = header;
 			_expr = expr;
-			String exprString = expr.getString();
-			_needsBody = exprString.contains("${body") || exprString.contains("${rawBody");
+			_fromFile = fromFile;
+			_needsBody = fromFile ? false : expr.getString().contains("${body") || expr.getString().contains("${rawBody");
 			if (javaType != null) {
 				try {
 					Class<?> cls = Class.forName(javaType, true, _classLoader);
 					if (method != null) {
-						_methodHandles = ReflectionUtils.findStaticMethods(cls, method, exprString.isEmpty() ? 0 : 1);
+						_methodHandles = ReflectionUtils.findStaticMethods(cls, method, expr.isEmpty() ? 0 : 1);
 					} else if (field != null) {
-						if (!exprString.isEmpty()) {
+						if (!expr.isEmpty()) {
 							throw new IllegalArgumentException("Field must not have an expression");
 						}
 						Field _field = cls.getField(field);
 						ReflectionUtils.checkStatic(_field);
 						_methodHandles = DataStructures.toSingletonArray(DataStructures.createEntry(null, MethodHandles.publicLookup().unreflectGetter(_field)));
 					} else {
-						_methodHandles = ReflectionUtils.findConstructors(cls, exprString.isEmpty() ? 0 : 1);
+						_methodHandles = ReflectionUtils.findConstructors(cls, expr.isEmpty() ? 0 : 1);
 					}
 				} catch (LinkageError e) {
 					throw new IllegalStateException("Could not load Java class " + javaType, e);
@@ -126,7 +131,8 @@ public class SetMessageAction extends ForwardAction {
 			}
 		}
 
-		Object convert(Object value) throws Exception {
+		Object evaluate(Context context, ESBMessage message) throws Exception {
+			Object value = _fromFile ? _expr.getString() : eval(_expr.getString(), context, message);
 			if (_methodHandles != null) {
 				try {
 					if (_expr.isEmpty()) {
@@ -143,11 +149,11 @@ public class SetMessageAction extends ForwardAction {
 			return value;
 		}
 
-		void assign(ESBMessage message, Object value) throws Exception {
+		void assign(Context context, ESBMessage message) throws Exception {
 			if (_header) {
-				message.putHeader(_name, convert(value));
+				message.putHeader(_name, evaluate(context, message));
 			} else {
-				message.putVariable(_name, convert(value));
+				message.putVariable(_name, evaluate(context, message));
 			}
 		}
 	}
