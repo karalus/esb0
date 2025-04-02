@@ -640,7 +640,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 
 	private Artifact resolveURI(GlobalContext globalContext, String referencedURI, String value, Locatable locatable) throws Exception {
 		if (referencedURI != null) {
-			if (value != null) {
+			if (value.length() > 0) {
 				throw new ValidationException(this, getLineNumber(locatable), "if uri is given value can not be used");
 			}
 			Artifact artifact = loadArtifact(referencedURI);
