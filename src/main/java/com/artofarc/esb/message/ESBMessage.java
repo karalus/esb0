@@ -106,6 +106,9 @@ public final class ESBMessage implements Cloneable {
 	@SuppressWarnings("unchecked")
 	private <T> T init(BodyType bodyType, T body, Charset charset) {
 		_bodyType = bodyType != null ? bodyType : BodyType.detect(body);
+		if (_bodyType != BodyType.SOURCE) {
+			_variables.remove(ESBConstants.xqItemKindElement);
+		}
 		_charset = charset;
 		return (T) (_body = body);
 	}

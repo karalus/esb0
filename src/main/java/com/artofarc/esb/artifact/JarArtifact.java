@@ -153,7 +153,7 @@ public class JarArtifact extends Artifact {
 						}
 
 						@Override
-						public ByteArrayInputStream getInputStream() throws IOException {
+						public ByteArrayInputStream getInputStream() {
 							return new ByteArrayInputStream(data);
 						}
 					};
