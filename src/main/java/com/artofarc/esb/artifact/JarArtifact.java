@@ -61,13 +61,23 @@ public class JarArtifact extends Artifact {
 	@Override
 	protected JarArtifact clone(FileSystem fileSystem, Directory parent) {
 		JarArtifact clone = initClone(new JarArtifact(fileSystem, parent, getName()));
-		clone._jar = _jar;
+		clone._jar = new Jar(clone, _jar._entries, _jar._manifest);
 		return clone;
 	}
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
-		_jar = new Jar(this);
+		logger.info("Reading " + getURI());
+		Map<String, WeakReference<byte[]>> entries = new LinkedHashMap<>();
+		try (JarInputStream jis = new JarInputStream(getContentAsStream())) {
+			JarEntry entry;
+			while ((entry = jis.getNextJarEntry()) != null) {
+				if (!entry.isDirectory()) {
+					entries.put(entry.getName(), new WeakReference<>(IOUtils.toByteArray(jis)));
+				}
+			}
+			_jar = new Jar(this, entries, jis.getManifest());
+		}
 	}
 
 	@Override
@@ -79,21 +89,13 @@ public class JarArtifact extends Artifact {
 	static final class Jar {
 
 		private final WeakReference<JarArtifact> _jarArtifact;
-		private final Map<String, WeakReference<byte[]>> _entries = new LinkedHashMap<>();
+		private final Map<String, WeakReference<byte[]>> _entries;
 		private final Manifest _manifest;
 
-		Jar(JarArtifact jarArtifact) throws IOException {
+		Jar(JarArtifact jarArtifact, Map<String, WeakReference<byte[]>> entries, Manifest manifest) {
 			_jarArtifact = new WeakReference<>(jarArtifact);
-			logger.info("Reading " + jarArtifact);
-			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
-				JarEntry entry;
-				while ((entry = jis.getNextJarEntry()) != null) {
-					if (!entry.isDirectory()) {
-						_entries.put(entry.getName(), new WeakReference<>(IOUtils.toByteArray(jis)));
-					}
-				}
-				_manifest = jis.getManifest();
-			}
+			_entries = entries;
+			_manifest = manifest;
 		}
 
 		private byte[] reload(String filename) throws IOException {
