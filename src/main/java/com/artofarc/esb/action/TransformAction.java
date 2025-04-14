@@ -25,7 +25,6 @@ import javax.xml.transform.Source;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.xquery.*;
 
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.Text;
 
@@ -34,7 +33,6 @@ import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.BodyType;
-import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.util.DataStructures;
 import com.artofarc.util.XQuerySource;
@@ -121,7 +119,7 @@ public class TransformAction extends Action {
 				// Nothing to bind, but we need a context item
 				xqExpression.bindString(XQConstants.CONTEXT_ITEM, "", null);
 			} else {
-				message.preferXQItemBody();
+				message.alignAxis(context);
 				switch (message.getBodyType()) {
 				case XQ_SEQUENCE:
 					XQSequence sequence = message.getBody();
@@ -145,13 +143,7 @@ public class TransformAction extends Action {
 							xqExpression.bindString(XQConstants.CONTEXT_ITEM, message.getBodyAsString(context), null);
 						}
 					} else {
-						Boolean xqItemKindElement = (Boolean) message.getVariables().remove(ESBConstants.xqItemKindElement);
-						if (Boolean.TRUE.equals(xqItemKindElement) && message.getBodyType() == BodyType.SOURCE) {
-							XQItem xqItem = context.getXQDataFactory().createItemFromDocument(message.<Source> getBody(), null);
-							xqExpression.bindNode(XQConstants.CONTEXT_ITEM, ((Document) xqItem.getNode()).getDocumentElement(), null);
-						} else {
-							xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
-						}
+						xqExpression.bindDocument(XQConstants.CONTEXT_ITEM, message.getBodyAsSource(context), null);
 					}
 					break;
 				}

@@ -29,7 +29,6 @@ import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
-import javax.xml.xquery.XQItemType;
 import javax.xml.xquery.XQSequence;
 
 import org.xml.sax.ContentHandler;
@@ -43,6 +42,7 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.RichSource;
 import com.artofarc.util.ReflectionUtils;
 import com.artofarc.util.XMLFilterBase;
 
@@ -159,11 +159,18 @@ public abstract class SAXAction extends Action {
 		_streamingToSink = true;
 	}
 
-	protected abstract SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception;
+	@Deprecated
+	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception {
+		throw new UnsupportedOperationException();
+	}
+
+	protected RichSource createSource(Context context, ESBMessage message, XQItem item) throws Exception {
+		return new RichSource(createSAXSource(context, message, item));
+	}
 
 	protected abstract XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception;
 
-	private SAXSource createSAXSource(Context context, ESBMessage message, Source source) throws Exception {
+	private RichSource createSource(Context context, ESBMessage message, Source source) throws Exception {
 		XMLReader parent = null;
 		if (source instanceof SAXSource) {
 			SAXSource saxSource = (SAXSource) source;
@@ -173,12 +180,12 @@ public abstract class SAXAction extends Action {
 			parent = new DOMFilter(context, domSource);
 		}
 		InputSource inputSource = SAXSource.sourceToInputSource(source);
-		return new SAXSource(createXMLFilter(context, message, parent), inputSource);
+		return new RichSource(new SAXSource(createXMLFilter(context, message, parent), inputSource));
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		SAXSource source;
+		RichSource source;
 		switch (message.getBodyType()) {
 		case XQ_SEQUENCE:
 			XQSequence sequence = message.getBody();
@@ -188,14 +195,10 @@ public abstract class SAXAction extends Action {
 			message.reset(BodyType.XQ_ITEM, context.getXQDataFactory().createItem(sequence.getItem()));
 			// nobreak
 		case XQ_ITEM:
-			XQItem xqItem = message.getBody();
-			if (xqItem.getItemType().getItemKind() == XQItemType.XQITEMKIND_ELEMENT) {
-				message.putVariable(ESBConstants.xqItemKindElement, Boolean.TRUE);
-			}
-			source = createSAXSource(context, message, xqItem);
+			source = createSource(context, message, message.<XQItem> getBody());
 			break;
 		default:
-			source = createSAXSource(context, message, message.getBodyAsSource(context));
+			source = createSource(context, message, message.getBodyAsSource(context));
 			break;
 		}
 		message.reset(BodyType.SOURCE, source);
@@ -206,10 +209,11 @@ public abstract class SAXAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		if (nextActionIsPipelineStop) {
+			RichSource source = execContext.getResource();
 			if (message.isSink()) {
-				context.transform(execContext.getResource(), message.createResultFromBodyAsSink(context), message.getVariable(ESBConstants.serializationParameters));
+				context.transform(source.getSource(), message.createResultFromBodyAsSink(context), message.getVariable(ESBConstants.serializationParameters));
 			} else {
-				message.reset(BodyType.SOURCE, execContext.getResource());
+				message.reset(BodyType.SOURCE, source);
 			}
 		}
 	}

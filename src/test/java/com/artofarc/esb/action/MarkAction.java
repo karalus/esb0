@@ -3,7 +3,7 @@ package com.artofarc.esb.action;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
 
-public class MarkAction extends DumpAction {
+public class MarkAction extends TerminalAction {
 
 	private volatile boolean executed;
 

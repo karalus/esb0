@@ -22,6 +22,7 @@ import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.RichSource;
 import com.artofarc.esb.message.XOPDeserializer;
 import com.artofarc.util.XMLFilterBase;
 
@@ -33,10 +34,10 @@ import com.artofarc.util.XMLFilterBase;
 public class XOPDeserializeAction extends SAXAction {
 
 	@Override
-	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception {
+	protected RichSource createSource(Context context, ESBMessage message, XQItem item) throws Exception {
 		XOPDeserializer xopDeserializer = new XOPDeserializer(message);
 		xopDeserializer.setParent(new XQJFilter(item));
-		return new SAXSource(xopDeserializer, null);
+		return new RichSource(new SAXSource(xopDeserializer, null), item, null);
 	}
 
 	@Override

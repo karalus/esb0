@@ -59,7 +59,6 @@ import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQSequence;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
@@ -106,9 +105,6 @@ public final class ESBMessage implements Cloneable {
 	@SuppressWarnings("unchecked")
 	private <T> T init(BodyType bodyType, T body, Charset charset) {
 		_bodyType = bodyType != null ? bodyType : BodyType.detect(body);
-		if (_bodyType != BodyType.SOURCE) {
-			_variables.remove(ESBConstants.xqItemKindElement);
-		}
 		_charset = charset;
 		return (T) (_body = body);
 	}
@@ -436,10 +432,10 @@ public final class ESBMessage implements Cloneable {
 		StringBuilderWriter sw;
 		switch (_bodyType) {
 		case DOM:
-			_body = new DOMSource((Node) _body);
+			_body = new RichSource((Node) _body);
 			// nobreak
 		case SOURCE:
-			context.transform((Source) _body, new StreamResult(sw = new StringBuilderWriter()), getVariable(ESBConstants.serializationParameters));
+			context.transform(((RichSource) _body).getSource(), new StreamResult(sw = new StringBuilderWriter()), getVariable(ESBConstants.serializationParameters));
 			str = sw.toString();
 			break;
 		case STRING:
@@ -517,10 +513,10 @@ public final class ESBMessage implements Cloneable {
 			context.writeItem(xqItem, sw = new StringBuilderWriter(), getSinkProperties());
 			return sw.getReader();
 		case DOM:
-			_body = new DOMSource((Node) _body);
+			_body = new RichSource((Node) _body);
 			// nobreak
 		case SOURCE:
-			context.transform((Source) _body, new StreamResult(sw = new StringBuilderWriter()), getVariable(ESBConstants.serializationParameters));
+			context.transform(((RichSource) _body).getSource(), new StreamResult(sw = new StringBuilderWriter()), getVariable(ESBConstants.serializationParameters));
 			return init(BodyType.READER, sw.getReader(), null);
 		default:
 			return new StringReader(getBodyAsString(context));
@@ -542,7 +538,7 @@ public final class ESBMessage implements Cloneable {
 			InputSource is;
 			switch (_bodyType) {
 			case SOURCE:
-				is = SAXSource.sourceToInputSource((Source) _body);
+				is = SAXSource.sourceToInputSource(((RichSource) _body).getSource());
 				break;
 			case BYTES:
 				is = new InputSource(new ByteArrayInputStream((byte[]) _body));
@@ -563,7 +559,7 @@ public final class ESBMessage implements Cloneable {
 	private Source getBodyAsSourceInternal() throws IOException, XQException {
 		switch (_bodyType) {
 		case SOURCE:
-			return (Source) _body;
+			return ((RichSource) _body).getSource();
 		case XQ_SEQUENCE:
 			extractItemFromSequence();
 			// nobreak
@@ -571,9 +567,6 @@ public final class ESBMessage implements Cloneable {
 			_body = ((XQItem) _body).getNode();
 			// nobreak
 		case DOM:
-			if (_body instanceof Element) {
-				_variables.put(ESBConstants.xqItemKindElement, Boolean.TRUE);
-			}
 			return new DOMSource((Node) _body);
 		case STRING:
 			return new StreamSource(new StringReader((String) _body));
@@ -760,8 +753,7 @@ public final class ESBMessage implements Cloneable {
 	public void writeTo(DOMResult result, Context context) throws Exception {
 		preferXQItemBody();
 		if (_bodyType == BodyType.XQ_ITEM) {
-			XQItem xqItem = (XQItem) _body;
-			result.setNode(xqItem.getNode());
+			result.setNode(((XQItem) _body).getNode());
 		} else {
 			context.transformRaw(getBodyAsSource(context), result);
 			init(BodyType.INVALID, null, null);
@@ -784,11 +776,11 @@ public final class ESBMessage implements Cloneable {
 	public void writeRawTo(OutputStream os, Context context) throws Exception {
 		switch (_bodyType) {
 		case DOM:
-			_body = new DOMSource((Node) _body);
+			_body = new RichSource((Node) _body);
 			// nobreak
 		case SOURCE:
 			try (Writer writer = new OutputStreamWriter(os, getSinkEncodingCharset())) {
-				context.transform((Source) _body, new StreamResult(writer), getVariable(ESBConstants.serializationParameters));
+				context.transform(((RichSource) _body).getSource(), new StreamResult(writer), getVariable(ESBConstants.serializationParameters));
 			}
 			init(BodyType.INVALID, null, null);
 			break;
@@ -903,9 +895,7 @@ public final class ESBMessage implements Cloneable {
 
 	public Object materializeBodyFromSource(Context context, Source source) throws Exception {
 		if (context.getXQDataFactory() != null) {
-			XQItem document = context.getXQDataFactory().createItemFromDocument(source, null);
-			boolean xqItemKindElement = Boolean.TRUE.equals(_variables.remove(ESBConstants.xqItemKindElement));
-			return init(xqItemKindElement ? BodyType.DOM : BodyType.XQ_ITEM, xqItemKindElement ? ((Document) document.getNode()).getDocumentElement() : document, null);
+			return init(BodyType.XQ_ITEM, context.getXQDataFactory().createItemFromDocument(source, null), null);
 		}
 		DOMResult result = new DOMResult();
 		context.transformRaw(source, result);
@@ -913,28 +903,27 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public void preferXQItemBody() throws SAXException {
-		if (_body instanceof SAXSource) {
-			XMLReader xmlReader = ((SAXSource) _body).getXMLReader();
-			if (xmlReader != null) {
-				try {
-					Object xqItem = xmlReader.getProperty(ESBConstants.xqItem);
-					if (xqItem != null) {
-						init(BodyType.XQ_ITEM, xqItem, null);
-					}
-				} catch (SAXException e) {
-					// xmlReader does not recognize property
-				} catch (RuntimeException e) {
-					if (e.getCause() instanceof SAXException) {
-						throw (SAXException) e.getCause();
-					}
-					throw e;
-				}
+		if (_bodyType == BodyType.SOURCE) {
+			RichSource.XQItemSupplier itemSupplier = ((RichSource) _body).getXQItemSupplier();
+			if (itemSupplier != null) {
+				init(BodyType.XQ_ITEM, itemSupplier.getXQItem(), null);
+			}
+		}
+	}
+
+	public void alignAxis(Context context) throws SAXException, XQException {
+		preferXQItemBody();
+		if (_bodyType == BodyType.SOURCE) {
+			RichSource source = (RichSource) _body;
+			if (source.isXQItemKindElement()) {
+				XQItem document = context.getXQDataFactory().createItemFromDocument(source.getSource(), null);
+				init(BodyType.DOM, ((Document) document.getNode()).getDocumentElement(), null);
 			}
 		}
 	}
 
 	public Object cloneBody(Context context, boolean singleUse) throws Exception {
-		preferXQItemBody();
+		alignAxis(context);
 		final Object newBody;
 		switch (_bodyType) {
 		case INPUT_STREAM:
@@ -952,7 +941,7 @@ public final class ESBMessage implements Cloneable {
 			}
 			break;
 		case SOURCE:
-			newBody = materializeBodyFromSource(context, (Source) _body);
+			newBody = materializeBodyFromSource(context, ((RichSource) _body).getSource());
 			break;
 		case XQ_SEQUENCE:
 			extractItemFromSequence();

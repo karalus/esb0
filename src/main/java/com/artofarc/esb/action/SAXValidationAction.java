@@ -28,8 +28,8 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.RichSource;
 import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.XopAwareValidatorHandler;
 
@@ -41,7 +41,7 @@ public class SAXValidationAction extends SAXAction {
 		_schema = schema;
 	}
 
-	static class XQJIdentityFilter<T extends ContentHandler> extends XQJFilter {
+	static class XQJIdentityFilter<T extends ContentHandler> extends XQJFilter implements RichSource.XQItemSupplier {
 		private final T _handler;
 		private final BiConsumer<T, ContentHandler> _setter;
 
@@ -52,16 +52,9 @@ public class SAXValidationAction extends SAXAction {
 		}
 
 		@Override
-		public Object getProperty(String name) {
-			if (name == ESBConstants.xqItem) {
-				try {
-					parse((InputSource) null);
-				} catch (SAXException e) {
-					throw new RuntimeException(e);
-				}
-				return _item;
-			}
-			return null;
+		public XQItem getXQItem() throws SAXException {
+			parse((InputSource) null);
+			return _item;
 		}
 
 		@Override
@@ -71,11 +64,11 @@ public class SAXValidationAction extends SAXAction {
 	}
 
 	@Override
-	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) {
+	protected RichSource createSource(Context context, ESBMessage message, XQItem item) throws Exception {
 		message.setSchema(_schema);
-		XMLReader xmlReader = message.getAttachments().isEmpty() ? new XQJIdentityFilter<>(item, _schema.newValidatorHandler(), ValidatorHandler::setContentHandler)
+		XQJIdentityFilter<?> xmlFilter = message.getAttachments().isEmpty() ? new XQJIdentityFilter<>(item, _schema.newValidatorHandler(), ValidatorHandler::setContentHandler)
 				: new XQJIdentityFilter<>(item, new XopAwareValidatorHandler(_schema, message.getAttachments().keySet()), XopAwareValidatorHandler::setContentHandler);
-		return new SAXSource(xmlReader, null);
+		return new RichSource(new SAXSource(xmlFilter, null), item, xmlFilter);
 	}
 
 	@Override

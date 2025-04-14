@@ -31,6 +31,7 @@ import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.json.Json2XmlTransformer;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.RichSource;
 import com.artofarc.util.XMLFilterBase;
 import com.sun.xml.xsom.XSSchemaSet;
 
@@ -38,7 +39,7 @@ public class Json2XMLAction extends SAXAction {
 
 	private static final boolean useStreaming = Boolean.parseBoolean(System.getProperty("esb0.json2xml.streaming", "true"));
 
-	private final Json2XmlTransformer _json2xml; 
+	private final Json2XmlTransformer _json2xml;
 	private final boolean _streaming;
 
 	public Json2XMLAction(XSSchemaSet schemaSet, String type, boolean jsonIncludeRoot, String xmlElement, Map<String, String> prefixMap, Boolean streaming) {
@@ -60,7 +61,7 @@ public class Json2XMLAction extends SAXAction {
 		}
 		message.setContentType(contentType);
 		if (message.getBodyType() == BodyType.JSON_VALUE) {
-			SAXSource source = new SAXSource(_json2xml.createParser(message.getBody()), null);
+			RichSource source = new RichSource(new SAXSource(_json2xml.createParser(message.getBody()), null));
 			message.reset(BodyType.SOURCE, source);
 			return new ExecutionContext(source);
 		} else {
@@ -69,9 +70,9 @@ public class Json2XMLAction extends SAXAction {
 	}
 
 	@Override
-	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception {
+	protected RichSource createSource(Context context, ESBMessage message, XQItem item) throws Exception {
 		if (item.getItemType().getBaseType() == XQItemType.XQBASETYPE_STRING) {
-			return new SAXSource(_streaming ? _json2xml.createStreamingParser() : _json2xml.createParser(), new InputSource(new StringReader((String) item.getObject())));
+			return new RichSource(new SAXSource(_streaming ? _json2xml.createStreamingParser() : _json2xml.createParser(), new InputSource(new StringReader((String) item.getObject()))));
 		}
 		throw new ExecutionException(this, "JSON expected, got XQItem type of " + item.getItemType());
 	}

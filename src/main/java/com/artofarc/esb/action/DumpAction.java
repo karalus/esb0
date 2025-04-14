@@ -15,8 +15,11 @@
  */
 package com.artofarc.esb.action;
 
+import static com.artofarc.esb.http.HttpConstants.HTTP_HEADER_CONTENT_TYPE;
+
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.PrintWriter;
 
 import com.artofarc.esb.context.Context;
@@ -25,19 +28,16 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.ByteArrayInputStream;
-import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.IOUtils;
-import com.artofarc.util.StringBuilderReader;
 import com.artofarc.util.StringBuilderWriter;
 
-public class DumpAction extends TerminalAction {
+public class DumpAction extends Action {
 
-	private final boolean _noEffectOnMessage, _binary;
+	private final boolean _binary;
 	private final File _dumpDir;
 
-	public DumpAction(boolean noEffectOnMessage, boolean binary, String dumpDir) {
-		_noEffectOnMessage = noEffectOnMessage;
+	public DumpAction(boolean binary, String dumpDir) {
+		_pipelineStop = true;
 		_binary = binary;
 		if (dumpDir != null) {
 			_dumpDir = new File(dumpDir);
@@ -50,19 +50,11 @@ public class DumpAction extends TerminalAction {
 	}
 
 	public DumpAction() {
-		this(false, false, null);
+		this(false, null);
 	}
 
 	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) {
-		if (_noEffectOnMessage && message.getBodyType() == BodyType.XQ_SEQUENCE) {
-			return null;
-		}
-		return super.prepare(context, message, inPipeline);
-	}
-
-	@Override
-	protected void execute(Context context, ESBMessage message) throws Exception {
+	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		logESBMessage(context, message);
 		if (message.getAttachments().size() > 0) {
 			logger.info("Attachments: " + message.getAttachments().keySet());
@@ -74,44 +66,20 @@ public class DumpAction extends TerminalAction {
 				message.<Exception> getBody().printStackTrace(new PrintWriter(writer));
 				logger.info(writer.toString());
 			} else {
-				if (message.isStream()) {
-					// Materialize message in case it is a stream thus it will not be consumed
-					if (message.getBodyType().hasCharset()) {
-						message.getBodyAsByteArray(context);
-					} else {
-						message.getBodyAsString(context);
-					}
-				}
+				ESBMessage copy = message.copy(context, true, true, false);
 				if (_dumpDir != null) {
-					File dumpFile = new File(_dumpDir, message.getVariable(ESBConstants.initialTimestamp) + ".bin");
+					File dumpFile = new File(_dumpDir, copy.getVariable(ESBConstants.initialTimestamp) + ".bin");
 					try (FileOutputStream fileOutputStream = new FileOutputStream(dumpFile)) {
-						message.writeRawTo(fileOutputStream, context);
+						copy.writeRawTo(fileOutputStream, context);
 					}
 					logger.info("Body dumped into " + dumpFile);
 				} else {
-					if (_binary || HttpConstants.isBinary(message.getContentType())) {
-						ByteArrayInputStream bis;
-						if (message.getBody() instanceof ByteArrayInputStream) {
-							bis = message.getBody();
-						} else if (message.getBodyType() == BodyType.BYTES) {
-							bis = new ByteArrayInputStream(message.getBody());
-						} else {
-							ByteArrayOutputStream bos = new ByteArrayOutputStream();
-							message.writeRawTo(bos, context);
-							bis = bos.getByteArrayInputStream();
-						}
-						logger.info("Body length: " + bis.lengthAsInt());
-						logger.info("Body({}, {}):\n{}", message.getContentType(), message.getCharset(), IOUtils.convertToHexDump(bis));
+					if (_binary || HttpConstants.isBinary(copy.getHeader(HTTP_HEADER_CONTENT_TYPE))) {
+						InputStream is = copy.getBodyAsInputStream(context);
+						logger.info("Body length: " + copy.getLength());
+						logger.info("Body({}, {}):\n{}", copy.getContentType(), copy.getCharset(), IOUtils.convertToHexDump(is));
 					} else {
-						Object s;
-						if (message.getBodyType() == BodyType.STRING || message.getBody() instanceof StringBuilderReader) {
-							s = message.getBody();
-						} else {
-							ByteArrayOutputStream bos = new ByteArrayOutputStream();
-							message.writeRawTo(bos, context);
-							s = bos;
-						}
-						logger.info("Body({}):\n{}", message.getContentType(), s);
+						logger.info("Body({}):\n{}", copy.getContentType(), copy.getBodyAsString(context));
 					}
 				}
 			}

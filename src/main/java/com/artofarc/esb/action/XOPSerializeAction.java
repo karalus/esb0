@@ -23,6 +23,7 @@ import org.xml.sax.XMLReader;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.RichSource;
 import com.artofarc.esb.message.XOPSerializer;
 import com.artofarc.esb.service.MultipartSubtype;
 import com.artofarc.util.XMLFilterBase;
@@ -39,7 +40,7 @@ public class XOPSerializeAction extends SAXAction {
 	}
 
 	@Override
-	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws Exception {
+	protected RichSource createSource(Context context, ESBMessage message, XQItem item) throws Exception {
 		if (message.getSchema() == null) {
 			throw new ExecutionException(this, "No schema specified");
 		}
@@ -47,9 +48,9 @@ public class XOPSerializeAction extends SAXAction {
 		if (accept == null || _ifAccepts == null || HttpConstants.isAcceptable(accept, _ifAccepts)) {
 			XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, (String) eval(_contentType, context, message));
 			xopSerializer.setParent(new XQJFilter(item));
-			return new SAXSource(xopSerializer, null);
+			return new RichSource(new SAXSource(xopSerializer, null), item, null);
 		} else {
-			return new SAXSource(new XQJFilter(item), null);
+			return new RichSource(new SAXSource(new XQJFilter(item), null), item, null);
 		}
 	}
 

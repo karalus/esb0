@@ -15,8 +15,7 @@
   limitations under the License.
 -->
 <schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.artofarc.com/esb/service"
-	xmlns:tns="http://www.artofarc.com/esb/service" elementFormDefault="qualified"
-	version="0.1">
+	xmlns:tns="http://www.artofarc.com/esb/service" elementFormDefault="qualified" version="1">
 
 	<complexType name="ActionBase" abstract="true" />
 	<element name="nsDecl">
@@ -721,7 +720,6 @@
 		<complexType>
 			<complexContent>
 				<extension base="tns:ActionBase" >
-					<attribute name="noEffectOnMessage" type="boolean" default="true" />
 					<attribute name="dir" type="tns:globalExpression" />
 					<attribute name="binary" type="boolean" default="false" />
 				</extension>

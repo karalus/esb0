@@ -40,6 +40,7 @@ import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.esb.message.Attachments2SAX;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.message.RichSource;
 import com.artofarc.util.XMLFilterBase;
 import com.artofarc.util.XMLProcessorFactory;
 
@@ -130,12 +131,12 @@ public class XSLTAction extends SAXAction {
 			}
 		}
 	}
-	
+
 	@Override
-	protected SAXSource createSAXSource(Context context, ESBMessage message, XQItem item) throws TransformerException {
+	protected RichSource createSource(Context context, ESBMessage message, XQItem item) throws Exception {
 		XMLProcessorFactory.TransformerFilter transformerFilter = XMLProcessorFactory.createTransformerFilter(getTemplates(context.getGlobalContext()), item);
 		setParameters(transformerFilter.getTransformer(), message);
-		return new SAXSource(transformerFilter, null);
+		return new RichSource(new SAXSource(transformerFilter, null), item, null);
 	}
 
 	@Override

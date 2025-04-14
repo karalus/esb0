@@ -64,10 +64,6 @@ public interface ESBConstants {
 
 	String serializationParameters = "serializationParameters";
 
-	String xqItem = "http://artofarc.com/esb0/XQJIdentityFilter/xqItem";
-
-	String xqItemKindElement = "xqItemKindElement";
-
 	String formData = "formData";
 
 	// SOAP processing concepts
