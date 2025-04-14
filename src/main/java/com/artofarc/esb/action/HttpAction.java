@@ -183,6 +183,7 @@ public class HttpAction extends Action {
 						message.reset(BodyType.OUTPUT_STREAM, pos);
 					} else {
 						message.writeRawTo(pos, context);
+						pos.close();
 					}
 				} else {
 					pos.close();

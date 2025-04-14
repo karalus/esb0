@@ -40,7 +40,7 @@ public class HTTPTest extends AbstractESBTest {
       @SuppressWarnings("resource")
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new DumpAction(false, true, null));
+      //action = action.setNextAction(createUpdateAction("${rawBody}", null, null));
       action = action.setNextAction(createHttpAction(url));
       //action = action.setNextAction(createHttpAction("http://localhost:1213/echo"));
       MarkAction markAction = new MarkAction();
@@ -72,7 +72,7 @@ public class HTTPTest extends AbstractESBTest {
       @SuppressWarnings("resource")
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new DumpAction(false, true, null));
+      //action = action.setNextAction(createUpdateAction("${rawBody}", null, null));
       action = action.setNextAction(createHttpAction(url));
       //action = action.setNextAction(createHttpAction("http://localhost:1213/echo"));
       MarkAction markAction = new MarkAction();
@@ -201,7 +201,7 @@ public class HTTPTest extends AbstractESBTest {
       @SuppressWarnings("resource")
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new DumpAction(false, true, null));
+      //action = action.setNextAction(createUpdateAction("${rawBody}", null, null));
       action = action.setNextAction(createHttpAction("http://localhost:1213/echo", url));
       //action = action.setNextAction(createHttpAction("http://localhost:1213/echo"));
       MarkAction markAction = new MarkAction();
@@ -234,7 +234,7 @@ public class HTTPTest extends AbstractESBTest {
       @SuppressWarnings("resource")
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action = action.setNextAction(new DumpAction(false, true, null));
+      //action = action.setNextAction(createUpdateAction("${rawBody}", null, null));
       action = action.setNextAction(createHttpAction("http://localhost:1213/echo", url));
       //action = action.setNextAction(createHttpAction("http://localhost:1213/echo"));
       MarkAction markAction = new MarkAction();
