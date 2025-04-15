@@ -73,6 +73,10 @@ public final class MimeHelper {
 		return getValueFromHttpHeader(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null), HTTP_HEADER_CONTENT_DISPOSITION_PARAMETER_NAME);
 	}
 
+	public static String getDispositionFilename(MimeBodyPart bodyPart) throws Exception {
+		return getFilename(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null));
+	}
+
 	public static boolean isMimeMultipart(String multipartSubtype, ESBMessage message) {
 		if (multipartSubtype == null) return false;
 		if (FORCE_MIMEMULTIPART || multipartSubtype == "form-data" || message.getAttachments().size() > 0) return true;
@@ -260,11 +264,14 @@ public final class MimeHelper {
 		}
 		if (contentType.startsWith(MEDIATYPE_APPLICATION)) {
 			String subtype = contentType.substring(MEDIATYPE_APPLICATION.length());
-			return "json".equals(subtype) ? subtype : "bin";
+			return "json".equals(subtype) || "pdf".equals(subtype) ? subtype : "bin";
 		}
 		if (contentType.startsWith(MEDIATYPE_TEXT)) {
 			String subtype = contentType.substring(MEDIATYPE_TEXT.length());
 			return "plain".equals(subtype) ? "txt" : subtype;
+		}
+		if (contentType.startsWith("image/")) {
+			return contentType.substring("image/".length());
 		}
 		return null;
 	}

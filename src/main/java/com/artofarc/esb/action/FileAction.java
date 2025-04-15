@@ -28,9 +28,10 @@ import java.util.zip.ZipOutputStream;
 
 import javax.json.JsonArrayBuilder;
 import javax.mail.internet.MimeBodyPart;
+import javax.xml.bind.DatatypeConverter;
 
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.http.HttpConstants;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.*;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.JsonFactoryHelper;
@@ -105,7 +106,7 @@ public class FileAction extends TerminalAction {
 							.add("dir", f.isDirectory()).add("length", f.length()).add("modificationTime", f.lastModified()).build());
 				}
 				message.reset(BodyType.JSON_VALUE, builder.build());
-				message.setContentType(HttpConstants.HTTP_HEADER_CONTENT_TYPE_JSON);
+				message.setContentType(HTTP_HEADER_CONTENT_TYPE_JSON);
 			} else {
 				if (IOUtils.getExt(filename).equals("gz")) {
 					filename = IOUtils.stripExt(filename);
@@ -117,11 +118,11 @@ public class FileAction extends TerminalAction {
 		} else {
 			String fileExtension = IOUtils.getExt(filename);
 			if (fileExtension.isEmpty()) {
-				String contentType = message.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE);
+				String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 				if (contentType == null) {
 					contentType = message.getContentType();
 				}
-				fileExtension = contentType != null ? MimeHelper.getFileExtension(HttpConstants.parseContentType(contentType)) : null;
+				fileExtension = contentType != null ? MimeHelper.getFileExtension(parseContentType(contentType)) : null;
 			}
 			if (fileExtension != null) {
 				fileExtension = '.' + fileExtension;
@@ -131,7 +132,7 @@ public class FileAction extends TerminalAction {
 			} else {
 				fileExtension = "";
 			}
-			boolean zip = Boolean.parseBoolean(String.valueOf(eval(_zip, context, message)));
+			boolean zip = DatatypeConverter.parseBoolean(String.valueOf(eval(_zip, context, message)));
 			File file = new File(_destDir, filename + (zip ? ".zip" : fileExtension));
 			if (_destDir == null && !file.isAbsolute()) {
 				throw new ExecutionException(this, "Filename is not absolute: " + file);
@@ -157,9 +158,23 @@ public class FileAction extends TerminalAction {
 							message.writeRawTo(zos, context);
 							for (Iterator<Map.Entry<String, MimeBodyPart>> iter = message.getAttachments().entrySet().iterator(); iter.hasNext();) {
 								Map.Entry<String, MimeBodyPart> entry = iter.next();
-								String name = MimeHelper.getDispositionName(entry.getValue());
-								zos.putNextEntry(new ZipEntry(name != null ? name : entry.getKey()));
-								entry.getValue().getInputStream().transferTo(zos);
+								MimeBodyPart bodyPart = entry.getValue();
+								filename = MimeHelper.getDispositionFilename(bodyPart);
+								if (filename == null) {
+									filename = MimeHelper.getDispositionName(bodyPart);
+									if (filename == null) {
+										filename = entry.getKey();
+									}
+									fileExtension = IOUtils.getExt(filename);
+									if (fileExtension.isEmpty()) {
+										fileExtension = MimeHelper.getFileExtension(getValueFromHttpHeader(bodyPart.getContentType()));
+										if (fileExtension != null) {
+											filename += '.' + fileExtension;
+										}
+									}
+								}
+								zos.putNextEntry(new ZipEntry(filename));
+								bodyPart.getInputStream().transferTo(zos);
 								iter.remove();
 							}
 						}

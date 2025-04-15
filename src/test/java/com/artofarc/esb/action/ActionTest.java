@@ -153,6 +153,7 @@ public class ActionTest extends AbstractESBTest {
 		action.addAssignment("formattedInt", false, "${_formatter.format('%04d',int).toString}", null, null, null);
 		action.addAssignment("_formatter", false, "${formatter.close}", null, null, null);
 		action.addAssignment("toolong", false, "${contentLength.intValue.compareTo(42)}", null, null, null);
+		action.addAssignment("attachmentsPresent", false, "${attachments.size.compareTo(0)}", null, null, null);
 		action.setNextAction(action);
 		action.setNextAction(new DumpAction());
 		action.process(context, message);
