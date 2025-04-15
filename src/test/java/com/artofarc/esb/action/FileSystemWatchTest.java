@@ -49,7 +49,7 @@ public class FileSystemWatchTest extends AbstractESBTest {
 		Action actionOnFile = Action.linkList(Arrays.asList(new FileAction(outDir.getPath(), "ENTRY_MODIFY", "${filename}", false, "true", "false", null, null, false), setMessageAction, new FileAction(dir.getPath(), "ENTRY_MODIFY", "${filename}", false, "true", "false", null, null, false)));
 		actionOnFile.setErrorHandler(new DumpAction());
 		String move = null; //moveDir.getPath() + "/${filenameOrigin}";
-		FileWatchEventConsumer fileWatchEventConsumer = new FileWatchEventConsumer(getGlobalContext(), "/MyFileWatchEventConsumer", null, Arrays.asList(new String[] { inDir.getPath() }), move, null);
+		FileWatchEventConsumer fileWatchEventConsumer = new FileWatchEventConsumer(getGlobalContext(), "/MyFileWatchEventConsumer", 50, null, Arrays.asList(new String[] { inDir.getPath() }), move, null);
 		fileWatchEventConsumer.setStartAction(actionOnFile);
 		fileWatchEventConsumer.init(getGlobalContext());
 		Thread.sleep(50);

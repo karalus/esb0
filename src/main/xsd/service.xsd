@@ -818,6 +818,7 @@
 							<sequence>
 								<element name="dir" type="tns:globalExpression" maxOccurs="unbounded" />
 							</sequence>
+							<attribute name="initialDelay" type="long" default="-1" />
 							<attribute name="move" type="tns:expression" />
 							<attribute name="moveOnError" type="tns:expression" />
 							<attribute name="workerPool" type="anyURI" />

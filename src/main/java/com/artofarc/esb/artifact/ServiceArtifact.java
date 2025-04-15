@@ -169,7 +169,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				break;
 			case FILE:
 				Service.FileWatchBinding fileWatchBinding = checkBindingPresent(service.getFileWatchBinding());
-				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), resolveWorkerPool(fileWatchBinding.getWorkerPool()), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
+				_consumerPort = new FileWatchEventConsumer(globalContext, getURI(), fileWatchBinding.getInitialDelay(), resolveWorkerPool(fileWatchBinding.getWorkerPool()), fileWatchBinding.getDir(), fileWatchBinding.getMove(), fileWatchBinding.getMoveOnError());
 				globalContext.checkBindFileWatchEventService(getConsumerPort());
 				break;
 			case KAFKA:

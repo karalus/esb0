@@ -32,14 +32,14 @@ import com.artofarc.util.IOUtils;
 
 public final class FileWatchEventConsumer extends PollingConsumerPort {
 
-	private final static long initialDelay = Long.parseLong(System.getProperty("esb0.fileWatch.initialDelay", "50"));
 	private final static boolean dontLockFiles = !Boolean.parseBoolean(System.getProperty("esb0.fileWatch.lockFiles"));
 
+	private final long _initialDelay;
 	private final List<Path> _dirs = new ArrayList<>();
 	private final String _move, _moveOnError;
 	private final StandardOpenOption[] _options;
 
-	public FileWatchEventConsumer(GlobalContext globalContext, String uri, String workerPool, List<String> dirs, String move, String moveOnError) throws Exception {
+	public FileWatchEventConsumer(GlobalContext globalContext, String uri, long initialDelay, String workerPool, List<String> dirs, String move, String moveOnError) throws Exception {
 		super(uri, workerPool);
 		for (String dir : dirs) {
 			Path path = Paths.get(dir = globalContext.bindProperties(dir));
@@ -48,6 +48,7 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 			}
 			_dirs.add(path);
 		}
+		_initialDelay = initialDelay;
 		_move = move;
 		_moveOnError = moveOnError;
 		if (move != null || moveOnError != null) {
@@ -71,7 +72,9 @@ public final class FileWatchEventConsumer extends PollingConsumerPort {
 				WatchKey watchKey = watchService.take();
 				final Path parent = (Path) watchKey.watchable();
 				// File ready? Better move the file to the directory!
-				Thread.sleep(initialDelay);
+				if (_initialDelay >= 0) {
+					Thread.sleep(_initialDelay);
+				}
 				for (WatchEvent<?> watchEvent : watchKey.pollEvents()) {
 					final WatchEvent.Kind<?> kind = watchEvent.kind();
 					if (kind == StandardWatchEventKinds.OVERFLOW) {
