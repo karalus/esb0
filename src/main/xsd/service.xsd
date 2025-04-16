@@ -477,6 +477,7 @@
 						<element ref="tns:action" maxOccurs="unbounded" />
 					</sequence>
 					<attribute name="expression" type="tns:string1" use="required" />
+					<attribute name="proceed" type="boolean" default="false" />
 				</extension>
 			</complexContent>
 		</complexType>

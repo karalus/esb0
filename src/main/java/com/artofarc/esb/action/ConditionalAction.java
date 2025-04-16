@@ -26,24 +26,30 @@ import com.artofarc.esb.service.XQDecl;
 
 public class ConditionalAction extends AssignAction {
 
-	private final Action _conditionalAction;
+	private static final String varName = "resultOfCondition";
 
-	public ConditionalAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String baseURI, String contextItem, boolean clearHeaders, String expression, Action conditionalAction) {
-		super(assignments.add(new Assignment(null, false, expression, null, null)) ? assignments : null, bodyExpr, namespaces, bindNames, baseURI, contextItem, clearHeaders);
+	private final Action _conditionalAction;
+	private final boolean _proceed;
+
+	public ConditionalAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String baseURI, String contextItem, boolean clearHeaders, String expression, Action conditionalAction, boolean proceed) {
+		super(assignments.add(new Assignment(varName, false, expression, Boolean.FALSE, null)) ? assignments : null, bodyExpr, namespaces, bindNames, baseURI, contextItem, clearHeaders);
 		_conditionalAction = conditionalAction;
+		_proceed = proceed;
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		ExecutionContext executionContext = super.prepare(context, message, inPipeline);
-		executionContext.setResource3(message.removeVariable(null));
+		executionContext.setResource3(message.removeVariable(varName));
+		if (_proceed && _nextAction != null) {
+			context.getExecutionStack().push(_nextAction);
+		}
 		return executionContext;
 	}
 
 	@Override
 	protected Action nextAction(ExecutionContext execContext) {
-		Boolean result = execContext.getResource3();
-		return result != null && result ? _conditionalAction : super.nextAction(execContext);
+		return execContext.<Boolean> getResource3() ? _conditionalAction : _proceed ? null : _nextAction;
 	}
 
 }

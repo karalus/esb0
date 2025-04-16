@@ -74,16 +74,38 @@ public class XPathTest extends AbstractESBTest {
    public void testCondition() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
       MarkAction action3 = new MarkAction();
-      ConditionalAction action = new ConditionalAction(new ArrayList<>(), null, null, Collections.<XQDecl> emptyList(), null, null, false, "test/text() = \'Hello\'", action3);
+      ConditionalAction action = new ConditionalAction(new ArrayList<>(), null, null, Collections.<XQDecl> emptyList(), null, null, false, "test/text() = \'Hello\'", action3, false);
       MarkAction action2 = new MarkAction();
       action.setNextAction(action2);
       action.process(context, message);
+      assertFalse(action2.isExecuted());
       assertTrue(action3.isExecuted());
+      action2.setExecuted(false);
+      action3.setExecuted(false);
       message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
       action.process(context, message);
       assertTrue(action2.isExecuted());
+      assertFalse(action3.isExecuted());
    }
-   
+
+   @Test
+   public void testConditionProceed() throws Exception {
+      ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");
+      MarkAction action3 = new MarkAction();
+      ConditionalAction action = new ConditionalAction(new ArrayList<>(), null, null, Collections.<XQDecl> emptyList(), null, null, false, "test/text() = \'Hello\'", action3, true);
+      MarkAction action2 = new MarkAction();
+      action.setNextAction(action2);
+      action.process(context, message);
+      assertTrue(action2.isExecuted());
+      assertTrue(action3.isExecuted());
+      action2.setExecuted(false);
+      action3.setExecuted(false);
+      message = new ESBMessage(BodyType.STRING, "<test>Hello World!</test>");
+      action.process(context, message);
+      assertTrue(action2.isExecuted());
+      assertFalse(action3.isExecuted());
+   }
+
    @Test
    public void testJavaExtension() throws Exception {
       ESBMessage message = new ESBMessage(BodyType.STRING, "<test>Hello</test>");

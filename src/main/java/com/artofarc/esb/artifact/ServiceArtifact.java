@@ -511,7 +511,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			Conditional conditional = (Conditional) actionElement.getValue();
 			resolveReferencedURIs(globalContext, conditional.getReferencedURIs());
 			ConditionalAction conditionalAction = new ConditionalAction(createAssignments(conditional), conditional.getBody(), createNsDecls(conditional.getNsDecl()).entrySet(), conditional.getBindName(),
-				getURI(), conditional.getContextItem(), conditional.isClearHeaders(), conditional.getExpression(), Action.linkList(transform(globalContext, conditional.getAction(), null)));
+				getURI(), conditional.getContextItem(), conditional.isClearHeaders(), conditional.getExpression(), Action.linkList(transform(globalContext, conditional.getAction(), null)), conditional.isProceed());
 			XQueryArtifact.validateXQuerySource(this, getLineNumber(conditional), getXQConnectionFactory(), conditionalAction.getXQuery());
 			addAction(list, conditionalAction, location);
 			break;
