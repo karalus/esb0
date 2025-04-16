@@ -184,21 +184,12 @@ public abstract class AbstractESBTest {
 		return ServiceArtifact.USE_SAX_VALIDATION ? new SAXValidationAction(schemaArtifact.getSchema()) : new ValidateAction(schemaArtifact.getSchema(), ".", null, null);
 	}
 
-	protected static UnwrapSOAPAction createUnwrapSOAPAction(boolean soap12, boolean singlePart) {
+	protected static Action createUnwrapSOAPAction(boolean soap12, boolean singlePart) {
 		return new UnwrapSOAPAction(soap12, singlePart) {
 
 			@Override
-			protected String determineOperation(ESBMessage message) throws ExecutionException {
-				if (_operations == null) {
-					return null;
-				}
-				return super.determineOperation(message);
-			}
-
-			@Override
-			protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-				message.putVariable(ESBConstants.HttpMethod, "POST");
-				return super.prepare(context, message, inPipeline);
+			protected String validateOperation(ESBMessage message) {
+				return null;
 			}
 		};
 	}

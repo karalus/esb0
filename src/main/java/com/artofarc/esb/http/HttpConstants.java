@@ -72,6 +72,8 @@ public class HttpConstants {
 	public static final String MEDIATYPE_TEXT = "text/";
 	public static final String MEDIATYPE_MULTIPART = "multipart/";
 
+	public static final int SC_OK = 200;
+	public static final int SC_ACCEPTED = 202;
 	public static final int SC_NO_CONTENT = 204;
 	public static final int SC_BAD_REQUEST = 400;
 	public static final int SC_NOT_FOUND = 404;

@@ -195,6 +195,33 @@ public final class WSDL4JUtil {
 		return part.getElementName();
 	}
 
+	@SuppressWarnings("unchecked")
+	public static QName getOutputElementQName(BindingOperation bindingOperation, boolean soap12) {
+		ElementExtensible bindingOutput = bindingOperation.getBindingOutput();
+		// According to http://www.ws-i.org/Profiles/AttachmentsProfile-1.0-2004-08-24.html		
+		MIMEMultipartRelated mmr = getExtensibilityElement(bindingOutput, MIMEMultipartRelated.class);
+		if (mmr != null) {
+			bindingOutput = (ElementExtensible) mmr.getMIMEParts().get(0);
+		}
+		List<String> parts;
+		if (soap12) {
+			SOAP12Body body = getExtensibilityElement(bindingOutput, SOAP12Body.class);
+			if (body == null) {
+				throw new IllegalArgumentException("BindingOperation has no SOAP 1.2 Body: " + bindingOperation.getName());
+			}
+			parts = body.getParts();
+		} else {
+			SOAPBody body = getExtensibilityElement(bindingOutput, SOAPBody.class);
+			if (body == null) {
+				throw new IllegalArgumentException("BindingOperation has no SOAP 1.1 Body: " + bindingOperation.getName());
+			}
+			parts = body.getParts();
+		}
+		Message message = bindingOperation.getOperation().getOutput().getMessage();
+		Part part = parts == null || parts.isEmpty() ? (Part) message.getParts().values().iterator().next() : message.getPart(parts.get(0));
+		return part.getElementName();
+	}
+
 	public static <E extends Exception> void processSchemas(Definition definition, ThrowingConsumer<Element, E> consumer) throws E {
 		if (definition.getTypes() != null) {
 			for (Schema schema : getExtensibilityElements(definition.getTypes(), Schema.class)) {

@@ -223,7 +223,7 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new HttpInboundAction());
-      action = action.setNextAction(new PostSOAPHttpAction(false, false));
+      action = action.setNextAction(new PostSOAPHttpAction(false, false, null));
       action = action.setNextAction(new DumpAction());
       //
       ESBMessage message = new ESBMessage(BodyType.BYTES, readFile("src/test/resources/SOAPRequest2.xml"));
@@ -251,7 +251,7 @@ public class SOAPTest extends AbstractESBTest {
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
       action = action.setNextAction(new HttpInboundAction());
-      action = action.setNextAction(new PostSOAPHttpAction(false, false));
+      action = action.setNextAction(new PostSOAPHttpAction(false, false, null));
       MarkAction errorHandler = new MarkAction();
       action.setErrorHandler(errorHandler);
       action = action.setNextAction(new DumpAction());

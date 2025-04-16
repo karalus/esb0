@@ -15,30 +15,34 @@
  */
 package com.artofarc.esb.action;
 
-import static java.net.HttpURLConnection.*;
+import javax.xml.namespace.QName;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
+import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 
 public class PostSOAPHttpAction extends UnwrapSOAPAction {
 
-	public PostSOAPHttpAction(boolean soap12, boolean singlePart) {
+	private final QName _expectedElement;
+
+	public PostSOAPHttpAction(boolean soap12, boolean singlePart, String expectedElement) {
 		super(soap12, singlePart);
+		_expectedElement = expectedElement != null ? QName.valueOf(expectedElement) : null;
 	}
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		Integer httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 		switch (httpResponseCode) {
-		case HTTP_ACCEPTED:
+		case SC_ACCEPTED:
 			if (!_soap12) {
 				throw new ExecutionException(this, "HTTP Response Code 202 not covered by SOAP 1.1 protocol");
 			}
 			// no break
-		case HTTP_OK:
-		case HTTP_INTERNAL_ERROR:
+		case SC_OK:
+		case SC_INTERNAL_SERVER_ERROR:
 			return super.prepare(context, message, inPipeline);
 		default:
 			throw new ExecutionException(this, "HTTP Response Code not covered by SOAP protocol, was " + httpResponseCode);
@@ -46,7 +50,10 @@ public class PostSOAPHttpAction extends UnwrapSOAPAction {
 	}
 
 	@Override
-	protected String determineOperation(ESBMessage message) {
+	protected String validateOperation(ESBMessage message) throws ExecutionException {
+		if (_expectedElement != null && !_expectedElement.equals(message.getVariable(ESBConstants.SOAP_ELEMENT_NAME))) {
+			throw new ExecutionException(this, "Unexpected output element: " + message.getVariable(ESBConstants.SOAP_ELEMENT_NAME));
+		}
 		return null;
 	}
 

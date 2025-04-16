@@ -387,7 +387,9 @@
 	<element name="postSOAPHttp" substitutionGroup="tns:action">
 		<complexType>
 			<complexContent>
-				<extension base="tns:SOAPAction" />
+				<extension base="tns:SOAPAction">
+					<attribute name="expectedElement" type="tns:string1" />
+				</extension>
 			</complexContent>
 		</complexType>
 	</element>

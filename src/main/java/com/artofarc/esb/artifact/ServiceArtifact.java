@@ -471,7 +471,7 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		}
 		case "postSOAPHttp":
 			PostSOAPHttp postSOAPHttp = (PostSOAPHttp) actionElement.getValue();
-			addAction(list, new PostSOAPHttpAction(postSOAPHttp.isSoap12(), postSOAPHttp.isSinglePart()), location);
+			addAction(list, new PostSOAPHttpAction(postSOAPHttp.isSoap12(), postSOAPHttp.isSinglePart(), postSOAPHttp.getExpectedElement()), location);
 			break;
 		case "validate": {
 			Validate validate = (Validate) actionElement.getValue();
