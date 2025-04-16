@@ -26,13 +26,13 @@ import com.artofarc.esb.service.XQDecl;
 
 public class ConditionalAction extends AssignAction {
 
-	private static final String varName = "resultOfCondition";
+	private static final String varName = ASSIGN_NULL_CHECK ? "resultOfCondition" : null;
 
 	private final Action _conditionalAction;
 	private final boolean _proceed;
 
 	public ConditionalAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String baseURI, String contextItem, boolean clearHeaders, String expression, Action conditionalAction, boolean proceed) {
-		super(assignments.add(new Assignment(varName, false, expression, Boolean.FALSE, null)) ? assignments : null, bodyExpr, namespaces, bindNames, baseURI, contextItem, clearHeaders);
+		super(assignments.add(new Assignment(varName, false, expression, null, null)) ? assignments : null, bodyExpr, namespaces, bindNames, baseURI, contextItem, clearHeaders);
 		_conditionalAction = conditionalAction;
 		_proceed = proceed;
 	}
