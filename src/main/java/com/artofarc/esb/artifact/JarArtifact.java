@@ -43,7 +43,7 @@ public class JarArtifact extends Artifact {
 		return _jar;
 	}
 
-	public final Map<String, ?> getEntries() {
+	public final Map<String, Jar.Entry> getEntries() {
 		synchronized (_jar) {
 			return _jar._entries;
 		}
@@ -61,23 +61,21 @@ public class JarArtifact extends Artifact {
 	@Override
 	protected JarArtifact clone(FileSystem fileSystem, Directory parent) {
 		JarArtifact clone = initClone(new JarArtifact(fileSystem, parent, getName()));
-		clone._jar = new Jar(clone, _jar._entries, _jar._manifest);
+		clone._jar = _jar;
 		return clone;
 	}
 
 	@Override
 	protected void validateInternal(GlobalContext globalContext) throws Exception {
-		logger.info("Reading " + getURI());
-		Map<String, WeakReference<byte[]>> entries = new LinkedHashMap<>();
-		try (JarInputStream jis = new JarInputStream(getContentAsStream())) {
-			JarEntry entry;
-			while ((entry = jis.getNextJarEntry()) != null) {
-				if (!entry.isDirectory()) {
-					entries.put(entry.getName(), new WeakReference<>(IOUtils.toByteArray(jis)));
-				}
-			}
-			_jar = new Jar(this, entries, jis.getManifest());
+		_jar = new Jar(globalContext, this);
+	}
+
+	@Override
+	protected void clearContent() {
+		if (_jar != null) {
+			_jar.offerSacrifice();
 		}
+		super.clearContent();
 	}
 
 	@Override
@@ -86,35 +84,82 @@ public class JarArtifact extends Artifact {
 		super.invalidate(orphans);
 	}
 
-	static final class Jar {
+	public static final class Jar {
 
-		private final WeakReference<JarArtifact> _jarArtifact;
-		private final Map<String, WeakReference<byte[]>> _entries;
+		public final class Entry {
+			byte[] data;
+			WeakReference<byte[]> ref;
+
+			Entry(byte[] data) {
+				this.data = data;
+			}
+
+			byte[] getData(String filename, boolean nullify) throws IOException {
+				synchronized (Jar.this) {
+					byte[] result = data;
+					if (ref != null) {
+						result = ref.get();
+						if (result == null) {
+							result = reload(filename);
+						}
+						ref = null;
+					}
+					data = nullify ? null : result;
+					return result;
+				}
+			}
+
+			public boolean isConsumed() {
+				return data == null && ref == null;
+			}
+		}
+
+		private final GlobalContext _globalContext;
+		private final String _jarArtifactURI;
+		private final Map<String, Entry> _entries = new LinkedHashMap<>();
 		private final Manifest _manifest;
 
-		Jar(JarArtifact jarArtifact, Map<String, WeakReference<byte[]>> entries, Manifest manifest) {
-			_jarArtifact = new WeakReference<>(jarArtifact);
-			_entries = entries;
-			_manifest = manifest;
+		Jar(GlobalContext globalContext, JarArtifact jarArtifact) throws IOException {
+			_globalContext = globalContext;
+			_jarArtifactURI = jarArtifact.getURI();
+			logger.info("Loading " + _jarArtifactURI);
+			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
+				JarEntry jarEntry;
+				while ((jarEntry = jis.getNextJarEntry()) != null) {
+					if (!jarEntry.isDirectory()) {
+						_entries.put(jarEntry.getName(), new Entry(IOUtils.toByteArray(jis)));
+					}
+				}
+				_manifest = jis.getManifest();
+			}
+		}
+
+		synchronized void offerSacrifice() {
+			for (Entry entry : _entries.values()) {
+				if (entry.data != null) {
+					entry.ref = new WeakReference<>(entry.data);
+					entry.data = null;
+				}
+			}
 		}
 
 		private byte[] reload(String filename) throws IOException {
-			JarArtifact jarArtifact = _jarArtifact.get();
-			if (jarArtifact == null) {
-				throw new IllegalStateException("Reference has already been cleared");
-			}
-			logger.info("Reloading " + jarArtifact);
+			JarArtifact jarArtifact = _globalContext.getFileSystem().loadArtifact(_jarArtifactURI);
+			logger.info("Reloading " + _jarArtifactURI);
 			byte[] result = null;
 			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
-				JarEntry entry;
-				while ((entry = jis.getNextJarEntry()) != null) {
-					WeakReference<byte[]> ref = _entries.get(entry.getName());
-					if (ref != null && ref.get() == null) {
-						byte[] data = IOUtils.toByteArray(jis);
-						if (entry.getName().equals(filename)) {
-							result = data;
+				JarEntry jarEntry;
+				while ((jarEntry = jis.getNextJarEntry()) != null) {
+					if (!jarEntry.isDirectory()) {
+						Entry entry = _entries.get(jarEntry.getName());
+						if (entry.ref != null && entry.ref.get() == null) {
+							byte[] data = IOUtils.toByteArray(jis);
+							if (jarEntry.getName().equals(filename)) {
+								result = data;
+							} else {
+								entry.ref = new WeakReference<>(data);
+							}
 						}
-						_entries.replace(entry.getName(), new WeakReference<>(data));
 					}
 				}
 			}
@@ -125,21 +170,16 @@ public class JarArtifact extends Artifact {
 			return _manifest;
 		}
 
-		synchronized byte[] getEntry(String filename, boolean nullify) throws IOException {
-			WeakReference<byte[]> ref = _entries.get(filename);
-			byte[] data = null;
-			if (ref != null) {
-				data = ref.get();
+		byte[] getEntry(String filename, boolean nullify) throws IOException {
+			Entry entry = _entries.get(filename);
+			if (entry != null) {
+				byte[] data = entry.getData(filename, nullify);
 				if (data == null) {
-					data = reload(filename);
+					throw new NoClassDefFoundError(filename + " is loaded twice in different classLoaders from " + _jarArtifactURI);
 				}
-				if (nullify) {
-					_entries.replace(filename, null);
-				}
-			} else if (nullify && _entries.containsKey(filename)) {
-				throw new IllegalStateException("Same jar is loaded twice from different classLoaders " + _jarArtifact.get());
+				return data;
 			}
-			return data;
+			return null;
 		}
 
 		URL createUrlForEntry(String filename) throws IOException {

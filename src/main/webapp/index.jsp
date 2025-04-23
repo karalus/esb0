@@ -419,9 +419,9 @@ Upload Service-JAR:
 					<br>
 					<table border="1"><tr bgcolor="#EEEEEE"><td><b>Entry</b></td><td><b>Loaded</b></td></tr>
 					<%
-					for (Map.Entry<String, ?> entry : jarArtifact.getEntries().entrySet()) {
+					for (Map.Entry<String, JarArtifact.Jar.Entry> entry : jarArtifact.getEntries().entrySet()) {
 						%>
-						<tr><td><%=entry.getKey()%></td><td><%=entry.getValue() == null%></td></tr>
+						<tr><td><%=entry.getKey()%></td><td><%=entry.getValue().isConsumed()%></td></tr>
 						<%
 					}
 				}
