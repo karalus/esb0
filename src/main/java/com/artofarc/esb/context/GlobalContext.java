@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -73,7 +73,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 	private final XQConnection _xqConnection;
 	private final ReentrantLock _fileSystemLock = new ReentrantLock(true);
 	private volatile FileSystem _fileSystem;
-	private final Future<?> _future;
+	private volatile ScheduledFuture<?> _future;
 
 	public GlobalContext(MBeanServer mbs) {
 		this(GlobalContext.class.getClassLoader(), mbs, new Properties());
@@ -142,10 +142,18 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		// default WorkerPool
 		String workerThreads = System.getProperty("esb0.workerThreads");
 		putWorkerPool(DEFAULT_WORKER_POOL, new WorkerPool(this, DEFAULT_WORKER_POOL, workerThreads != null ? Integer.parseInt(workerThreads) : 20));
-		if (mbs != null && CONSUMER_IDLETIMEOUT > 0) {
+		startShrinkTask();
+	}
+
+	private void startShrinkTask() {
+		if (getMBeanServer() != null && CONSUMER_IDLETIMEOUT > 0) {
 			_future = getDefaultWorkerPool().getScheduledExecutorService().scheduleAtFixedRate(this, CONSUMER_IDLETIMEOUT, CONSUMER_IDLETIMEOUT, TimeUnit.SECONDS);
-		} else {
-			_future = null;
+		}
+	}
+
+	private void stopShrinkTask() {
+		if (_future != null) {
+			_future.cancel(false);
 		}
 	}
 
@@ -157,7 +165,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 		if (_xqConnection != null) {
 			logVersion("XQJ", _xqConnection.getClass().getClassLoader().getDefinedPackage("javax.xml.xquery"), _xqConnection.getClass());
 		} else {
-			logger.warn("XQJ not supported");
+			logger.warn("XQJ not available");
 		}
 		logVersion("WSDL4J", "javax.wsdl.xml", "com.artofarc.util.WSDL4JUtil", "wsdlFactory");
 		logVersion("JSON", "javax.json", "com.artofarc.util.JsonFactoryHelper", "JSON_READER_FACTORY");
@@ -233,13 +241,17 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 
 	public boolean lockFileSystem() {
 		try {
-			return _fileSystemLock.tryLock(DEPLOY_TIMEOUT, TimeUnit.SECONDS);
+			if (_fileSystemLock.tryLock(DEPLOY_TIMEOUT, TimeUnit.SECONDS)) {
+				stopShrinkTask();
+				return true;
+			}
 		} catch (InterruptedException e) {
-			return false;
 		}
+		return false;
 	}
 
 	public void unlockFileSystem() {
+		startShrinkTask();
 		_fileSystemLock.unlock();
 	}
 
@@ -284,9 +296,7 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 			kafkaConsumer.close();
 		}
 		// Phase 2
-		if (_future != null) {
-			_future.cancel(false);
-		}
+		stopShrinkTask();
 		getHttpEndpointRegistry().close();
 		getHttpGlobalContext().close();
 		for (WorkerPool workerPool : getWorkerPools()) {
