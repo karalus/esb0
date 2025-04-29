@@ -84,29 +84,21 @@ public class JarArtifact extends Artifact {
 		super.invalidate(orphans);
 	}
 
+	void reload() throws IOException {
+		logger.info("Reloading " + this);
+		synchronized (_jar) {
+			_jar.load(this);
+		}
+	}
+
 	public static final class Jar {
 
-		public final class Entry {
-			byte[] data;
-			WeakReference<byte[]> ref;
+		public static final class Entry {
+			private byte[] data;
+			private WeakReference<byte[]> ref;
 
-			Entry(byte[] data) {
+			private Entry(byte[] data) {
 				this.data = data;
-			}
-
-			byte[] getData(String filename, boolean nullify) throws IOException {
-				synchronized (Jar.this) {
-					byte[] result = data;
-					if (ref != null) {
-						result = ref.get();
-						if (result == null) {
-							result = reload(filename);
-						}
-						ref = null;
-					}
-					data = nullify ? null : result;
-					return result;
-				}
 			}
 
 			public boolean isConsumed() {
@@ -122,19 +114,27 @@ public class JarArtifact extends Artifact {
 		Jar(GlobalContext globalContext, JarArtifact jarArtifact) throws IOException {
 			_globalContext = globalContext;
 			_jarArtifactURI = jarArtifact.getURI();
-			logger.info("Loading " + _jarArtifactURI);
+			_manifest = load(jarArtifact);
+		}
+
+		private Manifest load(JarArtifact jarArtifact) throws IOException {
 			try (JarInputStream jis = new JarInputStream(jarArtifact.getContentAsStream())) {
 				JarEntry jarEntry;
 				while ((jarEntry = jis.getNextJarEntry()) != null) {
 					if (!jarEntry.isDirectory()) {
-						_entries.put(jarEntry.getName(), new Entry(IOUtils.toByteArray(jis)));
+						byte[] data = IOUtils.toByteArray(jis);
+						Entry entry = _entries.putIfAbsent(jarEntry.getName(), new Entry(data));
+						if (entry != null) {
+							entry.data = data;
+							entry.ref = null;
+						}
 					}
 				}
-				_manifest = jis.getManifest();
+				return jis.getManifest();
 			}
 		}
 
-		synchronized void offerSacrifice() {
+		private synchronized void offerSacrifice() {
 			for (Entry entry : _entries.values()) {
 				if (entry.data != null) {
 					entry.ref = new WeakReference<>(entry.data);
@@ -173,11 +173,21 @@ public class JarArtifact extends Artifact {
 		byte[] getEntry(String filename, boolean nullify) throws IOException {
 			Entry entry = _entries.get(filename);
 			if (entry != null) {
-				byte[] data = entry.getData(filename, nullify);
-				if (data == null) {
-					throw new NoClassDefFoundError(filename + " is loaded twice in different classLoaders from " + _jarArtifactURI);
+				synchronized (this) {
+					byte[] data = entry.data;
+					if (entry.ref != null) {
+						data = entry.ref.get();
+						if (data == null) {
+							data = reload(filename);
+						}
+						entry.ref = null;
+					}
+					if (data == null) {
+						throw new NoClassDefFoundError(filename + " is loaded twice in different classLoaders from " + _jarArtifactURI);
+					}
+					entry.data = nullify ? null : data;
+					return data;
 				}
-				return data;
 			}
 			return null;
 		}

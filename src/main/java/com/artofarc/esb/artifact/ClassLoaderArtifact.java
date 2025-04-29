@@ -48,7 +48,12 @@ public class ClassLoaderArtifact extends AbstractServiceArtifact {
 		ArrayList<JarArtifact.Jar> jars = new ArrayList<>();
 		for (String jarFileName : classLoader.getJar()) {
 			JarArtifact jarArtifact = loadArtifact(globalContext.bindProperties(jarFileName));
-			jarArtifact.validate(globalContext);
+			if (jarArtifact.isValidated()) {
+				// Must be loaded again to restore already discarded byte[]s
+				jarArtifact.reload();
+			} else {
+				jarArtifact.validate(globalContext);
+			}
 			addReference(jarArtifact);
 			jars.add(jarArtifact.getJar());
 		}

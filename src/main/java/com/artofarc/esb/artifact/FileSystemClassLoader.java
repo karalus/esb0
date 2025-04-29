@@ -26,11 +26,11 @@ import java.util.Vector;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
-public class FileSystemClassLoader extends SecureClassLoader {
+class FileSystemClassLoader extends SecureClassLoader {
 
 	private final List<JarArtifact.Jar> _jars;
 
-	public FileSystemClassLoader(List<JarArtifact.Jar> jars, ClassLoader parent) {
+	FileSystemClassLoader(List<JarArtifact.Jar> jars, ClassLoader parent) {
 		super(parent);
 		_jars = jars;
 	}
