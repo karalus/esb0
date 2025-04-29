@@ -99,7 +99,7 @@ public final class ESBMessage implements Cloneable {
 
 	@Override
 	public String toString() {
-		return "ESBMessage [_bodyType=" + _bodyType + ", _charsetName=" + _charset + ", _headers=" + _headers.values() + ", _variables=" + _variables + "]";
+		return "ESBMessage [bodyType=" + _bodyType + ", contentType=" + _contentType + ", charset=" + _charset + ", headers=" + _headers.values() + ", variables=" + _variables + "]";
 	}
 
 	@SuppressWarnings("unchecked")

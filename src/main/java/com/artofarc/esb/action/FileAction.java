@@ -44,7 +44,7 @@ public class FileAction extends TerminalAction {
 	private final boolean _mkdirs, _ownerOnly;
 	private final Boolean _readable, _writable;
 
-	public FileAction(String destDir, String action, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable, boolean ownerOnly) throws FileNotFoundException {
+	public FileAction(String destDir, String action, String filename, boolean mkdirs, String append, String zip, Boolean readable, Boolean writable, boolean ownerOnly) throws IOException {
 		if (destDir != null) {
 			_destDir = new File(destDir);
 			if (!_destDir.isAbsolute()) {
@@ -69,22 +69,30 @@ public class FileAction extends TerminalAction {
 		_ownerOnly = ownerOnly;
 	}
 
-	private void setPermissions(File file, boolean executable) {
+	private void setPermissions(File file, boolean executable) throws IOException {
 		if (_readable != null) {
-			file.setReadable(_readable, _ownerOnly);
+			if (!file.setReadable(_readable, _ownerOnly)) {
+				throw new IOException("Could not set read permission: " + file);
+			}
 			if (executable) {
-				file.setExecutable(_readable, _ownerOnly);
+				if (!file.setExecutable(_readable, _ownerOnly)) {
+					throw new IOException("Could not set execute permission: " + file);
+				}
 			}
 		}
 		if (_writable != null) {
-			file.setWritable(_writable, _ownerOnly);
+			if (!file.setWritable(_writable, _ownerOnly)) {
+				throw new IOException("Could not set write permission: " + file);
+			}
 		}
 	}
 
-	private void mkdirs(File dir) {
+	private void mkdirs(File dir) throws IOException {
 		if (dir != null && !dir.exists()) {
 			mkdirs(dir.getParentFile());
-			dir.mkdir();
+			if (!dir.mkdir()) {
+				throw new IOException("Could not create directory: " + dir);
+			}
 			setPermissions(dir, true);
 		}
 	}
