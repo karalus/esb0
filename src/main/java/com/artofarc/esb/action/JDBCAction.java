@@ -102,10 +102,7 @@ public abstract class JDBCAction extends Action {
 		return false;
 	}
 
-	@Override
-	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		String dsName = _dsName != null ? (String) eval(_dsName, context, message) : null;
-		boolean keepConnection = Boolean.parseBoolean(eval(_keepConnection, context, message).toString());
+	private JDBCConnection getConnection(Context context, String dsName, boolean keepConnection) throws Exception {
 		JDBCConnection connection = null;
 		ArrayDeque<JDBCConnection> connections = context.getResource(ESBConstants.JDBCConnections);
 		if (connections != null) {
@@ -140,6 +137,14 @@ public abstract class JDBCAction extends Action {
 				connections.push(connection);
 			}
 		}
+		return connection;
+	}
+
+	@Override
+	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
+		String dsName = _dsName != null ? (String) eval(_dsName, context, message) : null;
+		boolean keepConnection = Boolean.parseBoolean(eval(_keepConnection, context, message).toString());
+		JDBCConnection connection = getConnection(context, dsName, keepConnection);
 		ExecutionContext execContext = new ExecutionContext(connection, keepConnection);
 		if (_sql == null) {
 			execContext.setResource3(message.getBodyAsString(context));
@@ -224,7 +229,14 @@ public abstract class JDBCAction extends Action {
 		Collection<JDBCConnection> connections = context.removeResource(ESBConstants.JDBCConnections);
 		if (connections != null) {
 			for (JDBCConnection connection : connections) {
-				connection.close(commit);
+				try {
+					connection.close(commit);
+				} catch (SQLException e) {
+					if (commit) {
+						throw e;
+					}
+					logger.warn("Could not rollback " + connection.getDsName(), e);
+				}
 			}
 		}
 	}

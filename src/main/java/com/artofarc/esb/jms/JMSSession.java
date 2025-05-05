@@ -57,6 +57,10 @@ public final class JMSSession implements AutoCloseable {
 		return _jmsConnectionData;
 	}
 
+	public boolean isTransacted() {
+		return _transacted;
+	}
+
 	public boolean isConnected() {
 		return _jmsConnection.isConnected();
 	}

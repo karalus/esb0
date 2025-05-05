@@ -28,6 +28,7 @@ import com.artofarc.esb.action.Action;
 import com.artofarc.esb.action.JDBCAction;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.message.ESBMessage;
+import com.artofarc.esb.resource.JMSSessionFactory;
 
 public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.ConsumerPortMXBean {
 
@@ -95,12 +96,20 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 
 	public final long process(Context context, ESBMessage message) throws Exception {
 		try {
-			return processInternal(context, message);
+			long completedTaskCount = processInternal(context, message);
+			JDBCAction.closeKeptConnections(context, true);
+			JMSSessionFactory jmsSessionFactory = context.peekResourceFactory(JMSSessionFactory.class);
+			if (jmsSessionFactory != null) {
+				jmsSessionFactory.commitTransactedJMSSessions(null);
+			}
+			return completedTaskCount;
 		} catch (Exception e) {
 			JDBCAction.closeKeptConnections(context, false);
+			JMSSessionFactory jmsSessionFactory = context.peekResourceFactory(JMSSessionFactory.class);
+			if (jmsSessionFactory != null) {
+				jmsSessionFactory.rollbackTransactedJMSSessions(null);
+			}
 			throw e;
-		} finally {
-			JDBCAction.closeKeptConnections(context, true);
 		}
 	}
 

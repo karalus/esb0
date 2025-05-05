@@ -286,8 +286,8 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				topicName = jms.getTopicName().getValue();
 				schemaSet = resolveSchemaSet(globalContext, jms.getTopicName().getSchemaURI());
 			}
-			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.isActivePassive(), jms.getJndiDestination(), queueName, topicName, resolveWorkerPool(jms.getWorkerPool()),
-					jms.isBytesMessage(), jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(),
+			addAction(list, new JMSAction(globalContext, jmsConnectionData, jms.isTransacted(), jms.isActivePassive(), jms.getJndiDestination(), queueName, topicName,
+					resolveWorkerPool(jms.getWorkerPool()), jms.isBytesMessage(), jms.getDeliveryMode(), jms.getPriority(), jms.getTimeToLive(), jms.getDeliveryDelay(),
 					jms.getExpiryQueue(), jms.isReceiveFromTempQueue(), jms.getReplyQueue(), jms.getReceiveSelector(), multipartSubtype, jms.getMultipart(), schemaSet), location);
 			break;
 		}

@@ -437,20 +437,25 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 		protected final void commit(long receiveTimestamp, long sentReceiveDelay) throws JMSException {
 			try {
 				JDBCAction.closeKeptConnections(_context, true);
-				_session.getSession().commit();
-				adjustJMSWorkerPool(_sentReceiveDelay.accumulateAndGet(sentReceiveDelay), receiveTimestamp);
-			} catch (SQLException e) {
+				JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
+				jmsSessionFactory.commitTransactedJMSSessions(_session);
+			} catch (SQLException | JMSException e) {
 				logger.info("Rolling back for " + getKey(), e);
 				rollback();
+				return;
 			}
+			_session.getSession().commit();
+			adjustJMSWorkerPool(_sentReceiveDelay.accumulateAndGet(sentReceiveDelay), receiveTimestamp);
 		}
 
 		protected final void rollback() throws JMSException {
 			try {
 				JDBCAction.closeKeptConnections(_context, false);
 			} catch (SQLException e) {
-				logger.info("JDBC rollback", e);
+				// ignore
 			}
+			JMSSessionFactory jmsSessionFactory = _context.getResourceFactory(JMSSessionFactory.class);
+			jmsSessionFactory.rollbackTransactedJMSSessions(_session);
 			_session.getSession().rollback();
 		}
 	}

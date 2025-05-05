@@ -82,10 +82,17 @@ public final class JDBCConnection {
 			}
 		}
 		if (_dsName != null) {
-			if (commit && !_connection.getAutoCommit()) {
-				_connection.commit();
+			try {
+				if (!_connection.getAutoCommit()) {
+					if (commit) {
+						_connection.commit();
+					} else {
+						_connection.rollback();
+					}
+				}
+			} finally {
+				_connection.close();
 			}
-			_connection.close();
 		}
 	}
 

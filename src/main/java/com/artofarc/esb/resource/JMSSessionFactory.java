@@ -36,7 +36,7 @@ public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnection
 
 	@Override
 	protected JMSSession createResource(JMSConnectionData jmsConnectionData, Boolean transacted) throws JMSException {
-		return new JMSSession(this, jmsConnectionData, transacted);
+		return new JMSSession(this, jmsConnectionData, Boolean.TRUE == transacted);
 	}
 
 	@Override
@@ -45,6 +45,26 @@ public class JMSSessionFactory extends ResourceFactory<JMSSession, JMSConnection
 			_jmsConnectionProvider.unregisterJMSSessionFactory(jmsConnectionData, this);
 		}
 		super.close();
+	}
+
+	public void commitTransactedJMSSessions(JMSSession except) throws JMSException {
+		for (JMSSession jmsSession : getResources()) {
+			if (jmsSession != except && jmsSession.isTransacted()) {
+				jmsSession.getSession().commit();
+			}
+		}
+	}
+
+	public void rollbackTransactedJMSSessions(JMSSession except) {
+		for (JMSSession jmsSession : getResources()) {
+			if (jmsSession != except && jmsSession.isTransacted()) {
+				try {
+					jmsSession.getSession().rollback();
+				} catch (JMSException e) {
+					// ignore
+				}
+			}
+		}
 	}
 
 }

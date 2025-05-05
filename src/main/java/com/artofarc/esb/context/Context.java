@@ -47,7 +47,9 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.artofarc.esb.action.Action;
+import com.artofarc.esb.jms.JMSSession;
 import com.artofarc.esb.message.ESBConstants;
+import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.NamespaceBeautifier;
 import com.artofarc.util.TimeGauge;
@@ -212,6 +214,14 @@ public final class Context extends AbstractContext {
 	}
 
 	public boolean isTransacted() {
+		JMSSessionFactory jmsSessionFactory = peekResourceFactory(JMSSessionFactory.class);
+		if (jmsSessionFactory != null) {
+			for (JMSSession jmsSession : jmsSessionFactory.getResources()) {
+				if (jmsSession.isTransacted()) {
+					return true;
+				}
+			}
+		}
 		return _resources.containsKey(ESBConstants.JDBCConnections);
 	}
 

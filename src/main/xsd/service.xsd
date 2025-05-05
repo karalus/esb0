@@ -91,6 +91,7 @@
 				<extension base="tns:ActionBase">
 					<group ref="tns:JMSDestination" minOccurs="0" />
 					<attributeGroup ref="tns:JMSConnectionData" />
+					<attribute name="transacted" type="boolean" />
 					<attribute name="bytesMessage" type="boolean" default="false" />
 					<attribute name="deliveryMode" default="2">
 						<simpleType>
