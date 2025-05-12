@@ -162,7 +162,7 @@ public class FileAction extends TerminalAction {
 					setPermissions(file, false);
 					if (zip) {
 						try (ZipOutputStream zos = new ZipOutputStream(fileOutputStream)) {
-							zos.putNextEntry(new ZipEntry(filename + fileExtension));
+							zos.putNextEntry(new ZipEntry(new File(filename).getName() + fileExtension));
 							message.writeRawTo(zos, context);
 							for (Iterator<Map.Entry<String, MimeBodyPart>> iter = message.getAttachments().entrySet().iterator(); iter.hasNext();) {
 								Map.Entry<String, MimeBodyPart> entry = iter.next();
