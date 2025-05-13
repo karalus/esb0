@@ -26,9 +26,9 @@ public abstract class Evaluator<E extends Exception> {
 	protected abstract E createException(String message);
 
 	public final Object eval(String exp, Context context, ESBMessage message) throws Exception {
-		StringBuilder builder = new StringBuilder();
+		final StringBuilder builder = new StringBuilder();
 		for (int pos = 0;;) {
-			int i = exp.indexOf("${", pos);
+			final int i = exp.indexOf("${", pos);
 			if (i < 0) {
 				if (pos == 0) return exp;
 				builder.append(exp.substring(pos));
@@ -43,57 +43,9 @@ public abstract class Evaluator<E extends Exception> {
 			if (i > pos) builder.append(exp.substring(pos, i));
 			int j = exp.indexOf('}', i);
 			if (j < 0) throw new IllegalArgumentException("Matching } is missing");
-			String path = exp.substring(i + 2, j);
-			int k = path.indexOf('.');
-			String name = k < 0 ? path : path.substring(0, k);
-			Object value;
-			switch (name) {
-			case "null":
-				value = null;
-				break;
-			case "esbMessage":
-				value = message;
-				break;
-			case "rawBody":
-				value = k > 0 ? message.getBody() : message.cloneBody(context, false);
-				break;
-			case "body":
-				value = message.getBodyAsString(context);
-				break;
-			case "attachments":
-				value = message.getAttachments();
-				break;
-			default:
-				value = resolve(message, name, true);
-				if (value == null && (k >= 0 || name.indexOf('_') >= 0 || name.startsWith("java:"))) {
-					// interpret dots as separators
-					value = context.getGlobalContext().getProperty(path);
-					k = -1;
-				}
-				break;
-			}
-			boolean standalone = ++j == exp.length() && pos == 0 && i == 0;
-			if (value == null && !standalone) {
-				throw createException("name could not be resolved: " + name);
-			}
-			if (k >= 0) {
-				ReflectionUtils.ParamResolver<E> paramResolver = path.indexOf('(', k) < 0 ? null : new ReflectionUtils.ParamResolver<E>() {
-
-					@Override
-					public Object resolve(String param) throws E {
-						char firstChar = param.charAt(0);
-						if (firstChar == '\'') {
-							return param.substring(1, param.length() - 1);
-						} else if (Character.isDigit(firstChar) || firstChar == '-') {
-							return Integer.valueOf(param);
-						} else if ("null".equals(param)) {
-							return null;
-						}
-						return Evaluator.this.resolve(message, param, true);
-					}
-				};
-				value = ReflectionUtils.eval(value, path, k + 1, paramResolver);
-			}
+			final String path = exp.substring(i + 2, j);
+			final boolean standalone = ++j == exp.length() && i == 0 && pos == 0;
+			final Object value = evalPath(path, standalone, context, message);
 			if (standalone) {
 				return value;
 			}
@@ -101,6 +53,59 @@ public abstract class Evaluator<E extends Exception> {
 			pos = j;
 		}
 		return builder.toString();
+	}
+
+	public final Object evalPath(String path, boolean standalone, Context context, ESBMessage message) throws Exception {
+		int i = path.indexOf('.');
+		final String name = i < 0 ? path : path.substring(0, i);
+		Object value;
+		switch (name) {
+		case "null":
+			value = null;
+			break;
+		case "esbMessage":
+			value = message;
+			break;
+		case "rawBody":
+			value = i > 0 ? message.getBody() : message.cloneBody(context, false);
+			break;
+		case "body":
+			value = message.getBodyAsString(context);
+			break;
+		case "attachments":
+			value = message.getAttachments();
+			break;
+		default:
+			value = resolve(message, name, true);
+			if (value == null && (i >= 0 || name.indexOf('_') >= 0 || name.startsWith("java:"))) {
+				// interpret dots as separators
+				value = context.getGlobalContext().getProperty(path);
+				i = -1;
+			}
+			break;
+		}
+		if (value == null && (!standalone || i >= 0)) {
+			throw createException("name could not be resolved: " + name);
+		}
+		if (i >= 0) {
+			final ReflectionUtils.ParamResolver<E> paramResolver = path.indexOf('(', i) < 0 ? null : new ReflectionUtils.ParamResolver<>() {
+
+				@Override
+				public Object resolve(String param) throws E {
+					final char firstChar = param.charAt(0);
+					if (firstChar == '\'') {
+						return param.substring(1, param.length() - 1);
+					} else if (Character.isDigit(firstChar) || firstChar == '-') {
+						return Integer.valueOf(param);
+					} else if ("null".equals(param)) {
+						return null;
+					}
+					return Evaluator.this.resolve(message, param, true);
+				}
+			};
+			value = ReflectionUtils.eval(value, path, i + 1, paramResolver);
+		}
+		return value;
 	}
 
 	public final Object resolve(ESBMessage message, String name, boolean checkAmbiguity) throws E {

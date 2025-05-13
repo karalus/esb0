@@ -31,7 +31,7 @@ import com.artofarc.util.WeakCache;
 public class BranchOnVariableAction extends Action {
 
 	private static final WeakCache<String, Pattern> PATTERN_CACHE = new WeakCache<String, Pattern>() {
-		
+
 		@Override
 		public Pattern create(String regEx) {
 			return Pattern.compile(regEx);
@@ -69,7 +69,7 @@ public class BranchOnVariableAction extends Action {
 
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
-		Object value = _varName == "body" ? message.getBody() != null ? message.getBodyAsString(context) : null : _varName == "bodyType" ? message.getBodyType() : resolve(message, _varName, true);
+		Object value = _varName == "body" ? message.getBody() != null ? message.getBodyAsString(context) : null : _varName == "bodyType" ? message.getBodyType() : evalPath(_varName, true, context, message);
 		if (value instanceof Optional<?>) {
 			value = ((Optional<?>) value).orElse(null);
 		}
