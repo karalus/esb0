@@ -549,6 +549,7 @@ public class SOAPTest extends AbstractESBTest {
       message.setContentType("text/xml; charset=\"utf-8\"");
       message.putHeader(HttpConstants.HTTP_HEADER_SOAP_ACTION, "\"\"");
       message.setSchema(schemaArtifact.getSchema());
+      message.addAttachment("11", "application/pdf", "11".getBytes(), "11");
       
       @SuppressWarnings("unchecked")
       ConsumerPort consumerPort = new ConsumerPort(null);

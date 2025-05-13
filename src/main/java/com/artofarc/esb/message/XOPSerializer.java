@@ -48,33 +48,48 @@ public final class XOPSerializer extends TypeAwareXMLFilter {
 
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-		_contentType = atts.getValue(URI_NS_XMLMIME, NAME_CONTENT_TYPE);
-		super.startElement(uri, localName, qName, atts);
+		if (isXOPInclude(uri, localName)) {
+			if (_builder != null) {
+				// already serialized
+				_builder.sendTo(getContentHandler());
+				_builder = null;
+			}
+			getReceiverContentHandler().startElement(uri, localName, qName, atts);
+		} else {
+			if (atts.getLength() > 0) {
+				_contentType = atts.getValue(URI_NS_XMLMIME, NAME_CONTENT_TYPE);
+			}
+			super.startElement(uri, localName, qName, atts);
+		}
 	}
 
 	@Override
 	public void endElement(String uri, String localName, String qName) throws SAXException {
-		if (_builder != null) {
-			if (_builder.size() < _threshold) {
-				_builder.sendTo(getContentHandler());
-			} else {
-				String cid = UUID.randomUUID().toString();
-				ByteBuffer byteBuffer = Base64.getMimeDecoder().decode(StandardCharsets.US_ASCII.encode(_builder.toCharBuffer()));
-				try {
-					_message.addAttachment(cid, _contentType != null ? _contentType : _defaultContentType, byteBuffer.array(), null);
-				} catch (MessagingException e) {
-					throw new SAXException(e);
+		if (isXOPInclude(uri, localName)) {
+			getReceiverContentHandler().endElement(uri, localName, qName);
+		} else {
+			if (_builder != null) {
+				if (_builder.size() < _threshold) {
+					_builder.sendTo(getContentHandler());
+				} else {
+					String cid = UUID.randomUUID().toString();
+					ByteBuffer byteBuffer = Base64.getMimeDecoder().decode(StandardCharsets.US_ASCII.encode(_builder.toCharBuffer()));
+					try {
+						_message.addAttachment(cid, _contentType != null ? _contentType : _defaultContentType, byteBuffer.array(), null);
+					} catch (MessagingException e) {
+						throw new SAXException(e);
+					}
+					AttributesImpl atts = new AttributesImpl();
+					atts.addAttribute(NULL_NS_URI, NAME_HREF, NAME_HREF, "CDATA", "cid:" + cid);
+					getReceiverContentHandler().startPrefixMapping(DEFAULT_NS_PREFIX, URI_NS_XOP);
+					getReceiverContentHandler().startElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE, atts);
+					getReceiverContentHandler().endElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE);
+					getReceiverContentHandler().endPrefixMapping(DEFAULT_NS_PREFIX);
 				}
-				AttributesImpl atts = new AttributesImpl();
-				atts.addAttribute(NULL_NS_URI, NAME_HREF, NAME_HREF, "CDATA", "cid:" + cid);
-				getReceiverContentHandler().startPrefixMapping(DEFAULT_NS_PREFIX, URI_NS_XOP);
-				getReceiverContentHandler().startElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE, atts);
-				getReceiverContentHandler().endElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE);
-				getReceiverContentHandler().endPrefixMapping(DEFAULT_NS_PREFIX);
+				_builder = null;
 			}
-			_builder = null;
+			super.endElement(uri, localName, qName);
 		}
-		super.endElement(uri, localName, qName);
 	}
 
 	@Override
