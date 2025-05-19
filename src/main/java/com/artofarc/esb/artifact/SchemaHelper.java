@@ -131,7 +131,7 @@ public final class SchemaHelper implements InvocationHandler {
 			Object[] grammars = (Object[]) args[1];
 			synchronized (_schemaArtifact) {
 				for (Object grammar : grammars) {
-					_schemaArtifact.getGrammars().put(ReflectionUtils.<String> eval(grammar, "grammarDescription.namespace"), grammar);
+					_schemaArtifact.getGrammars().put(ReflectionUtils.eval(grammar, "grammarDescription.namespace"), grammar);
 				}
 				_schemaArtifact.notifyAll();
 			}

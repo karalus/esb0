@@ -29,9 +29,9 @@ Features:
 
 ### Fitness for production ###
 
-ESB0 is currently running at one of our customers site in production since December 2018 processing millions of business transactions a day. XML messages are up to 20Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product had a 16s major GC every 5min and needed to be restarted every night).
+ESB0 is currently running at our customers sites in production since December 2018 processing millions of business transactions a day. XML messages are up to 50Mb of size. No unplanned outages and overall only a few seconds of major GC time spent per month (the former commercial ESB product at one of our customers site had a 16s major GC every 5min and needed to be restarted every night).
 
-Current stable version is 1.11.1.
+Current stable version is 1.11.2.
 
 ### Design goals ###
 
@@ -85,7 +85,7 @@ Even in a Kubernetes environment where endpoint virtualization and load balancin
 
 You need to have [Maven](http://maven.apache.org/) and [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html) installed.
 
-ESB Zero build is using Maven 3.6.x and has been tested with Oracle JDK8 and OpenJDK 11.
+ESB Zero build is using Maven 3.6.x and has been tested with OpenJDK 11 and OpenJDK 17.
 
 From version 1.4 on Java 8 is required at runtime. From version 1.11 on Java 11 is minimum requirement.
 
@@ -96,7 +96,7 @@ From version 1.4 on Java 8 is required at runtime. From version 1.11 on Java 11 
 ESB Zero requires a Java Servlet Container conforming to the servlet 3.1 API, i.e. Java EE 7 and Java/Jakarta EE 8.
  
 It has been tested with Tomcat 8, 8.5, 9, Wildfly, Jetty 9 and JBoss EAP 7.x.
-For Tomcat 10.x (Jakarta EE 9) you must make use of the migration tool (by deploying the WAR to *webapps-javaee* instead of *webapps*) or use JakartaEE9 branch from git repository.
+For Tomcat 10.x (Jakarta EE 9) you must make use of the migration tool (by deploying the WAR to *webapps-javaee* instead of *webapps*) or use esb0 JakartaEE9 branch from git repository.
 
 ESB Zero is built with Java 11 and has been tested with OpenJDK 11 and OpenJDK 17.
 
@@ -142,9 +142,9 @@ Optional
 
 ### Roadmap ###
 
-__1.12__ (Q1 2025):
+__1.12__ (Q3 2025):
 - divide source into modules using parent POM
 
 __Backlog:__
-- migrate to Jakarta EE 9 (at least when Tomcat 9.0 and JBoss 7.4 reached EOL)
+- set master branch to Jakarta EE 9 (at least when Tomcat 9.0 and JBoss 7.4 reached EOL)
 - make use of virtual threads (requires Java 21 minimum)
