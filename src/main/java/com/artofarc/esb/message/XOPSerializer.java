@@ -98,7 +98,7 @@ public final class XOPSerializer extends TypeAwareXMLFilter {
 			_builder.write(ch, start, length);
 		} else if (typeInfo != null) {
 			if (isXSType("base64Binary")) {
-				_builder = new CharArrayWriter(length);
+				_builder = new CharArrayWriter();
 				_builder.write(ch, start, length);
 			} else {
 				super.characters(ch, start, length);

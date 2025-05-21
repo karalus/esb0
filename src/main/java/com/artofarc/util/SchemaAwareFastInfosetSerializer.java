@@ -39,13 +39,6 @@ import com.sun.xml.fastinfoset.sax.SAXDocumentSerializer;
 
 public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implements AutoCloseable {
 
-	static boolean notContains(char[] ch, int start, int length, char c) {
-		for (int i = 0; i < length; ++i) {
-			if (ch[start + i] == c) return false;
-		}
-		return true;
-	}
-
 	private final SAXDocumentSerializer saxDocumentSerializer = new SAXDocumentSerializer();
 	private ExternalVocabulary externalVocabulary;
 	private OutputStream outputStream;
@@ -105,6 +98,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 		private final ValidatorHandler validatorHandler;
 		private final boolean preserveWhitespace;
 		private TypeInfo typeInfo;
+		private CharArrayWriter _builder;
 
 		private TypeInfoContentHandler(ValidatorHandler validatorHandler, boolean preserveWhitespace) {
 			this.validatorHandler = validatorHandler;
@@ -174,6 +168,22 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 
 		@Override
 		public void endElement(String uri, String localName, String qName) throws SAXException {
+			if (_builder != null) {
+				if (_builder.size() > 2 && isXSType("decimal")) {
+					_builder.sendTo(saxDocumentSerializer::numericCharacters);
+				} else if (_builder.size() > 9 && _builder.notContains('+', 10) && isXSType("date")) {
+					_builder.sendTo(saxDocumentSerializer::dateTimeCharacters);
+				} else if (_builder.size() > 2 && isXSTypeOrList("boolean")) {
+					boolean[] booleans = _builder.encode(BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm);
+					saxDocumentSerializer.booleans(booleans, 0, booleans.length);
+				} else if (_builder.size() > 7 && isXSType("base64Binary")) {
+					byte[] bytes = _builder.encode(BuiltInEncodingAlgorithmFactory.base64EncodingAlgorithm);
+					saxDocumentSerializer.bytes(bytes, 0, bytes.length);
+				} else {
+					_builder.sendTo(saxDocumentSerializer);
+				}
+				_builder = null;
+			}
 			typeInfo = null;
 			saxDocumentSerializer.endElement(uri, localName, qName);
 		}
@@ -181,19 +191,10 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 		@Override
 		public void characters(char[] ch, int start, int length) throws SAXException {
 			if (typeInfo != null) {
-				if (length > 2 && isXSType("decimal")) {
-					saxDocumentSerializer.numericCharacters(ch, start, length);
-				} else if (length > 9 && notContains(ch, start + 10, length - 10, '+') && isXSType("date")) {
-					saxDocumentSerializer.dateTimeCharacters(ch, start, length);
-				} else if (length > 2 && isXSTypeOrList("boolean")) {
-					boolean[] booleans = (boolean[]) BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm.convertFromCharacters(ch, start, length);
-					saxDocumentSerializer.booleans(booleans, 0, booleans.length);
-				} else if (length > 7 && isXSType("base64Binary")) {
-					byte[] bytes = (byte[]) BuiltInEncodingAlgorithmFactory.base64EncodingAlgorithm.convertFromCharacters(ch, start, length);
-					saxDocumentSerializer.bytes(bytes, 0, bytes.length);
-				} else {
-					saxDocumentSerializer.characters(ch, start, length);
+				if (_builder == null) {
+					_builder = new CharArrayWriter();
 				}
+				_builder.write(ch, start, length);
 			} else {
 				saxDocumentSerializer.characters(ch, start, length);
 			}
