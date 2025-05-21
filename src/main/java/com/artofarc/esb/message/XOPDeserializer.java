@@ -26,12 +26,14 @@ import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import com.artofarc.util.PrefixHandler;
 import com.artofarc.util.W3CConstants;
 import com.artofarc.util.XMLFilterBase;
 
 public final class XOPDeserializer extends XMLFilterBase {
 
 	private final ESBMessage _message;
+	private final PrefixHandler _prefixHandler = new PrefixHandler();
 	private SAXParser _saxParser;
 
 	public XOPDeserializer(ESBMessage message) {
@@ -71,6 +73,22 @@ public final class XOPDeserializer extends XMLFilterBase {
 		}
 	}
 
+	@Override
+	public void startPrefixMapping(String prefix, String uri) throws SAXException {
+		_prefixHandler.startPrefixMapping(prefix, uri);
+		if (!W3CConstants.URI_NS_XOP.equals(uri)) {
+			super.startPrefixMapping(prefix, uri);
+		}
+	}
+
+	@Override
+	public void endPrefixMapping(String prefix) throws SAXException {
+		if (!W3CConstants.URI_NS_XOP.equals(_prefixHandler.getNamespace(prefix))) {
+			super.endPrefixMapping(prefix);
+		}
+		_prefixHandler.endPrefixMapping(prefix);
+	}
+
 	public final void setParent(SAXParser saxParser) throws SAXException {
 		_saxParser = saxParser;
 		setParent(saxParser.getXMLReader());
@@ -86,4 +104,5 @@ public final class XOPDeserializer extends XMLFilterBase {
 			}
 		}
 	}
+
 }
