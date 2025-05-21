@@ -80,6 +80,20 @@ public final class CharArrayWriter extends Writer {
 		return true;
 	}
 
+	public int trim() {
+		int i = 0, skip = 0;
+		while (i < count && isWhiteSpace(buf[pos + i++])) ++skip;
+		pos += skip;
+		count -= skip;
+		i = count;
+		while (i > 0 && isWhiteSpace(buf[pos + --i])) --count;
+		return count;
+	}
+
+	private static boolean isWhiteSpace(int c) {
+		return c <= 32 && (c == ' ' || c == '\t' || c == '\n' || c == '\r');
+	}
+
 	public void sendTo(ContentHandler contentHandler) throws SAXException {
 		contentHandler.characters(buf, pos, count);
 	}

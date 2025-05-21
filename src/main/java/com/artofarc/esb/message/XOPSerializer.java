@@ -69,7 +69,7 @@ public final class XOPSerializer extends TypeAwareXMLFilter {
 			getReceiverContentHandler().endElement(uri, localName, qName);
 		} else {
 			if (_builder != null) {
-				if (_builder.size() < _threshold) {
+				if (_builder.trim() < _threshold) {
 					_builder.sendTo(getContentHandler());
 				} else {
 					String cid = UUID.randomUUID().toString();
