@@ -21,20 +21,26 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.artofarc.esb.service.Assign.Import;
 import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.XQuerySource;
 
 public class AssignAction extends TransformAction {
 
 	public AssignAction(List<Assignment> assignments, String bodyExpr, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String baseURI, String contextItem, boolean clearHeaders) {
-		super(createXQuery(assignments, namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	bodyExpr != null, baseURI, contextItem, clearHeaders, null);
+		super(createXQuery(assignments, java.util.Collections.emptyList(), namespaces, bindNames, bodyExpr != null ? bodyExpr : contextItem != null ? null : "."), createCheckNotNull(bindNames), assignments,	bodyExpr != null, baseURI, contextItem, clearHeaders, null);
 		if (contextItem != null && bodyExpr != null) {
 			throw new IllegalArgumentException("when a contextItem is used the body cannot be assigned");
 		}
 	}
 
-	private static XQuerySource createXQuery(List<Assignment> assignments, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
+	private static XQuerySource createXQuery(List<Assignment> assignments, List<Import> imports, Collection<Map.Entry<String, String>> namespaces, List<XQDecl> bindNames, String bodyExpr) {
 		StringBuilder builder = new StringBuilder();
+		for (Import imp : imports) {
+			builder.append("import module ");
+			if (imp.getPrefix() != null) builder.append("namespace ").append(imp.getPrefix()).append('=');
+			builder.append('"').append(imp.getNamespace()).append("\" at \"").append(imp.getValue()).append("\";\n");
+		}
 		if (namespaces != null) {
 			for (Map.Entry<String, String> entry : namespaces) {
 				builder.append("declare namespace ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\";\n");

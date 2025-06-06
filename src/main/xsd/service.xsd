@@ -267,6 +267,16 @@
 		<complexContent>
 			<extension base="tns:ActionBase">
 				<sequence>
+					<element name="import" minOccurs="0" maxOccurs="unbounded">
+						<complexType>
+							<simpleContent>
+								<extension base="anyURI">
+									<attribute name="prefix" type="Name" />
+									<attribute name="namespace" type="string" use="required" />
+								</extension>
+							</simpleContent>
+						</complexType>
+					</element>
 					<element name="bindName" type="tns:XQDecl" minOccurs="0" maxOccurs="unbounded" />
 					<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 					<element name="assignment" minOccurs="0" maxOccurs="unbounded">
