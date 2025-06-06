@@ -276,6 +276,9 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 				throw new ValidationException(this, getLineNumber(jms), "For active/passive we need exactly two jms factories: " + jms.getJndiConnectionFactory());
 			}
 			String multipartSubtype = jms.getMultipartSubtype() != null ? jms.getMultipartSubtype().value() : jms.getMultipart() != null ? "related" : null;
+			if (multipartSubtype != null && !jms.isBytesMessage()) {
+				throw new ValidationException(this, getLineNumber(jms), "multipart message only works with JMS BytesMessage");
+			}
 			String queueName = null, topicName = null;
 			XSSchemaSet schemaSet = null;
 			if (jms.getQueueName() != null) {

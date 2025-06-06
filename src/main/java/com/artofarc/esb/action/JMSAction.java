@@ -155,7 +155,7 @@ public class JMSAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		if (inPipeline) {
-			if (_isBytesMessage && _multipart == null) {
+			if (_isBytesMessage && _multipartSubtype == null) {
 				JMSSession jmsSession = getJMSSession(context, null);
 				BytesMessage bytesMessage = jmsSession.getSession().createBytesMessage();
 				message.reset(BodyType.OUTPUT_STREAM, new BytesMessageOutputStream(bytesMessage));
@@ -193,8 +193,8 @@ public class JMSAction extends Action {
 			jmsMessage = execContext.getResource();
 			jmsMessage.setStringProperty(ESBConstants.Charset, message.getSinkEncoding());
 		} else {
-			if (execContext != null) {
-				ByteArrayOutputStream bos = execContext.getResource();
+			ByteArrayOutputStream bos = execContext != null ? execContext.getResource() : null;
+			if (bos != null) {
 				message.reset(BodyType.INPUT_STREAM, bos.getByteArrayInputStream());
 			}
 			if (message.getBodyType() == BodyType.INVALID) {
@@ -203,7 +203,7 @@ public class JMSAction extends Action {
 				BytesMessage bytesMessage = session.createBytesMessage();
 				if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 					message.determineSinkContentType();
-					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipart, message.getBodyAsByteArray(context), false, true);
+					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipart, bos, false);
 					mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
 					message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));
 				} else {

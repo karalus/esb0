@@ -184,7 +184,7 @@ public class HttpResponseAction extends Action {
 		message.closeBody();
 		if (Boolean.TRUE.equals(execContext.getResource3())) {
 			ByteArrayOutputStream bos = execContext.getResource2();
-			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos, true);
 			HttpServletResponse response = (HttpServletResponse) asyncContext.getResponse();
 			response.setContentType(unfoldHttpHeader(mmp.getContentType()));
 			mmp.writeTo(response.getOutputStream());

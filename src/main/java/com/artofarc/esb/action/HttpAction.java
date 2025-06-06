@@ -223,7 +223,7 @@ public class HttpAction extends Action {
 		Future<HttpResponse<InputStream>> future;
 		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
 			ByteArrayOutputStream bos = execContext.getResource2();
-			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos);
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos, true);
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));
 			int timeout = message.getTimeleft(_readTimeout).intValue();
 			WorkerPool workerPool = context.getGlobalContext().getWorkerPool(_workerPool);

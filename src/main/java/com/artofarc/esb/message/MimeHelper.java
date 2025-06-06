@@ -88,9 +88,14 @@ public final class MimeHelper {
 		return false;
 	}
 
-	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, ByteArrayOutputStream bos) throws Exception {
-		byte[] body = bos != null ? bos.toByteArray() : message.getBodyType() == BodyType.INVALID ? new byte[0] : message.getBodyAsByteArray(context);
-		return createMimeMultipart(context, message, multipartSubtype, multipartContentType, body, true, true);
+	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, ByteArrayOutputStream bos, boolean withHeaders) throws Exception {
+		if (bos == null) {
+			bos = new ByteArrayOutputStream();
+			if (message.getBodyType() != BodyType.INVALID) {
+				message.writeTo(bos, context);
+			}
+		}
+		return createMimeMultipart(context, message, multipartSubtype, multipartContentType, bos.toByteArray(), withHeaders, true);
 	}
 
 	/**
@@ -116,7 +121,7 @@ public final class MimeHelper {
 				String name = pair.substring(0, i);
 				String exp = pair.substring(i + 1);
 				boolean isBody = "${body}".equals(exp);
-				Object value = isBody ? message.getBodyAsByteArray(context) : evaluator.eval(exp, context, message);
+				Object value = isBody ? body : evaluator.eval(exp, context, message);
 				if (value instanceof MimeBodyPart) {
 					part = (MimeBodyPart) value;
 					String cid = part.getContentID();

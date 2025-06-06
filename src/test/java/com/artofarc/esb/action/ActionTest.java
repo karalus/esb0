@@ -386,7 +386,7 @@ public class ActionTest extends AbstractESBTest {
 				createUpdateAction(Map.of(ESBConstants.formData, "${formData},${key}=$${attachments.get('${key}')}"))));
 		action = action.setNextAction(new DumpAction());
 		consumerPort.process(context, message);
-		MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "form-data", null, null);
+		MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "form-data", null, null, true);
 		message.putHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE, HttpConstants.unfoldHttpHeader(mmp.getContentType()));
 		mmp.writeTo(System.out);
 	}
