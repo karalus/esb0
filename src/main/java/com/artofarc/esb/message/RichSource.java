@@ -40,10 +40,14 @@ public final class RichSource {
 		_itemSupplier = itemSupplier;
 	}
 
-	public RichSource(Source source) {
+	public RichSource(Source source, boolean xqItemKindElement) {
 		_source = source;
-		_xqItemKindElement = false;
+		_xqItemKindElement = xqItemKindElement;
 		_itemSupplier = null;
+	}
+
+	public RichSource(Source source) {
+		this(source, false);
 	}
 
 	public RichSource(Node node) {

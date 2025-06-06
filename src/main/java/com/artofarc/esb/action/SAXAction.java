@@ -172,15 +172,17 @@ public abstract class SAXAction extends Action {
 
 	private RichSource createSource(Context context, ESBMessage message, Source source) throws Exception {
 		XMLReader parent = null;
+		boolean xqItemKindElement = message.getBodyType() == BodyType.SOURCE ? message.<RichSource> getBody().isXQItemKindElement() : false;
 		if (source instanceof SAXSource) {
 			SAXSource saxSource = (SAXSource) source;
 			parent = saxSource.getXMLReader();
 		} else if (source instanceof DOMSource) {
 			DOMSource domSource = (DOMSource) source;
 			parent = new DOMFilter(context, domSource);
+			xqItemKindElement = true;
 		}
 		InputSource inputSource = SAXSource.sourceToInputSource(source);
-		return new RichSource(new SAXSource(createXMLFilter(context, message, parent), inputSource));
+		return new RichSource(new SAXSource(createXMLFilter(context, message, parent), inputSource), xqItemKindElement);
 	}
 
 	@Override
