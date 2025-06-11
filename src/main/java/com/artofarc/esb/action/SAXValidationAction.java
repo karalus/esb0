@@ -67,7 +67,7 @@ public class SAXValidationAction extends SAXAction {
 	protected RichSource createSource(Context context, ESBMessage message, XQItem item) throws Exception {
 		message.setSchema(_schema);
 		XQJIdentityFilter<?> xmlFilter = message.getAttachments().isEmpty() ? new XQJIdentityFilter<>(item, _schema.newValidatorHandler(), ValidatorHandler::setContentHandler)
-				: new XQJIdentityFilter<>(item, new XopAwareValidatorHandler(_schema, message.getAttachments().keySet()), XopAwareValidatorHandler::setContentHandler);
+				: new XQJIdentityFilter<>(item, new XopAwareValidatorHandler(_schema, message.getAttachments().keySet(), cid -> message.getAttachments().get(cid).getContentType()), XopAwareValidatorHandler::setContentHandler);
 		return new RichSource(new SAXSource(xmlFilter, null), item, xmlFilter);
 	}
 
@@ -78,7 +78,7 @@ public class SAXValidationAction extends SAXAction {
 			return parent != null ? new ChainingXMLFilter<>(parent, _schema.newValidatorHandler(), ValidatorHandler::setContentHandler)
 					: new ChainingXMLFilter<>(context.getSAXParser(), _schema.newValidatorHandler(), ValidatorHandler::setContentHandler);
 		} else {
-			XopAwareValidatorHandler validatorHandler = new XopAwareValidatorHandler(_schema, message.getAttachments().keySet());
+			XopAwareValidatorHandler validatorHandler = new XopAwareValidatorHandler(_schema, message.getAttachments().keySet(), cid -> message.getAttachments().get(cid).getContentType());
 			return parent != null ? new ChainingXMLFilter<>(parent, validatorHandler, XopAwareValidatorHandler::setContentHandler)
 					: new ChainingXMLFilter<>(context.getSAXParser(), validatorHandler, XopAwareValidatorHandler::setContentHandler);
 		}

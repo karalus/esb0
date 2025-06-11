@@ -25,10 +25,18 @@ import org.xml.sax.SAXException;
 public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 
 	private final Set<String> _cids;
+	private final ThrowingFunction<String, String, Exception> _cid2contentType;
+	private String _contentType;
 
-	public XopAwareValidatorHandler(Schema schema, Set<String> cids) {
+	@FunctionalInterface
+	public interface ThrowingFunction<T, R, E extends Exception> {
+		R apply(T t) throws E;
+	}
+
+	public XopAwareValidatorHandler(Schema schema, Set<String> cids, ThrowingFunction<String, String, Exception> cid2contentType) {
 		super(schema);
 		_cids = cids;
+		_cid2contentType = cid2contentType;
 	}
 
 	@Override
@@ -37,18 +45,29 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 			if (typeInfo == null || !isXSType("base64Binary")) {
 				reportError("Enclosing element not of type xs:base64Binary");
 			}
-			String href = atts.getValue(W3CConstants.NAME_HREF);
-			if (href == null) {
+			String cid = atts.getValue(W3CConstants.NAME_HREF);
+			if (cid == null) {
 				reportError("Missing required attribute href");
-			} else if (!href.startsWith("cid:")) {
-				reportError("href must have schema cid, but is " + href);
-			} else if (!_cids.contains(href.substring(4))) {
-				reportError("Not found in attachments " + href);
+			} else if (!cid.startsWith("cid:")) {
+				reportError("href must have schema cid, but is " + cid);
+			} else if (!_cids.contains(cid = cid.substring(4))) {
+				reportError("Not found in attachments " + cid);
+			} else if (_contentType != null && _cid2contentType != null) {
+				String contentType;
+				try {
+					contentType = _cid2contentType.apply(cid);
+				} catch (Exception e) {
+					throw new SAXException("Could not resolve content type for cid " + cid, e);
+				}
+				if (!_contentType.equals(contentType)) {
+					reportError("Attachment has deviant content type " + contentType);
+				}
 			}
 			if (getReceiverContentHandler() != null) {
 				getReceiverContentHandler().startElement(uri, localName, qName, atts);
 			}
 		} else {
+			_contentType = atts.getValue(W3CConstants.URI_NS_XMLMIME, W3CConstants.NAME_CONTENT_TYPE);
 			super.startElement(uri, localName, qName, atts);
 		}
 	}
@@ -56,6 +75,7 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 	@Override
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		typeInfo = null;
+		_contentType = null;
 		if (!W3CConstants.isXOPInclude(uri, localName)) {
 			super.endElement(uri, localName, qName);
 		} else if (getReceiverContentHandler() != null) {
