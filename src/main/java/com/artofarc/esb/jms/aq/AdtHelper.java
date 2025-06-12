@@ -28,6 +28,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
+import javax.jms.Topic;
 
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.jdbc.JDBC2XMLMapper;
@@ -69,7 +70,7 @@ public class AdtHelper implements InvocationHandler {
 		try {
 			return ReflectionUtils.invoke(session.getClass().getMethod("createORAMessage", cls), JMSException.class, session, proxyInstance);
 		} catch (NoSuchMethodException e) {
-			throw new JMSException("Not a Oracle AQ session");
+			throw new JMSException("Not an Oracle AQ session");
 		}
 	}
 
@@ -80,7 +81,7 @@ public class AdtHelper implements InvocationHandler {
 			//message.putVariable(com.artofarc.esb.message.ESBConstants.JMSType, struct.getSQLTypeName());
 			message.materializeBodyFromSource(context, mapper.createSAXSource(context, struct));
 		} catch (NoSuchMethodException e) {
-			throw new JMSException("Not a Oracle AQ AdtMessage");
+			throw new JMSException("Not an Oracle AQ AdtMessage");
 		}
 	}
 
@@ -89,7 +90,16 @@ public class AdtHelper implements InvocationHandler {
 			return ReflectionUtils.invoke(session.getClass().getMethod("createConsumer", Destination.class, String.class, Object.class, String.class, Boolean.TYPE), JMSException.class,
 					session, destination, messageSelector, oraDataFactory, null, noLocal);
 		} catch (NoSuchMethodException e) {
-			throw new JMSException("Not a Oracle AQ session");
+			throw new JMSException("Not an Oracle AQ session");
+		}
+	}
+
+	public static MessageConsumer createAdtDurableSubscriber(Session session, Topic topic, String subscriberName, String messageSelector, boolean noLocal) throws JMSException {
+		try {
+			return ReflectionUtils.invoke(session.getClass().getMethod("createDurableSubscriber", Topic.class, String.class, String.class, Boolean.TYPE, Object.class), JMSException.class,
+					session, topic, subscriberName, messageSelector, noLocal, oraDataFactory);
+		} catch (NoSuchMethodException e) {
+			throw new JMSException("Not an Oracle AQ session");
 		}
 	}
 

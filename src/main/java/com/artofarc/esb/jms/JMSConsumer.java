@@ -91,14 +91,15 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 			_queueName = globalContext.bindProperties(queueName);
 			_topicName = globalContext.bindProperties(topicName);
 		}
+		_mapper = schemaSet != null && rootElement != null ? new JDBC2XMLMapper(schemaSet, QName.valueOf(rootElement)) : null;
 		if (subscription != null) {
 			if (_topicName == null) throw new IllegalArgumentException("Subscription only allowed for topics: " + getKey());
 			if (!shared && workerCount != 1) throw new IllegalArgumentException("Subscriptions can only have one worker: " + getKey());
+			if (shared && _mapper != null) throw new IllegalArgumentException("Oracle AQ does not support shared subscriptions: " + getKey());
 		}
 		_subscription = subscription;
 		_noLocal = noLocal;
 		_shared = shared;
-		_mapper = schemaSet != null && rootElement != null ? new JDBC2XMLMapper(schemaSet, QName.valueOf(rootElement)) : null;
 		_jmsWorker = new JMSWorker[workerCount];
 		_minWorkerCount = minWorkerCount;
 		_batchSize = batchSize;
@@ -356,6 +357,8 @@ public final class JMSConsumer extends SchedulingConsumerPort implements com.art
 					}
 				} else if (_shared) {
 					_messageConsumer = _session.getSession().createSharedDurableConsumer((Topic) getDestination(_session), _subscription, _messageSelector);
+				} else if (_mapper != null) {
+					_messageConsumer = AdtHelper.createAdtDurableSubscriber(_session.getSession(), (Topic) getDestination(_session), _subscription, _messageSelector, _noLocal);
 				} else {
 					_messageConsumer = _session.getSession().createDurableSubscriber((Topic) getDestination(_session), _subscription, _messageSelector, _noLocal);
 				}
