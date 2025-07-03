@@ -168,7 +168,9 @@ public class HttpResponseAction extends Action {
 		final String acceptEncoding = message.getVariable(HTTP_HEADER_ACCEPT_ENCODING);
 		if (acceptEncoding != null) {
 			Long length = message.getLength();
-			if (inPipeline || length == null && !message.isEmpty() || length != null && length > thresholdCompression || message.getContentEncoding() != null) {
+			if (message.getContentEncoding() != null && isAcceptable(acceptEncoding, message.getContentEncoding())) {
+				message.putHeader(HTTP_HEADER_CONTENT_ENCODING, message.getContentEncoding());
+			} else if (inPipeline || length == null && !message.isEmpty() || length != null && length > thresholdCompression) {
 				if (isAcceptable(acceptEncoding, "gzip")) {
 					message.putHeader(HTTP_HEADER_CONTENT_ENCODING, "gzip");
 				} else if (isAcceptable(acceptEncoding, "deflate")) {
