@@ -59,7 +59,7 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 				} catch (Exception e) {
 					throw new SAXException("Could not resolve content type for cid " + cid, e);
 				}
-				if (!_contentType.equals(contentType)) {
+				if (!contentType.startsWith(_contentType)) {
 					reportError("Attachment has deviant content type " + contentType);
 				}
 			}
