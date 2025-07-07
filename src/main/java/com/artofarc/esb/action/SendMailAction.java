@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.action;
 
+import java.io.ByteArrayInputStream;
 import java.util.Iterator;
 import java.util.Properties;
 
@@ -85,13 +86,14 @@ public class SendMailAction extends TerminalAction {
 		if (message.getAttachments().isEmpty()) {
 			msg.setContent(content, contentType);
 		} else {
-			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "mixed", contentType, content.getBytes(ESBMessage.CHARSET_DEFAULT), false, false);
+			ByteArrayInputStream contentAsStream = new ByteArrayInputStream(content.getBytes(ESBMessage.CHARSET_DEFAULT));
+			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, "mixed", contentType, contentAsStream, false, false);
 			for (Iterator<MimeBodyPart> iter = message.getAttachments().values().iterator(); iter.hasNext();) {
 				MimeBodyPart bodyPart = iter.next();
-				MimeBodyPart att = new MimeBodyPart(); 
+				MimeBodyPart att = new MimeBodyPart();
 				att.setDataHandler(new DataHandler(new MimePartDataSource(bodyPart)));
 				att.setContentID(bodyPart.getContentID());
-				att.setFileName(MimeHelper.getDispositionName(bodyPart)); 
+				att.setFileName(MimeHelper.getDispositionName(bodyPart));
 				mmp.addBodyPart(att);
 				iter.remove();
 			}

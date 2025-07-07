@@ -40,6 +40,18 @@ public final class MimeHelper {
 	private static final String ROOTPART = "rootpart@artofarc.com";
 	private static final String START_ROOTPART = "\"; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START + "\"<" + ROOTPART + ">\"";
 
+	static class StreamableMimeBodyPart extends MimeBodyPart {
+
+		StreamableMimeBodyPart(InputStream is) {
+			contentStream = is;
+		}
+
+		@Override
+		protected InputStream getContentStream() {
+			return contentStream;
+		}
+	}
+
 	private static final Evaluator<Exception> evaluator = new Evaluator<Exception>() {
 
 		@Override
@@ -48,10 +60,9 @@ public final class MimeHelper {
 		}
 	};
 
-	static MimeBodyPart createMimeBodyPart(String cid, String contentType, byte[] content, String name) throws MessagingException {
-		InternetHeaders headers = new InternetHeaders();
-		headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
-		MimeBodyPart part = new MimeBodyPart(headers, content);
+	static MimeBodyPart createMimeBodyPart(String cid, String contentType, InputStream is, String name) throws MessagingException {
+		MimeBodyPart part = new StreamableMimeBodyPart(is);
+		part.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 		if (cid != null) {
 			part.setContentID('<' + cid + '>');
 		}
@@ -95,13 +106,13 @@ public final class MimeHelper {
 				message.writeTo(bos, context);
 			}
 		}
-		return createMimeMultipart(context, message, multipartSubtype, multipartContentType, bos.toByteArray(), withHeaders, true);
+		return createMimeMultipart(context, message, multipartSubtype, multipartContentType, bos.getByteArrayInputStream(), withHeaders, true);
 	}
 
 	/**
 	 * @param multipartContentType e.g. "application/xop+xml"
 	 */
-	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, byte[] body, boolean withHeaders, boolean withAttachments) throws Exception {
+	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, InputStream is, boolean withHeaders, boolean withAttachments) throws Exception {
 		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
 		MimeMultipart mmp;
 		MimeBodyPart part;
@@ -121,7 +132,7 @@ public final class MimeHelper {
 				String name = pair.substring(0, i);
 				String exp = pair.substring(i + 1);
 				boolean isBody = "${body}".equals(exp);
-				Object value = isBody ? body : evaluator.eval(exp, context, message);
+				Object value = isBody ? is : evaluator.eval(exp, context, message);
 				if (value instanceof MimeBodyPart) {
 					part = (MimeBodyPart) value;
 					String cid = part.getContentID();
@@ -166,10 +177,10 @@ public final class MimeHelper {
 					multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + mediaType + '"';
 				}
 				mmp = new MimeMultipart(multipartSubtype);
-				part = createMimeBodyPart(ROOTPART, multipartContentType, body, null);
+				part = createMimeBodyPart(ROOTPART, multipartContentType, is, null);
 			} else {
 				mmp = new MimeMultipart(multipartSubtype);
-				part = createMimeBodyPart(null, contentType, body, null);
+				part = createMimeBodyPart(null, contentType, is, null);
 			}
 			if (withHeaders) {
 				for (Entry<String, Object> entry : message.getHeaders()) {

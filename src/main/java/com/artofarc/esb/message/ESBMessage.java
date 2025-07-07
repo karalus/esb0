@@ -217,11 +217,15 @@ public final class ESBMessage implements Cloneable {
 		_attachments.put(cid, bodyPart);
 	}
 
-	public MimeBodyPart addAttachment(String cid, String contentType, byte[] content, String filename) throws MessagingException {
-		MimeBodyPart part = MimeHelper.createMimeBodyPart(cid, contentType, content, filename);
+	public MimeBodyPart addAttachment(String cid, String contentType, InputStream is, String filename) throws MessagingException {
+		MimeBodyPart part = MimeHelper.createMimeBodyPart(cid, contentType, is, filename);
 		part.setHeader(HTTP_HEADER_CONTENT_TRANSFER_ENCODING, "binary");
 		addAttachment(cid, part);
 		return part;
+	}
+
+	public MimeBodyPart addAttachment(String cid, String contentType, byte[] content, String filename) throws MessagingException {
+		return addAttachment(cid, contentType, new ByteArrayInputStream(content), filename);
 	}
 
 	public Charset getCharset() {
