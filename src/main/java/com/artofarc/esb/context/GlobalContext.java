@@ -373,7 +373,14 @@ public final class GlobalContext extends Registry implements Runnable, com.artof
 				builder.append(exp.substring(pos));
 				break;
 			}
-			builder.append(exp.substring(pos, i));
+			if (i > pos) {
+				builder.append(exp.substring(pos, i));
+				if (exp.charAt(i - 1) == '$') {
+					// Escape ${ with $${
+					pos = i + 1;
+					continue;
+				}
+			}
 			int j = exp.indexOf('}', i);
 			if (j < 0) throw new IllegalArgumentException("Matching } is missing");
 			String name = exp.substring(i + 2, j);
