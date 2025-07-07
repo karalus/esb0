@@ -23,7 +23,8 @@ import java.util.Calendar;
 import java.util.HashMap;
 
 import javax.json.stream.JsonGenerator;
-import javax.xml.bind.DatatypeConverter;
+
+import com.artofarc.util.DatatypeHelper;
 
 public final class JDBCResult implements AutoCloseable {
 
@@ -138,7 +139,7 @@ public final class JDBCResult implements AutoCloseable {
 			json.writeEnd();
 		}
 		json.writeEnd();
-		Calendar calendar = JDBCParameter.getCalendarInstance();
+		Calendar calendar = DatatypeHelper.getCalendarInstance();
 		json.writeStartArray("rows");
 		while (resultSet.next()) {
 			json.writeStartArray();
@@ -168,20 +169,20 @@ public final class JDBCResult implements AutoCloseable {
 					Timestamp timestamp = resultSet.getTimestamp(i);
 					if (checkNotNull(resultSet, json)) {
 						calendar.setTime(timestamp);
-						json.write(DatatypeConverter.printDateTime(calendar));
+						json.write(DatatypeHelper.printDateTime(calendar));
 					}
 					break;
 				case DATE:
 					Date date = resultSet.getDate(i);
 					if (checkNotNull(resultSet, json)) {
 						calendar.setTime(date);
-						json.write(DatatypeConverter.printDate(calendar));
+						json.write(DatatypeHelper.printDate(calendar));
 					}
 					break;
 				case BLOB:
 					Blob blob = resultSet.getBlob(i);
 					if (checkNotNull(resultSet, json)) {
-						json.write(DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length())));
+						json.write(DatatypeHelper.printBase64Binary(blob.getBytes(1, (int) blob.length())));
 						blob.free();
 					}
 					break;
@@ -196,7 +197,7 @@ public final class JDBCResult implements AutoCloseable {
 				case LONGVARBINARY:
 					byte[] bytes = resultSet.getBytes(i);
 					if (checkNotNull(resultSet, json)) {
-						json.write(DatatypeConverter.printBase64Binary(bytes));
+						json.write(DatatypeHelper.printBase64Binary(bytes));
 					}
 					break;
 				default:

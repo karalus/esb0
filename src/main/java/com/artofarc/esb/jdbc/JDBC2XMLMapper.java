@@ -25,7 +25,6 @@ import java.util.Calendar;
 import java.util.Date;
 
 import javax.xml.XMLConstants;
-import javax.xml.bind.DatatypeConverter;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -37,6 +36,7 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.AttributesImpl;
 
 import com.artofarc.esb.context.Context;
+import com.artofarc.util.DatatypeHelper;
 import com.artofarc.util.XMLParserBase;
 import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSElementDecl;
@@ -72,7 +72,7 @@ public final class JDBC2XMLMapper {
 		final Context _context;
 		final XSOMHelper _xsomHelper = new XSOMHelper(_element);
 		final AttributesImpl _atts = new AttributesImpl();
-		final Calendar calendar = JDBCParameter.getCalendarInstance();
+		final Calendar calendar = DatatypeHelper.getCalendarInstance();
 
 		Parser(Context context, Struct struct) {
 			super(true, null);
@@ -210,16 +210,16 @@ public final class JDBC2XMLMapper {
 			switch (XSOMHelper.getJsonType(simpleType)) {
 			case "base64Binary":
 				Blob blob = (Blob) attribute;
-				value = DatatypeConverter.printBase64Binary(blob.getBytes(1, (int) blob.length()));
+				value = DatatypeHelper.printBase64Binary(blob.getBytes(1, (int) blob.length()));
 				blob.free();
 				break;
 			case "date":
 				calendar.setTime((Date) attribute);
-				value = DatatypeConverter.printDate(calendar);
+				value = DatatypeHelper.printDate(calendar);
 				break;
 			case "dateTime":
 				calendar.setTime((Date) attribute);
-				value = DatatypeConverter.printDateTime(calendar);
+				value = DatatypeHelper.printDateTime(calendar);
 				break;
 			default:
 				value = attribute.toString();

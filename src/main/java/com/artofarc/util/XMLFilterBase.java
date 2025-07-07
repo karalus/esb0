@@ -18,8 +18,6 @@ package com.artofarc.util;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.xml.bind.DatatypeConverter;
-
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.SAXNotSupportedException;
@@ -91,17 +89,17 @@ public class XMLFilterBase extends XMLFilterImpl {
 						if (pos > 0) {
 							final byte[] ba = new byte[pos];
 							System.arraycopy(chunk, 0, ba, 0, pos);
-							final char[] ch = DatatypeConverter.printBase64Binary(ba).toCharArray();
+							final char[] ch = DatatypeHelper.printBase64Binary(ba).toCharArray();
 							characters(ch, 0, ch.length);
 						}
 						return;
 					}
 					pos += len;
 				} while (pos < chunkSize);
-				characters(DatatypeConverter.printBase64Binary(chunk).toCharArray(), 0, IOUtils.MTU);
+				characters(DatatypeHelper.printBase64Binary(chunk).toCharArray(), 0, IOUtils.MTU);
 			}
 		} else {
-			final char[] ch = DatatypeConverter.printBase64Binary(IOUtils.toByteArray(inputStream)).toCharArray();
+			final char[] ch = DatatypeHelper.printBase64Binary(IOUtils.toByteArray(inputStream)).toCharArray();
 			characters(ch, 0, ch.length);
 		}
 	}

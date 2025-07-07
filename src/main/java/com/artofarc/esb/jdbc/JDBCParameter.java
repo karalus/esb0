@@ -25,8 +25,6 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.TimeZone;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
@@ -34,18 +32,9 @@ import javax.xml.transform.dom.DOMResult;
 
 import org.w3c.dom.Node;
 
+import com.artofarc.util.DatatypeHelper;
+
 public final class JDBCParameter {
-
-	private final static TimeZone TIME_ZONE;
-
-	static {
-		String timezone = System.getProperty("esb0.jdbc.mapper.timezone");
-		TIME_ZONE = timezone != null ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault();
-	}
-
-	static Calendar getCalendarInstance() {
-		return new GregorianCalendar(TIME_ZONE);// Faster than Calendar.getInstance(TIME_ZONE);
-	}
 
 	private final int _pos;
 	private final JDBCType _type;
@@ -98,7 +87,7 @@ public final class JDBCParameter {
 			Calendar calendar = null;
 			switch (_type) {
 			case TIMESTAMP_WITH_TIMEZONE:
-				calendar = Calendar.getInstance(TIME_ZONE);
+				calendar = DatatypeHelper.getCalendarInstance();
 				// no break
 			case DATE:
 			case TIMESTAMP:
