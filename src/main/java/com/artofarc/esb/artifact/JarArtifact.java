@@ -29,6 +29,7 @@ import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 
 import com.artofarc.esb.context.GlobalContext;
+import com.artofarc.esb.http.HttpConstants;
 import com.artofarc.util.IOUtils;
 
 public class JarArtifact extends Artifact {
@@ -55,7 +56,7 @@ public class JarArtifact extends Artifact {
 
 	@Override
 	public String getContentType() {
-		return "application/octet-stream";
+		return HttpConstants.HTTP_HEADER_CONTENT_TYPE_OCTET_STREAM;
 	}
 
 	@Override

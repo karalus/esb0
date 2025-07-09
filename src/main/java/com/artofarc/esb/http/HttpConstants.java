@@ -51,6 +51,7 @@ public class HttpConstants {
 	public static final String HTTP_HEADER_X_METHOD_OVERRIDE = "X-HTTP-Method-Override";
 
 	public static final String HTTP_HEADER_CONTENT_TYPE_TEXT = "text/plain";
+	public static final String HTTP_HEADER_CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
 	public static final String HTTP_HEADER_CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
 	public static final String HTTP_HEADER_CONTENT_TYPE_XML = "application/xml";
 	public static final String HTTP_HEADER_CONTENT_TYPE_JSON = "application/json";
