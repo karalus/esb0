@@ -41,11 +41,9 @@ import org.slf4j.LoggerFactory;
 import com.artofarc.esb.action.*;
 import com.artofarc.esb.artifact.*;
 import com.artofarc.esb.context.Context;
-import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.http.HttpEndpoint;
 import com.artofarc.esb.http.HttpUrl;
-import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
 import com.artofarc.esb.service.XQDecl;
 import com.artofarc.util.IOUtils;
@@ -77,14 +75,15 @@ public abstract class AbstractESBTest {
 
 	protected final void createContext(String dir) throws IOException {
 		_createContext();
-		getGlobalContext().setFileSystem(new FileSystemDir(dir));
-		XMLCatalog.attachToFileSystem(getGlobalContext());
+		FileSystem fileSystem = new FileSystemDir(dir);
+		getGlobalContext().setFileSystem(fileSystem);
+		XMLCatalog.attachToFileSystem(getGlobalContext(), fileSystem);
 	}
 
 	@Before
 	public void createContext() throws Exception {
 		_createContext();
-		getGlobalContext().setFileSystem(new FileSystem() {
+		FileSystem fileSystem = new FileSystem() {
 
 			@Override
 			protected FileSystem copy() {
@@ -98,8 +97,9 @@ public abstract class AbstractESBTest {
 			@Override
 			protected void writeBackChanges(Map<String, ChangeType> changes) {
 			}
-		});
-		XMLCatalog.attachToFileSystem(getGlobalContext());
+		};
+		getGlobalContext().setFileSystem(fileSystem);
+		XMLCatalog.attachToFileSystem(getGlobalContext(), fileSystem);
 	}
 
 	@After

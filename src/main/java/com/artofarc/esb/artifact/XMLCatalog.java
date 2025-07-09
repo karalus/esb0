@@ -69,8 +69,7 @@ public final class XMLCatalog extends Directory {
 		return clone;
 	}
 
-	public static void attachToFileSystem(GlobalContext globalContext) {
-		FileSystem fileSystem = globalContext.getFileSystem();
+	public static void attachToFileSystem(GlobalContext globalContext, FileSystem fileSystem) {
 		XMLCatalog xmlCatalog = new XMLCatalog(fileSystem, fileSystem.getRoot());
 		try {
 			{

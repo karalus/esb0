@@ -41,8 +41,7 @@ public final class DeployHelper {
 		} else {
 			fileSystem = new FileSystemDir(root);
 		}
-		globalContext.setFileSystem(fileSystem);
-		XMLCatalog.attachToFileSystem(globalContext);
+		XMLCatalog.attachToFileSystem(globalContext, fileSystem);
 		deployChangeSet(globalContext, fileSystem.init(globalContext));
 		// necessary for auto migrated artifacts
 		fileSystem.writeBackChanges();
@@ -240,6 +239,7 @@ public final class DeployHelper {
 				cache.clear();
 			}
 		}
+		globalContext.setFileSystem(changeSet.getFileSystem());
 	}
 
 	public static void createAdminService(GlobalContext globalContext, String path) throws Exception {

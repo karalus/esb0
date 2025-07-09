@@ -137,9 +137,7 @@ public class AdminAction extends Action {
 			try {
 				FileSystem.ChangeSet changeSet = globalContext.getFileSystem().createChangeSet(globalContext, resource);
 				DeployHelper.deployChangeSet(globalContext, changeSet);
-				FileSystem newFileSystem = changeSet.getFileSystem();
-				globalContext.setFileSystem(newFileSystem);
-				newFileSystem.writeBackChanges();
+				changeSet.getFileSystem().writeBackChanges();
 				logger.info("Artifact " + resource + " deleted by " + message.getVariable(ESBConstants.RemoteUser));
 				message.putVariable(ESBConstants.HttpResponseCode, SC_NO_CONTENT);
 				message.reset(BodyType.INVALID, null);
@@ -235,9 +233,7 @@ public class AdminAction extends Action {
 
 	private void deployChangeset(GlobalContext globalContext, FileSystem.ChangeSet changeSet, ESBMessage message) throws Exception {
 		DeployHelper.deployChangeSet(globalContext, changeSet);
-		FileSystem newFileSystem = changeSet.getFileSystem();
-		globalContext.setFileSystem(newFileSystem);
-		newFileSystem.writeBackChanges();
+		changeSet.getFileSystem().writeBackChanges();
 		logger.info("Configuration changed by: " + resolve(message, ESBConstants.RemoteUser, false));
 		logger.info("Number of created/updated services: " + changeSet.getServiceArtifacts().size());
 		logger.info("Number of deleted services: " + DataStructures.typeSelect(changeSet.getDeletedArtifacts(), ServiceArtifact.class).count());

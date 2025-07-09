@@ -15,7 +15,6 @@
  */
 package com.artofarc.esb.artifact;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -41,6 +40,7 @@ import org.xml.sax.SAXException;
 
 import com.artofarc.esb.context.GlobalContext;
 import com.artofarc.esb.service.Property;
+import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.XMLProcessorFactory;
 
@@ -108,11 +108,11 @@ public abstract class AbstractServiceArtifact extends Artifact {
 	}
 
 	private void migrate(GlobalContext globalContext) throws TransformerException {
+		Boolean init = globalContext.getFileSystem() == null;
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		byte[] content1 = transform(XMLProcessorFactory.newTransformer(), bos);
-		// content1 could be overwritten when using com.artofarc.util.ByteArrayOutputStream
+		byte[] content1 = transform(XMLProcessorFactory.newTransformer(), bos, init);
 		bos.reset();
-		byte[] content2 = transform(migrationXSLT.newTransformer(), bos);
+		byte[] content2 = transform(migrationXSLT.newTransformer(), bos, init);
 		if (!Arrays.equals(content1, content2)) {
 			CRC32 crc = new CRC32();
 			crc.update(content2);
@@ -124,8 +124,9 @@ public abstract class AbstractServiceArtifact extends Artifact {
 		}
 	}
 
-	private byte[] transform(Transformer transformer, ByteArrayOutputStream bos) throws TransformerException {
+	private byte[] transform(Transformer transformer, ByteArrayOutputStream bos, Boolean init) throws TransformerException {
 		transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+		transformer.setParameter("init", init);
 		transformer.setParameter("ext", IOUtils.getExt(getName()));
 		transformer.transform(new StreamSource(getContentAsStream()), new StreamResult(bos));
 		return bos.toByteArray();
