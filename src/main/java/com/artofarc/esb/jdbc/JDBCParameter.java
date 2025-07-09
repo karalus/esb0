@@ -36,17 +36,21 @@ import com.artofarc.util.DatatypeHelper;
 
 public final class JDBCParameter {
 
+	public static final boolean FREE_DEFAULT = Boolean.parseBoolean(System.getProperty("esb0.jdbc.free.default"));
+
 	private final int _pos;
 	private final JDBCType _type;
+	private final Boolean _free;
 	private final boolean _body;
 	private final boolean _attachments;
 	private final String _bindName;
 	private final Integer _truncate;
 	private final QName _xmlElement;
 
-	public JDBCParameter(int pos, String typeName, boolean body, boolean attachments, String bindName, Integer truncate, String xmlElement) {
+	public JDBCParameter(int pos, String typeName, Boolean free, boolean body, boolean attachments, String bindName, Integer truncate, String xmlElement) {
 		_pos = pos;
 		_type = JDBCType.valueOf(typeName);
+		_free = free;
 		_body = body;
 		_attachments = attachments;
 		_bindName = bindName;
@@ -60,6 +64,10 @@ public final class JDBCParameter {
 
 	public JDBCType getType() {
 		return _type;
+	}
+
+	public Boolean isFree() {
+		return _free;
 	}
 
 	public boolean isBody() {

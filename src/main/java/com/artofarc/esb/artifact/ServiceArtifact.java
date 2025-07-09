@@ -681,8 +681,8 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		List<JDBCParameter> params = DataStructures.createList(jdbcParameters.size());
 		for (Parameter jdbcParameter : jdbcParameters) {
 			if (jdbcParameter.getPos() != null) {
-				params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
-						jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
+				params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isFree(), jdbcParameter.isBody(),
+						jdbcParameter.isAttachments(), jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
 				posUsed[jdbcParameter.getPos() - 1] = true;
 			}
 		}
@@ -691,8 +691,8 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			if (jdbcParameter.getPos() == null) {
 				while (posUsed[pos]) ++pos;
 				posUsed[pos] = true;
-				params.add(new JDBCParameter(++pos, jdbcParameter.getType(), jdbcParameter.isBody(), jdbcParameter.isAttachments(),
-						jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
+				params.add(new JDBCParameter(++pos, jdbcParameter.getType(), false, jdbcParameter.isBody(),
+						jdbcParameter.isAttachments(), jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
 			}
 		}
 		return params;

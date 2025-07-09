@@ -15,7 +15,6 @@
  */
 package com.artofarc.esb.action;
 
-import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.SQLXML;
 import java.sql.Struct;
@@ -26,11 +25,7 @@ import javax.xml.transform.sax.SAXSource;
 import com.artofarc.esb.context.Context;
 import com.artofarc.esb.context.ExecutionContext;
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.esb.jdbc.JDBC2XMLMapper;
-import com.artofarc.esb.jdbc.JDBCAttachments;
-import com.artofarc.esb.jdbc.JDBCConnection;
-import com.artofarc.esb.jdbc.JDBCParameter;
-import com.artofarc.esb.jdbc.JDBCResult;
+import com.artofarc.esb.jdbc.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBMessage;
 import com.sun.xml.xsom.XSSchemaSet;
@@ -61,6 +56,7 @@ public class JDBCProcedureAction extends JDBCAction {
 		cs.execute();
 		for (JDBCParameter param : _outParams) {
 			if (param.isBody()) {
+				boolean free = param.isFree() != null ? param.isFree() : JDBCParameter.FREE_DEFAULT;
 				switch (param.getType()) {
 				case SQLXML:
 					SQLXML sqlxml = cs.getSQLXML(param.getPos());
@@ -68,12 +64,10 @@ public class JDBCProcedureAction extends JDBCAction {
 					sqlxml.free();
 					break;
 				case CLOB:
-					message.reset(BodyType.READER, cs.getCharacterStream(param.getPos()));
+					message.reset(BodyType.READER, free ? new ClobReader(cs.getClob(param.getPos())) : cs.getCharacterStream(param.getPos()));
 					break;
 				case BLOB:
-					final Blob blob = cs.getBlob(param.getPos());
-					message.reset(BodyType.BYTES, blob.getBytes(1, (int) blob.length()));
-					blob.free();
+					message.reset(BodyType.INPUT_STREAM, free ? new BlobInputStream(cs.getBlob(param.getPos())) : cs.getBlob(param.getPos()).getBinaryStream());
 					break;
 				case STRUCT:
 					JDBC2XMLMapper mapper = new JDBC2XMLMapper(_schemaSet, param.getXmlElement());
