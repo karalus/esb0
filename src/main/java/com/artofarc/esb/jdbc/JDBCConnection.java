@@ -51,10 +51,15 @@ public final class JDBCConnection {
 		}
 	}
 
+	@FunctionalInterface
+	public interface SQLResource {
+		void free() throws SQLException;
+	}
+
 	private final String _dsName;
 	private final Connection _connection;
 	private final boolean _isOracleConnection;
-	private final ArrayList<Object> _resources = new ArrayList<>();
+	private final ArrayList<SQLResource> _resources = new ArrayList<>();
 
 	public JDBCConnection(String dsName, Connection connection, boolean manualCommit) throws SQLException {
 		_dsName = dsName;
@@ -74,10 +79,10 @@ public final class JDBCConnection {
 	}
 
 	public void close(boolean commit) throws SQLException {
-		for (Object resource : _resources) {
+		for (SQLResource resource : _resources) {
 			try {
-				ReflectionUtils.invoke(resource.getClass().getMethod("free"), SQLException.class, resource);
-			} catch (NoSuchMethodException | SQLException e) {
+				resource.free();
+			} catch (SQLException e) {
 				logger.warn("Could not free resource", e);
 			}
 		}
@@ -96,21 +101,26 @@ public final class JDBCConnection {
 		}
 	}
 
-	private <T> T logResource(T resource) {
+	public void logResource(SQLResource resource) {
 		_resources.add(resource);
-		return resource;
 	}
 
 	public Blob createBlob() throws SQLException {
-		return logResource(_connection.createBlob());
+		Blob blob = _connection.createBlob();
+		_resources.add(blob::free);
+		return blob;
 	}
 
 	public Clob createClob() throws SQLException {
-		return logResource(_connection.createClob());
+		Clob clob = _connection.createClob();
+		_resources.add(clob::free);
+		return clob;
 	}
 
 	public SQLXML createSQLXML() throws SQLException {
-		return logResource(_connection.createSQLXML());
+		SQLXML sqlxml = _connection.createSQLXML();
+		_resources.add(sqlxml::free);
+		return sqlxml;
 	}
 
 	public Array createArray(String typeName, Object[] elements) throws SQLException {
@@ -119,7 +129,9 @@ public final class JDBCConnection {
 		}
 		// https://docs.oracle.com/cd/B28359_01/java.111/b31224/oraarr.htm#i1059642
 		try {
-			return logResource((Array) createARRAY.invoke(_connection.unwrap(ifcOracleConnection), typeName, (Object) elements));
+			Array array = (Array) createARRAY.invoke(_connection.unwrap(ifcOracleConnection), typeName, (Object) elements);
+			_resources.add(array::free);
+			return array;
 		} catch (Throwable e) {
 			throw ReflectionUtils.convert(e, SQLException.class);
 		}
