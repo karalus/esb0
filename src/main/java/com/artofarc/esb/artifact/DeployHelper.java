@@ -240,6 +240,10 @@ public final class DeployHelper {
 			}
 		}
 		globalContext.setFileSystem(changeSet.getFileSystem());
+		// switch to lazy load in order to save memory
+		for (JarArtifact jarArtifact : changeSet.getJarArtifacts()) {
+			jarArtifact.offerSacrifice();
+		}
 	}
 
 	public static void createAdminService(GlobalContext globalContext, String path) throws Exception {

@@ -71,12 +71,10 @@ public class JarArtifact extends Artifact {
 		_jar = new Jar(globalContext, this);
 	}
 
-	@Override
-	protected void clearContent() {
+	void offerSacrifice() {
 		if (_jar != null) {
 			_jar.offerSacrifice();
 		}
-		super.clearContent();
 	}
 
 	@Override

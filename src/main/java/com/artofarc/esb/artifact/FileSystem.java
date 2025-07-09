@@ -143,7 +143,7 @@ public abstract class FileSystem {
 	public final ChangeSet init(GlobalContext globalContext) throws Exception {
 		load();
 		ChangeSet changeSet = new ChangeSet();
-		validateServices(globalContext, _root, changeSet);
+		collectArtifacts(globalContext, _root, changeSet);
 		return changeSet;
 	}
 
@@ -159,17 +159,17 @@ public abstract class FileSystem {
 		}
 	}
 
-	private static void validateServices(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
+	private static void collectArtifacts(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
 		if (artifact instanceof Directory) {
 			for (Artifact child : ((Directory) artifact).getArtifacts().values()) {
-				validateServices(globalContext, child, changeSet);
+				collectArtifacts(globalContext, child, changeSet);
 			}
 		} else {
-			validateService(globalContext, artifact, changeSet);
+			changeArtifact(globalContext, artifact, changeSet);
 		}
 	}
 
-	private static void validateService(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
+	private static void changeArtifact(final GlobalContext globalContext, Artifact artifact, ChangeSet changeSet) throws ValidationException {
 		if (artifact instanceof ServiceArtifact) {
 			changeSet.futures.add(globalContext.getDefaultWorkerPool().getExecutorService().submit(() -> {
 				artifact.validate(globalContext);
@@ -181,6 +181,8 @@ public abstract class FileSystem {
 		} else if (artifact instanceof JNDIObjectFactoryArtifact) {
 			artifact.validate(globalContext);
 			changeSet.getJNDIObjectFactoryArtifacts().add((JNDIObjectFactoryArtifact) artifact);
+		} else if (artifact instanceof JarArtifact) {
+			changeSet.getJarArtifacts().add((JarArtifact) artifact);
 		}
 	}
 
@@ -317,6 +319,7 @@ public abstract class FileSystem {
 		private final List<Future<ServiceArtifact>> futures = new ArrayList<>();
 		private final List<WorkerPoolArtifact> workerPoolArtifacts = new ArrayList<>();
 		private final List<JNDIObjectFactoryArtifact> jndiObjectFactoryArtifacts = new ArrayList<>();
+		private final List<JarArtifact> jarArtifacts = new ArrayList<>();
 		private final List<Artifact> deletedArtifacts = new ArrayList<>();
 		private List<ServiceArtifact> serviceArtifacts;
 
@@ -365,6 +368,10 @@ public abstract class FileSystem {
 			return jndiObjectFactoryArtifacts;
 		}
 
+		public List<JarArtifact> getJarArtifacts() {
+			return jarArtifacts;
+		}
+
 		public List<Artifact> getDeletedArtifacts() {
 			return deletedArtifacts;
 		}
@@ -377,7 +384,7 @@ public abstract class FileSystem {
 	public final ChangeSet createChangeSet(GlobalContext globalContext, InputStream inputStream) throws IOException, ValidationException {
 		FileSystem copy = copy();
 		boolean tidyOut = copy.mergeZIP(inputStream);
-		ChangeSet changeSet = validateChanges(globalContext, copy);
+		ChangeSet changeSet = collectChanges(globalContext, copy);
 		if (tidyOut) copy.tidyOut(changeSet);
 		return changeSet;
 	}
@@ -401,7 +408,7 @@ public abstract class FileSystem {
 			artifact.setCrc(crc.getValue());
 			copy.noteChange(uri, ChangeType.CREATE);
 		}
-		return validateChanges(globalContext, copy);
+		return collectChanges(globalContext, copy);
 	}
 
 	public final ChangeSet createChangeSet(GlobalContext globalContext, String uriToDelete) throws FileNotFoundException, ValidationException {
@@ -417,7 +424,7 @@ public abstract class FileSystem {
 		return changeSet;
 	}
 
-	private ChangeSet validateChanges(GlobalContext globalContext, FileSystem changedFileSystem) throws ValidationException {
+	private ChangeSet collectChanges(GlobalContext globalContext, FileSystem changedFileSystem) throws ValidationException {
 		ChangeSet changeSet = changedFileSystem.new ChangeSet();
 		HashSet<String> visited = new HashSet<>();
 		// find affected
@@ -435,12 +442,12 @@ public abstract class FileSystem {
 		// validate
 		for (String original : visited) {
 			Artifact artifact = changedFileSystem.getArtifact(original);
-			validateService(globalContext, artifact, changeSet);
+			changeArtifact(globalContext, artifact, changeSet);
 		}
 		for (Map.Entry<String, ChangeType> entry : changedFileSystem._changes.entrySet()) {
 			Artifact artifact = changedFileSystem.getArtifact(entry.getKey());
 			if (entry.getValue() == ChangeType.CREATE) {
-				validateService(globalContext, artifact, changeSet);
+				changeArtifact(globalContext, artifact, changeSet);
 			} else if (entry.getValue() == ChangeType.DELETE) {
 				if (!artifact.delete()) {
 					throw new ValidationException(artifact, "Could not delete " + artifact.getURI());
