@@ -143,15 +143,19 @@ public final class MimeHelper {
 					}
 					setDisposition(part, "form-data", name, filename != null ? filename : name);
 				} else {
-					InternetHeaders headers = new InternetHeaders();
+					boolean binary = value instanceof InputStream;
+					if (binary) {
+						part = new StreamableMimeBodyPart((InputStream) value);
+					} else {
+						binary = value instanceof byte[];
+						part = new MimeBodyPart(new InternetHeaders(), binary ? (byte[]) value : value != null ? value.toString().getBytes(ESBMessage.CHARSET_DEFAULT) : null);
+					}
 					if (isBody) {
-						headers.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
+						part.setHeader(HTTP_HEADER_CONTENT_TYPE, contentType);
 						for (Entry<String, Object> entry : message.getHeaders()) {
-							headers.setHeader(entry.getKey(), entry.getValue().toString());
+							part.setHeader(entry.getKey(), entry.getValue().toString());
 						}
 					}
-					boolean binary = value instanceof byte[];
-					part = new MimeBodyPart(headers, binary ? (byte[]) value : value != null ? value.toString().getBytes(ESBMessage.CHARSET_DEFAULT) : null);
 					setDisposition(part, "form-data", name, binary ? message.getVariable(ESBConstants.filename, name) : null);
 				}
 				mmp.addBodyPart(part);
