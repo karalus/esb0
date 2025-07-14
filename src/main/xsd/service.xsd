@@ -538,7 +538,7 @@
 							</element>
 						</choice>
 					</sequence>
-					<attribute name="variable" type="tns:identifier" use="required" />
+					<attribute name="variable" type="tns:expressionOrEmpty" use="required" />
 				</extension>
 			</complexContent>
 		</complexType>
