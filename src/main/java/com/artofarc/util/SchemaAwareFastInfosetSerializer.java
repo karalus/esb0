@@ -113,6 +113,13 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 			return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_EXTENSION | TypeInfo.DERIVATION_LIST);
 		}
 
+		private void flushBuilder() throws SAXException {
+			if (_builder != null) {
+				_builder.sendTo(saxDocumentSerializer);
+				_builder = null;
+			}
+		}
+
 		@Override
 		public void setDocumentLocator(Locator locator) {
 			saxDocumentSerializer.setDocumentLocator(locator);
@@ -130,6 +137,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 
 		@Override
 		public void startPrefixMapping(String prefix, String uri) throws SAXException {
+			flushBuilder();
 			saxDocumentSerializer.startPrefixMapping(prefix, uri);
 		}
 
@@ -140,6 +148,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
+			flushBuilder();
 			if (atts.getLength() > 0) {
 				EncodingAlgorithmAttributesImpl eatts = new EncodingAlgorithmAttributesImpl();
 				for (int i = 0; i < atts.getLength(); ++i) {
@@ -199,10 +208,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 						_builder = null;
 					}
 				}
-				if (_builder != null) {
-					_builder.sendTo(saxDocumentSerializer);
-					_builder = null;
-				}
+				flushBuilder();
 			}
 			typeInfo = null;
 			saxDocumentSerializer.endElement(uri, localName, qName);
