@@ -15,6 +15,7 @@
  */
 package com.artofarc.esb.message;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Enumeration;
@@ -32,6 +33,7 @@ import javax.mail.internet.MimeMultipart;
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.util.ByteArrayOutputStream;
+import com.artofarc.util.IOUtils;
 import com.artofarc.util.URLUtils;
 
 public final class MimeHelper {
@@ -49,6 +51,12 @@ public final class MimeHelper {
 		@Override
 		protected InputStream getContentStream() {
 			return contentStream;
+		}
+
+		MimeBodyPart materialize() throws IOException, MessagingException {
+			try (InputStream is = contentStream) {
+				return new MimeBodyPart(headers, IOUtils.toByteArray(is));
+			}
 		}
 	}
 
@@ -70,6 +78,14 @@ public final class MimeHelper {
 			setDisposition(part, MimeBodyPart.ATTACHMENT, name, null);
 		}
 		return part;
+	}
+
+	static boolean isNotMaterialized(MimeBodyPart part) {
+		return part instanceof StreamableMimeBodyPart;
+	}
+
+	static MimeBodyPart materialize(MimeBodyPart part) throws IOException, MessagingException {
+		return ((StreamableMimeBodyPart) part).materialize();
 	}
 
 	private static void setDisposition(MimeBodyPart bodyPart, String type, String name, String filename) throws MessagingException {

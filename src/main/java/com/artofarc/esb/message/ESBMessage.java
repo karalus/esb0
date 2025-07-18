@@ -978,7 +978,12 @@ public final class ESBMessage implements Cloneable {
 			clone._headers.putAll(_headers);
 		}
 		if (withAttachments) {
-			clone._attachments.putAll(_attachments);
+			for (Map.Entry<String, MimeBodyPart> entry : _attachments.entrySet()) {
+				if (MimeHelper.isNotMaterialized(entry.getValue())) {
+					entry.setValue(MimeHelper.materialize(entry.getValue()));
+				}
+				clone._attachments.put(entry.getKey(), entry.getValue());
+			}
 		}
 		for (Map.Entry<String, Object> entry : _variables.entrySet()) {
 			if (entry.getKey() == ESBConstants.initialTimestamp) {
