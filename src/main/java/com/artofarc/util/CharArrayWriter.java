@@ -24,6 +24,9 @@ import org.jvnet.fastinfoset.EncodingAlgorithmException;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
+/**
+ * Memory optimized alternative to {@link java.io.CharArrayWriter}(no copying of arrays).<br>Does not work if cbuf is reused like in {@link java.io.Reader#transferTo(Writer)}!
+ */
 public final class CharArrayWriter extends Writer {
 
 	private char buf[];
@@ -39,6 +42,9 @@ public final class CharArrayWriter extends Writer {
 	@Override
 	public void write(char[] cbuf, int off, int len) {
 		if (buf != null) {
+			if (buf == cbuf) {
+				throw new IllegalStateException("cbuf must not be reused");
+			}
 			int newcount = count + len;
 			char[] copy = new char[newcount];
 			System.arraycopy(buf, pos, copy, 0, count);

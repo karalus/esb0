@@ -73,6 +73,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 	}
 
 	public ContentHandler getContentHandler(OutputStream os, String charsetName) {
+		saxDocumentSerializer.reset();
 		saxDocumentSerializer.setOutputStream(outputStream = os);
 		if (charsetName.equals("UTF-16")) {
 			saxDocumentSerializer.setCharacterEncodingScheme(FastInfosetSerializer.UTF_16BE);
@@ -127,6 +128,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 
 		@Override
 		public void startDocument() throws SAXException {
+			_builder = null;
 			saxDocumentSerializer.startDocument();
 		}
 
@@ -180,35 +182,22 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl implem
 		@Override
 		public void endElement(String uri, String localName, String qName) throws SAXException {
 			if (_builder != null) {
-				if (isXSType("decimal")) {
-					if (_builder.trim() > 2) {
-						_builder.sendTo(saxDocumentSerializer::numericCharacters);
-						_builder = null;
-					}
-				} else if (isXSType("date")) {
-					if (_builder.trim() > 9 && _builder.notContains('+', 10)) {
-						_builder.sendTo(saxDocumentSerializer::dateTimeCharacters);
-						_builder = null;
-					}
-				} else if (isXSType("dateTime")) {
-					if (_builder.trim() > 18 && _builder.notContains('.', 19) && _builder.notContains('+', 19)) {
-						_builder.sendTo(saxDocumentSerializer::dateTimeCharacters);
-						_builder = null;
-					}
-				} else if (isXSTypeOrList("boolean")) {
-					if (_builder.trim() > 2) {
-						boolean[] booleans = _builder.encode(BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm);
-						saxDocumentSerializer.booleans(booleans, 0, booleans.length);
-						_builder = null;
-					}
-				} else if (isXSType("base64Binary")) {
-					if (_builder.trim() > 7) {
-						byte[] bytes = _builder.encode(BuiltInEncodingAlgorithmFactory.base64EncodingAlgorithm);
-						saxDocumentSerializer.bytes(bytes, 0, bytes.length);
-						_builder = null;
-					}
+				if (_builder.size() > 2 && isXSType("decimal")) {
+					_builder.sendTo(saxDocumentSerializer::numericCharacters);
+				} else if (_builder.size() > 9 && _builder.notContains('+', 10) && isXSType("date")) {
+					_builder.sendTo(saxDocumentSerializer::dateTimeCharacters);
+				} else if (_builder.size() > 18 && _builder.notContains('.', 19) && _builder.notContains('+', 19) && isXSType("dateTime")) {
+					_builder.sendTo(saxDocumentSerializer::dateTimeCharacters);
+				} else if (_builder.size() > 2 && isXSTypeOrList("boolean")) {
+					boolean[] booleans = _builder.encode(BuiltInEncodingAlgorithmFactory.booleanEncodingAlgorithm);
+					saxDocumentSerializer.booleans(booleans, 0, booleans.length);
+				} else if (_builder.size() > 7 && isXSType("base64Binary")) {
+					byte[] bytes = _builder.encode(BuiltInEncodingAlgorithmFactory.base64EncodingAlgorithm);
+					saxDocumentSerializer.bytes(bytes, 0, bytes.length);
+				} else {
+					_builder.sendTo(saxDocumentSerializer);
 				}
-				flushBuilder();
+				_builder = null;
 			}
 			typeInfo = null;
 			saxDocumentSerializer.endElement(uri, localName, qName);

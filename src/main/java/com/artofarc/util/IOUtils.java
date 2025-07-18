@@ -233,6 +233,18 @@ public final class IOUtils {
 		return result.toString();
 	}
 
+	public static void convertFromHexDump(Reader reader, OutputStream os) throws IOException {
+		try (BufferedReader br = new BufferedReader(reader, MTU); OutputStream bos = os) {
+			String line;
+			while ((line = br.readLine()) != null) {
+				int i = 0;
+				do {
+					bos.write(Integer.parseInt(line, i, i + 2, 16));
+				} while (line.charAt(i += 3) != ' ');
+			}
+		}
+	}
+
 	public static String getExt(String name) {
 		int i = name.lastIndexOf('.');
 		return i < 0 ? "" : name.substring(i + 1);
