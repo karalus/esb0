@@ -30,7 +30,7 @@ import org.xml.sax.SAXException;
 public final class CharArrayWriter extends Writer {
 
 	private char buf[];
-	private int pos, count;
+	private int pos, count, hashCode;
 
 	@Deprecated(forRemoval = true)
 	public CharArrayWriter(int initialSize) {
@@ -42,7 +42,7 @@ public final class CharArrayWriter extends Writer {
 	@Override
 	public void write(char[] cbuf, int off, int len) {
 		if (buf != null) {
-			if (buf == cbuf) {
+			if (buf == cbuf && hashCode(cbuf, pos, count) != hashCode) {
 				throw new IllegalStateException("cbuf must not be reused");
 			}
 			int newcount = count + len;
@@ -55,7 +55,16 @@ public final class CharArrayWriter extends Writer {
 			buf = cbuf;
 			pos = off;
 			count = len;
+			hashCode = hashCode(cbuf, off, len);
 		}
+	}
+
+	private static int hashCode(char[] cbuf, int off, int len) {
+		int result = 1;
+		for (int i = 0; i < len; ++i) {
+			result = 31 * result + cbuf[off + i];
+		}
+		return result;
 	}
 
 	@Override
