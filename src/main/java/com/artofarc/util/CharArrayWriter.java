@@ -15,7 +15,6 @@
  */
 package com.artofarc.util;
 
-import java.io.IOException;
 import java.io.Writer;
 import java.nio.CharBuffer;
 
@@ -52,10 +51,7 @@ public final class CharArrayWriter extends Writer {
 			pos = 0;
 			count = newcount;
 		} else {
-			buf = cbuf;
-			pos = off;
-			count = len;
-			hashCode = hashCode(cbuf, off, len);
+			hashCode = hashCode(buf = cbuf, pos = off, count = len);
 		}
 	}
 
@@ -68,11 +64,11 @@ public final class CharArrayWriter extends Writer {
 	}
 
 	@Override
-	public void flush() throws IOException {
+	public void flush() {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 	}
 
 	@Override
