@@ -737,6 +737,7 @@
 				<extension base="tns:ActionBase" >
 					<attribute name="dir" type="tns:globalExpression" />
 					<attribute name="binary" type="boolean" default="false" />
+					<attribute name="log" type ="tns:expression" />
 				</extension>
 			</complexContent>
 		</complexType>

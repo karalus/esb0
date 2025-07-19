@@ -15,8 +15,6 @@
  */
 package com.artofarc.esb.action;
 
-import static com.artofarc.esb.http.HttpConstants.HTTP_HEADER_CONTENT_TYPE;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -33,11 +31,13 @@ import com.artofarc.util.StringBuilderWriter;
 
 public class DumpAction extends Action {
 
+	private final String _logExp;
 	private final boolean _binary;
 	private final File _dumpDir;
 
-	public DumpAction(boolean binary, String dumpDir) {
+	public DumpAction(String logExp, boolean binary, String dumpDir) {
 		_pipelineStop = true;
+		_logExp = logExp;
 		_binary = binary;
 		if (dumpDir != null) {
 			_dumpDir = new File(dumpDir);
@@ -50,36 +50,40 @@ public class DumpAction extends Action {
 	}
 
 	public DumpAction() {
-		this(false, null);
+		this(null, false, null);
 	}
 
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
-		logESBMessage(context, message);
-		if (message.getAttachments().size() > 0) {
-			logger.info("Attachments: " + message.getAttachments().keySet());
-		}
-		if (message.getBodyType() != BodyType.INVALID) {
-			if (message.getBodyType() == BodyType.EXCEPTION) {
-				StringBuilderWriter writer = new StringBuilderWriter();
-				writer.write("Body(Exception): ");
-				message.<Exception> getBody().printStackTrace(new PrintWriter(writer));
-				logger.info(writer.toString());
-			} else {
-				ESBMessage copy = message.copy(context, true, true, false);
-				if (_dumpDir != null) {
-					File dumpFile = new File(_dumpDir, copy.getVariable(ESBConstants.initialTimestamp) + ".bin");
-					try (FileOutputStream fileOutputStream = new FileOutputStream(dumpFile)) {
-						copy.writeRawTo(fileOutputStream, context);
-					}
-					logger.info("Body dumped into " + dumpFile);
+		if (_logExp != null) {
+			logger.info(String.valueOf(eval(_logExp, context, message)));
+		} else {
+			logESBMessage(context, message);
+			if (message.getAttachments().size() > 0) {
+				logger.info("Attachments: " + message.getAttachments().keySet());
+			}
+			if (message.getBodyType() != BodyType.INVALID) {
+				if (message.getBodyType() == BodyType.EXCEPTION) {
+					StringBuilderWriter writer = new StringBuilderWriter();
+					writer.write("Body(Exception): ");
+					message.<Exception> getBody().printStackTrace(new PrintWriter(writer));
+					logger.info(writer.toString());
 				} else {
-					if (_binary || HttpConstants.isBinary(copy.getHeader(HTTP_HEADER_CONTENT_TYPE))) {
-						InputStream is = copy.getBodyAsInputStream(context);
-						logger.info("Body length: " + copy.getLength());
-						logger.info("Body({}, {}):\n{}", copy.getContentType(), copy.getCharset(), IOUtils.convertToHexDump(is));
+					ESBMessage copy = message.copy(context, true, true, false);
+					if (_dumpDir != null) {
+						File dumpFile = new File(_dumpDir, copy.getVariable(ESBConstants.initialTimestamp) + ".bin");
+						try (FileOutputStream fileOutputStream = new FileOutputStream(dumpFile)) {
+							copy.writeRawTo(fileOutputStream, context);
+						}
+						logger.info("Body dumped into " + dumpFile);
 					} else {
-						logger.info("Body({}):\n{}", copy.getContentType(), copy.getBodyAsString(context));
+						if (_binary || HttpConstants.isBinary(copy.getHeader(HttpConstants.HTTP_HEADER_CONTENT_TYPE))) {
+							InputStream is = copy.getBodyAsInputStream(context);
+							logger.info("Body length: " + copy.getLength());
+							logger.info("Body({}, {}):\n{}", copy.getContentType(), copy.getCharset(), IOUtils.convertToHexDump(is));
+						} else {
+							logger.info("Body({}):\n{}", copy.getContentType(), copy.getBodyAsString(context));
+						}
 					}
 				}
 			}

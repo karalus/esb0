@@ -41,7 +41,7 @@ public class XPathTest extends AbstractESBTest {
       Action action = createAssignAction("result", "string(test/@type)");
       ConsumerPort consumerPort = new ConsumerPort(null);
       consumerPort.setStartAction(action);
-      action.setNextAction(new DumpAction());
+      action.setNextAction(new DumpAction("result: ${result}", false, null));
       consumerPort.process(context, message);
       assertEquals("text",  message.getVariable("result"));
    }
