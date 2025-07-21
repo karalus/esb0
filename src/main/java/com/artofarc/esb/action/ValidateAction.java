@@ -24,10 +24,7 @@ import javax.xml.validation.Schema;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQResultSequence;
 
-import org.xml.sax.ContentHandler;
-
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.XopAwareValidatorHandler;
 
 public class ValidateAction extends AssignAction {
 
@@ -42,9 +39,7 @@ public class ValidateAction extends AssignAction {
 	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws ExecutionException {
 		try {
 			checkNext(resultSequence, "expression");
-			ContentHandler saxhdlr = message.getAttachments().isEmpty() ? _schema.newValidatorHandler()
-					: new XopAwareValidatorHandler(_schema, message.getAttachments().keySet(), cid -> message.getAttachments().get(cid).getContentType());
-			resultSequence.writeItemToResult(new SAXResult(saxhdlr));
+			resultSequence.writeItemToResult(new SAXResult(message.getAttachments().isEmpty() ? _schema.newValidatorHandler() : message.createXopAwareValidatorHandler(_schema)));
 		} catch (XQException e) {
 			throw new ExecutionException(this, "Validation failed", e);
 		}

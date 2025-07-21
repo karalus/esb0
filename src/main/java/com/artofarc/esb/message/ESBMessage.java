@@ -54,6 +54,7 @@ import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
+import javax.xml.validation.TypeInfoProvider;
 import javax.xml.xquery.XQException;
 import javax.xml.xquery.XQItem;
 import javax.xml.xquery.XQSequence;
@@ -67,7 +68,6 @@ import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
 import static com.artofarc.esb.http.HttpConstants.*;
-import com.artofarc.esb.resource.SchemaAwareFISerializerFactory;
 import com.artofarc.util.*;
 
 public final class ESBMessage implements Cloneable {
@@ -690,8 +690,8 @@ public final class ESBMessage implements Cloneable {
 			if (_bodyType != BodyType.OUTPUT_STREAM) {
 				throw new IllegalStateException("Message cannot be converted to FastInfoset: " + _bodyType);
 			}
-			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
-			init(BodyType.RESULT, new SAXResult(serializer.getContentHandler(getCompressedOutputStream((OutputStream) _body, true), getSinkEncoding())), null);
+			TypeInfoProvider typeInfoProvider = _bodyType == BodyType.SOURCE ? ((RichSource) _body).getTypeInfoProvider() : null;
+			init(BodyType.RESULT, new SAXResult(context.getSchemaAwareFastInfosetSerializer().assign(getCompressedOutputStream((OutputStream) _body, true), getSinkEncoding(), typeInfoProvider, _schema)), null);
 			setContentType(contentType);
 		}
 	}
@@ -767,8 +767,8 @@ public final class ESBMessage implements Cloneable {
 	public void writeTo(OutputStream os, Context context) throws Exception {
 		os = getCompressedOutputStream(os, false);
 		if (isFastInfoset(getHeader(HTTP_HEADER_CONTENT_TYPE))) {
-			SchemaAwareFastInfosetSerializer serializer = context.getResourceFactory(SchemaAwareFISerializerFactory.class).getResource(_schema);
-			writeToSAX(serializer.getContentHandler(os, getSinkEncoding()), context);
+			TypeInfoProvider typeInfoProvider = _bodyType == BodyType.SOURCE ? ((RichSource) _body).getTypeInfoProvider() : null;
+			writeToSAX(context.getSchemaAwareFastInfosetSerializer().assign(os, getSinkEncoding(), typeInfoProvider, _schema), context);
 		} else {
 			writeRawTo(os, context);
 		}
@@ -997,6 +997,10 @@ public final class ESBMessage implements Cloneable {
 
 	public String createURLEncodedString(String parameters) {
 		return URLUtils.createURLEncodedString(_variables, parameters);
+	}
+
+	public XopAwareValidatorHandler createXopAwareValidatorHandler(Schema schema) {
+		return new XopAwareValidatorHandler(schema, _attachments.keySet(), cid -> _attachments.get(cid).getContentType());
 	}
 
 }

@@ -52,6 +52,7 @@ import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.resource.JMSSessionFactory;
 import com.artofarc.util.FastInfosetDeserializer;
 import com.artofarc.util.NamespaceBeautifier;
+import com.artofarc.util.SchemaAwareFastInfosetSerializer;
 import com.artofarc.util.TimeGauge;
 import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.XQuerySource;
@@ -73,6 +74,7 @@ public final class Context extends AbstractContext {
 
 	private SAXParser _saxParser;
 	private FastInfosetReader _fastInfosetDeserializer;
+	private SchemaAwareFastInfosetSerializer _schemaAwareFastInfosetSerializer;
 
 	public Context(PoolContext poolContext) {
 		_poolContext = poolContext;
@@ -137,6 +139,13 @@ public final class Context extends AbstractContext {
 			_fastInfosetDeserializer = new FastInfosetDeserializer();
 		}
 		return _fastInfosetDeserializer;
+	}
+
+	public SchemaAwareFastInfosetSerializer getSchemaAwareFastInfosetSerializer() {
+		if (_schemaAwareFastInfosetSerializer == null) {
+			_schemaAwareFastInfosetSerializer = new SchemaAwareFastInfosetSerializer();
+		}
+		return _schemaAwareFastInfosetSerializer;
 	}
 
 	public void transform(Source source, Result result, Properties serializationParameters) throws TransformerException {

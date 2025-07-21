@@ -170,6 +170,10 @@ public abstract class SAXAction extends Action {
 
 	protected abstract XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception;
 
+	protected RichSource createSource(Context context, ESBMessage message, XMLReader parent, InputSource inputSource, boolean xqItemKindElement) throws Exception {
+		return new RichSource(new SAXSource(createXMLFilter(context, message, parent), inputSource), xqItemKindElement);
+	}
+
 	private RichSource createSource(Context context, ESBMessage message, Source source) throws Exception {
 		XMLReader parent = null;
 		boolean xqItemKindElement = message.getBodyType() == BodyType.SOURCE ? message.<RichSource> getBody().isXQItemKindElement() : false;
@@ -181,8 +185,7 @@ public abstract class SAXAction extends Action {
 			parent = new DOMFilter(context, domSource);
 			xqItemKindElement = true;
 		}
-		InputSource inputSource = SAXSource.sourceToInputSource(source);
-		return new RichSource(new SAXSource(createXMLFilter(context, message, parent), inputSource), xqItemKindElement);
+		return createSource(context, message, parent, SAXSource.sourceToInputSource(source), xqItemKindElement);
 	}
 
 	@Override

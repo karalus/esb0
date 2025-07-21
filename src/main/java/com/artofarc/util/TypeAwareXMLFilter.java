@@ -31,7 +31,7 @@ import org.xml.sax.SAXException;
 
 public abstract class TypeAwareXMLFilter extends XMLFilterBase {
 
-	private final ValidatorHandler _validatorHandler;
+	protected final ValidatorHandler _validatorHandler;
 	private final XMLFilterBase _receiver;
 	private SAXParser _saxParser;
 	protected TypeInfo typeInfo;

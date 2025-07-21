@@ -18,7 +18,9 @@ package com.artofarc.util;
 import java.util.Set;
 
 import javax.xml.validation.Schema;
+import javax.xml.validation.TypeInfoProvider;
 
+import org.w3c.dom.TypeInfo;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
@@ -64,6 +66,7 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 				}
 			}
 			if (getReceiverContentHandler() != null) {
+				_skipValidationHandler = true;
 				getReceiverContentHandler().startElement(uri, localName, qName, atts);
 			}
 		} else {
@@ -80,7 +83,37 @@ public final class XopAwareValidatorHandler extends TypeAwareXMLFilter {
 			super.endElement(uri, localName, qName);
 		} else if (getReceiverContentHandler() != null) {
 			getReceiverContentHandler().endElement(uri, localName, qName);
+			_skipValidationHandler = false;
 		}
+	}
+
+	private boolean _skipValidationHandler;
+
+	private final TypeInfoProvider _typeInfoProvider = new TypeInfoProvider() {
+
+		@Override
+		public boolean isSpecified(int index) {
+			return _skipValidationHandler ? true : _validatorHandler.getTypeInfoProvider().isSpecified(index);
+		}
+
+		@Override
+		public boolean isIdAttribute(int index) {
+			return _skipValidationHandler ? false : _validatorHandler.getTypeInfoProvider().isIdAttribute(index);
+		}
+
+		@Override
+		public TypeInfo getElementTypeInfo() {
+			return _skipValidationHandler ? null : _validatorHandler.getTypeInfoProvider().getElementTypeInfo();
+		}
+
+		@Override
+		public TypeInfo getAttributeTypeInfo(int index) {
+			return _skipValidationHandler ? null : _validatorHandler.getTypeInfoProvider().getAttributeTypeInfo(index);
+		}
+	};
+
+	public TypeInfoProvider getTypeInfoProvider() {
+		return _typeInfoProvider;
 	}
 
 }
