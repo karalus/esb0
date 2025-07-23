@@ -73,6 +73,7 @@ import com.artofarc.util.*;
 public final class ESBMessage implements Cloneable {
 
 	public static final Charset CHARSET_DEFAULT = java.nio.charset.StandardCharsets.UTF_8;
+	private static final boolean IGNORE_DEVIANT_CONTENTYPE = Boolean.parseBoolean(System.getProperty("esb0.xopValidation.ignoreDeviantContentType"));
 
 	private static String normalize(String headerName) {
 		return headerName.toLowerCase(Locale.ROOT).replace('_', '-');
@@ -1000,7 +1001,7 @@ public final class ESBMessage implements Cloneable {
 	}
 
 	public XopAwareValidatorHandler createXopAwareValidatorHandler(Schema schema) {
-		return new XopAwareValidatorHandler(schema, _attachments.keySet(), cid -> _attachments.get(cid).getContentType());
+		return new XopAwareValidatorHandler(schema, _attachments.keySet(), IGNORE_DEVIANT_CONTENTYPE ? null : cid -> _attachments.get(cid).getContentType());
 	}
 
 }
