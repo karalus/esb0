@@ -36,9 +36,11 @@ public class PostSOAPHttpAction extends UnwrapSOAPAction {
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		Integer httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);
 		switch (httpResponseCode) {
+		// SOAP 1.2 allows for more HTTP status codes. Refer to "Table 20" in https://www.w3.org/TR/soap12-part2/
 		case SC_ACCEPTED:
+		case SC_BAD_REQUEST:
 			if (!_soap12) {
-				throw new ExecutionException(this, "HTTP Response Code 202 not covered by SOAP 1.1 protocol");
+				throw new ExecutionException(this, "HTTP Response Code " + httpResponseCode + " not covered by SOAP 1.1 protocol");
 			}
 			// no break
 		case SC_OK:
