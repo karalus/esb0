@@ -145,7 +145,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl {
 			if (atts.getLength() > 0) {
 				EncodingAlgorithmAttributesImpl eatts = new EncodingAlgorithmAttributesImpl();
 				for (int i = 0; i < atts.getLength(); ++i) {
-					TypeInfo typeInfo = _typeInfoProvider.getAttributeTypeInfo(i);
+					typeInfo = _typeInfoProvider.getAttributeTypeInfo(i);
 					final String value = atts.getValue(i);
 					if (typeInfo != null) {
 						if (value.length() > 2 && isXSType("decimal")) {
