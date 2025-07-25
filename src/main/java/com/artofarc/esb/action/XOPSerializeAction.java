@@ -18,6 +18,7 @@ package com.artofarc.esb.action;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.xquery.XQItem;
 
+import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
 import com.artofarc.esb.context.Context;
@@ -48,14 +49,14 @@ public class XOPSerializeAction extends SAXAction {
 		if (accept == null || _ifAccepts == null || HttpConstants.isAcceptable(accept, _ifAccepts)) {
 			XOPSerializer xopSerializer = new XOPSerializer(message, _threshold, (String) eval(_contentType, context, message));
 			xopSerializer.setParent(new XQJFilter(item));
-			return new RichSource(new SAXSource(xopSerializer, null), item, null);
+			return new RichSource(new SAXSource(xopSerializer, null), item, null, xopSerializer.getTypeInfoProvider());
 		} else {
 			return new RichSource(new SAXSource(new XQJFilter(item), null), item, null);
 		}
 	}
 
 	@Override
-	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception {
+	protected RichSource createSource(Context context, ESBMessage message, XMLReader parent, InputSource inputSource, boolean xqItemKindElement) throws Exception {
 		if (message.getSchema() == null) {
 			throw new ExecutionException(this, "No schema specified");
 		}
@@ -67,9 +68,9 @@ public class XOPSerializeAction extends SAXAction {
 			} else {
 				xopSerializer.setParent(context.getSAXParser());
 			}
-			return xopSerializer;
+			return new RichSource(new SAXSource(xopSerializer, inputSource), xqItemKindElement, xopSerializer.getTypeInfoProvider());
 		} else {
-			return parent != null ? new XMLFilterBase(parent) : new ReuseParserXMLFilter(context.getSAXParser());
+			return new RichSource(new SAXSource(parent != null ? new XMLFilterBase(parent) : new ReuseParserXMLFilter(context.getSAXParser()), inputSource), xqItemKindElement);
 		}
 	}
 

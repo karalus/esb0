@@ -168,7 +168,9 @@ public abstract class SAXAction extends Action {
 		return new RichSource(createSAXSource(context, message, item), item, null);
 	}
 
-	protected abstract XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception;
+	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) throws Exception {
+		throw new UnsupportedOperationException();
+	}
 
 	protected RichSource createSource(Context context, ESBMessage message, XMLReader parent, InputSource inputSource, boolean xqItemKindElement) throws Exception {
 		return new RichSource(new SAXSource(createXMLFilter(context, message, parent), inputSource), xqItemKindElement);

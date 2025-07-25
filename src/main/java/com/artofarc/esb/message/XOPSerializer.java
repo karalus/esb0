@@ -23,7 +23,6 @@ import java.util.UUID;
 import javax.mail.MessagingException;
 import static javax.xml.XMLConstants.*;
 
-import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -37,7 +36,6 @@ public final class XOPSerializer extends TypeAwareXMLFilter {
 	private final int _threshold;
 	private final String _defaultContentType;
 	private CharArrayWriter _builder;
-	private String _contentType;
 
 	public XOPSerializer(ESBMessage message, int threshold, String contentType) throws SAXException {
 		super(message.getSchema());
@@ -47,63 +45,49 @@ public final class XOPSerializer extends TypeAwareXMLFilter {
 	}
 
 	@Override
-	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-		if (isXOPInclude(uri, localName)) {
-			if (_builder != null) {
-				// already serialized
-				_builder.sendTo(getContentHandler());
-				_builder = null;
-			}
-			getReceiverContentHandler().startElement(uri, localName, qName, atts);
-		} else {
-			if (atts.getLength() > 0) {
-				_contentType = atts.getValue(URI_NS_XMLMIME, NAME_CONTENT_TYPE);
-			}
-			super.startElement(uri, localName, qName, atts);
+	public void startXOPInclude(String href) throws SAXException {
+		// already serialized
+		if (_builder != null) {
+			_builder.sendTo(getContentHandler());
+			_builder = null;
 		}
 	}
 
 	@Override
 	public void endElement(String uri, String localName, String qName) throws SAXException {
-		if (isXOPInclude(uri, localName)) {
-			getReceiverContentHandler().endElement(uri, localName, qName);
-		} else {
-			if (_builder != null) {
-				if (_builder.trim() < _threshold) {
-					_builder.sendTo(getContentHandler());
-				} else {
-					String cid = UUID.randomUUID().toString();
-					ByteBuffer byteBuffer = Base64.getMimeDecoder().decode(StandardCharsets.US_ASCII.encode(_builder.toCharBuffer()));
-					try {
-						_message.addAttachment(cid, _contentType != null ? _contentType : _defaultContentType, byteBuffer.array(), null);
-					} catch (MessagingException e) {
-						throw new SAXException(e);
-					}
-					AttributesImpl atts = new AttributesImpl();
-					atts.addAttribute(NULL_NS_URI, NAME_HREF, NAME_HREF, "CDATA", "cid:" + cid);
-					getReceiverContentHandler().startPrefixMapping(DEFAULT_NS_PREFIX, URI_NS_XOP);
-					getReceiverContentHandler().startElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE, atts);
-					getReceiverContentHandler().endElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE);
-					getReceiverContentHandler().endPrefixMapping(DEFAULT_NS_PREFIX);
-				}
+		if (_builder != null) {
+			if (_builder.trim() < _threshold) {
+				_builder.sendTo(getContentHandler());
 				_builder = null;
+			} else {
+				String cid = UUID.randomUUID().toString();
+				ByteBuffer byteBuffer = StandardCharsets.US_ASCII.encode(_builder.toCharBuffer());
+				// Could be large so offer memory as early as possible
+				_builder = null;
+				byteBuffer = Base64.getMimeDecoder().decode(byteBuffer);
+				try {
+					_message.addAttachment(cid, _contentType != null ? _contentType : _defaultContentType, byteBuffer.array(), null);
+				} catch (MessagingException e) {
+					throw new SAXException(e);
+				}
+				getReceiverContentHandler().startPrefixMapping(DEFAULT_NS_PREFIX, URI_NS_XOP);
+				AttributesImpl atts = new AttributesImpl();
+				atts.addAttribute(NULL_NS_URI, NAME_HREF, NAME_HREF, "CDATA", "cid:" + cid);
+				getReceiverContentHandler().startElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE, atts);
+				getReceiverContentHandler().endElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE);
+				getReceiverContentHandler().endPrefixMapping(DEFAULT_NS_PREFIX);
 			}
-			super.endElement(uri, localName, qName);
 		}
+		super.endElement(uri, localName, qName);
 	}
 
 	@Override
 	public void characters(char[] ch, int start, int length) throws SAXException {
 		if (_builder != null) {
 			_builder.write(ch, start, length);
-		} else if (typeInfo != null) {
-			if (isXSType("base64Binary")) {
-				_builder = new CharArrayWriter();
-				_builder.write(ch, start, length);
-			} else {
-				super.characters(ch, start, length);
-			}
-			typeInfo = null;
+		} else if (isBase64Binary()) {
+			_builder = new CharArrayWriter();
+			_builder.write(ch, start, length);
 		} else {
 			super.characters(ch, start, length);
 		}

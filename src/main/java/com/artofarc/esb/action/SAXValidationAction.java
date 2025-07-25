@@ -66,15 +66,21 @@ public class SAXValidationAction extends SAXAction {
 
 	@Override
 	protected RichSource createSource(Context context, ESBMessage message, XQItem item) throws Exception {
-		message.setSchema(_schema);
+		Schema schema;
+		if (_schema != null) {
+			message.setSchema(schema = _schema);
+		} else if ((schema = message.getSchema()) == null) {
+			throw new ExecutionException(this, "No schema set");
+		}
+		message.setSchema(schema);
 		TypeInfoProvider typeInfoProvider;
 		XQJIdentityFilter<?> xmlFilter;
 		if (message.getAttachments().isEmpty()) {
-			ValidatorHandler validatorHandler = _schema.newValidatorHandler();
+			ValidatorHandler validatorHandler = schema.newValidatorHandler();
 			typeInfoProvider = validatorHandler.getTypeInfoProvider();
 			xmlFilter = new XQJIdentityFilter<>(item, validatorHandler, ValidatorHandler::setContentHandler);
 		} else {
-			XopAwareValidatorHandler validatorHandler = message.createXopAwareValidatorHandler(_schema);
+			XopAwareValidatorHandler validatorHandler = message.createXopAwareValidatorHandler(schema);
 			typeInfoProvider = validatorHandler.getTypeInfoProvider();
 			xmlFilter = new XQJIdentityFilter<>(item, validatorHandler, XopAwareValidatorHandler::setContentHandler);
 		}
@@ -83,26 +89,26 @@ public class SAXValidationAction extends SAXAction {
 
 	@Override
 	protected RichSource createSource(Context context, ESBMessage message, XMLReader parent, InputSource inputSource, boolean xqItemKindElement) throws Exception {
-		message.setSchema(_schema);
+		Schema schema;
+		if (_schema != null) {
+			message.setSchema(schema = _schema);
+		} else if ((schema = message.getSchema()) == null) {
+			throw new ExecutionException(this, "No schema set");
+		}
 		TypeInfoProvider typeInfoProvider;
 		XMLFilterBase xmlFilter;
 		if (message.getAttachments().isEmpty()) {
-			ValidatorHandler validatorHandler = _schema.newValidatorHandler();
+			ValidatorHandler validatorHandler = schema.newValidatorHandler();
 			typeInfoProvider = validatorHandler.getTypeInfoProvider();
 			xmlFilter = parent != null ? new ChainingXMLFilter<>(parent, validatorHandler, ValidatorHandler::setContentHandler)
 					: new ChainingXMLFilter<>(context.getSAXParser(), validatorHandler, ValidatorHandler::setContentHandler);
 		} else {
-			XopAwareValidatorHandler validatorHandler = message.createXopAwareValidatorHandler(_schema);
+			XopAwareValidatorHandler validatorHandler = message.createXopAwareValidatorHandler(schema);
 			typeInfoProvider = validatorHandler.getTypeInfoProvider();
 			xmlFilter = parent != null ? new ChainingXMLFilter<>(parent, validatorHandler, XopAwareValidatorHandler::setContentHandler)
 					: new ChainingXMLFilter<>(context.getSAXParser(), validatorHandler, XopAwareValidatorHandler::setContentHandler);
 		}
 		return new RichSource(new SAXSource(xmlFilter, inputSource), xqItemKindElement, typeInfoProvider);
-	}
-
-	@Override
-	protected XMLFilterBase createXMLFilter(Context context, ESBMessage message, XMLReader parent) {
-		throw new UnsupportedOperationException();
 	}
 
 }

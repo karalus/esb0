@@ -577,7 +577,7 @@
 					<sequence>
 						<element ref="tns:nsDecl" minOccurs="0" maxOccurs="unbounded" />
 					</sequence>
-					<attribute name="schemaURI" type="anyURI" use="required" />
+					<attribute name="schemaURI" type="anyURI" />
 					<attribute name="expression" type="tns:string1" default="." />
 					<attribute name="contextItem" type="tns:identifier" />
 				</extension>

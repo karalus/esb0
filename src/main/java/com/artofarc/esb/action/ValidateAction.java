@@ -37,14 +37,18 @@ public class ValidateAction extends AssignAction {
 
 	@Override
 	protected void processSequence(ESBMessage message, XQResultSequence resultSequence) throws ExecutionException {
+		Schema schema = _schema != null ? _schema : message.getSchema();
+		if (schema == null) {
+			throw new ExecutionException(this, "No schema set");
+		}
 		try {
 			checkNext(resultSequence, "expression");
-			resultSequence.writeItemToResult(new SAXResult(message.getAttachments().isEmpty() ? _schema.newValidatorHandler() : message.createXopAwareValidatorHandler(_schema)));
+			resultSequence.writeItemToResult(new SAXResult(message.getAttachments().isEmpty() ? schema.newValidatorHandler() : message.createXopAwareValidatorHandler(schema)));
 		} catch (XQException e) {
 			throw new ExecutionException(this, "Validation failed", e);
 		}
 		if (_contextItem == null) {
-			message.setSchema(_schema);
+			message.setSchema(schema);
 		}
 	}
 

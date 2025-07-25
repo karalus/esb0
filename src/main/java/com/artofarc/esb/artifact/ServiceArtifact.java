@@ -31,6 +31,7 @@ import javax.net.ssl.SSLContext;
 import javax.wsdl.Binding;
 import javax.wsdl.BindingOperation;
 import javax.xml.bind.JAXBElement;
+import javax.xml.validation.Schema;
 
 import org.xml.sax.Locator;
 
@@ -478,15 +479,19 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 			break;
 		case "validate": {
 			Validate validate = (Validate) actionElement.getValue();
-			SchemaArtifact schemaArtifact = loadArtifact(validate.getSchemaURI());
-			addReference(schemaArtifact);
-			schemaArtifact.validate(globalContext);
+			Schema schema = null;
+			if (validate.getSchemaURI() != null) {
+				SchemaArtifact schemaArtifact = loadArtifact(validate.getSchemaURI());
+				addReference(schemaArtifact);
+				schemaArtifact.validate(globalContext);
+				schema = schemaArtifact.getSchema();
+			}
 			boolean documentElementExpression = validate.getExpression() == "." || validate.getExpression().equals("*");
 			if (USE_SAX_VALIDATION && documentElementExpression && validate.getContextItem() == null) {
-				SAXValidationAction action = new SAXValidationAction(schemaArtifact.getSchema());
+				SAXValidationAction action = new SAXValidationAction(schema);
 				addAction(list, action, location);
 			} else {
-				ValidateAction validateAction = new ValidateAction(schemaArtifact.getSchema(), validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem());
+				ValidateAction validateAction = new ValidateAction(schema, validate.getExpression(), createNsDecls(validate.getNsDecl()).entrySet(), validate.getContextItem());
 				if (!documentElementExpression) {
 					XQueryArtifact.validateXQuerySource(this, getLineNumber(validate), getXQConnectionFactory(), validateAction.getXQuery());
 				}

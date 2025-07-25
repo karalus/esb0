@@ -20,6 +20,7 @@ import java.io.IOException;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.SAXParser;
 import javax.xml.validation.Schema;
+import javax.xml.validation.TypeInfoProvider;
 import javax.xml.validation.ValidatorHandler;
 
 import org.w3c.dom.TypeInfo;
@@ -31,10 +32,11 @@ import org.xml.sax.SAXException;
 
 public abstract class TypeAwareXMLFilter extends XMLFilterBase {
 
-	protected final ValidatorHandler _validatorHandler;
+	private final ValidatorHandler _validatorHandler;
 	private final XMLFilterBase _receiver;
 	private SAXParser _saxParser;
-	protected TypeInfo typeInfo;
+	private TypeInfo typeInfo;
+	protected String _contentType;
 
 	public TypeAwareXMLFilter(Schema schema) {
 		_validatorHandler = schema.newValidatorHandler();
@@ -51,7 +53,11 @@ public abstract class TypeAwareXMLFilter extends XMLFilterBase {
 	}
 
 	protected boolean isXSType(String type) {
-		return typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_EXTENSION);
+		return typeInfo != null && typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_EXTENSION);
+	}
+
+	protected boolean isBase64Binary() {
+		return isXSType("base64Binary");
 	}
 
 	public final ContentHandler getReceiverContentHandler() {
@@ -87,6 +93,63 @@ public abstract class TypeAwareXMLFilter extends XMLFilterBase {
 				_saxParser.reset();
 			}
 		}
+	}
+
+	protected abstract void startXOPInclude(String href) throws SAXException;
+
+	@Override
+	public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
+		if (W3CConstants.isXOPInclude(uri, localName)) {
+			startXOPInclude(atts.getValue(W3CConstants.NAME_HREF));
+			if (getReceiverContentHandler() != null) {
+				_skipTypeInfo = true;
+				getReceiverContentHandler().startElement(uri, localName, qName, atts);
+			}
+		} else {
+			_contentType = atts.getValue(W3CConstants.URI_NS_XMLMIME, W3CConstants.NAME_CONTENT_TYPE);
+			super.startElement(uri, localName, qName, atts);
+		}
+	}
+
+	@Override
+	public void endElement(String uri, String localName, String qName) throws SAXException {
+		typeInfo = null;
+		_contentType = null;
+		if (!W3CConstants.isXOPInclude(uri, localName)) {
+			super.endElement(uri, localName, qName);
+		} else if (getReceiverContentHandler() != null) {
+			getReceiverContentHandler().endElement(uri, localName, qName);
+			_skipTypeInfo = false;
+		}
+	}
+
+	private boolean _skipTypeInfo;
+
+	private final TypeInfoProvider _typeInfoProvider = new TypeInfoProvider() {
+
+		@Override
+		public boolean isSpecified(int index) {
+			return _skipTypeInfo ? true : _validatorHandler.getTypeInfoProvider().isSpecified(index);
+		}
+
+		@Override
+		public boolean isIdAttribute(int index) {
+			return _skipTypeInfo ? false : _validatorHandler.getTypeInfoProvider().isIdAttribute(index);
+		}
+
+		@Override
+		public TypeInfo getElementTypeInfo() {
+			return _skipTypeInfo ? null : _validatorHandler.getTypeInfoProvider().getElementTypeInfo();
+		}
+
+		@Override
+		public TypeInfo getAttributeTypeInfo(int index) {
+			return _skipTypeInfo ? null : _validatorHandler.getTypeInfoProvider().getAttributeTypeInfo(index);
+		}
+	};
+
+	public TypeInfoProvider getTypeInfoProvider() {
+		return _typeInfoProvider;
 	}
 
 }
