@@ -15,7 +15,7 @@
  */
 package com.artofarc.esb.message;
 
-import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
@@ -26,7 +26,7 @@ import static javax.xml.XMLConstants.*;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
-import com.artofarc.util.CharArrayWriter;
+import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.TypeAwareXMLFilter;
 import static com.artofarc.util.W3CConstants.*;
 
@@ -35,7 +35,7 @@ public final class XOPSerializer extends TypeAwareXMLFilter {
 	private final ESBMessage _message;
 	private final int _threshold;
 	private final String _defaultContentType;
-	private CharArrayWriter _builder;
+	private ByteArrayOutputStream _builder;
 
 	public XOPSerializer(ESBMessage message, int threshold, String contentType) throws SAXException {
 		super(message.getSchema());
@@ -44,29 +44,29 @@ public final class XOPSerializer extends TypeAwareXMLFilter {
 		_defaultContentType = contentType;
 	}
 
-	@Override
-	public void startXOPInclude(String href) throws SAXException {
-		// already serialized
+	private void flushBuilder() throws SAXException {
 		if (_builder != null) {
-			_builder.sendTo(getContentHandler());
+			CharBuffer charBuffer = StandardCharsets.US_ASCII.decode(_builder.toByteBuffer());
+			getContentHandler().characters(charBuffer.array(), charBuffer.position(), charBuffer.remaining());
 			_builder = null;
 		}
 	}
 
 	@Override
+	public void startXOPInclude(String href) throws SAXException {
+		// already serialized
+		flushBuilder();
+	}
+
+	@Override
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		if (_builder != null) {
-			if (_builder.trim() < _threshold) {
-				_builder.sendTo(getContentHandler());
-				_builder = null;
+			if (_builder.size() < _threshold) {
+				flushBuilder();
 			} else {
 				String cid = UUID.randomUUID().toString();
-				ByteBuffer byteBuffer = StandardCharsets.US_ASCII.encode(_builder.toCharBuffer());
-				// Could be large so offer memory as early as possible
-				_builder = null;
-				byteBuffer = Base64.getMimeDecoder().decode(byteBuffer);
 				try {
-					_message.addAttachment(cid, _contentType != null ? _contentType : _defaultContentType, byteBuffer.array(), null);
+					_message.addAttachment(cid, _contentType != null ? _contentType : _defaultContentType, Base64.getMimeDecoder().wrap(_builder.getByteArrayInputStream()), null);
 				} catch (MessagingException e) {
 					throw new SAXException(e);
 				}
@@ -76,6 +76,7 @@ public final class XOPSerializer extends TypeAwareXMLFilter {
 				getReceiverContentHandler().startElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE, atts);
 				getReceiverContentHandler().endElement(URI_NS_XOP, NAME_INCLUDE, NAME_INCLUDE);
 				getReceiverContentHandler().endPrefixMapping(DEFAULT_NS_PREFIX);
+				_builder = null;
 			}
 		}
 		super.endElement(uri, localName, qName);
@@ -83,11 +84,13 @@ public final class XOPSerializer extends TypeAwareXMLFilter {
 
 	@Override
 	public void characters(char[] ch, int start, int length) throws SAXException {
+		if (_builder == null && isBase64Binary()) {
+			_builder = new ByteArrayOutputStream();
+		}
 		if (_builder != null) {
-			_builder.write(ch, start, length);
-		} else if (isBase64Binary()) {
-			_builder = new CharArrayWriter();
-			_builder.write(ch, start, length);
+			for (int i = 0; i < length; ++i) {
+				_builder.write(ch[start + i]);
+			}
 		} else {
 			super.characters(ch, start, length);
 		}

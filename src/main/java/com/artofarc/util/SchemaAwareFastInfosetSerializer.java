@@ -198,7 +198,7 @@ public final class SchemaAwareFastInfosetSerializer extends XMLFilterImpl {
 		public void characters(char[] ch, int start, int length) throws SAXException {
 			if (typeInfo != null) {
 				if (_builder == null) {
-					_builder = new CharArrayWriter();
+					_builder = new CharArrayWriter(length);
 				}
 				_builder.write(ch, start, length);
 			} else {

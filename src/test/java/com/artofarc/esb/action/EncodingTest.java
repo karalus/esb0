@@ -3,7 +3,6 @@ package com.artofarc.esb.action;
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.io.StringReader;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Properties;
@@ -19,7 +18,6 @@ import static com.artofarc.esb.http.HttpConstants.*;
 import com.artofarc.esb.message.BodyType;
 import com.artofarc.esb.message.ESBConstants;
 import com.artofarc.esb.message.ESBMessage;
-import com.artofarc.util.CharArrayWriter;
 import com.artofarc.util.URLUtils;
 
 
@@ -100,19 +98,6 @@ public class EncodingTest extends AbstractESBTest {
 		String uriStr = "/./applet";
 		String normalize = URLUtils.normalizePathSegment(uriStr);
 		assertEquals(normalize, "/applet");
-	}
-
-	@Test
-	public void testCharArrayWriter() throws Exception {
-		try (StringReader reader = new StringReader("Hallo Welt!"); CharArrayWriter writer = new CharArrayWriter()) {
-			char[] buffer = new char[8];
-			int nRead;
-			while ((nRead = reader.read(buffer, 0, 8)) >= 0) {
-				writer.write(buffer, 0, nRead);
-			}
-			fail("IllegalStateException expected");
-		} catch (IllegalStateException e) {
-		}
 	}
 
 	@Test

@@ -17,6 +17,10 @@ package com.artofarc.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
@@ -78,6 +82,14 @@ public class XMLFilterBase extends XMLFilterImpl {
 		}
 	}
 
+	protected final void characters(CharBuffer charBuffer) throws SAXException {
+		characters(charBuffer.array(), charBuffer.position(), charBuffer.remaining());
+	}
+
+	protected final void charactersFromAscii(ByteBuffer byteBuffer) throws SAXException {
+		characters(StandardCharsets.US_ASCII.decode(byteBuffer));
+	}
+
 	protected final void base64Characters(InputStream inputStream, int size) throws SAXException, IOException {
 		final int chunkSize = IOUtils.MTU / 4 * 3;
 		if (size < 0 || size > chunkSize) {
@@ -87,20 +99,16 @@ public class XMLFilterBase extends XMLFilterImpl {
 					final int len = inputStream.read(chunk, pos, chunkSize - pos);
 					if (len < 0) {
 						if (pos > 0) {
-							final byte[] ba = new byte[pos];
-							System.arraycopy(chunk, 0, ba, 0, pos);
-							final char[] ch = DatatypeHelper.printBase64Binary(ba).toCharArray();
-							characters(ch, 0, ch.length);
+							charactersFromAscii(Base64.getMimeEncoder().encode(ByteBuffer.wrap(chunk, 0, pos)));
 						}
 						return;
 					}
 					pos += len;
 				} while (pos < chunkSize);
-				characters(DatatypeHelper.printBase64Binary(chunk).toCharArray(), 0, IOUtils.MTU);
+				charactersFromAscii(Base64.getMimeEncoder().encode(ByteBuffer.wrap(chunk, 0, pos)));
 			}
 		} else {
-			final char[] ch = DatatypeHelper.printBase64Binary(IOUtils.toByteArray(inputStream)).toCharArray();
-			characters(ch, 0, ch.length);
+			charactersFromAscii(Base64.getMimeEncoder().encode(IOUtils.toByteBuffer(inputStream)));
 		}
 	}
 
