@@ -79,7 +79,7 @@ public class HttpOutboundAction extends Action {
 	@Override
 	protected ExecutionContext prepare(Context context, ESBMessage message, boolean inPipeline) throws Exception {
 		message.determineSinkContentType();
-		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+		if (MimeHelper.isMimeMultipart(message, _multipartSubtype, _multipartOption)) {
 			if (inPipeline) {
 				ByteArrayOutputStream bos = new ByteArrayOutputStream();
 				message.reset(BodyType.OUTPUT_STREAM, bos);
@@ -107,7 +107,7 @@ public class HttpOutboundAction extends Action {
 	@Override
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		message.closeBody();
-		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+		if (MimeHelper.isMimeMultipart(message, _multipartSubtype, _multipartOption)) {
 			ByteArrayOutputStream bos = execContext != null ? execContext.getResource() : null;
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos, true);
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));

@@ -68,7 +68,7 @@ public class HttpResponseAction extends Action {
 			}
 		} else if (redirect != null && !redirect.isEmpty()) {
 			response.sendRedirect(redirect);
-		} else if (checkContentType(message, response, mimeMultipart = MimeHelper.isMimeMultipart(_multipartSubtype, message))) {
+		} else if (checkContentType(message, response, mimeMultipart = MimeHelper.isMimeMultipart(message, _multipartSubtype, _multipartOption))) {
 			executionContext.setResource3(mimeMultipart);
 			if (_bufferSize != null) response.setBufferSize(_bufferSize);
 			Number httpResponseCode = message.getVariable(ESBConstants.HttpResponseCode);

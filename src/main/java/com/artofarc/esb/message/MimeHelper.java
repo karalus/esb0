@@ -104,9 +104,11 @@ public final class MimeHelper {
 		return getFilename(bodyPart.getHeader(HTTP_HEADER_CONTENT_DISPOSITION, null));
 	}
 
-	public static boolean isMimeMultipart(String multipartSubtype, ESBMessage message) {
+	public static boolean isMimeMultipart(ESBMessage message, String multipartSubtype, String multipartOption) {
 		if (multipartSubtype == null) return false;
-		if (FORCE_MIMEMULTIPART || multipartSubtype == "form-data" || message.getAttachments().size() > 0) return true;
+		if (multipartSubtype != "form-data" && (FORCE_MIMEMULTIPART || message.getAttachments().size() > 0)
+				|| multipartSubtype == "form-data" && message.getVariable(ESBConstants.formData, multipartOption) != null)
+			return true;
 		String contentType = message.getHeader(HTTP_HEADER_CONTENT_TYPE);
 		if (contentType != null) {
 			String accept = message.getVariable(HTTP_HEADER_ACCEPT);
@@ -115,30 +117,30 @@ public final class MimeHelper {
 		return false;
 	}
 
-	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, ByteArrayOutputStream bos, boolean withHeaders) throws Exception {
+	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartOption, ByteArrayOutputStream bos, boolean withHeaders) throws Exception {
 		if (bos == null) {
 			bos = new ByteArrayOutputStream();
 			if (message.getBodyType() != BodyType.INVALID) {
 				message.writeTo(bos, context);
 			}
 		}
-		return createMimeMultipart(context, message, multipartSubtype, multipartContentType, bos.getByteArrayInputStream(), withHeaders, true);
+		return createMimeMultipart(context, message, multipartSubtype, multipartOption, bos.getByteArrayInputStream(), withHeaders, true);
 	}
 
 	/**
-	 * @param multipartContentType e.g. "application/xop+xml"
+	 * @param multipartOption e.g. "application/xop+xml"
 	 */
-	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartContentType, InputStream is, boolean withHeaders, boolean withAttachments) throws Exception {
+	public static MimeMultipart createMimeMultipart(Context context, ESBMessage message, String multipartSubtype, String multipartOption, InputStream is, boolean withHeaders, boolean withAttachments) throws Exception {
 		String contentType = message.removeHeader(HTTP_HEADER_CONTENT_TYPE);
 		MimeMultipart mmp;
 		MimeBodyPart part;
 		if (multipartSubtype == "form-data") {
-			multipartContentType = message.getVariable(ESBConstants.formData, multipartContentType);
-			if (multipartContentType == null) {
+			multipartOption = message.getVariable(ESBConstants.formData, multipartOption);
+			if (multipartOption == null) {
 				throw new IllegalArgumentException("For multipart/form-data a list of form data is required");
 			}
 			mmp = new MimeMultipart(multipartSubtype);
-			StringTokenizer tokenizer = new StringTokenizer(multipartContentType, ",");
+			StringTokenizer tokenizer = new StringTokenizer(multipartOption, ",");
 			while (tokenizer.hasMoreTokens()) {
 				String pair = tokenizer.nextToken();
 				int i = pair.indexOf('=');
@@ -182,22 +184,22 @@ public final class MimeHelper {
 					throw new NullPointerException("Content-Type is null");
 				}
 				String mediaType = getValueFromHttpHeader(contentType);
-				if (multipartContentType == null) {
-					multipartContentType = mediaType;
+				if (multipartOption == null) {
+					multipartOption = mediaType;
 				}
-				multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartContentType + START_ROOTPART;
-				if (multipartContentType.equals(mediaType)) {
-					multipartContentType = contentType;
+				multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + multipartOption + START_ROOTPART;
+				if (multipartOption.equals(mediaType)) {
+					multipartOption = contentType;
 				} else {
 					if (mediaType != contentType) {
 						// append params like action and charset
-						multipartContentType += contentType.substring(mediaType.length());
+						multipartOption += contentType.substring(mediaType.length());
 					}
-					multipartContentType += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + mediaType + '"';
+					multipartOption += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_TYPE + '"' + mediaType + '"';
 					multipartSubtype += "; " + HTTP_HEADER_CONTENT_TYPE_PARAMETER_START_INFO + '"' + mediaType + '"';
 				}
 				mmp = new MimeMultipart(multipartSubtype);
-				part = createMimeBodyPart(ROOTPART, multipartContentType, is, null);
+				part = createMimeBodyPart(ROOTPART, multipartOption, is, null);
 			} else {
 				mmp = new MimeMultipart(multipartSubtype);
 				part = createMimeBodyPart(null, contentType, is, null);

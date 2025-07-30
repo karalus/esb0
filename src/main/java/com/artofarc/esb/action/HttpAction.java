@@ -150,7 +150,7 @@ public class HttpAction extends Action {
 		message.determineSinkContentType();
 		boolean async = message.getVariables().containsKey(AsyncContext);
 		ExecutionContext executionContext = new ExecutionContext(async);
-		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+		if (MimeHelper.isMimeMultipart(message, _multipartSubtype, _multipartOption)) {
 			if (inPipeline) {
 				message.reset(BodyType.OUTPUT_STREAM, new ByteArrayOutputStream());
 				executionContext.setResource2(message.getBody());
@@ -221,7 +221,7 @@ public class HttpAction extends Action {
 	protected void execute(Context context, ExecutionContext execContext, ESBMessage message, boolean nextActionIsPipelineStop) throws Exception {
 		message.closeBody();
 		Future<HttpResponse<InputStream>> future;
-		if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+		if (MimeHelper.isMimeMultipart(message, _multipartSubtype, _multipartOption)) {
 			ByteArrayOutputStream bos = execContext.getResource2();
 			MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos, true);
 			message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));

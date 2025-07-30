@@ -80,7 +80,7 @@ public class JMSAction extends Action {
 	private final String _workerPool;
 	private final boolean _receiveFromTempQueue;
 	private final String _replyQueue, _receiveSelector;
-	private final String _multipartSubtype, _multipart;
+	private final String _multipartSubtype, _multipartOption;
 	private final XSSchemaSet _schemaSet;
 	private final AtomicInteger _pos;
 
@@ -110,7 +110,7 @@ public class JMSAction extends Action {
 		_replyQueue = replyQueue;
 		_receiveSelector = receiveSelector;
 		_multipartSubtype = multipartSubtype;
-		_multipart = multipart;
+		_multipartOption = multipart;
 		_schemaSet = schemaSet;
 	}
 
@@ -201,9 +201,9 @@ public class JMSAction extends Action {
 				jmsMessage = session.createMessage();
 			} else if (_isBytesMessage) {
 				BytesMessage bytesMessage = session.createBytesMessage();
-				if (MimeHelper.isMimeMultipart(_multipartSubtype, message)) {
+				if (MimeHelper.isMimeMultipart(message, _multipartSubtype, _multipartOption)) {
 					message.determineSinkContentType();
-					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipart, bos, false);
+					MimeMultipart mmp = MimeHelper.createMimeMultipart(context, message, _multipartSubtype, _multipartOption, bos, false);
 					mmp.writeTo(new BytesMessageOutputStream(bytesMessage));
 					message.putHeader(HTTP_HEADER_CONTENT_TYPE, unfoldHttpHeader(mmp.getContentType()));
 				} else {
