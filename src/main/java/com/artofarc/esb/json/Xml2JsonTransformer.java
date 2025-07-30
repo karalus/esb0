@@ -144,7 +144,7 @@ public final class Xml2JsonTransformer {
 
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes atts) throws SAXException {
-			AttributesHelper helper = new AttributesHelper(atts);
+			final AttributesHelper helper = new AttributesHelper(atts);
 			_builder.setLength(0);
 			if (root) {
 				root = false;
@@ -165,7 +165,11 @@ public final class Xml2JsonTransformer {
 				if (!_includeRoot) {
 					level = 1;
 					extractType(helper);
+					extractSimpleType();
 					writeAttributes(helper);
+					if (primitiveType != null) {
+						openKey = valueWrapper;
+					}
 					return;
 				}
 				complex = true;
@@ -189,20 +193,7 @@ public final class Xml2JsonTransformer {
 					}
 				} else {
 					complex = xsomHelper.getComplexType() != null;
-					if (primitiveType == null) {
-						XSSimpleType simpleType = xsomHelper.getSimpleType();
-						if (simpleType != null) {
-							if (simpleType.isUnion()) {
-								simpleType = XSOMHelper.getDefaultMemberType(simpleType.asUnion());
-							}
-							final XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
-							if (simpleList = itemType != null) {
-								primitiveType = XSOMHelper.getJsonType(itemType);
-							} else {
-								primitiveType = XSOMHelper.getJsonType(simpleType);
-							}
-						}
-					}
+					extractSimpleType();
 				}
 			}
 			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
@@ -315,7 +306,7 @@ public final class Xml2JsonTransformer {
 					}
 				}
 			}
-			if (complex || primitiveType == null) {
+			if (complex || primitiveType == null || openKey == valueWrapper) {
 				if (isWrapped()) {
 					ignoreLevel.pop();
 				} else {
@@ -341,6 +332,23 @@ public final class Xml2JsonTransformer {
 		private void extractType(AttributesHelper helper) throws SAXException {
 			if (helper.getType() != null) {
 				primitiveType = getJsonType(helper.getType());
+			}
+		}
+
+		private void extractSimpleType() {
+			if (primitiveType == null) {
+				XSSimpleType simpleType = xsomHelper.getSimpleType();
+				if (simpleType != null) {
+					if (simpleType.isUnion()) {
+						simpleType = XSOMHelper.getDefaultMemberType(simpleType.asUnion());
+					}
+					final XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
+					if (simpleList = itemType != null) {
+						primitiveType = XSOMHelper.getJsonType(itemType);
+					} else {
+						primitiveType = XSOMHelper.getJsonType(simpleType);
+					}
+				}
 			}
 		}
 
