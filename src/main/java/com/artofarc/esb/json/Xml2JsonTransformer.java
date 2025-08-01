@@ -165,10 +165,12 @@ public final class Xml2JsonTransformer {
 				if (!_includeRoot) {
 					level = 1;
 					extractType(helper);
-					extractSimpleType();
-					writeAttributes(helper);
-					if (primitiveType != null && helper.getLength() > 0) {
-						openKey = valueWrapper;
+					if (primitiveType == null) {
+						extractSimpleType();
+						if (primitiveType != null) {
+							openKey = valueWrapper;
+						}
+						writeAttributes(helper);
 					}
 					return;
 				}
@@ -193,7 +195,9 @@ public final class Xml2JsonTransformer {
 					}
 				} else {
 					complex = xsomHelper.getComplexType() != null;
-					extractSimpleType();
+					if (primitiveType == null) {
+						extractSimpleType();
+					}
 				}
 			}
 			if ((anyLevel < 0 || level == anyLevel) && xsomHelper.isEndArray()) {
@@ -336,18 +340,16 @@ public final class Xml2JsonTransformer {
 		}
 
 		private void extractSimpleType() {
-			if (primitiveType == null) {
-				XSSimpleType simpleType = xsomHelper.getSimpleType();
-				if (simpleType != null) {
-					if (simpleType.isUnion()) {
-						simpleType = XSOMHelper.getDefaultMemberType(simpleType.asUnion());
-					}
-					final XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
-					if (simpleList = itemType != null) {
-						primitiveType = XSOMHelper.getJsonType(itemType);
-					} else {
-						primitiveType = XSOMHelper.getJsonType(simpleType);
-					}
+			XSSimpleType simpleType = xsomHelper.getSimpleType();
+			if (simpleType != null) {
+				if (simpleType.isUnion()) {
+					simpleType = XSOMHelper.getDefaultMemberType(simpleType.asUnion());
+				}
+				final XSSimpleType itemType = XSOMHelper.getItemType(simpleType);
+				if (simpleList = itemType != null) {
+					primitiveType = XSOMHelper.getJsonType(itemType);
+				} else {
+					primitiveType = XSOMHelper.getJsonType(simpleType);
 				}
 			}
 		}
