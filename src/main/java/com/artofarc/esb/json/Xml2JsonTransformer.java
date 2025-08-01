@@ -167,7 +167,7 @@ public final class Xml2JsonTransformer {
 					extractType(helper);
 					extractSimpleType();
 					writeAttributes(helper);
-					if (primitiveType != null) {
+					if (primitiveType != null && helper.getLength() > 0) {
 						openKey = valueWrapper;
 					}
 					return;
@@ -353,16 +353,14 @@ public final class Xml2JsonTransformer {
 		}
 
 		private void extractNil(AttributesHelper helper) throws SAXException {
-			if (helper.getNil() != null) {
-				if (DatatypeConverter.parseBoolean(helper.getNil())) {
-					if (helper.getLength() > 0) {
-						// https://stackoverflow.com/questions/27555077/specify-attributes-on-a-nil-xml-element
-						throw new SAXException("A complex element being nil should not have additional attributes");
-					}
-					primitiveType = "nil";
-					if (complex) {
-						xsomHelper.endComplex();
-					}
+			if (helper.getNil() != null && DatatypeConverter.parseBoolean(helper.getNil())) {
+				if (helper.getLength() > 0) {
+					// https://stackoverflow.com/questions/27555077/specify-attributes-on-a-nil-xml-element
+					throw new SAXException("A complex element being nil should not have additional attributes");
+				}
+				primitiveType = "nil";
+				if (complex) {
+					xsomHelper.endComplex();
 				}
 			}
 		}
