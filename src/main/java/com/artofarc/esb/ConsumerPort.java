@@ -66,7 +66,7 @@ public class ConsumerPort implements AutoCloseable, com.artofarc.esb.mbean.Consu
 		return _enabled;
 	}
 
-	public final void setEnabled(boolean enabled) {
+	public void setEnabled(boolean enabled) {
 		_enabled = enabled;
 	}
 

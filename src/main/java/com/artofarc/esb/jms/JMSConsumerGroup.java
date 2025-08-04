@@ -49,6 +49,13 @@ public class JMSConsumerGroup extends ConsumerPort {
 	}
 
 	@Override
+	public void setEnabled(boolean enabled) {
+		for (JMSConsumer jmsConsumer : _group) {
+			jmsConsumer.setEnabled(enabled);
+		}
+	}
+
+	@Override
 	public void setStartAction(Action action) {
 		for (JMSConsumer jmsConsumer : _group) {
 			jmsConsumer.setStartAction(action);
