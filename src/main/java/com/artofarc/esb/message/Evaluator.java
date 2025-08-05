@@ -113,11 +113,11 @@ public abstract class Evaluator<E extends Exception> {
 		Object value = message.getVariable(name);
 		if (value == null) {
 			switch (name) {
+			case "charset":
+				value = message.getCharset().name();
+				break;
 			case "contentType":
 				value = message.getContentType();
-				break;
-			case "contentLength":
-				value = message.getLength();
 				break;
 			case "rawBody":
 				if (message.getBodyType() == BodyType.INPUT_STREAM) {
