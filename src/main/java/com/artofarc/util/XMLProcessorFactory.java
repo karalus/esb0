@@ -34,6 +34,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.sax.TransformerHandler;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPathFactory;
 import javax.xml.xquery.XQConnection;
 import javax.xml.xquery.XQException;
@@ -144,6 +145,13 @@ public class XMLProcessorFactory {
 
 	public XQConnection getConnection() throws XQException {
 		return null;
+	}
+
+	public static byte[] toByteArray(DOMSource source, Transformer transformer) throws TransformerException {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		transformer.transform(source, new StreamResult(bos));
+		transformer.reset();
+		return bos.toByteArray();
 	}
 
 	public static TransformerFilter createTransformerFilter(Templates templates, XQItem item) throws TransformerConfigurationException {

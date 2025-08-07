@@ -52,11 +52,11 @@ public abstract class TypeAwareXMLFilter extends XMLFilterBase {
 		_validatorHandler.setContentHandler(_receiver);
 	}
 
-	protected boolean isXSType(String type) {
+	protected final boolean isXSType(String type) {
 		return typeInfo != null && typeInfo.isDerivedFrom(XMLConstants.W3C_XML_SCHEMA_NS_URI, type, TypeInfo.DERIVATION_RESTRICTION | TypeInfo.DERIVATION_EXTENSION);
 	}
 
-	protected boolean isBase64Binary() {
+	protected final boolean isBase64Binary() {
 		return isXSType("base64Binary");
 	}
 

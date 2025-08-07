@@ -19,7 +19,8 @@ import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,13 +42,14 @@ import org.xml.sax.SAXException;
 
 import com.artofarc.util.WSDL4JUtil;
 import com.artofarc.util.XMLProcessorFactory;
+import com.artofarc.util.XSOMHelper;
 import com.sun.xml.xsom.XSSchemaSet;
 import com.sun.xml.xsom.parser.XSOMParser;
 
 public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 
 	private volatile Map<QName, Binding> _allBindings;
-	private final HashMap<String, byte[]> _schemas = new HashMap<>();
+	private Map<String, byte[]> _schemas;
 	// only used during validation
 	private String latestImportURI;
 
@@ -60,7 +62,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 		WSDLArtifact clone = initClone(new WSDLArtifact(fileSystem, parent, getName()));
 		clone._allBindings = _allBindings;
 		clone._schemaSet = _schemaSet;
-		clone._schemas.putAll(_schemas);
+		clone._schemas = _schemas;
 		clone._schema = _schema;
 		clone._grammars = _grammars;
 		clone._namespace.set(getNamespace());
@@ -112,7 +114,14 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 			String targetNamespace = schemaElement.getAttribute("targetNamespace");
 			DOMSource source = new DOMSource(schemaElement, getURI());
 			transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-			_schemas.put(targetNamespace, XMLCatalog.toByteArray(source, transformer));
+			if (_schemas == null) {
+				_schemas = Collections.singletonMap(targetNamespace, XMLProcessorFactory.toByteArray(source, transformer));
+			} else {
+				if (_schemas.size() == 1) {
+					_schemas = new LinkedHashMap<>(_schemas);
+				}
+				_schemas.put(targetNamespace, XMLProcessorFactory.toByteArray(source, transformer));
+			}
 			sources.add(source);
 		});
 	}
@@ -120,14 +129,18 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 	@Override
 	public XSSchemaSet getXSSchemaSet() throws SAXException {
 		if (_schemaSet == null) {
-			XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
-			xsomParser.setEntityResolver(getResolver());
-			for (byte[] schemaContent : _schemas.values()) {
-				InputSource is = new InputSource(new ByteArrayInputStream(schemaContent));
-				is.setSystemId(getURI());
-				xsomParser.parse(is);
+			if (_schemas != null) {
+				XSOMParser xsomParser = new XSOMParser(XMLProcessorFactory.getSAXParserFactory());
+				xsomParser.setEntityResolver(getResolver());
+				for (byte[] schemaContent : _schemas.values()) {
+					InputSource is = new InputSource(new ByteArrayInputStream(schemaContent));
+					is.setSystemId(getURI());
+					xsomParser.parse(is);
+				}
+				_schemaSet = xsomParser.getResult();
+			} else {
+				_schemaSet = XSOMHelper.anySchema;
 			}
-			_schemaSet = xsomParser.getResult();
 		}
 		return _schemaSet;
 	}
@@ -164,9 +177,11 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 				if (wsdlArtifact == null) {
 					throw new IllegalStateException("Reference has already been cleared");
 				}
-				byte[] ba = wsdlArtifact._schemas.get(namespaceURI);
-				if (ba != null) {
-					return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(ba));
+				if (wsdlArtifact._schemas != null) {
+					byte[] ba = wsdlArtifact._schemas.get(namespaceURI);
+					if (ba != null) {
+						return new LSInputImpl(publicId, null, baseURI, new ByteArrayInputStream(ba));
+					}
 				}
 			}
 			return super.resolveResource(type, namespaceURI, publicId, systemId, baseURI);

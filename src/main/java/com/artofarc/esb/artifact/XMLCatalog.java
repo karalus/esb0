@@ -23,7 +23,6 @@ import java.util.Map;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -33,7 +32,6 @@ import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
 import com.artofarc.esb.context.GlobalContext;
-import com.artofarc.util.ByteArrayOutputStream;
 import com.artofarc.util.IOUtils;
 import com.artofarc.util.XMLProcessorFactory;
 
@@ -83,18 +81,18 @@ public final class XMLCatalog extends Directory {
 			// TODO: Works only with document/literal WSDL style and messageParts referring to elements
 			String exp = "/*/*[local-name()='complexType' and @name='Body']/*/*/@processContents";
 			{
-				Attr attr = evaluate(xPath, exp, globalContext.getResourceAsStream("soap11.xsd"));
+				Attr attr = evaluateToNode(xPath, exp, globalContext.getResourceAsStream("soap11.xsd"));
 				attr.setValue("strict");
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "soap11.xsd");
-				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
+				xsdArtifact.setContent(XMLProcessorFactory.toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
 				xmlCatalog.addSchemaArtifact("http://schemas.xmlsoap.org/soap/envelope/", xsdArtifact);
 			}
 			xPath.reset();
 			{
-				Attr attr = evaluate(xPath, exp, globalContext.getResourceAsStream("soap12.xsd"));
+				Attr attr = evaluateToNode(xPath, exp, globalContext.getResourceAsStream("soap12.xsd"));
 				attr.setValue("strict");
 				XSDArtifact xsdArtifact = new XSDArtifact(fileSystem, xmlCatalog, "soap12.xsd");
-				xsdArtifact.setContent(toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
+				xsdArtifact.setContent(XMLProcessorFactory.toByteArray(new DOMSource(attr.getOwnerDocument()), transformer));
 				xmlCatalog.addSchemaArtifact("http://www.w3.org/2003/05/soap-envelope", xsdArtifact);
 			}
 		} catch (IOException | XPathExpressionException | TransformerException e) {
@@ -111,15 +109,8 @@ public final class XMLCatalog extends Directory {
 		return directory.getURI().equals(PATH);
 	}
 
-	protected static byte[] toByteArray(DOMSource source, Transformer transformer) throws TransformerException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		transformer.transform(source, new StreamResult(bos));
-		transformer.reset();
-		return bos.toByteArray();
-	}
-
 	@SuppressWarnings("unchecked")
-	public static <T extends Node> T evaluate(XPath xPath, String expression, InputStream is) throws XPathExpressionException {
+	private static <T extends Node> T evaluateToNode(XPath xPath, String expression, InputStream is) throws XPathExpressionException {
 		return (T) xPath.evaluate(expression, new InputSource(is), XPathConstants.NODE);
 	}
 
