@@ -19,8 +19,6 @@ import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +38,7 @@ import org.w3c.dom.ls.LSInput;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import com.artofarc.util.DataStructures;
 import com.artofarc.util.WSDL4JUtil;
 import com.artofarc.util.XMLProcessorFactory;
 import com.artofarc.util.XSOMHelper;
@@ -114,14 +113,7 @@ public class WSDLArtifact extends SchemaArtifact implements WSDLLocator {
 			String targetNamespace = schemaElement.getAttribute("targetNamespace");
 			DOMSource source = new DOMSource(schemaElement, getURI());
 			transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-			if (_schemas == null) {
-				_schemas = Collections.singletonMap(targetNamespace, XMLProcessorFactory.toByteArray(source, transformer));
-			} else {
-				if (_schemas.size() == 1) {
-					_schemas = new LinkedHashMap<>(_schemas);
-				}
-				_schemas.put(targetNamespace, XMLProcessorFactory.toByteArray(source, transformer));
-			}
+			_schemas = DataStructures.createOrUpdateMap(_schemas, targetNamespace, XMLProcessorFactory.toByteArray(source, transformer));
 			sources.add(source);
 		});
 	}

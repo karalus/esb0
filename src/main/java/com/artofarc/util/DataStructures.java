@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +43,18 @@ public final class DataStructures {
 
 	public static <K, V> Map<K, V> createHashMap(int size) {
 		return size == 0 ? Collections.emptyMap() : size > 12 ? new HashMap<>(size * 4 / 3) : new HashMap<>();
+	}
+
+	public static <K, V> Map<K, V> createOrUpdateMap(Map<K, V> old, K key, V value) {
+		if (old == null) {
+			return Collections.singletonMap(key, value);
+		}
+		if (old.size() == 1) {
+			// assume it is an immutable singleton map
+			old = new LinkedHashMap<>(old);
+		}
+		old.put(key, value);
+		return old;
 	}
 
 	/**
