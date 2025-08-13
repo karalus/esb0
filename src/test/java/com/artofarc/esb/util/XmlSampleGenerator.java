@@ -66,7 +66,7 @@ public final class XmlSampleGenerator extends XMLParserBase {
 			throw new SAXNotRecognizedException("Property: " + name);
 		}
 	}
-	
+
 	private void comment(String s) throws SAXException {
 		if (lexicalHandler != null) {
 			lexicalHandler.comment(s.toCharArray(), 0, s.length());
@@ -123,7 +123,7 @@ public final class XmlSampleGenerator extends XMLParserBase {
 					}
 					List<XSFacet> facets = simpleType.getFacets(XSFacet.FACET_ENUMERATION);
 					if (facets.size() > 0) {
-						ArrayList<String> values = new ArrayList<>();
+						List<String> values = new ArrayList<>();
 						for (XSFacet facet : facets) {
 							values.add(facet.getValue().value);
 						}
@@ -165,11 +165,11 @@ public final class XmlSampleGenerator extends XMLParserBase {
 		case "boolean":
 			return "false";
 		case "dateTime":
-			return "2020-08-05T07:54:45.435Z";
+			return "2020-08-05T07:54:45";
 		case "date":
 			return "2020-08-05";
 		case "time":
-			return "07:54:45Z";
+			return "07:54:45";
 		case "base64Binary":
 			return "YmluYXJ5";
 		default:
