@@ -333,15 +333,15 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		case "jdbcProcedure": {
 			JdbcProcedure jdbcProcedure = (JdbcProcedure) actionElement.getValue();
 			boolean[] posUsed = new boolean[jdbcProcedure.getIn().getParameter().size() + jdbcProcedure.getOut().getParameter().size()];
-			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getParameter(), posUsed), createJDBCParameters(jdbcProcedure.getOut().getParameter(), posUsed),
+			addAction(list, new JDBCProcedureAction(globalContext, jdbcProcedure.getDataSource(), jdbcProcedure.getSql(), createJDBCParameters(jdbcProcedure.getIn().getParameter(), posUsed, jdbcProcedure.getIn()), createJDBCParameters(jdbcProcedure.getOut().getParameter(), posUsed, jdbcProcedure.getOut()),
 					jdbcProcedure.isMoreThanOneResult(), jdbcProcedure.getMaxRows(), jdbcProcedure.getTimeout(), jdbcProcedure.getKeepConnection(), resolveSchemaSet(globalContext, jdbcProcedure.getSchemaURI())), location);
 			break;
 		}
 		case "jdbc": {
 			Jdbc jdbc = (Jdbc) actionElement.getValue();
 			boolean[] posUsed = new boolean[jdbc.getParameter().size()];
-			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getParameter(), posUsed),
-					jdbc.getGeneratedKeys(), jdbc.isMoreThanOneResult(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.getKeepConnection()), location);
+			addAction(list, new JDBCSQLAction(globalContext, jdbc.getDataSource(), jdbc.getSql(), createJDBCParameters(jdbc.getParameter(), posUsed, jdbc), jdbc.getGeneratedKeys(),
+					jdbc.isMoreThanOneResult(), jdbc.getMaxRows(), jdbc.getTimeout(), jdbc.getKeepConnection()), location);
 			break;
 		}
 		case "update": {
@@ -682,10 +682,13 @@ public final class ServiceArtifact extends AbstractServiceArtifact {
 		return assignments;
 	}
 
-	private static List<JDBCParameter> createJDBCParameters(List<Parameter> jdbcParameters, boolean[] posUsed) {
+	private List<JDBCParameter> createJDBCParameters(List<Parameter> jdbcParameters, boolean[] posUsed, Locatable locatable) throws ValidationException {
 		List<JDBCParameter> params = DataStructures.createList(jdbcParameters.size());
 		for (Parameter jdbcParameter : jdbcParameters) {
 			if (jdbcParameter.getPos() != null) {
+				if (jdbcParameter.getPos() > posUsed.length) {
+					throw new ValidationException(this, getLineNumber(locatable), "parameter pos must not be greater than total parameter count");
+				}
 				params.add(new JDBCParameter(jdbcParameter.getPos(), jdbcParameter.getType(), jdbcParameter.isFree(), jdbcParameter.isBody(),
 						jdbcParameter.isAttachments(), jdbcParameter.getVariable(), jdbcParameter.getTruncate(), jdbcParameter.getXmlElement()));
 				posUsed[jdbcParameter.getPos() - 1] = true;
