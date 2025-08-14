@@ -101,6 +101,7 @@ public final class XmlSampleGenerator extends XMLParserBase {
 				QName element = new QName(term.apply(XSOMHelper.GetNamespace), term.apply(XSOMHelper.GetName));
 				XSComplexType complexType = xsomHelper.getComplexType();
 				if (complexType != null) {
+					int prefixCount = 0;
 					for (XSAttributeUse attributeUse : complexType.getAttributeUses()) {
 						XSAttributeDecl decl = attributeUse.getDecl();
 						XSSimpleType itemType = XSOMHelper.getItemType(decl.getType());
@@ -108,7 +109,13 @@ public final class XmlSampleGenerator extends XMLParserBase {
 						String value = attributeUse.getDefaultValue() != null ? attributeUse.getDefaultValue().value
 								: attributeUse.getFixedValue() != null ? attributeUse.getFixedValue().value
 										: getSampleValue(simpleType, simpleType.getFacets(XSFacet.FACET_ENUMERATION));
-						atts.addAttribute(decl.getTargetNamespace(), decl.getName(), decl.getName(), "CDATA", value);
+						if (decl.getTargetNamespace().isEmpty()) {
+							atts.addAttribute(decl.getTargetNamespace(), decl.getName(), decl.getName(), "CDATA", value);
+						} else {
+							startPrefixMapping("ns" + ++prefixCount, decl.getTargetNamespace());
+							String qName = "ns" + prefixCount + ":" + decl.getName();
+							atts.addAttribute(decl.getTargetNamespace(), decl.getName(), qName, "CDATA", value);
+						}
 					}
 				}
 				XSSimpleType simpleType = xsomHelper.getSimpleType();
