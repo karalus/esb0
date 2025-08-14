@@ -36,6 +36,53 @@ import com.sun.xml.xsom.XSComplexType;
 import com.sun.xml.xsom.XSElementDecl;
 import com.sun.xml.xsom.XSSchemaSet;
 
+/**
+ * This class maps the attachments of an ESBMessage to an Oracle global type thus it can be used as a parameter object when calling a stored procedure.
+ * The global type should look like this:
+<p><blockquote><pre>
+create or replace TYPE ATTACHMENT_T AS OBJECT (
+  content       BLOB,
+  contentId     VARCHAR2(256),
+  contentType   VARCHAR2(256),
+  fileName      VARCHAR2(256)
+)
+/
+create or replace TYPE ATTACHMENT_CT AS TABLE OF ATTACHMENT_T
+/
+create or replace TYPE SOAP_MESSAGE_T AS OBJECT (
+  attachments ATTACHMENT_CT
+)
+/
+</pre></blockquote></p>
+The schema file must match the type definition and could look like this:
+<p><blockquote><pre>
+{@code
+<schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:db="http://www.artofarc.com/adapter/db" targetNamespace="http://www.artofarc.com/adapter/db" elementFormDefault="qualified">
+   <complexType name="ATTACHMENT_T">
+      <simpleContent>
+         <extension base="base64Binary">
+            <attribute name="contentId" type="string" use="required"/>
+            <attribute name="contentType" type="string" use="required"/>
+            <attribute name="fileName" type="string"/>
+         </extension>
+      </simpleContent>
+   </complexType>
+   <complexType name="ATTACHMENT_CT">
+      <sequence>
+         <element name="attachment" type="db:ATTACHMENT_T" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+   </complexType>
+   <complexType name="SOAP_MESSAGE_T">
+      <sequence>
+         <element name="attachments" type="db:ATTACHMENT_CT" minOccurs="0"/>
+      </sequence>
+   </complexType>
+   <element name="soapMessage" type="db:SOAP_MESSAGE_T"/>
+</schema>
+}
+</pre></blockquote></p>
+ * Type names may vary but the structure must match as the implementation depends on it. 
+ */
 public final class JDBCAttachments {
 
 	private final XSElementDecl _element;
